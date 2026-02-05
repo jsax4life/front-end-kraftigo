@@ -25,13 +25,13 @@ const Page = () => {
             onClick={() => router.push("/tasker")}
             className="w-full sm:w-auto px-12 py-4 bg-brand-blue text-white font-qurova text-lg rounded-xl hover:bg-opacity-90 transition-all"
           >
-            I&apos;m a Client
+            I&apos;m a Tasker
           </button>
           <button
-            onClick={() => router.push("/artisan")}
+            onClick={() => router.push("/user")}
             className="w-full sm:w-auto px-12 py-4 bg-brand-orange text-white font-qurova text-lg rounded-xl hover:bg-opacity-90 transition-all"
           >
-            I&apos;m an Artisan
+            I&apos;m an User
           </button>
         </div>
       </div>

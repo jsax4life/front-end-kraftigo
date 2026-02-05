@@ -1,8 +1,8 @@
 import Image from "next/image";
 
-const taskerLoad = () => {
+const TaskerLoad = () => {
   return (
-    <main className="relative w-full min-h-screen overflow-hidden bg-brand-yellow flex items-center justify-center px-4 sm:px-6 lg:px-8">
+    <main className="relative w-full min-h-screen overflow-hidden bg-white flex items-center justify-center px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-4xl mx-auto text-center space-y-8 sm:space-y-12">
         {/* Logo */}
         <div className="flex justify-center z-10">
@@ -30,4 +30,4 @@ const taskerLoad = () => {
   );
 };
 
-export default taskerLoad;
+export default TaskerLoad;

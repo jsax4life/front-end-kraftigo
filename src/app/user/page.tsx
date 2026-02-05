@@ -56,7 +56,7 @@ const Page = () => {
               <div className="space-y-3">
                 <Button
                   variant="primary"
-                  onClick={() => router.push("/artisan/createacc")}
+                  onClick={() => router.push("/user/createacc")}
                   fullWidth
                 >
                   Create account
@@ -65,7 +65,7 @@ const Page = () => {
                 <Button
                   variant="secondary"
                   fullWidth
-                  onClick={() => router.push("/artisan/login")}
+                  onClick={() => router.push("/user/login")}
                 >
                   Sign in
                 </Button>
