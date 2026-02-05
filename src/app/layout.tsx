@@ -14,6 +14,11 @@ const local = localFont({
   variable: "--font-gerat",
 });
 
+const local2 = localFont({
+  src: "./fonts/QurovaDEMO-Regular.otf",
+  variable: "--font-qurova",
+});
+
 export const metadata: Metadata = {
   title: "Kraftigo",
   description: "An artisian booking website",
@@ -27,23 +32,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${poppins.variable} ${local.variable} antialiased 
-          w-full min-h-screen flex items-center justify-center
-        `}
+        className={`${poppins.variable} ${local.variable} ${local2.variable} antialiased`}
       >
-        <main
-          className="
-            w-full               
-            h-screen             
-            max-w-md             
-            bg-white   
-            opacity-100          
-            rotate-0             
-            overflow-y-auto      
-            shadow-2xl           
-            relative             
-          "
-        >
+        <main className="w-full min-h-screen bg-white">
           {children}
         </main>
       </body>
