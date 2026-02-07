@@ -31,7 +31,7 @@ const Page = () => {
             </div>
 
             {/* Background Image */}
-            <div className="absolute -bottom-25 lg:-bottom-200 left-1/2 transform -translate-x-1/2 z-0 w-full max-w-md lg:max-w-7xl">
+            <div className="absolute -bottom-25  left-1/2 transform -translate-x-1/2 z-0 w-full max-w-md ">
               <div
                 className="w-full h-auto"
                 style={{
@@ -46,13 +46,13 @@ const Page = () => {
                   alt="artisan background"
                   width={600}
                   height={622}
-                  className="w-full h-145 lg:h-full object-contain object-bottom  "
+                  className="w-full h-145  object-contain object-bottom  "
                 />
               </div>
             </div>
 
             {/* Buttons Section */}
-            <div className="mt-auto relative z-10 w-full max-w-md mx-auto px-6">
+            <div className="mt-auto relative z-10 w-full max-w-md mx-auto px-6 lg:px-10">
               <div className="space-y-3">
                 <Button
                   variant="primary"
