@@ -15,6 +15,7 @@ const Page = () => {
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
+    phone: "",
     termsAccepted: false,
     verificationCode: ["", "", "", "", "", ""],
   });
@@ -84,9 +85,7 @@ const Page = () => {
 
   return (
     <main className="relative w-full min-h-screen bg-white flex items-center justify-center px-4 sm:px-6 lg:px-8">
-      {/* Centered Form Container */}
       <div className="w-full max-w-2xl mx-auto h-screen flex flex-col py-8">
-        {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <button
             onClick={handleBack}
@@ -120,6 +119,13 @@ const Page = () => {
                 placeholder="Enter your email"
                 value={formData.email}
                 onChange={(value) => handleInputChange("email", value)}
+                required
+              />
+              <Input
+                label="Phone Number"
+                placeholder="+1234567896"
+                value={formData.phone}
+                onChange={(value) => handleInputChange("phone", value)}
                 required
               />
             </div>
