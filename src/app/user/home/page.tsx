@@ -2,9 +2,11 @@
 
 import Image from "next/image";
 import UserNav from "@/componets/shared/userNav";
-import { MapPin, Search, ChevronRight } from "lucide-react";
+import { MapPin, Search, ChevronRight, Home, User } from "lucide-react";
 import Userabt from "@/componets/shared/userabt";
 import ProCard from "@/componets/ui/proCard";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 const Page = () => {
   const categories = [
@@ -38,6 +40,76 @@ const Page = () => {
       price: "$45.00/hr",
       image: "/images/pro.jpg",
       badge: "TOP PRO",
+    },
+  ];
+
+  const router = useRouter();
+  const [showSearchModal, setShowSearchModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const recentSearches = [
+    {
+      id: 1,
+      name: "House Cleaning",
+      icon: Home,
+      bgColor: "bg-[#0000FF33]",
+      iconColor: "text-blue-900",
+    },
+    {
+      id: 2,
+      name: "Haircut",
+      icon: User,
+      bgColor: "bg-[#FF000033]",
+      iconColor: "text-[#7C2828]",
+    },
+    {
+      id: 3,
+      name: "Body Massage",
+      icon: User,
+      bgColor: "bg-[#FF000033]",
+      iconColor: "text-[#7C2828]",
+    },
+  ];
+
+  const searchServices = [
+    {
+      id: 1,
+      name: "House Cleaning",
+      icon: Home,
+      bgColor: "bg-[#0000FF33]",
+      iconColor: "text-blue-900",
+    },
+    {
+      id: 2,
+      name: "Haircut",
+      icon: User,
+      bgColor: "bg-[#FF000033]",
+      iconColor: "text-[#7C2828]",
+    },
+    {
+      id: 3,
+      name: "Hold Spot",
+      icon: User,
+      bgColor: "bg-[#FF000033]",
+      iconColor: "text-[#7C2828]",
+    },
+  ];
+
+  const searchArtisans = [
+    {
+      id: 1,
+      name: "Heatherh Ropalanum.",
+      image: "/images/pro.jpg",
+    },
+    {
+      id: 2,
+      name: "Hannah Kane",
+      image: "/images/pro.jpg",
+    },
+    {
+      id: 3,
+      name: "Heather K",
+      image: "/images/pro.jpg",
     },
   ];
 
@@ -80,7 +152,10 @@ const Page = () => {
             </h1>
 
             {/* Search Bar */}
-            <div className="relative shadow-2xl rounded-full">
+            <div
+              className="relative shadow-2xl rounded-full cursor-pointer"
+              onClick={() => setShowSearchModal(true)}
+            >
               <Search
                 className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
                 size={20}
@@ -88,7 +163,8 @@ const Page = () => {
               <input
                 type="text"
                 placeholder="Find a plumber"
-                className="w-full pl-12 pr-4 py-4 rounded-full border border-gray-200 focus:outline-none focus:border-brand-blue text-[14px] sm:text-[16px] font-poppins"
+                className="w-full pl-12 pr-4 py-4 rounded-full border border-gray-200 focus:outline-none focus:border-brand-cream text-[14px] sm:text-[16px] font-poppins cursor-pointer"
+                readOnly
               />
             </div>
           </div>
@@ -210,6 +286,121 @@ const Page = () => {
           </div>
         </div>
       </div>
+
+      {/* Search Modal */}
+      {showSearchModal && (
+        <div className="fixed inset-0 bg-[#C0C0C0] z-60">
+          <div className="p-4 pt-6">
+            {/* Search Input */}
+            <div className="relative mb-6">
+              <Search
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                size={20}
+              />
+              <input
+                type="text"
+                placeholder="Find a plumber"
+                autoFocus
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-12 pr-4 py-4 rounded-full border-2 border-brand-orange bg-white focus:outline-none focus:border-brand-orange text-[14px] sm:text-[16px] font-poppins shadow-lg"
+              />
+            </div>
+
+            {/* Conditional Content - Show Results or Recents */}
+            {searchQuery.trim() ? (
+              // Search Results
+              <div className="bg-white rounded-2xl p-4 shadow-lg border border-[#0000001A]">
+                {/* Services Section */}
+                <div className="mb-6">
+                  <h3 className="text-[12px] font-poppins font-semibold mb-3 text-[#00000066]">
+                    Services
+                  </h3>
+                  <div>
+                    {searchServices.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => {
+                            router.push(
+                              `/user/book-service?service=${encodeURIComponent(item.name)}`
+                            );
+                            setShowSearchModal(false);
+                          }}
+                          className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                          <div
+                            className={`${item.bgColor} ${item.iconColor} w-10 h-10 rounded-lg flex items-center justify-center shrink-0`}
+                          >
+                            <Icon size={20} />
+                          </div>
+                          <span className="text-[14px] font-poppins text-gray-800">
+                            {item.name}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Artisans Section */}
+                <div>
+                  <h3 className="text-[12px] font-poppins font-semibold mb-3 text-[#00000066]">
+                    Artisans
+                  </h3>
+                  <div>
+                    {searchArtisans.map((artisan) => (
+                      <button
+                        key={artisan.id}
+                        className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        <Image
+                          src={artisan.image}
+                          alt={artisan.name}
+                          width={40}
+                          height={40}
+                          className="w-10 h-10 rounded-lg object-cover shrink-0"
+                        />
+                        <span className="text-[14px] font-poppins text-gray-800">
+                          {artisan.name}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              // Recents Section
+              <div className="bg-white rounded-2xl p-4 shadow-lg border border-[#0000001A]">
+                <h3 className="text-[12px] font-poppins font-semibold mb-3 text-[#00000066]">
+                  Recents
+                </h3>
+                <div>
+                  {recentSearches.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <button
+                        key={item.id}
+                        className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        <div
+                          className={`${item.bgColor} ${item.iconColor} w-10 h-10 rounded-lg flex items-center justify-center shrink-0`}
+                        >
+                          <Icon size={20} />
+                        </div>
+                        <span className="text-[14px] font-poppins text-gray-800">
+                          {item.name}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Bottom Navigation */}
       <UserNav />
