@@ -25,7 +25,7 @@ const Page = () => {
             onClick={() => router.push("/tasker")}
             className="w-full sm:w-auto px-12 py-4 bg-brand-blue text-white font-qurova text-lg rounded-xl hover:bg-opacity-90 transition-all"
           >
-            I&apos;m a Tasker
+            I&apos;m a Krafter
           </button>
           <button
             onClick={() => router.push("/user")}

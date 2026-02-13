@@ -3,23 +3,13 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Button from "@/componets/ui/button";
-import UserLoad from "@/componets/shared/userLoad";
 
 const Page = () => {
   const router = useRouter();
-  const isLoading = false;
+  
   return (
     <main className="relative w-full min-h-screen overflow-hidden bg-white flex items-center justify-center">
-      {/* Centered Container */}
-      {isLoading ? (
-        <>
-          <UserLoad />
-        </>
-      ) : (
-        <>
-          {" "}
-          <div className="relative w-full max-w-md lg:max-w-4xl mx-auto h-screen flex flex-col py-8">
-            {/* Logo */}
+      <div className="relative w-full max-w-md lg:max-w-4xl mx-auto h-screen flex flex-col py-8">
             <div className="flex justify-center mb-8 relative z-20 mt-20">
               <Image
                 src="/craft.svg"
@@ -51,7 +41,6 @@ const Page = () => {
               </div>
             </div>
 
-            {/* Buttons Section */}
             <div className="mt-auto relative z-10 w-full max-w-md mx-auto px-6 lg:px-10">
               <div className="space-y-3">
                 <Button
@@ -94,8 +83,6 @@ const Page = () => {
               </div>
             </div>
           </div>
-        </>
-      )}
     </main>
   );
 };

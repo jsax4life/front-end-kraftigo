@@ -1,0 +1,6 @@
+export const AUTH_CONFIG = {
+  MIN_PASSWORD_LENGTH: 6,
+  OTP_LENGTH: 6,
+  LOGIN_STEPS: 2,
+  REGISTRATION_STEPS: 3,
+} as const;

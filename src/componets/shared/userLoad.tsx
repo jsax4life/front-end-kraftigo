@@ -1,19 +1,12 @@
 import Image from "next/image";
+import Loader from "@/componets/ui/loader";
 
 const UserLoad = () => {
   return (
     <main className="relative w-full min-h-screen overflow-hidden bg-white flex items-center justify-center px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-4xl mx-auto text-center space-y-8 sm:space-y-12">
-        {/* Logo */}
-        <div className="flex justify-center z-10">
-          <Image
-            src="./craft.svg"
-            alt="logo"
-            width={244}
-            height={79}
-            className="w-48 sm:w-60 lg:w-72 h-auto -mt-20"
-          />
-        </div>
+        {/* Animated Logo Loader */}
+        <Loader />
 
         {/* Decorative Bottom Image */}
         <div className="absolute z-0 -bottom-10 left-0 w-full overflow-hidden">
