@@ -173,7 +173,6 @@ export const useAuthStore = create<AuthState>()(
             // Even if logout fails, clear local state
             console.error('Logout API error:', error)
           } finally {
-            // Always clear local state
             clearAuthState()
           }
         },
@@ -181,12 +180,11 @@ export const useAuthStore = create<AuthState>()(
         // Logout from all devices (revoke all refresh tokens)
         logoutAll: async () => {
           try {
-            // Revoke all refresh tokens on backend (requires valid accessToken)
+            // Revoke all refresh tokens on backend 
             await api.delete('/api/auth/logout-all')
           } catch (error) {
             console.error('Logout all devices API error:', error)
           } finally {
-            // Always clear local state
             clearAuthState()
           }
         },
@@ -213,7 +211,6 @@ export const useAuthStore = create<AuthState>()(
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated,
-        // Don't persist loading and error states
       }),
     }
   )

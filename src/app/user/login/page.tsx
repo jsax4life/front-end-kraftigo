@@ -86,10 +86,10 @@ const Page = () => {
 
     try {
       await loginUser(formData.email, formData.password);
-      logger.log("✅ Login successful!");
+      logger.log("Login successful!");
       router.push('/user/dashboard');
     } catch (err: any) {
-      logger.error("❌ Login failed:", err);
+      logger.error("Login failed:", err);
       logger.error("Error details:", error);
     }
   };

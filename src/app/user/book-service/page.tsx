@@ -195,7 +195,6 @@ const BookServicePage = () => {
             Add Photos
           </h2>
           <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3">
-            {/* Upload Button */}
             <button className="aspect-square bg-[#F6F6F6] border border-dashed border-[#0000001A] rounded-xl flex flex-col items-center justify-center gap-2 hover:bg-gray-200 transition-colors">
               <Camera size={24} className="text-gray-600" />
               <span className="text-[11px] sm:text-[12px] font-poppins text-gray-600">
@@ -249,7 +248,6 @@ const BookServicePage = () => {
           </div>
         </div>
 
-        {/* Next Button */}
         <div className="pt-8 sm:pt-12 lg:pt-16 pb-10">
           <Button
             variant="primary"

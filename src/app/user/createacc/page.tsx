@@ -111,10 +111,10 @@ const Page = () => {
 
     try {
       await registerUser(registrationData);
-      logger.log("✅ Registration successful!");
+      logger.log("Registration successful!");
       router.push('/user/dashboard');
     } catch (err: any) {
-      logger.error("❌ Registration failed:", err);
+      logger.error("Registration failed:", err);
       logger.error("Error details:", error);
     }
   };
@@ -148,16 +148,13 @@ const Page = () => {
                   Tell Us About You
                 </h1>
                 
-              
-                {error && <ErrorAlert message={error} />}
-                
                 <Input
                   label="Enter Your Full Name"
                   placeholder="Enter Full Name"
                   value={formData.fullName}
                   onChange={(value) => handleInputChange("fullName", value)}
                   required
-                />
+                  />
                 <Input
                   label="Email"
                   type="email"
@@ -172,7 +169,9 @@ const Page = () => {
                   value={formData.phone}
                   onChange={(value) => handleInputChange("phone", value)}
                   required
-                />
+                  />
+                  
+                {error && <ErrorAlert message={error} />}
               </div>
             )}
 

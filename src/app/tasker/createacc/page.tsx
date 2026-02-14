@@ -110,12 +110,11 @@ const Page = () => {
   // Submit form
   const handleSubmit = () => {
     console.log("Form submitted:", formData);
-    // Handle form submission here
+  
   };
 
   return (
     <main className="relative w-full min-h-screen bg-white flex items-center justify-center px-4 sm:px-6 lg:px-8">
-      {/* Centered Form Container */}
       <div className="w-full max-w-2xl mx-auto h-screen flex flex-col py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -391,12 +390,10 @@ const Page = () => {
           )}
         </div>
 
-        {/* Help Button */}
         <button className="fixed bottom-40 right-4 sm:right-6 lg:right-8 w-14 h-14 bg-white rounded-full shadow-lg flex items-center justify-center text-xl font-bold border border-gray-200 hover:shadow-xl transition-shadow">
           ?
         </button>
 
-        {/* Footer */}
         <div className="mt-auto space-y-4">
           {currentStep === 1 && (
             <div className="text-center text-[14px] font-poppins">
@@ -426,7 +423,6 @@ const Page = () => {
                   : "Continue"}
             </Button>
 
-            {/* Save draft button - shown from step 3 onwards */}
             {currentStep >= 3 && (
               <button
                 onClick={() => {

@@ -18,7 +18,7 @@ const Page = () => {
     { name: "Home repairs", image: "/images/home4.jpg" },
   ];
 
-  const pros = [
+  const pros = [ 
     {
       name: "Edith R.",
       rating: 4,
@@ -206,7 +206,6 @@ const Page = () => {
               Pro&apos;s Of The Week
             </h2>
 
-            {/* Conditional Scroll Container */}
             {pros.length > 1 ? (
               <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
                 <div className="flex gap-4">
@@ -273,7 +272,7 @@ const Page = () => {
                     </div>
                   </div>
                 </div>
-                {/* Appointment Image */}
+               
                 <Image
                   src="/images/pro.jpg"
                   alt="Sarah M."
@@ -291,7 +290,7 @@ const Page = () => {
       {showSearchModal && (
         <div className="fixed inset-0 bg-[#C0C0C0] z-60">
           <div className="p-4 pt-6">
-            {/* Search Input */}
+           
             <div className="relative mb-6">
               <Search
                 className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
@@ -309,7 +308,6 @@ const Page = () => {
 
             {/* Conditional Content - Show Results or Recents */}
             {searchQuery.trim() ? (
-              // Search Results
               <div className="bg-white rounded-2xl p-4 shadow-lg border border-[#0000001A]">
                 {/* Services Section */}
                 <div className="mb-6">

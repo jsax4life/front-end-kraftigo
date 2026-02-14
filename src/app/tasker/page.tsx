@@ -30,7 +30,6 @@ const Page = () => {
           <div className="flex-1 flex items-center justify-center relative mb-8">
             {/* Container for main image and circular profiles */}
             <div className="relative w-full max-w-sm">
-              {/* Main delivery image */}
               <div className="relative z-10 rounded-tl-full rounded-tr-full overflow-hidden shadow-lg mx-7 -mt-20 ">
                 <Image
                   src="/images/log5.jpg"
@@ -41,7 +40,6 @@ const Page = () => {
                 />
               </div>
 
-              {/* Circular profile images positioned around main image */}
               {/* Top Left */}
               <div className="absolute -top-34 right-4 w-17 h-17 rounded-full overflow-hidden shadow-lg z-20">
                 <Image
