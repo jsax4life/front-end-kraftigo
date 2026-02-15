@@ -30,7 +30,7 @@ const SelectArtisanPage = () => {
     searchParams.get("address") || "Hauptstraße 123 - 10115, Berlin";
   const date = searchParams.get("date") || "16th Jan, 2026";
 
-  const [selectedArtisan, setSelectedArtisan] = useState<number | null>(null);
+  // const [selectedArtisan, setSelectedArtisan] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
 
   const artisans: Artisan[] = [
@@ -119,7 +119,7 @@ const SelectArtisanPage = () => {
               onClick={() => router.back()}
               className="w-fit px-3 py-2.5 text-xs sm:text-sm bg-brand-orange text-white rounded-full flex items-center justify-center cursor-pointer hover:bg-orange-600 transition-colors"
             >
-              Tasker
+              Krafter
             </span>
             <span className="w-9 h-9 bg-white font-bold rounded-full text-[#00000066] flex items-center justify-center text-sm">
               4
@@ -183,7 +183,7 @@ const SelectArtisanPage = () => {
       </div>
 
       {/* Content */}
-      <div className="max-w-3xl mx-auto  pb-24">
+      <div className="max-w-4xl mx-auto  pb-24">
         {/* Post to Community */}
         <div className="bg-[#F6F6F6] rounded-2xl p-4 sm:p-5 mb-6 border border-[#0000001A] relative mx-4">
           <div className="flex items-start gap-3">
@@ -202,6 +202,7 @@ const SelectArtisanPage = () => {
                 <Button
                   variant="primary"
                   className="text-[13px] sm:text-[14px] py-2.5 px-4 inline-flex items-center gap-2"
+                  onClick={() => router.push('/user/book-service/select-artisan/publicTask')}
                 >
                   <p>Post public task</p>
                   <Image
@@ -234,7 +235,7 @@ const SelectArtisanPage = () => {
             className="bg-[#FF66001A] w-fit p-2 hover:bg-[#FF66002A] transition-colors rounded"
           >
             <Image
-              src="/group.svg"
+              src={viewMode === "list" ? "/group.svg" : "/grid.svg"}
               alt="toggle view"
               width={18}
               height={18}
@@ -259,7 +260,7 @@ const SelectArtisanPage = () => {
 
         {/* Artisan Cards - Grid View */}
         {viewMode === "grid" && (
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 px-2">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 px-2 relative">
             {artisans.map((artisan) => (
               <ArtisanGridCard
                 key={artisan.id}
@@ -267,6 +268,16 @@ const SelectArtisanPage = () => {
                 onSelect={handleSelectArtisan}
               />
             ))}
+            <div className="flex items-center justify-center gap-2 bg-brand-orange w-66 h-10 rounded-full cursor-pointer hover:bg-orange-600 transition-colors absolute top-70 left-1/2 transform -translate-x-1/2">
+             <Image
+              src='/double.svg'
+              alt="toggle view"
+              width={15}
+              height={15}
+              className=""
+            />
+              <span className="text-xs font-poppins text-white">Compare Krafter (2)</span>
+            </div>
           </div>
         )}
       </div>

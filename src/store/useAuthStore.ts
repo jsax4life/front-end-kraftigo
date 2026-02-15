@@ -14,7 +14,10 @@ interface AuthState {
 
   // User Actions
   loginUser: (email: string, password: string) => Promise<void>
-  registerUser: (userData: Omit<user, 'role'>) => Promise<void>
+  registerUser: (userData: Omit<user, 'role'>) => Promise<{ verificationRequired: boolean; message: string }>
+  verifyEmail: (email: string, code: string) => Promise<void>
+  resendVerificationCode: (email: string) => Promise<string>
+  loginWithGoogle: (idToken: string) => Promise<void>
   
   // Tasker Actions
   loginTasker: (email: string, password: string) => Promise<void>
@@ -83,16 +86,91 @@ export const useAuthStore = create<AuthState>()(
         registerUser: async (userData) => {
           set({ isLoading: true, error: null })
           try {
-            // Backend expects: email, password, role, phone
+            // Backend expects: email, password, role, phone, hasAcceptedTerms
             const response = await api.post('/api/auth/register', {
               email: userData.email,
               password: userData.password,
               role: 'CUSTOMER',
               phone: userData.phone,
+              hasAcceptedTerms: userData.hasAcceptedTerms,
             })
+            
+            const { user, verificationRequired, message } = response.data
+            
+            set({
+              user,
+              accessToken: null,
+              refreshToken: null,
+              isAuthenticated: false,
+              isLoading: false,
+            })
+            
+            return { verificationRequired, message }
+          } catch (error: any) {
+            set({
+              error: error.response?.data?.message || 'Registration failed',
+              isLoading: false,
+            })
+            throw error
+          }
+        },
+
+        // Email Verification
+        verifyEmail: async (email: string, code: string) => {
+          set({ isLoading: true, error: null })
+          try {
+            const response = await api.post('/api/auth/verify-email', {
+              email,
+              code,
+            })
+            
+            const { user, message } = response.data
+            
+            set({
+              user,
+              isLoading: false,
+            })
+            
+            return message
+          } catch (error: any) {
+            set({
+              error: error.response?.data?.message || 'Verification failed',
+              isLoading: false,
+            })
+            throw error
+          }
+        },
+
+        // Resend Verification Code
+        resendVerificationCode: async (email: string) => {
+          set({ isLoading: true, error: null })
+          try {
+            const response = await api.post('/api/auth/resend-verification', {
+              email,
+            })
+            
+            const { message } = response.data
+            
+            set({ isLoading: false })
+            
+            return message
+          } catch (error: any) {
+            set({
+              error: error.response?.data?.message || 'Verification failed',
+              isLoading: false,
+            })
+            throw error
+          }
+        },
+
+        // Google OAuth Login/Signup
+        loginWithGoogle: async (idToken: string) => {
+          set({ isLoading: true, error: null })
+          try {
+            const response = await api.post('/api/auth/google', { idToken })
             const { user, accessToken, refreshToken } = response.data
             
-            updateCachedToken(accessToken) // Update axios cache
+            updateCachedToken(accessToken)
             set({
               user,
               accessToken,
@@ -102,7 +180,7 @@ export const useAuthStore = create<AuthState>()(
             })
           } catch (error: any) {
             set({
-              error: error.response?.data?.message || 'Registration failed',
+              error: error.response?.data?.message || 'Google authentication failed',
               isLoading: false,
             })
             throw error

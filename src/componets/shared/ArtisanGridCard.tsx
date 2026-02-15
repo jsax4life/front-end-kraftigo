@@ -27,8 +27,8 @@ const ArtisanGridCard = ({ artisan, onSelect }: ArtisanGridCardProps) => {
         <Image
           src={artisan.profileImage}
           alt={artisan.name}
-          width={200}
-          height={200}
+          width={400}
+          height={400}
           className="w-full h-48 object-cover rounded-xl"
         />
         {/* Availability Badge */}

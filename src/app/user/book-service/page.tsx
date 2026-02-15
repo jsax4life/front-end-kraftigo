@@ -67,7 +67,7 @@ const BookServicePage = () => {
               onClick={() => router.back()}
               className="w-fit px-3 py-2.5 text-xs sm:text-sm bg-brand-orange text-white rounded-full flex items-center justify-center cursor-pointer hover:bg-orange-600 transition-colors"
             >
-              Task Details
+              Kraft Details
             </span>
             <span className="w-9 h-9 bg-white font-bold rounded-full text-[#00000066] flex items-center justify-center text-sm">
               3

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Input from "@/componets/ui/input";
 import Button from "@/componets/ui/button";
@@ -10,15 +10,17 @@ import Loader from "@/componets/ui/loader";
 import { useOTPInput } from "@/hooks/useOTPInput";
 import { isValidEmail, isValidPassword, passwordsMatch, isNotEmpty } from "@/utils/validation";
 import { logger } from "@/utils/logger";
-import { ErrorAlert, WarningAlert } from "@/componets/ui/ErrorAlert";
 import { Checkbox } from "@/componets/ui/Checkbox";
 import { AUTH_CONFIG } from "@/constants/auth";
+import toast from "react-hot-toast";
 
 const Page = () => {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = AUTH_CONFIG.REGISTRATION_STEPS;
-  const { registerUser, isLoading, error, clearError } = useAuthStore();
+  const { registerUser, verifyEmail, resendVerificationCode, isLoading, error, clearError } = useAuthStore();
+  const [registrationComplete, setRegistrationComplete] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
 
   // Form data state
   const [formData, setFormData] = useState({
@@ -31,12 +33,18 @@ const Page = () => {
   });
 
   // OTP hook for future use
-  const { code: verificationCode, handleCodeChange, handleKeyDown } = useOTPInput(AUTH_CONFIG.OTP_LENGTH);
+  const { code: verificationCode, handleCodeChange, handleKeyDown, reset: resetCode } = useOTPInput(AUTH_CONFIG.OTP_LENGTH);
+
+  // Countdown timer for resend
+  useEffect(() => {
+    if (resendTimer > 0) {
+      const timer = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendTimer]);
 
   const handleInputChange = (field: string, value: string | boolean) => {
-    
     if (error) clearError();
-    
     setFormData((prev) => ({
       ...prev,
       [field]: value,
@@ -61,6 +69,8 @@ const Page = () => {
         );
       case 3:
         return formData.termsAccepted;
+      case 4:
+        return verificationCode.every((digit) => digit !== "");
       default:
         return false;
     }
@@ -68,16 +78,28 @@ const Page = () => {
 
   // Navigate to next step
   const handleNext = () => {
-    // Skip OTP step (step 4) since backend hasn't implemented it yet
     if (currentStep < 3) {
+      // Validate Step 2 (password) before proceeding
+      if (currentStep === 2) {
+        if (!isValidPassword(formData.password, AUTH_CONFIG.MIN_PASSWORD_LENGTH)) {
+          toast.error("Password must be at least 6 characters");
+          return;
+        }
+        if (!passwordsMatch(formData.password, formData.confirmPassword)) {
+          toast.error("Passwords do not match");
+          return;
+        }
+      }
       setCurrentStep(currentStep + 1);
-    } else {
-      // Submit form on step 3 (after terms acceptance)
+    } else if (currentStep === 3) {
+      // Submit registration on step 3 (after terms acceptance)
       handleSubmit();
+    } else if (currentStep === 4) {
+      // Verify email on step 4
+      handleVerifyEmail();
     }
   };
 
-  // Navigate to previous step
   const handleBack = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
@@ -88,14 +110,9 @@ const Page = () => {
 
   // Submit form
   const handleSubmit = async () => {
-    // Validation
+    // Basic validation (should already be validated by step progression)
     if (!isNotEmpty(formData.fullName) || !isNotEmpty(formData.email) || !isNotEmpty(formData.phone) || !isNotEmpty(formData.password)) {
-      logger.error("All fields are required");
-      return;
-    }
-
-    if (!passwordsMatch(formData.password, formData.confirmPassword)) {
-      logger.error("Passwords do not match");
+      toast.error("All fields are required");
       return;
     }
 
@@ -105,17 +122,61 @@ const Page = () => {
       password: formData.password,
       phone: formData.phone,
       fullName: formData.fullName,
+      hasAcceptedTerms: formData.termsAccepted,
     };
 
     logger.log("Submitting registration data:", registrationData);
 
     try {
-      await registerUser(registrationData);
-      logger.log("Registration successful!");
-      router.push('/user/dashboard');
+      const result = await registerUser(registrationData);
+      logger.log("Registration successful!", result);
+      
+      // Save fullName to localStorage since backend doesn't store it
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('kraftigo_user_fullName', formData.fullName);
+      }
+      
+      toast.success(result.message || "Registration successful! Please check your email.");
+      
+      // Mark registration as complete and move to OTP step
+      setRegistrationComplete(true);
+      setCurrentStep(4);
     } catch (err: any) {
+      // Error already shown by auth store, but we can add custom handling
       logger.error("Registration failed:", err);
-      logger.error("Error details:", error);
+    }
+  };
+
+  // Verify email with OTP
+  const handleVerifyEmail = async () => {
+    const otpCode = verificationCode.join("");
+    logger.log("Verifying email with code:", otpCode);
+
+    try {
+      await verifyEmail(formData.email, otpCode);
+      logger.log("Email verified successfully!");
+      
+      router.push('/user/login?verified=true');
+    } catch (err: any) {
+      logger.error("Verification failed:", err);
+    }
+  };
+
+  // Resend verification code
+  const handleResendCode = async () => {
+    if (resendTimer > 0) return;
+    
+    logger.log("Resending verification code to:", formData.email);
+    
+    try {
+      const message = await resendVerificationCode(formData.email);
+      logger.log("Resend successful:", message);
+      
+      toast.success(message);
+      setResendTimer(60);
+      resetCode();
+    } catch (err: any) {
+      logger.error("Resend failed:", err);
     }
   };
 
@@ -170,8 +231,6 @@ const Page = () => {
                   onChange={(value) => handleInputChange("phone", value)}
                   required
                   />
-                  
-                {error && <ErrorAlert message={error} />}
               </div>
             )}
 
@@ -181,15 +240,6 @@ const Page = () => {
                 <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-8">
                   Create Password
                 </h1>
-                
-              
-                {formData.password && !isValidPassword(formData.password, AUTH_CONFIG.MIN_PASSWORD_LENGTH) && (
-                  <WarningAlert message="Password must be at least 6 characters" />
-                )}
-                
-                {formData.password && formData.confirmPassword && !passwordsMatch(formData.password, formData.confirmPassword) && (
-                  <ErrorAlert message="Passwords do not match" />
-                )}
                 
                 <Input
                   label="Password"
@@ -219,12 +269,10 @@ const Page = () => {
                   Terms Of Use
                 </h1>
 
-              
                 <div className="min-h-75 mb-8">
                   
                 </div>
 
-              
                 <Checkbox
                   checked={formData.termsAccepted}
                   onChange={(checked) => handleInputChange("termsAccepted", checked)}
@@ -263,10 +311,25 @@ const Page = () => {
                   ))}
                 </div>
 
-                <p className="text-[14px] font-poppins text-gray-600 text-center">
-                  Resend code in{" "}
-                  <span className="font-semibold text-gray-900">00:57</span>
-                </p>
+                {/* Resend Code */}
+                <div className="text-center">
+                  {resendTimer > 0 ? (
+                    <p className="text-[14px] font-poppins text-gray-600">
+                      Resend code in{" "}
+                      <span className="font-semibold text-gray-900">
+                        00:{resendTimer.toString().padStart(2, "0")}
+                      </span>
+                    </p>
+                  ) : (
+                    <button
+                      onClick={handleResendCode}
+                      disabled={isLoading}
+                      className="text-[14px] font-poppins text-brand-orange font-semibold hover:underline disabled:opacity-50"
+                    >
+                      Resend code
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -297,7 +360,7 @@ const Page = () => {
                 fullWidth
                 disabled={!isStepValid()}
               >
-                {currentStep === totalSteps ? "Submit" : "Continue"}
+                {currentStep === 4 ? "Verify Email" : currentStep === totalSteps ? "Submit" : "Continue"}
               </Button>
             </div>
           </div>

@@ -6,4 +6,5 @@ export type user = {
     password?: string;
     roles?: string[]; 
     status?: 'PENDING_VERIFICATION' | 'ACTIVE' | 'SUSPENDED';
+    hasAcceptedTerms?: boolean;
 }
