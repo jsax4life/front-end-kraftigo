@@ -3,7 +3,7 @@ import { ChevronDown } from "lucide-react";
 
 
 interface SelectProps {
-  label: string;
+  label?: string;
   value: string;
   onChange: (value: string) => void;
   options: { value: string; label: string }[];

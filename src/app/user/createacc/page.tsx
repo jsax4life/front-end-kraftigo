@@ -8,7 +8,12 @@ import { ArrowLeft } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import Loader from "@/componets/ui/loader";
 import { useOTPInput } from "@/hooks/useOTPInput";
-import { isValidEmail, isValidPassword, passwordsMatch, isNotEmpty } from "@/utils/validation";
+import {
+  isValidEmail,
+  isValidPassword,
+  passwordsMatch,
+  isNotEmpty,
+} from "@/utils/validation";
 import { logger } from "@/utils/logger";
 import { Checkbox } from "@/componets/ui/Checkbox";
 import { AUTH_CONFIG } from "@/constants/auth";
@@ -18,7 +23,14 @@ const Page = () => {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = AUTH_CONFIG.REGISTRATION_STEPS;
-  const { registerUser, verifyEmail, resendVerificationCode, isLoading, error, clearError } = useAuthStore();
+  const {
+    registerUser,
+    verifyEmail,
+    resendVerificationCode,
+    isLoading,
+    error,
+    clearError,
+  } = useAuthStore();
   const [registrationComplete, setRegistrationComplete] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
 
@@ -33,7 +45,12 @@ const Page = () => {
   });
 
   // OTP hook for future use
-  const { code: verificationCode, handleCodeChange, handleKeyDown, reset: resetCode } = useOTPInput(AUTH_CONFIG.OTP_LENGTH);
+  const {
+    code: verificationCode,
+    handleCodeChange,
+    handleKeyDown,
+    reset: resetCode,
+  } = useOTPInput(AUTH_CONFIG.OTP_LENGTH);
 
   // Countdown timer for resend
   useEffect(() => {
@@ -51,7 +68,7 @@ const Page = () => {
     }));
   };
 
-  // Check if current step is valid
+  // Check if current step is valid (for button disable state)
   const isStepValid = () => {
     switch (currentStep) {
       case 1:
@@ -62,10 +79,10 @@ const Page = () => {
           isValidEmail(formData.email)
         );
       case 2:
+        // For password step, only check if fields are not empty
+        // Don't disable button for validation - let user click and see error toast
         return (
-          isValidPassword(formData.password, AUTH_CONFIG.MIN_PASSWORD_LENGTH) &&
-          isValidPassword(formData.confirmPassword, AUTH_CONFIG.MIN_PASSWORD_LENGTH) &&
-          passwordsMatch(formData.password, formData.confirmPassword)
+          isNotEmpty(formData.password) && isNotEmpty(formData.confirmPassword)
         );
       case 3:
         return formData.termsAccepted;
@@ -81,7 +98,9 @@ const Page = () => {
     if (currentStep < 3) {
       // Validate Step 2 (password) before proceeding
       if (currentStep === 2) {
-        if (!isValidPassword(formData.password, AUTH_CONFIG.MIN_PASSWORD_LENGTH)) {
+        if (
+          !isValidPassword(formData.password, AUTH_CONFIG.MIN_PASSWORD_LENGTH)
+        ) {
           toast.error("Password must be at least 6 characters");
           return;
         }
@@ -111,7 +130,12 @@ const Page = () => {
   // Submit form
   const handleSubmit = async () => {
     // Basic validation (should already be validated by step progression)
-    if (!isNotEmpty(formData.fullName) || !isNotEmpty(formData.email) || !isNotEmpty(formData.phone) || !isNotEmpty(formData.password)) {
+    if (
+      !isNotEmpty(formData.fullName) ||
+      !isNotEmpty(formData.email) ||
+      !isNotEmpty(formData.phone) ||
+      !isNotEmpty(formData.password)
+    ) {
       toast.error("All fields are required");
       return;
     }
@@ -130,20 +154,27 @@ const Page = () => {
     try {
       const result = await registerUser(registrationData);
       logger.log("Registration successful!", result);
-      
+
       // Save fullName to localStorage since backend doesn't store it
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('kraftigo_user_fullName', formData.fullName);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("kraftigo_user_fullName", formData.fullName);
       }
-      
-      toast.success(result.message || "Registration successful! Please check your email.");
-      
+
+      toast.success(
+        result.message || "Registration successful! Please check your email.",
+      );
+
       // Mark registration as complete and move to OTP step
       setRegistrationComplete(true);
       setCurrentStep(4);
     } catch (err: any) {
-      // Error already shown by auth store, but we can add custom handling
       logger.error("Registration failed:", err);
+      // Show error toast to user
+      const errorMessage =
+        err.response?.data?.message ||
+        error ||
+        "Registration failed. Please try again.";
+      toast.error(errorMessage);
     }
   };
 
@@ -155,28 +186,42 @@ const Page = () => {
     try {
       await verifyEmail(formData.email, otpCode);
       logger.log("Email verified successfully!");
-      
-      router.push('/user/login?verified=true');
+
+      toast.success("Email verified successfully! Redirecting to login...");
+
+      router.push("/user/login?verified=true");
     } catch (err: any) {
       logger.error("Verification failed:", err);
+
+      const errorMessage =
+        err.response?.data?.message ||
+        error ||
+        "Verification failed. Please check your code and try again.";
+      toast.error(errorMessage);
     }
   };
 
   // Resend verification code
   const handleResendCode = async () => {
     if (resendTimer > 0) return;
-    
+
     logger.log("Resending verification code to:", formData.email);
-    
+
     try {
       const message = await resendVerificationCode(formData.email);
       logger.log("Resend successful:", message);
-      
+
       toast.success(message);
       setResendTimer(60);
       resetCode();
     } catch (err: any) {
       logger.error("Resend failed:", err);
+
+      const errorMessage =
+        err.response?.data?.message ||
+        error ||
+        "Failed to resend code. Please try again.";
+      toast.error(errorMessage);
     }
   };
 
@@ -208,14 +253,14 @@ const Page = () => {
                 <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-8">
                   Tell Us About You
                 </h1>
-                
+
                 <Input
                   label="Enter Your Full Name"
                   placeholder="Enter Full Name"
                   value={formData.fullName}
                   onChange={(value) => handleInputChange("fullName", value)}
                   required
-                  />
+                />
                 <Input
                   label="Email"
                   type="email"
@@ -230,7 +275,7 @@ const Page = () => {
                   value={formData.phone}
                   onChange={(value) => handleInputChange("phone", value)}
                   required
-                  />
+                />
               </div>
             )}
 
@@ -240,7 +285,7 @@ const Page = () => {
                 <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-8">
                   Create Password
                 </h1>
-                
+
                 <Input
                   label="Password"
                   type="password"
@@ -269,13 +314,13 @@ const Page = () => {
                   Terms Of Use
                 </h1>
 
-                <div className="min-h-75 mb-8">
-                  
-                </div>
+                <div className="min-h-75 mb-8"></div>
 
                 <Checkbox
                   checked={formData.termsAccepted}
-                  onChange={(checked) => handleInputChange("termsAccepted", checked)}
+                  onChange={(checked) =>
+                    handleInputChange("termsAccepted", checked)
+                  }
                   label="Send me updates and newsletters about Kraftigo services & products"
                 />
               </div>
@@ -360,7 +405,11 @@ const Page = () => {
                 fullWidth
                 disabled={!isStepValid()}
               >
-                {currentStep === 4 ? "Verify Email" : currentStep === totalSteps ? "Submit" : "Continue"}
+                {currentStep === 4
+                  ? "Verify Email"
+                  : currentStep === totalSteps
+                    ? "Submit"
+                    : "Continue"}
               </Button>
             </div>
           </div>

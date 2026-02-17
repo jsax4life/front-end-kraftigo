@@ -110,8 +110,8 @@ const Page = () => {
           <Input
             placeholder="$ 0.00"
             value={formData.amount}
-            onChange={(e) =>
-              setFormData({ ...formData, amount: e.target.value })
+            onChange={(value) =>
+              setFormData({ ...formData, amount: value })
             }
             className="mb-4"
           />

@@ -5,16 +5,18 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import ProgressStepper from "../components/ProgressStepper";
 import AddressModal from "@/componets/shared/AddressModal";
+import { useAddressStore } from "@/store/useAddressStore";
 
 const Page = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [savedAddress, setSavedAddress] = useState("Hauptstraße 123 - 10115, Berlin");
+  // Use address store
+  const { addresses, currentAddress, selectAddress, addAddress, getCurrentLocation } = useAddressStore();
+  
   const [bookingHours, setBookingHours] = useState(1);
   const [frequency, setFrequency] = useState("Just Once");
   const [showAddressModal, setShowAddressModal] = useState(false);
-  const [selectedAddressId, setSelectedAddressId] = useState("home");
 
   // Load previous data from URL params
   const [previousData, setPreviousData] = useState({
@@ -50,7 +52,7 @@ const Page = () => {
     // Save to localStorage as draft
     const formData = {
       ...previousData,
-      savedAddress,
+      savedAddress: currentAddress,
       bookingHours,
       frequency,
     };
@@ -62,7 +64,7 @@ const Page = () => {
       category: previousData.category,
       date: previousData.date,
       time: previousData.time,
-      address: savedAddress,
+      address: currentAddress,
       hours: bookingHours.toString(),
       frequency,
     });
@@ -72,7 +74,7 @@ const Page = () => {
   const handleSaveDraft = () => {
     const formData = {
       ...previousData,
-      savedAddress,
+      savedAddress: currentAddress,
       bookingHours,
       frequency,
     };
@@ -110,7 +112,7 @@ const Page = () => {
                 <div className="w-3 h-3 bg-gray-900 rounded-full" />
               </div>
               <span className="text-[14px] font-poppins text-gray-900">
-                {savedAddress}
+                {currentAddress}
               </span>
             </div>
             <button 
@@ -203,18 +205,17 @@ const Page = () => {
       <AddressModal
         isOpen={showAddressModal}
         onClose={() => setShowAddressModal(false)}
-        selectedAddressId={selectedAddressId}
-        onSelectAddress={(addressId, address) => {
-          setSelectedAddressId(addressId);
-          setSavedAddress(address);
+        savedAddresses={addresses}
+        onSelectAddress={(addressId) => {
+          selectAddress(addressId);
+          setShowAddressModal(false);
         }}
         onAddNewAddress={(label, address) => {
-          console.log("New address added:", label, address);
-          setSavedAddress(address);
+          addAddress(label, address);
+          setShowAddressModal(false);
         }}
-        onUseCurrentLocation={() => {
-          console.log("Using current location");
-          setSavedAddress("Current Location");
+        onUseCurrentLocation={async () => {
+          await getCurrentLocation();
           setShowAddressModal(false);
         }}
       />

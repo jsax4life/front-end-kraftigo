@@ -178,7 +178,7 @@ const Page = () => {
           <Input
             placeholder="Promo Code"
             value={promoCode}
-            onChange={(e) => setPromoCode(e.target.value)}
+            onChange={setPromoCode}
             className="flex-1"
           />
           <button className="absolute right-2 top-1/2 mt-1 transform -translate-y-1/2 px-6 py-2 bg-[#FFE5D9] text-brand-orange text-[14px] sm:text-[15px] font-poppins font-semibold rounded-lg hover:bg-[#FFD5C2] transition-colors">

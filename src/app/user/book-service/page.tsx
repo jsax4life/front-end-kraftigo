@@ -298,9 +298,12 @@ const BookServicePage = () => {
         onClose={() => setShowAddressModal(false)}
         savedAddresses={savedAddresses}
         selectedAddressId={selectedAddress}
-        onSelectAddress={(addressId, address) => {
+        onSelectAddress={(addressId) => {
           setSelectedAddress(addressId);
-          setFormData({ ...formData, address });
+          const address = savedAddresses.find((addr) => addr.id === addressId);
+          if (address) {
+            setFormData({ ...formData, address: address.address });
+          }
         }}
         onAddNewAddress={(label, address) => {
           console.log("New address added:", label, address);

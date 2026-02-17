@@ -11,12 +11,14 @@ import Loader from "@/componets/ui/loader";
 import { useOTPInput } from "@/hooks/useOTPInput";
 import { isValidEmail, isNotEmpty } from "@/utils/validation";
 import { logger } from "@/utils/logger";
-import { ErrorAlert } from "@/componets/ui/ErrorAlert";
 import { AUTH_CONFIG } from "@/constants/auth";
+import toast from "react-hot-toast";
+import { useGoogleLogin } from "@react-oauth/google";
 
 const Page = () => {
   const router = useRouter();
-  const { loginUser, isLoading, error, clearError } = useAuthStore();
+  const { loginUser, loginWithGoogle, isLoading, error, clearError } =
+    useAuthStore();
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = AUTH_CONFIG.LOGIN_STEPS;
 
@@ -27,16 +29,47 @@ const Page = () => {
   });
 
   // OTP hook for future use
-  const { code: verificationCode, handleCodeChange, handleKeyDown } = useOTPInput(AUTH_CONFIG.OTP_LENGTH);
+  const {
+    code: verificationCode,
+    handleCodeChange,
+    handleKeyDown,
+  } = useOTPInput(AUTH_CONFIG.OTP_LENGTH);
 
   const handleInputChange = (field: string, value: string | boolean) => {
     if (error) clearError();
-    
+
     setFormData((prev) => ({
       ...prev,
       [field]: value,
     }));
   };
+
+  // Initialize Google OAuth login
+  const googleLogin = useGoogleLogin({
+    flow: "implicit", // This returns an ID token instead of access token
+    onSuccess: async (tokenResponse: any) => {
+      logger.log("Google login initiated");
+
+      try {
+        // tokenResponse.access_token is actually the ID token in implicit flow
+        await loginWithGoogle(tokenResponse.access_token);
+        logger.log("Google login successful!");
+        toast.success("Login successful! Welcome back.");
+        router.push("/user/home");
+      } catch (err: any) {
+        logger.error("Google login failed:", err);
+        const errorMessage =
+          err.response?.data?.message ||
+          error ||
+          "Google login failed. Please try again.";
+        toast.error(errorMessage);
+      }
+    },
+    onError: () => {
+      logger.error("Google login error");
+      toast.error("Google login failed. Please try again.");
+    },
+  });
 
   // Check if current step is valid
   const isStepValid = () => {
@@ -79,18 +112,29 @@ const Page = () => {
   const handleSubmit = async () => {
     if (!isStepValid()) {
       logger.error("Please fill in all fields correctly");
+      toast.error("Please fill in all fields correctly");
       return;
     }
 
-    logger.log("Submitting login data:", { email: formData.email, password: "***" });
+    logger.log("Submitting login data:", {
+      email: formData.email,
+      password: "***",
+    });
 
     try {
       await loginUser(formData.email, formData.password);
       logger.log("Login successful!");
-      router.push('/user/home');
+      toast.success("Login successful! Welcome back.");
+
+      router.push("/user/home");
     } catch (err: any) {
       logger.error("Login failed:", err);
-      logger.error("Error details:", error);
+
+      const errorMessage =
+        err.response?.data?.message ||
+        error ||
+        "Login failed. Please check your credentials.";
+      toast.error(errorMessage);
     }
   };
 
@@ -122,9 +166,7 @@ const Page = () => {
                 <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-8">
                   Welcome Back
                 </h1>
-                
-                {error && <ErrorAlert message={error} />}
-                
+
                 <Input
                   label="Email"
                   type="email"
@@ -144,7 +186,10 @@ const Page = () => {
                     Or sign in with
                   </div>
                   <div className="flex gap-4 justify-center pb-4">
-                    <button className="w-14 h-14 bg-white border border-[#0000001A] rounded-xl flex items-center justify-center hover:bg-gray-50 transition-all shadow-sm">
+                    <button
+                      onClick={() => googleLogin()}
+                      className="w-14 h-14 bg-white border border-[#0000001A] rounded-xl flex items-center justify-center hover:bg-gray-50 transition-all shadow-sm"
+                    >
                       <Image
                         src="/google.svg"
                         alt="Google"

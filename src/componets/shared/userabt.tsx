@@ -6,15 +6,22 @@ import { useState } from "react";
 import Button from "@/componets/ui/button";
 import Select from "../ui/select";
 import AddressModal from "./AddressModal";
+import { useAddressStore } from "@/store/useAddressStore";
 
 const Userabt = () => {
   const [showAddressModal, setShowAddressModal] = useState(false);
-  const [selectedAddressId, setSelectedAddressId] = useState("home");
-  const [savedAddress, setSavedAddress] = useState(
-    "Hauptstraße 123 - 10115, Berlin",
-  );
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [flag, setFlag] = useState("/flag.svg");
+
+  // Address store
+  const {
+    addresses,
+    selectedAddressId,
+    currentAddress,
+    selectAddress,
+    addAddress,
+    getCurrentLocation,
+  } = useAddressStore();
 
   const handleInputChange = (field: string, value: string | boolean) => {
     // setFlag((prev) => ({
@@ -33,7 +40,7 @@ const Userabt = () => {
               onClick={() => setShowAddressModal(true)}
             >
               <MapPin size={16} className="text-gray-600" />
-              <span className="text-gray-800">84th Str, Berlin, Germany</span>
+              <span className="text-gray-800">{currentAddress}</span>
               <ChevronDown size={16} className="text-gray-600" />
             </div>
 
@@ -59,18 +66,17 @@ const Userabt = () => {
       <AddressModal
         isOpen={showAddressModal}
         onClose={() => setShowAddressModal(false)}
-        selectedAddressId={selectedAddressId}
-        onSelectAddress={(addressId, address) => {
-          setSelectedAddressId(addressId);
-          setSavedAddress(address);
+        savedAddresses={addresses}
+        selectedAddressId={selectedAddressId || ""}
+        onSelectAddress={(addressId) => {
+          selectAddress(addressId);
         }}
         onAddNewAddress={(label, address) => {
-          console.log("New address added:", label, address);
-          setSavedAddress(address);
+          addAddress(label, address);
+          setShowAddressModal(false);
         }}
-        onUseCurrentLocation={() => {
-          console.log("Using current location");
-          setSavedAddress("Current Location");
+        onUseCurrentLocation={async () => {
+          await getCurrentLocation();
           setShowAddressModal(false);
         }}
       />

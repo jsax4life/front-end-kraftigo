@@ -13,9 +13,9 @@ interface Address {
 interface AddressModalProps {
   isOpen: boolean;
   onClose: () => void;
-  savedAddresses?: Address[];
+  savedAddresses: Address[]; // Now required, no default value
   selectedAddressId?: string;
-  onSelectAddress?: (addressId: string, address: string) => void;
+  onSelectAddress?: (addressId: string) => void; // Simplified signature
   onAddNewAddress?: (label: string, address: string) => void;
   onUseCurrentLocation?: () => void;
 }
@@ -23,19 +23,8 @@ interface AddressModalProps {
 const AddressModal = ({
   isOpen,
   onClose,
-  savedAddresses = [
-    {
-      id: "home",
-      label: "Home",
-      address: "2383 Timber Oak Drive Circuit",
-    },
-    {
-      id: "granny",
-      label: "Granny's House",
-      address: "2383 Timber Oak Drive Circuit",
-    },
-  ],
-  selectedAddressId = "home",
+  savedAddresses, // No default value
+  selectedAddressId = "",
   onSelectAddress,
   onAddNewAddress,
   onUseCurrentLocation,
@@ -49,9 +38,8 @@ const AddressModal = ({
 
   const handleSelectAddress = (addressId: string) => {
     setSelectedAddress(addressId);
-    const address = savedAddresses.find((addr) => addr.id === addressId);
-    if (address && onSelectAddress) {
-      onSelectAddress(addressId, address.address);
+    if (onSelectAddress) {
+      onSelectAddress(addressId); // Only pass addressId
     }
   };
 
@@ -65,9 +53,8 @@ const AddressModal = ({
   };
 
   const handleDone = () => {
-    const address = savedAddresses.find((addr) => addr.id === selectedAddress);
-    if (address && onSelectAddress) {
-      onSelectAddress(selectedAddress, address.address);
+    if (selectedAddress && onSelectAddress) {
+      onSelectAddress(selectedAddress); // Only pass addressId
     }
     onClose();
   };
@@ -97,31 +84,40 @@ const AddressModal = ({
                 <h3 className="text-[14px] font-poppins font-semibold text-gray-900 mb-3">
                   Saved Addresses
                 </h3>
-                <div className="space-y-3">
-                  {savedAddresses.map((addr) => (
-                    <label
-                      key={addr.id}
-                      className="flex items-start gap-3 cursor-pointer bg-[#F6F6F6] p-4 border border-[#0000001A] rounded-xl hover:bg-gray-100 transition-colors"
-                    >
-                      <input
-                        type="radio"
-                        name="address"
-                        value={addr.id}
-                        checked={selectedAddress === addr.id}
-                        onChange={(e) => handleSelectAddress(e.target.value)}
-                        className="mt-0.5 w-5 h-5 accent-black cursor-pointer"
-                      />
-                      <div className="flex-1">
-                        <p className="text-[14px] font-poppins font-semibold text-gray-900">
-                          {addr.label}
-                        </p>
-                        <p className="text-[13px] text-gray-600 font-poppins">
-                          {addr.address}
-                        </p>
-                      </div>
-                    </label>
-                  ))}
-                </div>
+                {savedAddresses.length > 0 ? (
+                  <div className="space-y-3">
+                    {savedAddresses.map((addr) => (
+                      <label
+                        key={addr.id}
+                        className="flex items-start gap-3 cursor-pointer bg-[#F6F6F6] p-4 border border-[#0000001A] rounded-xl hover:bg-gray-100 transition-colors"
+                      >
+                        <input
+                          type="radio"
+                          name="address"
+                          value={addr.id}
+                          checked={selectedAddress === addr.id}
+                          onChange={(e) => handleSelectAddress(e.target.value)}
+                          className="mt-0.5 w-5 h-5 accent-black cursor-pointer"
+                        />
+                        <div className="flex-1">
+                          <p className="text-[14px] font-poppins font-semibold text-gray-900">
+                            {addr.label}
+                          </p>
+                          <p className="text-[13px] text-gray-600 font-poppins">
+                            {addr.address}
+                          </p>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-[#F6F6F6] border border-[#0000001A] rounded-xl p-6 text-center">
+                    <p className="text-[14px] font-poppins text-gray-500">
+                      No saved addresses yet. Add your first address or use your
+                      current location.
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Add New Button */}
@@ -154,9 +150,11 @@ const AddressModal = ({
               </div>
 
               {/* Done Button */}
-              <Button variant="primary" fullWidth onClick={handleDone}>
-                Done
-              </Button>
+              <div className="mb-30">
+                <Button variant="primary" fullWidth onClick={handleDone}>
+                  Done
+                </Button>
+              </div>
             </>
           )}
 
@@ -250,7 +248,7 @@ const AddressModal = ({
 
               {/* Done Button */}
               <Button
-                variant="secondary"
+                variant="primary"
                 fullWidth
                 onClick={handleAddNew}
                 disabled={!newAddressValue}
