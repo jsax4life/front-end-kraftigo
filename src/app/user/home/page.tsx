@@ -175,7 +175,10 @@ const Page = () => {
               <h2 className="text-[18px] sm:text-[20px] font-gerat font-bold">
                 Categories
               </h2>
-              <button className="text-[14px] font-poppins hover:underline flex items-center gap-1">
+              <button
+                onClick={() => router.push("/user/home/categories")}
+                className="text-[14px] font-poppins hover:underline flex items-center gap-1"
+              >
                 <p>See all</p>
                 <ChevronRight size={18} />
               </button>

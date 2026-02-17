@@ -11,7 +11,7 @@ const UserLoad = () => {
         {/* Decorative Bottom Image */}
         <div className="absolute z-0 -bottom-10 left-0 w-full overflow-hidden">
           <Image
-            src="./bottom.svg"
+            src="/bottom.svg"
             alt="decoration"
             width={410}
             height={350}

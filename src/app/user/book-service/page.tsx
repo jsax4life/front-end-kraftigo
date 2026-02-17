@@ -5,15 +5,19 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Check, MapPin, Plus, Camera, X } from "lucide-react";
 import Button from "@/componets/ui/button";
+import AddressModal from "@/componets/shared/AddressModal";
+import DatePickerModal from "@/componets/shared/DatePickerModal";
 
 const BookServicePage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const serviceName = searchParams.get("service") || "House Cleaning";
+  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [selectedAddress, setSelectedAddress] = useState("home");
 
   const [formData, setFormData] = useState({
     address: "Hauptstraße 123 - 10115, Berlin",
-    selectedDate: "",
+    selectedDate: undefined as Date | undefined,
     selectedTime: "",
     taskDetails: "",
     photos: [
@@ -22,7 +26,7 @@ const BookServicePage = () => {
     ],
     specialInstructions: "",
   });
-
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const timeSlots = [
     "08:00 AM",
@@ -31,6 +35,19 @@ const BookServicePage = () => {
     "3:00 PM",
     "6:00 PM",
     "Custom",
+  ];
+
+  const savedAddresses = [
+    {
+      id: "home",
+      label: "Home",
+      address: "2383 Timber Oak Drive Circuit",
+    },
+    {
+      id: "granny",
+      label: "Granny's House",
+      address: "2383 Timber Oak Drive Circuit",
+    },
   ];
 
   const handleRemovePhoto = (photoId: number) => {
@@ -45,10 +62,19 @@ const BookServicePage = () => {
     const params = new URLSearchParams({
       service: serviceName,
       address: formData.address,
-      date: formData.selectedDate || "16th Jan, 2026",
+      date: formData.selectedDate ? formData.selectedDate.toLocaleDateString() : "16th Jan, 2026",
       time: formData.selectedTime,
     });
     router.push(`/user/book-service/select-artisan?${params.toString()}`);
+  };
+
+  const formatDate = (date: Date) => {
+    const options: Intl.DateTimeFormatOptions = { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric' 
+    };
+    return date.toLocaleDateString('en-US', options);
   };
 
   return (
@@ -80,7 +106,7 @@ const BookServicePage = () => {
             </span>
           </div>
           <button
-            onClick={() => router.back()}
+            onClick={() => router.push("/user/home")}
             className="text-brand-orange text-[12px] sm:text-[14px] font-poppins font-semibold rounded-full hover:underline"
           >
             Cancel
@@ -127,7 +153,10 @@ const BookServicePage = () => {
               {formData.address}
             </span>
           </div>
-          <button className="w-full flex items-center justify-center gap-2 py-3 bg-[#F6F6F6] rounded-lg hover:bg-gray-50 transition-colors">
+          <button
+            className="w-full flex items-center justify-center gap-2 py-3 bg-[#F6F6F6] rounded-lg hover:bg-gray-50 transition-colors"
+            onClick={() => setShowAddressModal(true)}
+          >
             <Plus size={16} className="text-gray-600" />
             <span className="text-[14px] sm:text-[15px] font-poppins text-gray-600">
               Add new location
@@ -140,9 +169,12 @@ const BookServicePage = () => {
           <h2 className="text-[20px] sm:text-[22px] font-poppins font-medium mb-3">
             Choose Date
           </h2>
-          <button className="w-full flex items-center justify-left gap-2 py-2 transition-colors hover:text-brand-orange">
+          <button 
+            onClick={() => setShowDatePicker(true)}
+            className="w-full flex items-center justify-left gap-2 py-2 transition-colors hover:text-brand-orange"
+          >
             <span className="text-[14px] sm:text-[15px] font-poppins text-gray-800">
-              Select Dates
+              {formData.selectedDate ? formatDate(formData.selectedDate) : "Select Dates"}
             </span>
             <Plus size={16} className="text-gray-600" />
           </button>
@@ -259,6 +291,38 @@ const BookServicePage = () => {
           </Button>
         </div>
       </div>
+
+      {/* Address Modal */}
+      <AddressModal
+        isOpen={showAddressModal}
+        onClose={() => setShowAddressModal(false)}
+        savedAddresses={savedAddresses}
+        selectedAddressId={selectedAddress}
+        onSelectAddress={(addressId, address) => {
+          setSelectedAddress(addressId);
+          setFormData({ ...formData, address });
+        }}
+        onAddNewAddress={(label, address) => {
+          console.log("New address added:", label, address);
+          setFormData({ ...formData, address });
+        }}
+        onUseCurrentLocation={() => {
+          console.log("Using current location");
+          setFormData({ ...formData, address: "Current Location" });
+          setShowAddressModal(false);
+        }}
+      />
+
+      {/* Date Picker Modal */}
+      <DatePickerModal
+        isOpen={showDatePicker}
+        onClose={() => setShowDatePicker(false)}
+        selectedDate={formData.selectedDate}
+        selectedTime={formData.selectedTime}
+        onSelectDate={(date, time) => {
+          setFormData({ ...formData, selectedDate: date, selectedTime: time });
+        }}
+      />
     </main>
   );
 };
