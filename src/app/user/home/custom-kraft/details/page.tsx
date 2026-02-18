@@ -4,7 +4,7 @@ import { ArrowLeft, Plus } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import ProgressStepper from "../components/ProgressStepper";
-import AddressModal from "@/componets/shared/AddressModal";
+import AddressModal from "@/components/shared/AddressModal";
 import { useAddressStore } from "@/store/useAddressStore";
 
 const Page = () => {

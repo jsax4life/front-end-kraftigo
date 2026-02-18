@@ -4,9 +4,9 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Check, ChevronDown } from "lucide-react";
-import Button from "@/componets/ui/button";
-import ArtisanCard from "@/componets/shared/ArtisanCard";
-import ArtisanGridCard from "@/componets/shared/ArtisanGridCard";
+import Button from "@/components/ui/button";
+import ArtisanCard from "@/components/shared/ArtisanCard";
+import ArtisanGridCard from "@/components/shared/ArtisanGridCard";
 
 interface Artisan {
   id: number;
@@ -93,8 +93,13 @@ const SelectArtisanPage = () => {
   ];
 
   const handleSelectArtisan = (artisanId: number) => {
-    // Navigate to confirmation or next step
-    router.push(`/user/book-service/confirm?artisan=${artisanId}`);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("artisanId", artisanId.toString());
+    // For simulation, we'll use a mock serviceId if not present
+    if (!params.get("serviceId")) {
+      params.set("serviceId", "mock-service-id");
+    }
+    router.push(`/user/book-service/verifyDetails?${params.toString()}`);
   };
 
   return (

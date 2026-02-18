@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { Star } from "lucide-react";
-import Button from "@/componets/ui/button";
+import Button from "@/components/ui/button";
 
 interface ArtisanCardProps {
   artisan: {

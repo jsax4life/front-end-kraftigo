@@ -1,10 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import UserNav from "@/componets/shared/userNav";
-import { MapPin, Search, ChevronRight, Home, User } from "lucide-react";
-import Userabt from "@/componets/shared/userabt";
-import ProCard from "@/componets/ui/proCard";
+import UserNav from "@/components/shared/userNav";
+import { MapPin, Search, ChevronRight, Home, User, Plus } from "lucide-react";
+import Userabt from "@/components/shared/userabt";
+import ProCard from "@/components/ui/proCard";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -294,6 +294,15 @@ const Page = () => {
       {showSearchModal && (
         <div className="fixed inset-0 bg-[#C0C0C0] z-60">
           <div className="p-4 pt-6">
+            <div className="flex items-center justify-between mb-4">
+              <button 
+                onClick={() => router.push("/user/home/custom-kraft")}
+                className="flex items-center gap-2 px-4 py-2 bg-brand-orange text-white rounded-full text-[14px] font-poppins font-semibold shadow-md hover:bg-orange-600 transition-all"
+              >
+                <Plus size={18} />
+                Request Custom Kraft
+              </button>
+            </div>
            
             <div className="relative mb-6">
               <Search

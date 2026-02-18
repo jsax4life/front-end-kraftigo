@@ -1,7 +1,7 @@
 "use client";
 
-import TaskerNav from "@/componets/shared/taskerNav";
-import TaskItem from "@/componets/ui/taskItem";
+import TaskerNav from "@/components/shared/taskerNav";
+import TaskItem from "@/components/ui/taskItem";
 import { Calendar } from "lucide-react";
 
 const Page = () => {

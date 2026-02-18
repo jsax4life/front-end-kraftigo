@@ -4,9 +4,9 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Check, MapPin, Plus, Camera, X } from "lucide-react";
-import Button from "@/componets/ui/button";
-import AddressModal from "@/componets/shared/AddressModal";
-import DatePickerModal from "@/componets/shared/DatePickerModal";
+import Button from "@/components/ui/button";
+import AddressModal from "@/components/shared/AddressModal";
+import DatePickerModal from "@/components/shared/DatePickerModal";
 
 const BookServicePage = () => {
   const router = useRouter();

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Image from "next/image";
 import ProgressStepper from "../components/ProgressStepper";
-import DatePickerModal from "@/componets/shared/DatePickerModal";
+import DatePickerModal from "@/components/shared/DatePickerModal";
 
 const Page = () => {
   const router = useRouter();

@@ -1,6 +1,6 @@
 import { Star } from "lucide-react";
 import Image from "next/image";
-import Button from "@/componets/ui/button";
+import Button from "@/components/ui/button";
 
 interface ProCardProps {
   name: string;

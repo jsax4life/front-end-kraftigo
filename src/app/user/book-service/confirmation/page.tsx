@@ -39,7 +39,7 @@ const Page = () => {
   const handleViewDetails = () => {
     // Navigate to kraft details page
     console.log("View Kraft Details");
-    router.push("/user/kraft");
+    router.push("/user/krafts");
   };
 
   return (

@@ -3,24 +3,25 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import Input from "@/componets/ui/input";
-import Button from "@/componets/ui/button";
+import Input from "@/components/ui/input";
+import Button from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
-import Loader from "@/componets/ui/loader";
+import Loader from "@/components/ui/loader";
 import { useOTPInput } from "@/hooks/useOTPInput";
 import { isValidEmail, isNotEmpty } from "@/utils/validation";
 import { logger } from "@/utils/logger";
 import { AUTH_CONFIG } from "@/constants/auth";
 import toast from "react-hot-toast";
-import { useGoogleLogin } from "@react-oauth/google";
+import GoogleLoginButton from "@/components/auth/GoogleLoginButton";
 
 const Page = () => {
   const router = useRouter();
-  const { loginUser, loginWithGoogle, isLoading, error, clearError } =
+  const { loginUser, isLoading, error, clearError } =
     useAuthStore();
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = AUTH_CONFIG.LOGIN_STEPS;
+  const showGoogleLogin = !!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
   // Form data state
   const [formData, setFormData] = useState({
@@ -44,32 +45,6 @@ const Page = () => {
     }));
   };
 
-  // Initialize Google OAuth login
-  const googleLogin = useGoogleLogin({
-    flow: "implicit", // This returns an ID token instead of access token
-    onSuccess: async (tokenResponse: any) => {
-      logger.log("Google login initiated");
-
-      try {
-        // tokenResponse.access_token is actually the ID token in implicit flow
-        await loginWithGoogle(tokenResponse.access_token);
-        logger.log("Google login successful!");
-        toast.success("Login successful! Welcome back.");
-        router.push("/user/home");
-      } catch (err: any) {
-        logger.error("Google login failed:", err);
-        const errorMessage =
-          err.response?.data?.message ||
-          error ||
-          "Google login failed. Please try again.";
-        toast.error(errorMessage);
-      }
-    },
-    onError: () => {
-      logger.error("Google login error");
-      toast.error("Google login failed. Please try again.");
-    },
-  });
 
   // Check if current step is valid
   const isStepValid = () => {
@@ -186,17 +161,7 @@ const Page = () => {
                     Or sign in with
                   </div>
                   <div className="flex gap-4 justify-center pb-4">
-                    <button
-                      onClick={() => googleLogin()}
-                      className="w-14 h-14 bg-white border border-[#0000001A] rounded-xl flex items-center justify-center hover:bg-gray-50 transition-all shadow-sm"
-                    >
-                      <Image
-                        src="/google.svg"
-                        alt="Google"
-                        width={24}
-                        height={24}
-                      />
-                    </button>
+                    {showGoogleLogin && <GoogleLoginButton />}
                     <button className="w-14 h-14 bg-black rounded-xl flex items-center justify-center hover:bg-gray-900 transition-all">
                       <Image
                         src="/apple.svg"

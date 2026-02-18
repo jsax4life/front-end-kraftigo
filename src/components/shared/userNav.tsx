@@ -18,7 +18,7 @@ const UserNav = () => {
       name: "Tasks",
       icon: "/task.svg",
       activeIcon: "/task.svg",
-      path: "/user/tasks",
+      path: "/user/krafts",
     },
     {
       name: "Chat",

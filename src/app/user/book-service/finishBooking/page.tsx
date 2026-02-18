@@ -4,7 +4,10 @@ import { Check } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { useState } from "react";
-import Input from "@/componets/ui/input";
+import Input from "@/components/ui/input";
+import { useBookingsStore } from "@/store/useBookingsStore";
+import toast from "react-hot-toast";
+import { logger } from "@/utils/logger";
 
 const Page = () => {
   const router = useRouter();
@@ -19,16 +22,35 @@ const Page = () => {
   const [hasPaymentMethods, setHasPaymentMethods] = useState(false); // Toggle this to test both states
 
   const hourlyRate = 41.29;
-  const hours = 2;
+  const hours = Number(searchParams.get("hours") || "1");
   const serviceFee = 5.0;
   const discount = 10.0;
   const subtotal = hourlyRate * hours;
   const totalAmount = subtotal + serviceFee - discount;
 
-  const handleConfirmPayment = () => {
-    // Handle payment confirmation
-    console.log("Payment confirmed", { selectedPayment, promoCode });
-    router.push("/user/book-service/confirmation");
+  const { createBooking, isSubmitting } = useBookingsStore();
+
+  const handleConfirmPayment = async () => {
+    logger.log("Initiating booking creation", { serviceName, address, date });
+
+    try {
+      // Construct payload for API
+      // Note: In a real app, serviceId and artisanId would be extracted from searchParams
+      const payload = {
+        service_id: searchParams.get("serviceId") || "mock-service-id",
+        scheduled_date: new Date(date).toISOString(), // Ensure proper ISO format
+        location: address,
+        notes: `Hours: ${searchParams.get("hours") || "1"}, Frequency: ${searchParams.get("frequency") || "just-once"}`,
+      };
+
+      await createBooking(payload);
+      
+      toast.success("Booking confirmed successfully!");
+      router.push("/user/book-service/confirmation");
+    } catch (err: any) {
+      logger.error("Booking creation failed:", err);
+      toast.error(err.response?.data?.message || "Failed to create booking. Please try again.");
+    }
   };
 
   const handleAddPayment = () => {
@@ -279,9 +301,10 @@ const Page = () => {
         </p>
         <button
           onClick={handleConfirmPayment}
-          className="w-full py-3 bg-brand-orange text-white text-[16px] sm:text-[17px] font-poppins font-semibold rounded-lg hover:bg-brand-orange-dark transition-colors"
+          disabled={isSubmitting}
+          className="w-full py-3 bg-brand-orange text-white text-[16px] sm:text-[17px] font-poppins font-semibold rounded-lg hover:bg-brand-orange-dark transition-colors disabled:opacity-60"
         >
-          Confirm & Pay ${totalAmount.toFixed(2)}
+          {isSubmitting ? "Processing..." : `Confirm & Pay $${totalAmount.toFixed(2)}`}
         </button>
       </div>
     </div>

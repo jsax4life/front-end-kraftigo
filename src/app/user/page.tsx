@@ -2,41 +2,14 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import Button from "@/componets/ui/button";
-import { useGoogleLogin } from "@react-oauth/google";
+import Button from "@/components/ui/button";
+import GoogleLoginButton from "@/components/auth/GoogleLoginButton";
 import { useAuthStore } from "@/store/useAuthStore";
-import { logger } from "@/utils/logger";
-import toast from "react-hot-toast";
 
 const Page = () => {
   const router = useRouter();
-  const { loginWithGoogle, isLoading, error } = useAuthStore();
-
-  // Initialize Google OAuth login
-  const googleLogin = useGoogleLogin({
-    flow: "implicit",
-    onSuccess: async (tokenResponse: any) => {
-      logger.log("Google OAuth initiated");
-
-      try {
-        await loginWithGoogle(tokenResponse.access_token);
-        logger.log("Google OAuth successful!");
-        toast.success("Login successful! Welcome to Kraftigo.");
-        router.push("/user/home");
-      } catch (err: any) {
-        logger.error("Google OAuth failed:", err);
-        const errorMessage =
-          err.response?.data?.message ||
-          error ||
-          "Google sign-in failed. Please try again.";
-        toast.error(errorMessage);
-      }
-    },
-    onError: () => {
-      logger.error("Google OAuth error");
-      toast.error("Google sign-in failed. Please try again.");
-    },
-  });
+  const { isLoading } = useAuthStore();
+  const showGoogleLogin = !!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
   return (
     <main className="relative w-full min-h-screen overflow-hidden bg-white flex items-center justify-center">
@@ -94,13 +67,7 @@ const Page = () => {
               Or continue with
             </div>
             <div className="flex gap-4 justify-center pb-4">
-              <button
-                onClick={() => googleLogin()}
-                disabled={isLoading}
-                className="w-14 h-14 bg-white border border-[#0000001A] rounded-xl flex items-center justify-center hover:bg-gray-50 transition-all shadow-sm disabled:opacity-50"
-              >
-                <Image src="/google.svg" alt="Google" width={24} height={24} />
-              </button>
+              {showGoogleLogin && <GoogleLoginButton />}
               <button className="w-14 h-14 bg-black rounded-xl flex items-center justify-center hover:bg-gray-900 transition-all">
                 <Image src="/apple.svg" alt="Apple" width={24} height={24} />
               </button>
