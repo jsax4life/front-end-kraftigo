@@ -36,35 +36,55 @@ export default function RootLayout({
       <body
         className={`${poppins.variable} ${local.variable} ${local2.variable} antialiased`}
       >
-        <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ""}>
-          <Toaster 
-            position="top-right"
-            toastOptions={{
-              duration: 4000,
-              style: {
-                background: '#fff',
-                color: '#333',
-                padding: '16px',
-                borderRadius: '8px',
-              },
-              success: {
-                iconTheme: {
-                  primary: '#FF6600',
-                  secondary: '#fff',
+        {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? (
+          <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}>
+            <Toaster 
+              position="top-right"
+              toastOptions={{
+                duration: 4000,
+                style: {
+                  background: '#fff',
+                  color: '#333',
+                  padding: '16px',
+                  borderRadius: '8px',
                 },
-              },
-              error: {
-                iconTheme: {
-                  primary: '#ef4444',
-                  secondary: '#fff',
+                success: {
+                  iconTheme: {
+                    primary: '#FF6600',
+                    secondary: '#fff',
+                  },
                 },
-              },
-            }}
-          />
-          <main className="w-full min-h-screen bg-white">
-            {children}
-          </main>
-        </GoogleOAuthProvider>
+                error: {
+                  iconTheme: {
+                    primary: '#ef4444',
+                    secondary: '#fff',
+                  },
+                },
+              }}
+            />
+            <main className="w-full min-h-screen bg-white">
+              {children}
+            </main>
+          </GoogleOAuthProvider>
+        ) : (
+          <>
+            <Toaster 
+              position="top-right"
+              toastOptions={{
+                duration: 4000,
+                style: {
+                  background: '#fff',
+                  color: '#333',
+                  padding: '16px',
+                  borderRadius: '8px',
+                },
+              }}
+            />
+            <main className="w-full min-h-screen bg-white">
+              {children}
+            </main>
+          </>
+        )}
       </body>
     </html>
   );

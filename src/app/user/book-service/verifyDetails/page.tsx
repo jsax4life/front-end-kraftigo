@@ -29,8 +29,10 @@ const Page = () => {
   };
 
   const handleNext = () => {
-    // Navigate to next page with booking data
-    router.push("/user/book-service/finishBooking");
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("hours", bookingHours.toString());
+    params.set("frequency", selectedFrequency);
+    router.push(`/user/book-service/finishBooking?${params.toString()}`);
   };
 
   const frequencyOptions = [
