@@ -192,6 +192,7 @@ const Page = () => {
                       src={category.image}
                       alt={category.name}
                       fill
+                      sizes="(max-width: 640px) 33vw, (max-width: 1024px) 20vw, 15vw"
                       className="object-cover group-hover:scale-110 transition-transform duration-300"
                     />
                   </div>
