@@ -1,88 +1,355 @@
 "use client";
 
-import { X, Star, MapPin, CheckCircle } from "lucide-react";
+import { useState } from "react";
+import { X, Star } from "lucide-react";
 import Image from "next/image";
-import Button from "@/components/ui/button";
 import { Application } from "@/types";
 
-interface CompareModalProps {
-  artisans: Application[];
+interface CompareSheetProps {
+  allArtisans: Application[];
   onClose: () => void;
   onSelect: (artisan: Application) => void;
 }
 
-const CompareModal = ({ artisans, onClose, onSelect }: CompareModalProps) => {
+// ─── Empty Slot Placeholder ───────────────────────────────────────────────────
+const EmptySlot = ({ onPick }: { onPick: () => void }) => (
+  <div className="flex flex-col items-center gap-3">
+    <div className="w-full aspect-4/3 bg-gray-100 rounded-2xl" />
+    <p className="text-[13px] font-poppins text-gray-500 text-center">
+      Select a Krafter to compare
+    </p>
+    <button
+      onClick={onPick}
+      className="w-full py-3 bg-brand-blue text-white rounded-2xl text-[14px] font-poppins font-semibold"
+    >
+      Select Krafter
+    </button>
+  </div>
+);
+
+// ─── Filled Slot ─────────────────────────────────────────────────────────────
+const FilledSlot = ({
+  artisan,
+  onRemove,
+}: {
+  artisan: Application;
+  onRemove: () => void;
+}) => (
+  <div className="flex flex-col items-center gap-2">
+      <div className="relative w-full aspect-4/3 rounded-2xl overflow-hidden bg-gray-100">
+      <Image
+        src={artisan.image}
+        alt={artisan.artisan_name}
+        fill
+        className="object-cover"
+      />
+      <button
+        onClick={onRemove}
+        className="absolute top-2 right-2 w-6 h-6 bg-black/50 rounded-full flex items-center justify-center"
+      >
+        <X size={12} className="text-white" />
+      </button>
+    </div>
+    <p className="text-[13px] font-poppins font-bold text-black text-center">
+      {artisan.artisan_name}
+    </p>
+    {artisan.is_top_pro && (
+      <span className="text-[10px] font-poppins font-bold text-brand-orange border border-brand-orange rounded-full px-2 py-0.5">
+        TOP PRO
+      </span>
+    )}
+    <div className="flex items-center gap-1 text-[11px] font-poppins text-gray-500">
+      <span>{artisan.rating} ★ ({artisan.reviews_count})</span>
+      <span>&nbsp;{artisan.tasks_count} Krafts</span>
+    </div>
+    <p className="text-[14px] font-poppins font-bold text-black">{artisan.price}</p>
+  </div>
+);
+
+// ─── Compare Row ─────────────────────────────────────────────────────────────
+const CompareRow = ({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) => (
+  <div className="mb-1">
+    <div className="bg-gray-50 py-2 px-4 mb-3">
+      <p className="text-[13px] font-poppins font-semibold text-black text-center">
+        {label}
+      </p>
+    </div>
+    <div className="grid grid-cols-2 gap-4 px-2 pb-4">{children}</div>
+  </div>
+);
+
+// ─── Picker Overlay ───────────────────────────────────────────────────────────
+const ArtisanPicker = ({
+  artisans,
+  onPick,
+  onClose,
+}: {
+  artisans: Application[];
+  onPick: (a: Application) => void;
+  onClose: () => void;
+}) => (
+  <div className="fixed inset-0 z-70 bg-white flex flex-col">
+    <div className="flex items-center justify-between px-5 pt-6 pb-4 border-b border-gray-100">
+      <h2 className="text-[18px] font-gerat font-bold">Select a Krafter</h2>
+      <button onClick={onClose}>
+        <X size={22} className="text-gray-400" />
+      </button>
+    </div>
+    <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+      {artisans.map((app) => (
+        <button
+          key={app.id}
+          onClick={() => onPick(app)}
+          className="w-full flex items-center gap-3 p-4 border border-gray-100 rounded-2xl hover:border-brand-orange transition-colors text-left"
+        >
+          <Image
+            src={app.image}
+            alt={app.artisan_name}
+            width={52}
+            height={52}
+            className="rounded-full object-cover w-13 h-13 shrink-0"
+          />
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <span className="text-[15px] font-poppins font-bold text-black">
+                {app.artisan_name}
+              </span>
+              {app.is_top_pro && (
+                <span className="text-[10px] font-poppins font-bold text-brand-orange border border-brand-orange rounded-full px-2 py-0.5">
+                  TOP PRO
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-1 mt-0.5">
+              {[1, 2, 3, 4, 5].map((s) => (
+                <Star
+                  key={s}
+                  size={11}
+                  className={
+                    s <= app.rating
+                      ? "text-brand-orange fill-brand-orange"
+                      : "text-gray-300 fill-gray-300"
+                  }
+                />
+              ))}
+              <span className="text-[11px] font-poppins text-gray-500 ml-1">
+                ({app.reviews_count}) &nbsp; {app.tasks_count} Krafts
+              </span>
+            </div>
+            <p className="text-[14px] font-poppins font-bold text-black mt-1">
+              {app.price}
+            </p>
+          </div>
+        </button>
+      ))}
+    </div>
+  </div>
+);
+
+// ─── Main CompareSheet ────────────────────────────────────────────────────────
+const CompareSheet = ({ allArtisans, onClose, onSelect }: CompareSheetProps) => {
+  const [slots, setSlots] = useState<[Application | null, Application | null]>([
+    null,
+    null,
+  ]);
+  const [pickingSlot, setPickingSlot] = useState<0 | 1 | null>(null);
+  const [showFullCompare, setShowFullCompare] = useState(false);
+
+  const bothFilled = slots[0] !== null && slots[1] !== null;
+
+  const handlePick = (artisan: Application) => {
+    if (pickingSlot === null) return;
+    const newSlots = [...slots] as [Application | null, Application | null];
+    newSlots[pickingSlot] = artisan;
+    setSlots(newSlots);
+    setPickingSlot(null);
+    // Auto-show full compare once both are filled
+    if (pickingSlot === 1 && newSlots[0] !== null) {
+      setShowFullCompare(true);
+    } else if (pickingSlot === 0 && newSlots[1] !== null) {
+      setShowFullCompare(true);
+    }
+  };
+
+  const removeSlot = (idx: 0 | 1) => {
+    const newSlots = [...slots] as [Application | null, Application | null];
+    newSlots[idx] = null;
+    setSlots(newSlots);
+    setShowFullCompare(false);
+  };
+
+  const skills = ["Assembly", "Mounting"];
+
   return (
-    <div className="fixed inset-0 z-60 flex items-end sm:items-center justify-center bg-black/50">
-      <div className="bg-white w-full max-w-2xl rounded-t-[32px] sm:rounded-[32px] p-6 max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-[20px] font-gerat font-bold px-2">Compare Krafters</h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-            <X size={24} />
+    <>
+      {/* Bottom Sheet Backdrop */}
+      <div className="fixed inset-0 z-60 bg-black/40" onClick={onClose} />
+
+      {/* Sheet */}
+      <div className="fixed bottom-0 left-0 right-0 z-60 bg-white rounded-t-[32px] max-h-[92vh] flex flex-col">
+        {/* Drag handle */}
+        <div className="flex justify-center pt-3 pb-1 shrink-0">
+          <div className="w-10 h-1 bg-gray-200 rounded-full" />
+        </div>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 shrink-0">
+          <h2 className="text-[22px] font-gerat font-bold text-black">
+            Compare Krafters
+          </h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X size={22} />
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          {artisans.map((artisan) => (
-            <div key={artisan.id} className="space-y-4 border border-gray-100 rounded-2xl p-4 bg-gray-50/50">
-              <div className="flex flex-col items-center text-center space-y-2">
-                <div className="relative">
-                  <Image
-                    src={artisan.image}
-                    alt={artisan.artisan_name}
-                    width={80}
-                    height={80}
-                    className="rounded-full object-cover w-20 h-20 border-2 border-white shadow-sm"
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto px-5 pb-8">
+          {!showFullCompare ? (
+            /* ── Empty / Partial State ── */
+            <div className="grid grid-cols-2 gap-4 mt-2">
+              {([0, 1] as const).map((idx) =>
+                slots[idx] ? (
+                  <FilledSlot
+                    key={idx}
+                    artisan={slots[idx]!}
+                    onRemove={() => removeSlot(idx)}
                   />
-                  {artisan.is_top_pro && (
-                    <div className="absolute -bottom-1 -right-1 bg-brand-orange text-white p-1 rounded-full border-2 border-white shadow-sm">
-                      <CheckCircle size={14} fill="currentColor" className="text-white" />
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <h3 className="text-[16px] font-gerat font-bold">{artisan.artisan_name}</h3>
-                  <div className="flex items-center justify-center gap-1 text-[13px] text-gray-600 font-poppins">
-                    <Star size={14} className="text-brand-orange fill-brand-orange" />
-                    <span className="font-semibold text-black">{artisan.rating}</span>
-                    <span>({artisan.reviews_count} reviews)</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-3 pt-4 border-t border-gray-100">
-                <div className="flex items-center gap-2 text-[12px] font-poppins text-gray-600">
-                  <MapPin size={14} className="text-gray-400" />
-                  <span>Berlin, Germany</span>
-                </div>
-                <div className="flex items-center gap-2 text-[12px] font-poppins text-gray-600">
-                  <div className="w-4 h-4 rounded-full bg-brand-orange/10 flex items-center justify-center">
-                    <CheckCircle size={10} className="text-brand-orange" />
-                  </div>
-                  <span>{artisan.tasks_count} tasks completed</span>
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <p className="text-[12px] text-gray-500 font-poppins line-clamp-3 italic">
-                  &quot;{artisan.description}&quot;
-                </p>
-              </div>
-
-              <div className="pt-2">
-                 <div className="text-[18px] font-gerat font-bold text-brand-orange mb-3">
-                    {artisan.price}
-                 </div>
-                <Button variant="primary" fullWidth onClick={() => onSelect(artisan)}>
-                  Select
-                </Button>
-              </div>
+                ) : (
+                  <EmptySlot key={idx} onPick={() => setPickingSlot(idx)} />
+                )
+              )}
             </div>
-          ))}
+          ) : (
+            /* ── Full Comparison State ── */
+            <>
+              {/* Photos + names */}
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                {slots.map((artisan, idx) =>
+                  artisan ? (
+                    <div key={idx} className="flex flex-col items-center text-center">
+                      <div className="w-full aspect-square rounded-2xl overflow-hidden mb-3 bg-gray-100">
+                        <Image
+                          src={artisan.image}
+                          alt={artisan.artisan_name}
+                          width={200}
+                          height={200}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <p className="text-[15px] font-poppins font-bold text-black mb-1">
+                        {artisan.artisan_name}
+                      </p>
+                      {artisan.is_top_pro && (
+                        <span className="text-[10px] font-poppins font-bold text-brand-orange border border-brand-orange rounded-full px-2 py-0.5 mb-1">
+                          TOP PRO
+                        </span>
+                      )}
+                      <div className="flex items-center gap-1 text-[11px] font-poppins text-gray-500">
+                        <span>
+                          {artisan.rating} ★ ({artisan.reviews_count}) &nbsp;{" "}
+                          {artisan.tasks_count} Krafts
+                        </span>
+                      </div>
+                      <p className="text-[14px] font-poppins font-bold text-black mt-1">
+                        {artisan.price}
+                      </p>
+                    </div>
+                  ) : null
+                )}
+              </div>
+
+              {/* Hourly Rate */}
+              <CompareRow label="Hourly Rate">
+                {slots.map((a, i) =>
+                  a ? (
+                    <div key={i} className="text-center">
+                      <p className="text-[16px] font-poppins font-bold text-brand-orange">
+                        {a.price}
+                      </p>
+                    </div>
+                  ) : null
+                )}
+              </CompareRow>
+
+              {/* Top Skills */}
+              <CompareRow label="Top Skills">
+                {slots.map((a, i) =>
+                  a ? (
+                    <div key={i} className="flex flex-wrap gap-1 justify-center">
+                      {skills.map((skill) => (
+                        <span
+                          key={skill}
+                          className="text-[11px] font-poppins text-gray-700 border border-gray-200 rounded-full px-2.5 py-1"
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null
+                )}
+              </CompareRow>
+
+              {/* Krafts Completed */}
+              <CompareRow label="Krafts Completed">
+                {slots.map((a, i) =>
+                  a ? (
+                    <div key={i} className="text-center">
+                      <p className="text-[15px] font-poppins font-semibold text-black">
+                        {a.tasks_count} Krafts
+                      </p>
+                    </div>
+                  ) : null
+                )}
+              </CompareRow>
+
+              {/* Relevant Review */}
+              <CompareRow label="Relevant Review">
+                {slots.map((a, i) =>
+                  a ? (
+                    <div key={i} className="text-center">
+                      <p className="text-[12px] font-poppins text-gray-600 leading-relaxed">
+                        {a.description}
+                      </p>
+                    </div>
+                  ) : null
+                )}
+              </CompareRow>
+
+              {/* Select Buttons */}
+              <div className="grid grid-cols-2 gap-3 mt-4">
+                {slots.map((artisan, i) =>
+                  artisan ? (
+                    <button
+                      key={i}
+                      onClick={() => onSelect(artisan)}
+                      className="py-4 bg-brand-orange text-white rounded-2xl text-[14px] font-poppins font-semibold hover:bg-orange-600 transition-colors"
+                    >
+                      Select {artisan.artisan_name.split(" ")[0]}
+                    </button>
+                  ) : null
+                )}
+              </div>
+            </>
+          )}
         </div>
       </div>
-    </div>
+
+      {/* Artisan Picker Overlay */}
+      {pickingSlot !== null && (
+        <ArtisanPicker
+          artisans={allArtisans}
+          onPick={handlePick}
+          onClose={() => setPickingSlot(null)}
+        />
+      )}
+    </>
   );
 };
 
-export default CompareModal;
+export default CompareSheet;
