@@ -1,6 +1,6 @@
 "use client";
 
-import TaskerNav from "@/componets/shared/taskerNav";
+import TaskerNav from "@/components/shared/taskerNav";
 
 const Page = () => {
   return (

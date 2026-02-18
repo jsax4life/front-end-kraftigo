@@ -1,6 +1,6 @@
 "use client";
 
-import UserNav from "@/componets/shared/userNav";
+import UserNav from "@/components/shared/userNav";
 
 const Page = () => {
   return (

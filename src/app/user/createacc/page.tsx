@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Input from "@/componets/ui/input";
-import Button from "@/componets/ui/button";
+import Input from "@/components/ui/input";
+import Button from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
-import Loader from "@/componets/ui/loader";
+import Loader from "@/components/ui/loader";
 import { useOTPInput } from "@/hooks/useOTPInput";
 import {
   isValidEmail,
@@ -15,7 +15,7 @@ import {
   isNotEmpty,
 } from "@/utils/validation";
 import { logger } from "@/utils/logger";
-import { Checkbox } from "@/componets/ui/Checkbox";
+import { Checkbox } from "@/components/ui/Checkbox";
 import { AUTH_CONFIG } from "@/constants/auth";
 import toast from "react-hot-toast";
 
@@ -318,7 +318,7 @@ const Page = () => {
 
                 <Checkbox
                   checked={formData.termsAccepted}
-                  onChange={(checked) =>
+                  onChange={(checked: boolean) =>
                     handleInputChange("termsAccepted", checked)
                   }
                   label="Send me updates and newsletters about Kraftigo services & products"
