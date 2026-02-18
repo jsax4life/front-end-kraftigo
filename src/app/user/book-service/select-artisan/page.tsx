@@ -4,9 +4,9 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Check, ChevronDown } from "lucide-react";
-import Button from "@/componets/ui/button";
-import ArtisanCard from "@/componets/shared/ArtisanCard";
-import ArtisanGridCard from "@/componets/shared/ArtisanGridCard";
+import Button from "@/components/ui/button";
+import ArtisanCard from "@/components/shared/ArtisanCard";
+import ArtisanGridCard from "@/components/shared/ArtisanGridCard";
 
 interface Artisan {
   id: number;

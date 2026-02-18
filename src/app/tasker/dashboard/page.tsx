@@ -1,12 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import TaskerNav from "@/componets/shared/taskerNav";
-import About from "@/componets/shared/about";
-import Card from "@/componets/ui/card";
+import TaskerNav from "@/components/shared/taskerNav";
+import About from "@/components/shared/about";
+import Card from "@/components/ui/card";
 import { MapPin, Dot } from "lucide-react";
-import Button from "@/componets/ui/button";
-import Notify from "@/componets/ui/notify";
+import Button from "@/components/ui/button";
+import Notify from "@/components/ui/notify";
 
 const Page = () => {
   return (

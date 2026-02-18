@@ -3,7 +3,7 @@
 import { Headset, MapPin, ChevronDown, X } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
-import Button from "@/componets/ui/button";
+import Button from "@/components/ui/button";
 import Select from "../ui/select";
 import AddressModal from "./AddressModal";
 import { useAddressStore } from "@/store/useAddressStore";

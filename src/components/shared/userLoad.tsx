@@ -1,5 +1,5 @@
 import Image from "next/image";
-import Loader from "@/componets/ui/loader";
+import Loader from "@/components/ui/loader";
 
 const UserLoad = () => {
   return (

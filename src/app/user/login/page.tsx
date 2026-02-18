@@ -3,11 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import Input from "@/componets/ui/input";
-import Button from "@/componets/ui/button";
+import Input from "@/components/ui/input";
+import Button from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
-import Loader from "@/componets/ui/loader";
+import Loader from "@/components/ui/loader";
 import { useOTPInput } from "@/hooks/useOTPInput";
 import { isValidEmail, isNotEmpty } from "@/utils/validation";
 import { logger } from "@/utils/logger";

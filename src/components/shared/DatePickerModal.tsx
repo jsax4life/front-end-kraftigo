@@ -2,7 +2,7 @@
 
 import { X, ChevronLeft, ChevronRight, Clock } from "lucide-react";
 import { useState } from "react";
-import Button from "@/componets/ui/button";
+import Button from "@/components/ui/button";
 
 interface DatePickerModalProps {
   isOpen: boolean;

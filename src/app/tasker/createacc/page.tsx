@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Input from "@/componets/ui/input";
-import Select from "@/componets/ui/select";
-import Button from "@/componets/ui/button";
+import Input from "@/components/ui/input";
+import Select from "@/components/ui/select";
+import Button from "@/components/ui/button";
 import Image from "next/image";
 import { ArrowLeft } from "lucide-react";
 

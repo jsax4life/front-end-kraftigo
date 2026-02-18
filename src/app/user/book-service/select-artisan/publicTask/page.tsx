@@ -4,8 +4,8 @@ import { Check } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { useState } from "react";
-import Input from "@/componets/ui/input";
-import Button from "@/componets/ui/button";
+import Input from "@/components/ui/input";
+import Button from "@/components/ui/button";
 
 const Page = () => {
   const router = useRouter();
