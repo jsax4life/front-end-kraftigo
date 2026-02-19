@@ -1,5 +1,5 @@
 // ─── Auth ────────────────────────────────────────────────────────────────────
-export type user = {
+export type User = {
   id?: string;
   fullName?: string;
   email: string;
@@ -9,6 +9,18 @@ export type user = {
   status?: "PENDING_VERIFICATION" | "ACTIVE" | "SUSPENDED";
   hasAcceptedTerms?: boolean;
 };
+
+/** @deprecated Use User instead */
+export type user = User;
+
+// ─── Address ─────────────────────────────────────────────────────────────────
+export interface Address {
+  id: string;
+  label: string;
+  address: string;
+  latitude?: number;
+  longitude?: number;
+}
 
 // ─── Services ─────────────────────────────────────────────────────────────────
 export interface ServiceCategory {
@@ -104,7 +116,12 @@ export interface Dispute {
 }
 
 // ─── Legacy (kept for compatibility) ─────────────────────────────────────────
-export type JobStatus = "open" | "assigned" | "in_progress" | "completed" | "cancelled";
+export type JobStatus =
+  | "open"
+  | "assigned"
+  | "in_progress"
+  | "completed"
+  | "cancelled";
 
 export interface Job {
   id: string;
@@ -140,4 +157,3 @@ export interface Application {
   is_top_pro?: boolean;
   created_at?: string;
 }
-

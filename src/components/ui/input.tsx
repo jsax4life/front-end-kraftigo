@@ -35,7 +35,7 @@ const Input = ({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
-        className="w-full max-w-md lg:max-w-2xl h-13 px-4 py-2 bg-[#F6F6F6] rounded-xl border border-[#0000001A] outline-none text-[14px] font-poppins placeholder:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full h-13 px-4 py-2 bg-[#F6F6F6] rounded-xl border border-[#0000001A] outline-none text-[14px] font-poppins placeholder:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
       />
       {error && <span className="text-red-500 text-[12px]">{error}</span>}
     </div>

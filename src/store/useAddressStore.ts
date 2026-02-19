@@ -1,14 +1,7 @@
 import { create } from "zustand";
 import toast from "react-hot-toast";
 import { logger } from "@/utils/logger";
-
-export interface Address {
-  id: string;
-  label: string;
-  address: string;
-  latitude?: number;
-  longitude?: number;
-}
+import type { Address } from "@/types";
 
 interface AddressStore {
   addresses: Address[];

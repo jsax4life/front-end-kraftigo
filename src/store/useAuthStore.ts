@@ -1,11 +1,23 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { user } from '@/types'
-import api, { updateCachedToken } from '@/lib/axios'
+import type { User } from '@/types'
+import { updateCachedToken } from '@/lib/axios'
+import type { RegisterPayload } from '@/lib/api/auth'
+import {
+  loginUser,
+  registerUser,
+  verifyEmail,
+  resendVerificationCode,
+  loginWithGoogle,
+  loginTasker,
+  registerTasker,
+  logoutUser,
+  logoutAllDevices,
+} from '@/lib/api/auth'
 
 interface AuthState {
   // State
-  user: user | null
+  user: User | null
   accessToken: string | null
   refreshToken: string | null
   isAuthenticated: boolean
@@ -14,14 +26,14 @@ interface AuthState {
 
   // User Actions
   loginUser: (email: string, password: string) => Promise<void>
-  registerUser: (userData: Omit<user, 'role'>) => Promise<{ verificationRequired: boolean; message: string }>
+  registerUser: (userData: Omit<RegisterPayload, 'role'>) => Promise<{ verificationRequired: boolean; message: string }>
   verifyEmail: (email: string, code: string) => Promise<void>
   resendVerificationCode: (email: string) => Promise<string>
   loginWithGoogle: (idToken: string) => Promise<void>
   
   // Tasker Actions
   loginTasker: (email: string, password: string) => Promise<void>
-  registerTasker: (taskerData: Omit<user, 'role'>) => Promise<void>
+  registerTasker: (taskerData: Omit<RegisterPayload, 'role'>) => Promise<void>
   
   // Common Actions
   logout: () => Promise<void>
@@ -62,8 +74,7 @@ export const useAuthStore = create<AuthState>()(
         loginUser: async (email: string, password: string) => {
           set({ isLoading: true, error: null })
           try {
-            const response = await api.post('/api/auth/login', { email, password })
-            const { user, accessToken, refreshToken } = response.data
+            const { user, accessToken, refreshToken } = await loginUser({ email, password })
             
             updateCachedToken(accessToken) // Update axios cache
             set({
@@ -86,16 +97,7 @@ export const useAuthStore = create<AuthState>()(
         registerUser: async (userData) => {
           set({ isLoading: true, error: null })
           try {
-            // Backend expects: email, password, role, phone, hasAcceptedTerms
-            const response = await api.post('/api/auth/register', {
-              email: userData.email,
-              password: userData.password,
-              role: 'CUSTOMER',
-              phone: userData.phone,
-              hasAcceptedTerms: userData.hasAcceptedTerms,
-            })
-            
-            const { user, verificationRequired, message } = response.data
+            const { user, verificationRequired, message } = await registerUser(userData)
             
             set({
               user,
@@ -119,19 +121,14 @@ export const useAuthStore = create<AuthState>()(
         verifyEmail: async (email: string, code: string) => {
           set({ isLoading: true, error: null })
           try {
-            const response = await api.post('/api/auth/verify-email', {
-              email,
-              code,
-            })
-            
-            const { user, message } = response.data
+            const { user, message } = await verifyEmail({ email, code })
             
             set({
               user,
               isLoading: false,
             })
             
-            return message
+            return message as unknown as void // Original code implied returning void but caught message
           } catch (error: any) {
             set({
               error: error.response?.data?.message || 'Verification failed',
@@ -145,11 +142,7 @@ export const useAuthStore = create<AuthState>()(
         resendVerificationCode: async (email: string) => {
           set({ isLoading: true, error: null })
           try {
-            const response = await api.post('/api/auth/resend-verification', {
-              email,
-            })
-            
-            const { message } = response.data
+            const { message } = await resendVerificationCode(email)
             
             set({ isLoading: false })
             
@@ -167,8 +160,7 @@ export const useAuthStore = create<AuthState>()(
         loginWithGoogle: async (idToken: string) => {
           set({ isLoading: true, error: null })
           try {
-            const response = await api.post('/api/auth/google', { idToken })
-            const { user, accessToken, refreshToken } = response.data
+            const { user, accessToken, refreshToken } = await loginWithGoogle({ idToken })
             
             updateCachedToken(accessToken)
             set({
@@ -191,8 +183,7 @@ export const useAuthStore = create<AuthState>()(
         loginTasker: async (email: string, password: string) => {
           set({ isLoading: true, error: null })
           try {
-            const response = await api.post('/auth/tasker/login', { email, password })
-            const { user, accessToken, refreshToken } = response.data
+            const { user, accessToken, refreshToken } = await loginTasker({ email, password })
             
             updateCachedToken(accessToken) // Update axios cache
             set({
@@ -215,11 +206,7 @@ export const useAuthStore = create<AuthState>()(
         registerTasker: async (taskerData) => {
           set({ isLoading: true, error: null })
           try {
-            const response = await api.post('/auth/tasker/register', {
-              ...taskerData,
-              role: 'TASKER',
-            })
-            const { user, accessToken, refreshToken } = response.data
+            const { user, accessToken, refreshToken } = await registerTasker(taskerData)
             
             updateCachedToken(accessToken) // Update axios cache
             set({
@@ -245,7 +232,7 @@ export const useAuthStore = create<AuthState>()(
           try {
             // Revoke refresh token on backend
             if (refreshToken) {
-              await api.post('/api/auth/logout', { refreshToken })
+              await logoutUser(refreshToken)
             }
           } catch (error) {
             // Even if logout fails, clear local state
@@ -259,7 +246,7 @@ export const useAuthStore = create<AuthState>()(
         logoutAll: async () => {
           try {
             // Revoke all refresh tokens on backend 
-            await api.delete('/api/auth/logout-all')
+            await logoutAllDevices()
           } catch (error) {
             console.error('Logout all devices API error:', error)
           } finally {
