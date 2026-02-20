@@ -10,11 +10,11 @@ const Page = () => {
   useEffect(() => {
     // Check for draft in localStorage
     const draft = localStorage.getItem("customKraftDraft");
-    
+
     if (draft) {
       // If draft exists, could show a modal asking to continue
       // For now, just redirect to description
-      router.replace("/user/home/custom-kraft/description");
+      router.replace("/user/home");
     } else {
       router.replace("/user/home/custom-kraft/description");
     }

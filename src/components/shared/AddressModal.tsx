@@ -18,6 +18,7 @@ interface AddressModalProps {
   onSelectAddress?: (addressId: string) => void; // Simplified signature
   onAddNewAddress?: (label: string, address: string) => void;
   onUseCurrentLocation?: () => void;
+  onRemoveAddress?: (addressId: string) => void;
 }
 
 const AddressModal = ({
@@ -28,6 +29,7 @@ const AddressModal = ({
   onSelectAddress,
   onAddNewAddress,
   onUseCurrentLocation,
+  onRemoveAddress,
 }: AddressModalProps) => {
   const [selectedAddress, setSelectedAddress] = useState(selectedAddressId);
   const [showAddNewForm, setShowAddNewForm] = useState(false);
@@ -87,27 +89,43 @@ const AddressModal = ({
                 {savedAddresses.length > 0 ? (
                   <div className="space-y-3">
                     {savedAddresses.map((addr) => (
-                      <label
+                      <div
                         key={addr.id}
-                        className="flex items-start gap-3 cursor-pointer bg-[#F6F6F6] p-4 border border-[#0000001A] rounded-xl hover:bg-gray-100 transition-colors"
+                        className="relative group bg-[#F6F6F6] p-4 border border-[#0000001A] rounded-xl hover:bg-gray-100 transition-colors"
                       >
-                        <input
-                          type="radio"
-                          name="address"
-                          value={addr.id}
-                          checked={selectedAddress === addr.id}
-                          onChange={(e) => handleSelectAddress(e.target.value)}
-                          className="mt-0.5 w-5 h-5 accent-black cursor-pointer"
-                        />
-                        <div className="flex-1">
-                          <p className="text-[14px] font-poppins font-semibold text-gray-900">
-                            {addr.label}
-                          </p>
-                          <p className="text-[13px] text-gray-600 font-poppins">
-                            {addr.address}
-                          </p>
-                        </div>
-                      </label>
+                         {/* Delete Button */}
+                         {onRemoveAddress && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onRemoveAddress(addr.id);
+                            }}
+                            className="absolute top-2 right-2 p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors z-10"
+                            title="Remove address"
+                          >
+                            <X size={16} />
+                          </button>
+                        )}
+                        
+                        <label className="flex items-start gap-3 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="address"
+                            value={addr.id}
+                            checked={selectedAddress === addr.id}
+                            onChange={(e) => handleSelectAddress(e.target.value)}
+                            className="mt-0.5 w-5 h-5 accent-black cursor-pointer"
+                          />
+                          <div className="flex-1 pr-6">
+                            <p className="text-[14px] font-poppins font-semibold text-gray-900">
+                              {addr.label}
+                            </p>
+                            <p className="text-[13px] text-gray-600 font-poppins">
+                              {addr.address}
+                            </p>
+                          </div>
+                        </label>
+                      </div>
                     ))}
                   </div>
                 ) : (
@@ -167,27 +185,43 @@ const AddressModal = ({
                 </h3>
                 <div className="space-y-3">
                   {savedAddresses.map((addr) => (
-                    <label
+                    <div
                       key={addr.id}
-                      className="flex items-start gap-3 cursor-pointer bg-[#F6F6F6] p-4 border border-[#0000001A] rounded-xl hover:bg-gray-100 transition-colors"
+                      className="relative group bg-[#F6F6F6] p-4 border border-[#0000001A] rounded-xl hover:bg-gray-100 transition-colors"
                     >
-                      <input
-                        type="radio"
-                        name="address"
-                        value={addr.id}
-                        checked={selectedAddress === addr.id}
-                        onChange={(e) => handleSelectAddress(e.target.value)}
-                        className="mt-0.5 w-5 h-5 accent-black cursor-pointer"
-                      />
-                      <div className="flex-1">
-                        <p className="text-[14px] font-poppins font-semibold text-gray-900">
-                          {addr.label}
-                        </p>
-                        <p className="text-[13px] text-gray-600 font-poppins">
-                          {addr.address}
-                        </p>
-                      </div>
-                    </label>
+                      {/* Delete Button */}
+                      {onRemoveAddress && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onRemoveAddress(addr.id);
+                          }}
+                          className="absolute top-2 right-2 p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors z-10"
+                          title="Remove address"
+                        >
+                          <X size={16} />
+                        </button>
+                      )}
+
+                      <label className="flex items-start gap-3 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="address"
+                          value={addr.id}
+                          checked={selectedAddress === addr.id}
+                          onChange={(e) => handleSelectAddress(e.target.value)}
+                          className="mt-0.5 w-5 h-5 accent-black cursor-pointer"
+                        />
+                        <div className="flex-1 pr-6">
+                          <p className="text-[14px] font-poppins font-semibold text-gray-900">
+                            {addr.label}
+                          </p>
+                          <p className="text-[13px] text-gray-600 font-poppins">
+                            {addr.address}
+                          </p>
+                        </div>
+                      </label>
+                    </div>
                   ))}
                 </div>
               </div>

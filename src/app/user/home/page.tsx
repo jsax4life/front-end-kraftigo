@@ -18,7 +18,7 @@ const Page = () => {
     { name: "Home repairs", image: "/images/home4.jpg" },
   ];
 
-  const pros = [ 
+  const pros = [
     {
       name: "Edith R.",
       rating: 4,
@@ -112,6 +112,12 @@ const Page = () => {
       image: "/images/pro.jpg",
     },
   ];
+
+  const handleCustomKraft = () => {
+    // Navigate to custom kraft request page
+    console.log("Request custom kraft");
+    router.push("/user/home/custom-kraft");
+  };
 
   return (
     <main className="relative w-full min-h-screen bg-white pb-24">
@@ -276,7 +282,7 @@ const Page = () => {
                     </div>
                   </div>
                 </div>
-               
+
                 <Image
                   src="/images/pro.jpg"
                   alt="Sarah M."
@@ -292,9 +298,12 @@ const Page = () => {
 
       {/* Search Modal */}
       {showSearchModal && (
-        <div className="fixed inset-0 bg-[#C0C0C0] z-60">
-          <div className="p-4 pt-6">
-            <div className="flex items-center justify-between mb-4">
+        <div
+          className="fixed inset-0 bg-[#C0C0C0] z-60"
+          onClick={() => setShowSearchModal(false)}
+        >
+          <div className="p-4 pt-6" onClick={(e) => e.stopPropagation()}>
+            {/* <div className="flex items-center justify-between mb-4">
               <button 
                 onClick={() => router.push("/user/home/custom-kraft")}
                 className="flex items-center gap-2 px-4 py-2 bg-brand-orange text-white rounded-full text-[14px] font-poppins font-semibold shadow-md hover:bg-orange-600 transition-all"
@@ -302,8 +311,8 @@ const Page = () => {
                 <Plus size={18} />
                 Request Custom Kraft
               </button>
-            </div>
-           
+            </div> */}
+
             <div className="relative mb-6">
               <Search
                 className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
@@ -335,7 +344,7 @@ const Page = () => {
                           key={item.id}
                           onClick={() => {
                             router.push(
-                              `/user/book-service?service=${encodeURIComponent(item.name)}`
+                              `/user/book-service?service=${encodeURIComponent(item.name)}`,
                             );
                             setShowSearchModal(false);
                           }}
@@ -379,6 +388,17 @@ const Page = () => {
                       </button>
                     ))}
                   </div>
+                  <div className="mt-12 text-center">
+                    <p className="text-[14px] sm:text-[15px] font-poppins text-gray-600 mb-2">
+                      Cant find what you need?
+                    </p>
+                    <button
+                      onClick={handleCustomKraft}
+                      className="text-[16px] sm:text-[17px] font-poppins font-bold text-brand-orange hover:underline"
+                    >
+                      Request A Custom Kraft
+                    </button>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -406,6 +426,17 @@ const Page = () => {
                       </button>
                     );
                   })}
+                </div>
+                <div className="mt-12 text-center">
+                  <p className="text-[14px] sm:text-[15px] font-poppins text-gray-600 mb-2">
+                    Cant find what you need?
+                  </p>
+                  <button
+                    onClick={handleCustomKraft}
+                    className="text-[16px] sm:text-[17px] font-poppins font-bold text-brand-orange hover:underline"
+                  >
+                    Request A Custom Kraft
+                  </button>
                 </div>
               </div>
             )}

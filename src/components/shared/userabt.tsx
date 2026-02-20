@@ -5,13 +5,17 @@ import Image from "next/image";
 import { useState } from "react";
 import Button from "@/components/ui/button";
 import Select from "../ui/select";
+import ImageSelect from "../ui/ImageSelect";
 import AddressModal from "./AddressModal";
 import { useAddressStore } from "@/store/useAddressStore";
+import { useRouter } from "next/navigation";
 
 const Userabt = () => {
+  const router = useRouter();
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
-  const [flag, setFlag] = useState("/flag.svg");
+  const [language, setLanguage] = useState("EUR");
+  const [currency, setCurrency] = useState("USD");
 
   // Address store
   const {
@@ -20,14 +24,16 @@ const Userabt = () => {
     currentAddress,
     selectAddress,
     addAddress,
+    removeAddress,
     getCurrentLocation,
   } = useAddressStore();
 
-  const handleInputChange = (field: string, value: string | boolean) => {
-    // setFlag((prev) => ({
-    //   ...prev,
-    //   [field]: value,
-    // }));
+  const handleLanguageChange = (value: string) => {
+    setLanguage(value);
+  };
+
+  const handleCurrencyChange = (value: string) => {
+    setCurrency(value);
   };
 
   return (
@@ -54,10 +60,13 @@ const Userabt = () => {
                 onClick={() => setShowLanguageModal(true)}
               />
 
-              <div className="relative bg-[#F2F2F2] p-2 rounded-full">
+              <button
+                className="relative bg-[#F2F2F2] p-2 rounded-full"
+                onClick={() => router.push("/user/support")}
+              >
                 <Headset size={25} className="sm:w-7 sm:h-7 lg:w-8 lg:h-8" />
                 <div className="absolute top-1.5 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></div>
-              </div>
+              </button>
             </div>
           </div>
         </div>
@@ -79,12 +88,13 @@ const Userabt = () => {
           await getCurrentLocation();
           setShowAddressModal(false);
         }}
+        onRemoveAddress={removeAddress}
       />
 
       {/* Language Modal */}
       {showLanguageModal && (
         <div className="fixed inset-0 bg-black/50 z-60 flex items-end">
-          <div className="bg-white rounded-t-xl w-full lg:mx-70 max-h-[50vh] overflow-y-auto">
+          <div className="bg-white rounded-t-xl w-full lg:mx-70 max-h-[70vh] overflow-y-auto">
             <div className="flex items-center justify-between p-4 ">
               <h2 className="text-[18px] sm:text-[20px] font-poppins font-bold">
                 Langauge
@@ -104,11 +114,29 @@ const Userabt = () => {
                 <h3 className="text-[14px] font-qurova font-semibold mb-3">
                   Select a language
                 </h3>
-                <Select
+                <ImageSelect
                   placeholder="Select"
-                  value={flag}
-                  onChange={(value) => handleInputChange("flag", value)}
-                  options={[{ value: "Europe", label: "EUR" }]}
+                  value={language}
+                  onChange={handleLanguageChange}
+                  options={[
+                    { value: "EUR", label: "EUR", image: "/flag.svg" },
+                    { value: "USD", label: "USD", image: "/flag.svg" },
+                  ]}
+                  required
+                />
+              </div>
+              <div>
+                <h3 className="text-[14px] font-qurova font-semibold mb-3">
+                  Currency
+                </h3>
+                <ImageSelect
+                  placeholder="Select"
+                  value={currency}
+                  onChange={handleCurrencyChange}
+                  options={[
+                    { value: "USD", label: "$ USD" },
+                    { value: "EUR", label: "€ EUR" },
+                  ]}
                   required
                 />
               </div>

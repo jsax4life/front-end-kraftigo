@@ -1,9 +1,9 @@
 "use client";
 
-import { ArrowLeft, Plus, Camera, X, ChevronDown } from "lucide-react";
+import { ArrowLeft, Plus, ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import Image from "next/image";
+import PhotoUploader, { Photo } from "@/components/shared/PhotoUploader";
 import ProgressStepper from "../components/ProgressStepper";
 import DatePickerModal from "@/components/shared/DatePickerModal";
 
@@ -11,7 +11,7 @@ const Page = () => {
   const router = useRouter();
 
   const [description, setDescription] = useState("");
-  const [photos, setPhotos] = useState<string[]>([]);
+  const [photos, setPhotos] = useState<Photo[]>([]);
   const [category, setCategory] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedTime, setSelectedTime] = useState("");
@@ -35,20 +35,6 @@ const Page = () => {
     "Custom",
   ];
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files) {
-      const newPhotos = Array.from(files).map((file) =>
-        URL.createObjectURL(file),
-      );
-      setPhotos([...photos, ...newPhotos].slice(0, 10));
-    }
-  };
-
-  const removePhoto = (index: number) => {
-    setPhotos(photos.filter((_, i) => i !== index));
-  };
-
   const handleNext = () => {
     // Save to localStorage as draft
     const formData = {
@@ -71,12 +57,12 @@ const Page = () => {
   };
 
   const formatDate = (date: Date) => {
-    const options: Intl.DateTimeFormatOptions = { 
-      month: 'short', 
-      day: 'numeric', 
-      year: 'numeric' 
+    const options: Intl.DateTimeFormatOptions = {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     };
-    return date.toLocaleDateString('en-US', options);
+    return date.toLocaleDateString("en-US", options);
   };
 
   return (
@@ -114,46 +100,12 @@ const Page = () => {
           </div>
 
           {/* Add Photos */}
-          <div className="border-b border-[#0000001A] pb-7">
-            <h3 className="text-[16px] sm:text-[18px] font-poppins font-semibold text-gray-900 mb-3">
-              Add Photos
-            </h3>
-            <div className="grid grid-cols-3 gap-3">
-              <label className="aspect-square bg-[#F6F6F6] border border-[#0000001A] border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors">
-                <Camera size={24} className="text-gray-400 mb-1" />
-                <span className="text-[12px] font-poppins text-gray-600">
-                  Upload
-                </span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handlePhotoUpload}
-                  className="hidden"
-                />
-              </label>
-
-              {photos.map((photo, index) => (
-                <div
-                  key={index}
-                  className="aspect-square relative rounded-xl overflow-hidden"
-                >
-                  <Image
-                    src={photo}
-                    alt={`Photo ${index + 1}`}
-                    fill
-                    className="object-cover"
-                  />
-                  <button
-                    onClick={() => removePhoto(index)}
-                    className="absolute top-2 right-2 w-6 h-6 bg-black/60 rounded-full flex items-center justify-center hover:bg-black/80 transition-colors"
-                  >
-                    <X size={14} className="text-white" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
+          <PhotoUploader
+            photos={photos}
+            onChange={(newPhotos) => setPhotos(newPhotos)}
+            maxPhotos={10}
+            title="Add Photos"
+          />
 
           {/* Rough Category */}
           <div className="border-b border-[#0000001A] pb-7">
@@ -185,11 +137,13 @@ const Page = () => {
             <h3 className="text-[16px] sm:text-[18px] font-poppins font-semibold text-gray-900 mb-3">
               Choose Date
             </h3>
-            <button 
+            <button
               onClick={() => setShowDatePicker(true)}
               className="flex gap-2 items-center"
             >
-              <span>{selectedDate ? formatDate(selectedDate) : "Select Dates"}</span>
+              <span>
+                {selectedDate ? formatDate(selectedDate) : "Select Dates"}
+              </span>
               <Plus size={20} className="text-black" />
             </button>
           </div>

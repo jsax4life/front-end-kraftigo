@@ -3,10 +3,12 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { Check, MapPin, Plus, Camera, X } from "lucide-react";
+import { Check, MapPin, Plus } from "lucide-react";
 import Button from "@/components/ui/button";
 import AddressModal from "@/components/shared/AddressModal";
 import DatePickerModal from "@/components/shared/DatePickerModal";
+import PhotoUploader, { Photo } from "@/components/shared/PhotoUploader";
+import { useAddressStore } from "@/store/useAddressStore";
 
 const BookServicePage = () => {
   const router = useRouter();
@@ -15,18 +17,27 @@ const BookServicePage = () => {
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState("home");
 
-  const [formData, setFormData] = useState({
-    address: "Hauptstraße 123 - 10115, Berlin",
-    selectedDate: undefined as Date | undefined,
+  // Use address store
+  const { addresses, currentAddress, selectAddress, addAddress, removeAddress, getCurrentLocation } = useAddressStore();
+
+  interface BookServiceForm {
+    selectedDate: Date | undefined;
+    selectedTime: string;
+    taskDetails: string;
+    photos: Photo[];
+    specialInstructions: string;
+  }
+
+  const [formData, setFormData] = useState<BookServiceForm>({
+    selectedDate: undefined,
     selectedTime: "",
     taskDetails: "",
-    photos: [
-      { id: 1, src: "/images/home1.jpg" },
-      { id: 2, src: "/images/home2.jpg" },
-    ],
+    photos: [],
     specialInstructions: "",
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
+
+
 
   const timeSlots = [
     "08:00 AM",
@@ -37,44 +48,26 @@ const BookServicePage = () => {
     "Custom",
   ];
 
-  const savedAddresses = [
-    {
-      id: "home",
-      label: "Home",
-      address: "2383 Timber Oak Drive Circuit",
-    },
-    {
-      id: "granny",
-      label: "Granny's House",
-      address: "2383 Timber Oak Drive Circuit",
-    },
-  ];
-
-  const handleRemovePhoto = (photoId: number) => {
-    setFormData({
-      ...formData,
-      photos: formData.photos.filter((photo) => photo.id !== photoId),
-    });
-  };
-
   const handleNext = () => {
     // Navigate to artisan selection with booking details
     const params = new URLSearchParams({
       service: serviceName,
-      address: formData.address,
-      date: formData.selectedDate ? formData.selectedDate.toLocaleDateString() : "16th Jan, 2026",
+      address: currentAddress,
+      date: formData.selectedDate
+        ? formData.selectedDate.toLocaleDateString()
+        : "16th Jan, 2026",
       time: formData.selectedTime,
     });
     router.push(`/user/book-service/select-artisan?${params.toString()}`);
   };
 
   const formatDate = (date: Date) => {
-    const options: Intl.DateTimeFormatOptions = { 
-      month: 'short', 
-      day: 'numeric', 
-      year: 'numeric' 
+    const options: Intl.DateTimeFormatOptions = {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     };
-    return date.toLocaleDateString('en-US', options);
+    return date.toLocaleDateString("en-US", options);
   };
 
   return (
@@ -150,7 +143,7 @@ const BookServicePage = () => {
           <div className="flex items-center gap-2 p-3 mb-3">
             <MapPin size={16} className="text-gray-600 shrink-0" />
             <span className="text-[14px] sm:text-[15px] font-poppins text-gray-800">
-              {formData.address}
+              {currentAddress}
             </span>
           </div>
           <button
@@ -169,12 +162,14 @@ const BookServicePage = () => {
           <h2 className="text-[20px] sm:text-[22px] font-poppins font-medium mb-3">
             Choose Date
           </h2>
-          <button 
+          <button
             onClick={() => setShowDatePicker(true)}
             className="w-full flex items-center justify-left gap-2 py-2 transition-colors hover:text-brand-orange"
           >
             <span className="text-[14px] sm:text-[15px] font-poppins text-gray-800">
-              {formData.selectedDate ? formatDate(formData.selectedDate) : "Select Dates"}
+              {formData.selectedDate
+                ? formatDate(formData.selectedDate)
+                : "Select Dates"}
             </span>
             <Plus size={16} className="text-gray-600" />
           </button>
@@ -222,42 +217,12 @@ const BookServicePage = () => {
         </div>
 
         {/* Add Photos */}
-        <div className="p-4 sm:p-5 border-b border-[#0000001A]">
-          <h2 className="text-[20px] sm:text-[22px] font-poppins font-medium mb-3">
-            Add Photos
-          </h2>
-          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3">
-            <button className="aspect-square bg-[#F6F6F6] border border-dashed border-[#0000001A] rounded-xl flex flex-col items-center justify-center gap-2 hover:bg-gray-200 transition-colors">
-              <Camera size={24} className="text-gray-600" />
-              <span className="text-[11px] sm:text-[12px] font-poppins text-gray-600">
-                Upload
-              </span>
-            </button>
-
-            {/* Uploaded Photos */}
-            {formData.photos.map((photo) => (
-              <div
-                key={photo.id}
-                className="aspect-square bg-gray-200 rounded-xl overflow-hidden relative group"
-              >
-                <Image
-                  src={photo.src}
-                  alt="Uploaded"
-                  width={200}
-                  height={200}
-                  className="w-full h-full object-cover"
-                />
-                {/* Remove Button */}
-                <button
-                  onClick={() => handleRemovePhoto(photo.id)}
-                  className="absolute top-2 right-2 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-md hover:bg-red-500 hover:text-white transition-colors opacity-0 group-hover:opacity-100"
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
+        <PhotoUploader
+          photos={formData.photos}
+          onChange={(photos) => setFormData((prev) => ({ ...prev, photos }))}
+          maxPhotos={10}
+          title="Add Photos"
+        />
 
         {/* Special Instructions */}
         <div className="p-4 sm:p-5 border-b border-[#0000001A]">
@@ -296,24 +261,20 @@ const BookServicePage = () => {
       <AddressModal
         isOpen={showAddressModal}
         onClose={() => setShowAddressModal(false)}
-        savedAddresses={savedAddresses}
-        selectedAddressId={selectedAddress}
+        savedAddresses={addresses}
         onSelectAddress={(addressId) => {
-          setSelectedAddress(addressId);
-          const address = savedAddresses.find((addr) => addr.id === addressId);
-          if (address) {
-            setFormData({ ...formData, address: address.address });
-          }
-        }}
-        onAddNewAddress={(label, address) => {
-          console.log("New address added:", label, address);
-          setFormData({ ...formData, address });
-        }}
-        onUseCurrentLocation={() => {
-          console.log("Using current location");
-          setFormData({ ...formData, address: "Current Location" });
+          selectAddress(addressId);
           setShowAddressModal(false);
         }}
+        onAddNewAddress={(label, address) => {
+          addAddress(label, address);
+          setShowAddressModal(false);
+        }}
+        onUseCurrentLocation={async () => {
+          await getCurrentLocation();
+          setShowAddressModal(false);
+        }}
+        onRemoveAddress={removeAddress}
       />
 
       {/* Date Picker Modal */}

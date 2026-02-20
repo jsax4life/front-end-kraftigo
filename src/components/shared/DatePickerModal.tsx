@@ -21,7 +21,7 @@ const DatePickerModal = ({
 }: DatePickerModalProps) => {
   const [currentDate, setCurrentDate] = useState(selectedDate || new Date());
   const [selectedDay, setSelectedDay] = useState<number | null>(
-    selectedDate ? selectedDate.getDate() : null
+    selectedDate ? selectedDate.getDate() : null,
   );
   const [time, setTime] = useState(selectedTime);
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -81,13 +81,13 @@ const DatePickerModal = ({
 
   const handlePrevMonth = () => {
     setCurrentDate(
-      new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)
+      new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1),
     );
   };
 
   const handleNextMonth = () => {
     setCurrentDate(
-      new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1)
+      new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1),
     );
   };
 
@@ -100,7 +100,7 @@ const DatePickerModal = ({
       const finalDate = new Date(
         currentDate.getFullYear(),
         currentDate.getMonth(),
-        selectedDay
+        selectedDay,
       );
       onSelectDate(finalDate, time);
     }
@@ -131,7 +131,7 @@ const DatePickerModal = ({
           }`}
         >
           {day}
-        </button>
+        </button>,
       );
     }
 
@@ -140,7 +140,7 @@ const DatePickerModal = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center sm:justify-center">
-      <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md max-h-screen overflow-y-auto ">
         {/* Header */}
         <div className="flex items-center justify-between p-5">
           <h2 className="text-[18px] sm:text-[20px] font-poppins font-bold text-gray-900">
@@ -194,7 +194,7 @@ const DatePickerModal = ({
           <div className="relative">
             <button
               onClick={() => setShowTimePicker(!showTimePicker)}
-              className="w-full p-4 bg-[#F6F6F6] border border-[#0000001A] rounded-xl flex items-center justify-between hover:bg-gray-100 transition-colors"
+              className="w-full p-4 bg-[#F6F6F6] border border-[#0000001A] rounded-full flex items-center justify-between hover:bg-gray-100 transition-colors"
             >
               <div className="flex items-center gap-3">
                 <Clock size={20} className="text-gray-600" />
