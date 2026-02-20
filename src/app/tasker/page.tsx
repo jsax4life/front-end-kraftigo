@@ -10,11 +10,11 @@ const Page = () => {
   const isLoading = false;
 
   return (
-    <main className="relative w-full min-h-screen overflow-hidden bg-white flex items-center justify-center">
+    <main className="relative w-full min-h-screen bg-white flex items-center justify-center">
       {isLoading ? (
         <TaskerLoad />
       ) : (
-        <div className="relative w-full max-w-md lg:max-w-4xl mx-auto h-screen flex flex-col py-8 px-6">
+        <div className="relative w-full max-w-md lg:max-w-4xl mx-auto min-h-screen flex flex-col py-8 px-6">
           {/* Logo */}
           <div className="flex justify-center mb-8 relative z-20 mt-10">
             <Image

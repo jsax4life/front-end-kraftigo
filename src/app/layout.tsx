@@ -37,52 +37,50 @@ export default function RootLayout({
         className={`${poppins.variable} ${local.variable} ${local2.variable} antialiased`}
       >
         {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? (
-          <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}>
-            <Toaster 
+          <GoogleOAuthProvider
+            clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}
+          >
+            <Toaster
               position="top-right"
               toastOptions={{
-                duration: 4000,
+                duration: 8000,
                 style: {
-                  background: '#fff',
-                  color: '#333',
-                  padding: '16px',
-                  borderRadius: '8px',
+                  background: "#fff",
+                  color: "#333",
+                  padding: "16px",
+                  borderRadius: "8px",
                 },
                 success: {
                   iconTheme: {
-                    primary: '#FF6600',
-                    secondary: '#fff',
+                    primary: "#FF6600",
+                    secondary: "#fff",
                   },
                 },
                 error: {
                   iconTheme: {
-                    primary: '#ef4444',
-                    secondary: '#fff',
+                    primary: "#ef4444",
+                    secondary: "#fff",
                   },
                 },
               }}
             />
-            <main className="w-full min-h-screen bg-white">
-              {children}
-            </main>
+            <main className="w-full min-h-screen bg-white">{children}</main>
           </GoogleOAuthProvider>
         ) : (
           <>
-            <Toaster 
+            <Toaster
               position="top-right"
               toastOptions={{
-                duration: 4000,
+                duration: 7000,
                 style: {
-                  background: '#fff',
-                  color: '#333',
-                  padding: '16px',
-                  borderRadius: '8px',
+                  background: "#fff",
+                  color: "#333",
+                  padding: "16px",
+                  borderRadius: "8px",
                 },
               }}
             />
-            <main className="w-full min-h-screen bg-white">
-              {children}
-            </main>
+            <main className="w-full min-h-screen bg-white">{children}</main>
           </>
         )}
       </body>

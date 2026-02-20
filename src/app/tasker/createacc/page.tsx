@@ -115,7 +115,7 @@ const Page = () => {
 
   return (
     <main className="relative w-full min-h-screen bg-white flex items-center justify-center px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-2xl mx-auto h-screen flex flex-col py-8">
+      <div className="w-full max-w-2xl mx-auto min-h-screen flex flex-col py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <button
@@ -130,7 +130,7 @@ const Page = () => {
         </div>
 
         {/* Step Content */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1">
           {/* Step 1: Basic Info */}
           {currentStep === 1 && (
             <div className="space-y-6">

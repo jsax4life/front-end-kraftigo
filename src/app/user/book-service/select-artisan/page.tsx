@@ -7,6 +7,8 @@ import { Check, ChevronDown } from "lucide-react";
 import Button from "@/components/ui/button";
 import ArtisanCard from "@/components/shared/ArtisanCard";
 import ArtisanGridCard from "@/components/shared/ArtisanGridCard";
+import CompareSheet from "@/components/shared/CompareModal";
+import { Application } from "@/types";
 
 interface Artisan {
   id: number;
@@ -32,6 +34,7 @@ const SelectArtisanPage = () => {
 
   // const [selectedArtisan, setSelectedArtisan] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+  const [showCompare, setShowCompare] = useState(false);
 
   const artisans: Artisan[] = [
     {
@@ -101,6 +104,22 @@ const SelectArtisanPage = () => {
     }
     router.push(`/user/book-service/verifyDetails?${params.toString()}`);
   };
+
+  const mappedArtisans: Application[] = artisans.map((artisan) => ({
+    id: artisan.id.toString(),
+    job_id: "mock-job-id",
+    artisan_id: artisan.id.toString(),
+    artisan_name: artisan.name,
+    proposal_message: "",
+    price: `$${artisan.pricePerHour}/hr`,
+    status: "pending",
+    rating: artisan.rating,
+    reviews_count: artisan.reviewCount,
+    tasks_count: artisan.taskCount,
+    image: artisan.profileImage,
+    description: artisan.description,
+    is_top_pro: artisan.badge === "TOP PRO",
+  }));
 
   return (
     <main className="min-h-screen bg-white">
@@ -273,7 +292,9 @@ const SelectArtisanPage = () => {
                 onSelect={handleSelectArtisan}
               />
             ))}
-            <div className="flex items-center justify-center gap-2 bg-brand-orange w-66 h-10 rounded-full cursor-pointer hover:bg-orange-600 transition-colors absolute top-70 left-1/2 transform -translate-x-1/2">
+            <div 
+              onClick={() => setShowCompare(true)}
+              className="flex items-center justify-center gap-2 bg-brand-orange w-66 h-10 rounded-full cursor-pointer hover:bg-orange-600 transition-colors absolute top-70 left-1/2 transform -translate-x-1/2">
              <Image
               src='/double.svg'
               alt="toggle view"
@@ -281,11 +302,23 @@ const SelectArtisanPage = () => {
               height={15}
               className=""
             />
-              <span className="text-xs font-poppins text-white">Compare Krafter (2)</span>
+              <span className="text-xs font-poppins text-white">Compare Krafter ({artisans.length})</span>
             </div>
           </div>
         )}
       </div>
+
+      {/* Compare Modal */}
+      {showCompare && (
+        <CompareSheet
+          allArtisans={mappedArtisans}
+          onClose={() => setShowCompare(false)}
+          onSelect={(app) => {
+            setShowCompare(false);
+            handleSelectArtisan(parseInt(app.id));
+          }}
+        />
+      )}
     </main>
   );
 };

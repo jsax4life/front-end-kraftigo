@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Input from "@/components/ui/input";
+import PhoneInput from "@/components/ui/PhoneInput";
 import Button from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -101,7 +102,7 @@ const Page = () => {
         if (
           !isValidPassword(formData.password, AUTH_CONFIG.MIN_PASSWORD_LENGTH)
         ) {
-          toast.error("Password must be at least 6 characters");
+          toast.error("Password must be at least 8 characters");
           return;
         }
         if (!passwordsMatch(formData.password, formData.confirmPassword)) {
@@ -141,11 +142,14 @@ const Page = () => {
     }
 
     // Prepare data for backend
+    const formattedPhone = formData.phone.startsWith("+")
+      ? formData.phone
+      : `+49${formData.phone.replace(/^0+/, "")}`;
+
     const registrationData = {
       email: formData.email,
       password: formData.password,
-      phone: formData.phone,
-      fullName: formData.fullName,
+      phone: formattedPhone,
       hasAcceptedTerms: formData.termsAccepted,
     };
 
@@ -232,7 +236,7 @@ const Page = () => {
           <Loader />
         </>
       ) : (
-        <div className="w-full max-w-2xl mx-auto h-screen flex flex-col py-8">
+        <div className="w-full max-w-2xl mx-auto min-h-screen flex flex-col py-8">
           <div className="flex items-center justify-between mb-8">
             <button
               onClick={handleBack}
@@ -246,7 +250,7 @@ const Page = () => {
           </div>
 
           {/* Step Content */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1">
             {/* Step 1: Basic Info */}
             {currentStep === 1 && (
               <div className="space-y-6">
@@ -269,9 +273,9 @@ const Page = () => {
                   onChange={(value) => handleInputChange("email", value)}
                   required
                 />
-                <Input
+                <PhoneInput
                   label="Phone Number"
-                  placeholder="+1234567890"
+                  placeholder="000 000 0000"
                   value={formData.phone}
                   onChange={(value) => handleInputChange("phone", value)}
                   required
@@ -314,15 +318,15 @@ const Page = () => {
                   Terms Of Use
                 </h1>
 
-                <div className="min-h-75 mb-8"></div>
-
-                <Checkbox
-                  checked={formData.termsAccepted}
-                  onChange={(checked: boolean) =>
-                    handleInputChange("termsAccepted", checked)
-                  }
-                  label="Send me updates and newsletters about Kraftigo services & products"
-                />
+                <div className="fixed bottom-25">
+                  <Checkbox
+                    checked={formData.termsAccepted}
+                    onChange={(checked: boolean) =>
+                      handleInputChange("termsAccepted", checked)
+                    }
+                    label="Send me updates and newsletters about Kraftigo services & products"
+                  />
+                </div>
               </div>
             )}
 
@@ -379,7 +383,7 @@ const Page = () => {
             )}
           </div>
 
-          <button className="fixed bottom-32 right-4 sm:right-6 lg:right-8 w-14 h-14 bg-white rounded-full shadow-lg flex items-center justify-center text-xl font-bold border border-gray-200 hover:shadow-xl transition-shadow">
+          <button className="fixed bottom-40 right-4 sm:right-6 lg:right-8 w-14 h-14 bg-white rounded-full shadow-lg flex items-center justify-center text-xl font-bold border border-gray-200 hover:shadow-xl transition-shadow">
             ?
           </button>
 
@@ -390,7 +394,7 @@ const Page = () => {
                   Already have an account?{" "}
                 </span>
                 <button
-                  onClick={() => router.push("/artisan/login")}
+                  onClick={() => router.push("/user/login")}
                   className="text-brand-blue font-semibold hover:underline"
                 >
                   Sign In

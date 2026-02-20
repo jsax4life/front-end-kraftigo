@@ -12,7 +12,7 @@ const Page = () => {
   const searchParams = useSearchParams();
 
   // Use address store
-  const { addresses, currentAddress, selectAddress, addAddress, getCurrentLocation } = useAddressStore();
+  const { addresses, currentAddress, selectAddress, addAddress, removeAddress, getCurrentLocation } = useAddressStore();
   
   const [bookingHours, setBookingHours] = useState(1);
   const [frequency, setFrequency] = useState("Just Once");
@@ -218,6 +218,7 @@ const Page = () => {
           await getCurrentLocation();
           setShowAddressModal(false);
         }}
+        onRemoveAddress={removeAddress}
       />
     </div>
   );
