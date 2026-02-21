@@ -67,7 +67,7 @@ const Page = () => {
     localStorage.removeItem("customKraftDraft");
 
     // Navigate to confirmation or home
-    router.push("/user/home");
+    router.push("/user/home/custom-kraft/finished");
   };
 
   const handleSaveDraft = () => {

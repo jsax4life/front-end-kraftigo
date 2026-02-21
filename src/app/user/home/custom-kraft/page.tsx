@@ -14,7 +14,7 @@ const Page = () => {
     if (draft) {
       // If draft exists, could show a modal asking to continue
       // For now, just redirect to description
-      router.replace("/user/home");
+      router.replace("/user/home/custom-kraft/description");
     } else {
       router.replace("/user/home/custom-kraft/description");
     }
