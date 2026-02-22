@@ -60,26 +60,59 @@ const Page = () => {
           </p>
         </div>
 
-        <div>
-          <div>
-            <div>
-              <Image src="/profile.svg" alt="icon" width={20} height={20} />
+        <div className="space-y-5 py-4">
+          <div className="flex items-center gap-2 ">
+            <div className="bg-[#FF66001A] p-3 rounded-full">
+              <Image
+                src="/pro.svg"
+                alt="icon"
+                width={25}
+                height={25}
+                className="text-brand-orange"
+              />
             </div>
             <div>
-              <p>Task Valid for</p>
+              <p className="font-semibold">Task Valid for</p>
               <p>3 days</p>
             </div>
           </div>
-          <div></div>
+          <div className="flex items-center gap-2 ">
+            <div className="bg-[#FF66001A] p-3 rounded-full">
+              <Image
+                src="/money.svg"
+                alt="icon"
+                width={25}
+                height={25}
+                className="text-brand-orange"
+              />
+            </div>
+            <div>
+              <p className="font-semibold">Your bid</p>
+              <p>$85</p>
+            </div>
+          </div>
         </div>
 
-        <Button
-          variant="primary"
-          className="w-full"
-          onClick={() => router.push("/user/home")}
-        >
-          Go back home
-        </Button>
+        <div className="bg-[#FF66001A] border border-[#FF6600] text-[#FF6600] text-sm flex items-start gap-2 p-2 rounded-lg">
+          <Image
+            src="/warn.svg"
+            alt="icon"
+            width={25}
+            height={25}
+            className="text-brand-orange"
+          />
+          <p>We will notify you the status of your task within 1 hour</p>
+        </div>
+
+        <div className="mt-15">
+          <Button
+            variant="primary"
+            className="w-full"
+            onClick={() => router.push("/user/home")}
+          >
+            Go back home
+          </Button>
+        </div>
       </div>
     </div>
   );

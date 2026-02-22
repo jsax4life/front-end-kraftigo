@@ -2,28 +2,26 @@
 
 import { ArrowLeft, ChevronRight, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useServicesStore } from "@/store/useServicesStore";
 
 const Page = () => {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
+  const { categories, isLoading, error, fetchCategories } = useServicesStore();
 
-  const categories = [
-    { id: 1, name: "Gardening & Outdoor Help", slug: "gardening-outdoor" },
-    { id: 2, name: "Moving", slug: "moving" },
-    { id: 3, name: "Laundry", slug: "laundry" },
-    { id: 4, name: "Errands", slug: "errands" },
-    { id: 5, name: "Home repairs", slug: "home-repairs" },
-  ];
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
 
   const filteredCategories = categories.filter((category) =>
     category.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
-  const handleCategoryClick = (slug: string) => {
-    // Navigate to category detail page
-    console.log("Navigate to category:", slug);
-    router.push(`/user/home/categories/${slug}`);
+  const handleCategoryClick = (categoryId: string, categoryName: string) => {
+    // Navigate directly to booking page with category info
+    console.log("Navigate to booking for category:", categoryId, categoryName);
+    router.push(`/user/book-service?categoryId=${categoryId}&category=${encodeURIComponent(categoryName)}`);
   };
 
   const handleCustomKraft = () => {
@@ -63,16 +61,35 @@ const Page = () => {
 
         {/* Categories List */}
         <div className="space-y-0 border-t border-[#0000001A]">
-          {filteredCategories.length > 0 ? (
+          {isLoading ? (
+            <div className="py-8 text-center">
+              <p className="text-[15px] font-poppins text-gray-500">
+                Loading categories...
+              </p>
+            </div>
+          ) : error ? (
+            <div className="py-8 text-center">
+              <p className="text-[15px] font-poppins text-red-500">
+                {error}
+              </p>
+            </div>
+          ) : filteredCategories.length > 0 ? (
             filteredCategories.map((category) => (
               <button
                 key={category.id}
-                onClick={() => handleCategoryClick(category.slug)}
+                onClick={() => handleCategoryClick(category.id, category.name)}
                 className="w-full flex items-center justify-between py-4 border-b border-[#0000001A] hover:bg-gray-50 transition-colors group"
               >
-                <span className="text-[16px] sm:text-[17px] font-poppins text-gray-900 group-hover:text-brand-orange transition-colors">
-                  {category.name}
-                </span>
+                <div className="flex items-center gap-3">
+                  {category.icon && (
+                    <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center shrink-0">
+                      <span className="text-xl">{category.icon}</span>
+                    </div>
+                  )}
+                  <span className="text-[16px] sm:text-[17px] font-poppins text-gray-900 group-hover:text-brand-orange transition-colors">
+                    {category.name}
+                  </span>
+                </div>
                 <ChevronRight
                   size={20}
                   className="text-gray-400 group-hover:text-brand-orange transition-colors"

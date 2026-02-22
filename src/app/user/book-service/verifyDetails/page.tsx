@@ -9,10 +9,11 @@ import Button from "@/components/ui/button";
 const Page = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const serviceName = searchParams.get("service") || "House Cleaning";
-  const address =
-    searchParams.get("address") || "Hauptstraße 123 - 10115, Berlin";
-  const date = searchParams.get("date") || "15th Jan, 2025";
+  const categoryId = searchParams.get("categoryId") || "";
+  const categoryName = searchParams.get("category") || "Service";
+  const address = searchParams.get("address") || "Hauptstraße 123 - 10115, Berlin";
+  const date = searchParams.get("date") || new Date().toISOString();
+  const taskDetails = searchParams.get("taskDetails") || "";
 
   const [bookingHours, setBookingHours] = useState(1);
   const [selectedFrequency, setSelectedFrequency] = useState("just-once");
@@ -33,6 +34,20 @@ const Page = () => {
     params.set("hours", bookingHours.toString());
     params.set("frequency", selectedFrequency);
     router.push(`/user/book-service/finishBooking?${params.toString()}`);
+  };
+
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      const options: Intl.DateTimeFormatOptions = {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      };
+      return date.toLocaleDateString("en-US", options);
+    } catch {
+      return dateString;
+    }
   };
 
   const frequencyOptions = [
@@ -81,7 +96,7 @@ const Page = () => {
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-2">
-              {serviceName}
+              {categoryName}
             </h1>
             <div className="flex items-center gap-2 mb-2">
               <span className="text-[13px] sm:text-[14px] font-poppins font-semibold text-gray-900">
@@ -95,7 +110,7 @@ const Page = () => {
               {address}
             </p>
             <p className="text-[13px] sm:text-[14px] text-gray-700 font-poppins">
-              {date}
+              {formatDate(date)}
             </p>
           </div>
           <div className="flex flex-col items-end gap-2">
@@ -120,10 +135,7 @@ const Page = () => {
         </h3>
         <div className="bg-[#F6F6F6] rounded-lg p-4 border border-[#0000001A]">
           <p className="text-[13px] sm:text-[14px] text-gray-700 font-poppins leading-relaxed">
-            I need someone with six years of experience cleaning houses, whose
-            priority is to bring a good service and leave everything very clean
-            . I am a reliable person, I will ensure that your apartment is left
-            very clean and I am always open to suggestions 🙂
+            {taskDetails || "No task details provided"}
           </p>
         </div>
       </div>

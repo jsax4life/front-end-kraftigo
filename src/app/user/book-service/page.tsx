@@ -13,7 +13,8 @@ import { useAddressStore } from "@/store/useAddressStore";
 const BookServicePage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const serviceName = searchParams.get("service") || "House Cleaning";
+  const categoryId = searchParams.get("categoryId") || "";
+  const categoryName = searchParams.get("category") || "Service";
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState("home");
 
@@ -26,6 +27,7 @@ const BookServicePage = () => {
     taskDetails: string;
     photos: Photo[];
     specialInstructions: string;
+    consentAcknowledged: boolean;
   }
 
   const [formData, setFormData] = useState<BookServiceForm>({
@@ -34,29 +36,37 @@ const BookServicePage = () => {
     taskDetails: "",
     photos: [],
     specialInstructions: "",
+    consentAcknowledged: false,
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
 
 
 
   const timeSlots = [
-    "08:00 AM",
-    "10:00 AM",
-    "1:00 PM",
-    "3:00 PM",
-    "6:00 PM",
-    "Custom",
+    { display: "08:00 AM", value: "08:00" },
+    { display: "10:00 AM", value: "10:00" },
+    { display: "1:00 PM", value: "13:00" },
+    { display: "3:00 PM", value: "15:00" },
+    { display: "6:00 PM", value: "18:00" },
+    { display: "Custom", value: "Custom" },
   ];
 
   const handleNext = () => {
+    // Validate required fields
+    if (!formData.selectedDate || !formData.selectedTime || !formData.taskDetails) {
+      alert("Please fill in all required fields");
+      return;
+    }
+
     // Navigate to artisan selection with booking details
     const params = new URLSearchParams({
-      service: serviceName,
+      categoryId: categoryId,
+      category: categoryName,
       address: currentAddress,
-      date: formData.selectedDate
-        ? formData.selectedDate.toLocaleDateString()
-        : "16th Jan, 2026",
+      date: formData.selectedDate.toISOString(),
       time: formData.selectedTime,
+      taskDetails: formData.taskDetails,
+      specialInstructions: formData.specialInstructions,
     });
     router.push(`/user/book-service/select-artisan?${params.toString()}`);
   };
@@ -111,7 +121,7 @@ const BookServicePage = () => {
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-1">
-                {serviceName}
+                {categoryName}
               </h1>
               <p className="text-[14px] sm:text-[15px] text-gray-600 font-poppins">
                 Select a location
@@ -183,15 +193,15 @@ const BookServicePage = () => {
           <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2 pb-4">
             {timeSlots.map((time) => (
               <button
-                key={time}
-                onClick={() => setFormData({ ...formData, selectedTime: time })}
+                key={time.value}
+                onClick={() => setFormData({ ...formData, selectedTime: time.value })}
                 className={`py-3 rounded-lg text-[13px] sm:text-[14px] font-poppins font-medium transition-colors ${
-                  formData.selectedTime === time
+                  formData.selectedTime === time.value
                     ? "bg-brand-orange text-white"
                     : "bg-[#F6F6F6] text-gray-800 hover:bg-gray-100"
                 }`}
               >
-                {time}
+                {time.display}
               </button>
             ))}
           </div>
@@ -200,7 +210,7 @@ const BookServicePage = () => {
         {/* Tell Us The Details */}
         <div className="p-4 sm:p-5 border-b border-[#0000001A]">
           <h2 className="text-[20px] sm:text-[22px] font-poppins font-medium mb-1">
-            Tell Us The Details Of Your Task
+            Tell Us The Details Of Your Task <span className="text-red-500">*</span>
           </h2>
           <p className="text-[12px] sm:text-[13px] font-poppins mb-2">
             Start The Conversation And Tell Your Tasker What You Need Done.
@@ -246,11 +256,29 @@ const BookServicePage = () => {
         </div>
 
         <div className="pt-8 sm:pt-12 lg:pt-16 pb-10">
+          {/* Consent Checkbox */}
+          <div className="mb-6 max-w-md mx-auto">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.consentAcknowledged}
+                onChange={(e) =>
+                  setFormData({ ...formData, consentAcknowledged: e.target.checked })
+                }
+                className="mt-1 w-5 h-5 rounded border-gray-300 text-brand-orange focus:ring-brand-orange"
+              />
+              <span className="text-[13px] sm:text-[14px] font-poppins text-gray-700">
+                I acknowledge that I have read and agree to the Terms of Service and Privacy Policy
+              </span>
+            </label>
+          </div>
+          
           <Button
             variant="primary"
             fullWidth
             onClick={handleNext}
-            className="py-4 text-[16px] sm:text-[17px] max-w-md mx-auto"
+            disabled={!formData.consentAcknowledged || !formData.taskDetails || !formData.selectedDate || !formData.selectedTime}
+            className="py-4 text-[16px] sm:text-[17px] max-w-md mx-auto disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Next
           </Button>

@@ -2,11 +2,15 @@ import api from '@/lib/axios'
 import type { Booking, BookingStatus } from '@/types'
 
 export interface CreateBookingPayload {
-  service_id: string
-  scheduled_date: string
-  scheduled_time?: string
-  location: string
-  notes?: string
+  serviceCategoryId: string
+  jobTitle: string
+  jobDescription: string
+  consentAcknowledged: boolean
+  address: string
+  latitude: number
+  longitude: number
+  preferredDate: string
+  preferredTime: string
 }
 
 export interface UpdateBookingPayload {
