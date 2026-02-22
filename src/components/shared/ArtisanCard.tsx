@@ -18,9 +18,10 @@ interface ArtisanCardProps {
   };
   index: number;
   onSelect: (id: number) => void;
+  onChat?: (id: number) => void;
 }
 
-const ArtisanCard = ({ artisan, index, onSelect }: ArtisanCardProps) => {
+const ArtisanCard = ({ artisan, index, onSelect, onChat }: ArtisanCardProps) => {
   // Alternate background colors
   const bgColor = index % 2 === 0 ? "bg-white" : "bg-[#F6F6F6]";
 
@@ -85,16 +86,25 @@ const ArtisanCard = ({ artisan, index, onSelect }: ArtisanCardProps) => {
 
         <div className="flex items-end justify-between gap-3">
           <p className="text-[18px] sm:text-[20px] font-poppins font-bold">
-            ${artisan.pricePerHour}
+            ${artisan.pricePerHour} <span className="text-[14px] font-normal text-gray-500">/hr</span>
           </p>
-          <div className="w-50">
-            <Button
-              variant="primary"
-              onClick={() => onSelect(artisan.id)}
-              className="text-[12px] sm:text-[14px] px-4 sm:px-6 py-2"
+          <div className="flex gap-2 flex-1 justify-end max-w-[240px]">
+            <button
+              onClick={(e) => {
+                  e.stopPropagation();
+                  if (onChat) onChat(artisan.id);
+              }}
+              className="flex-1 py-2.5 bg-[#FFF4ED] text-[#1D2939] text-[13px] font-poppins font-bold rounded-xl hover:bg-[#FFE5D9] transition-colors"
             >
-              Select
-            </Button>
+              Chat
+            </button>
+            <button
+              onClick={() => onSelect(artisan.id)}
+              className="py-2.5 bg-brand-orange text-white text-[13px] font-poppins font-bold rounded-xl hover:bg-orange-600 transition-colors"
+              style={{ flex: 2 }}
+            >
+              Accept Offer
+            </button>
           </div>
         </div>
       </div>

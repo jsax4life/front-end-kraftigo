@@ -1,14 +1,15 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Poppins } from "next/font/google";
 import localFont from "next/font/local";
 import { Toaster } from "react-hot-toast";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import "./globals.css";
+import AppWrapper from "@/components/shared/AppWrapper";
 
 const poppins = Poppins({
   variable: "--font-poppins",
   subsets: ["latin"],
-  weight: ["200", "300", "400", "600", "700"],
+  weight: ["200", "300", "400", "500", "600", "700"],
 });
 
 const local = localFont({
@@ -24,6 +25,21 @@ const local2 = localFont({
 export const metadata: Metadata = {
   title: "Kraftigo",
   description: "An artisian booking website",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Kraftigo",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+  themeColor: "#FF6600",
 };
 
 export default function RootLayout({
@@ -34,7 +50,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${poppins.variable} ${local.variable} ${local2.variable} antialiased`}
+        className={`${poppins.variable} ${local.variable} ${local2.variable} antialiased selection:bg-brand-orange selection:text-white`}
       >
         {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? (
           <GoogleOAuthProvider

@@ -26,14 +26,14 @@ interface AuthState {
 
   // User Actions
   loginUser: (email: string, password: string) => Promise<void>
-  registerUser: (userData: Omit<RegisterPayload, 'role'>) => Promise<{ verificationRequired: boolean; message: string }>
+  registerUser: (userData: Omit<RegisterPayload, 'role'> & { role?: 'CUSTOMER' | 'ARTISAN' }) => Promise<{ verificationRequired: boolean; message: string }>
   verifyEmail: (email: string, code: string) => Promise<void>
   resendVerificationCode: (email: string) => Promise<string>
   loginWithGoogle: (idToken: string) => Promise<void>
   
   // Tasker Actions
   loginTasker: (email: string, password: string) => Promise<void>
-  registerTasker: (taskerData: Omit<RegisterPayload, 'role'>) => Promise<void>
+  registerTasker: (taskerData: Omit<RegisterPayload, 'role'>) => Promise<{ verificationRequired: boolean; message: string }>
   
   // Common Actions
   logout: () => Promise<void>
@@ -206,16 +206,17 @@ export const useAuthStore = create<AuthState>()(
         registerTasker: async (taskerData) => {
           set({ isLoading: true, error: null })
           try {
-            const { user, accessToken, refreshToken } = await registerTasker(taskerData)
+            const { user, verificationRequired, message } = await registerTasker(taskerData)
             
-            updateCachedToken(accessToken) // Update axios cache
             set({
               user,
-              accessToken,
-              refreshToken,
-              isAuthenticated: true,
+              accessToken: null,
+              refreshToken: null,
+              isAuthenticated: false,
               isLoading: false,
             })
+            
+            return { verificationRequired, message }
           } catch (error: any) {
             set({
               error: error.response?.data?.message || 'Registration failed',

@@ -1,22 +1,51 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Input from "@/components/ui/input";
 import Select from "@/components/ui/select";
 import Button from "@/components/ui/button";
+import PhoneInput from "@/components/ui/PhoneInput";
 import Image from "next/image";
 import { ArrowLeft } from "lucide-react";
+import { useAuthStore } from "@/store/useAuthStore";
+import toast from "react-hot-toast";
+import Loader from "@/components/ui/loader";
+import { logger } from "@/utils/logger";
+import { 
+  isValidEmail, 
+  isNotEmpty, 
+  isValidPassword 
+} from "@/utils/validation";
 
 const Page = () => {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 5;
+  const {
+    registerTasker,
+    verifyEmail,
+    resendVerificationCode,
+    isLoading,
+    error,
+    clearError,
+  } = useAuthStore();
+
+  const [resendTimer, setResendTimer] = useState(0);
+
+  useEffect(() => {
+    if (resendTimer > 0) {
+      const timer = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendTimer]);
 
   // Form data state
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
+    phone: "",
+    password: "",
     term1Accepted: false,
     term2Accepted: false,
     verificationCode: ["", "", "", "", "", ""],
@@ -59,8 +88,11 @@ const Page = () => {
     switch (currentStep) {
       case 1:
         return (
-          formData.fullName.trim() !== "" &&
-          formData.email.trim() !== "" &&
+          isNotEmpty(formData.fullName) &&
+          isNotEmpty(formData.email) &&
+          isValidEmail(formData.email) &&
+          isNotEmpty(formData.phone) &&
+          isNotEmpty(formData.password) &&
           formData.term1Accepted !== false &&
           formData.term2Accepted !== false
         );
@@ -89,12 +121,16 @@ const Page = () => {
   };
 
   // Navigate to next step
-  const handleNext = () => {
-    if (currentStep < totalSteps) {
+  const handleNext = async () => {
+    if (currentStep === 1) {
+      await handleSubmit();
+    } else if (currentStep === 2) {
+      await handleVerifyEmail();
+    } else if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     } else {
       // Submit form on last step
-      handleSubmit();
+       router.push("/tasker/dashboard");
     }
   };
 
@@ -108,14 +144,78 @@ const Page = () => {
   };
 
   // Submit form
-  const handleSubmit = () => {
-    console.log("Form submitted:", formData);
-  
+  const handleSubmit = async () => {
+    if (!isValidPassword(formData.password, 8)) {
+      toast.error("Password must be at least 8 characters");
+      return;
+    }
+
+    const formattedPhone = formData.phone.startsWith("+")
+      ? formData.phone
+      : `+49${formData.phone.replace(/^0+/, "")}`;
+
+    const registrationData = {
+      email: formData.email,
+      password: formData.password,
+      phone: formattedPhone,
+      hasAcceptedTerms: formData.term1Accepted && formData.term2Accepted,
+    };
+
+    logger.log("Submitting registration data:", registrationData);
+
+    try {
+      const result = await registerTasker(registrationData);
+      
+      // Save fullName to localStorage since backend doesn't store it during registration
+      if (typeof window !== "undefined") {
+        localStorage.setItem("kraftigo_tasker_fullName", formData.fullName);
+      }
+      logger.log("Registration successful!", result);
+      toast.success(result.message || "Registration successful! Please check your email.");
+      setCurrentStep(2);
+    } catch (err: any) {
+      logger.error("Registration failed:", err);
+      const errorMessage = err.response?.data?.message || "Registration failed. Please try again.";
+      toast.error(errorMessage);
+    }
+  };
+
+  // Verify email with OTP
+  const handleVerifyEmail = async () => {
+    const otpCode = formData.verificationCode.join("");
+    logger.log("Verifying email with code:", otpCode);
+
+    try {
+      await verifyEmail(formData.email, otpCode);
+      logger.log("Email verified successfully!");
+      toast.success("Email verified successfully!");
+      setCurrentStep(3);
+    } catch (err: any) {
+      logger.error("Verification failed:", err);
+      const errorMessage = err.response?.data?.message || "Verification failed. Please check your code.";
+      toast.error(errorMessage);
+    }
+  };
+
+  // Resend verification code
+  const handleResendCode = async () => {
+    if (resendTimer > 0) return;
+    try {
+      const message = await resendVerificationCode(formData.email);
+      toast.success(message);
+      setResendTimer(60);
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || "Failed to resend code.";
+      toast.error(errorMessage);
+    }
   };
 
   return (
     <main className="relative w-full min-h-screen bg-white flex items-center justify-center px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-2xl mx-auto min-h-screen flex flex-col py-8">
+      {isLoading ? (
+        <Loader />
+      ) : (
+        <div className="w-full max-w-2xl mx-auto min-h-screen flex flex-col py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <button
@@ -150,6 +250,21 @@ const Page = () => {
                 placeholder="Enter your email"
                 value={formData.email}
                 onChange={(value) => handleInputChange("email", value)}
+                required
+              />
+              <PhoneInput
+                label="Phone Number"
+                placeholder="000 000 0000"
+                value={formData.phone}
+                onChange={(value) => handleInputChange("phone", value)}
+                required
+              />
+              <Input
+                label="Password"
+                type="password"
+                placeholder="Enter your password"
+                value={formData.password}
+                onChange={(value) => handleInputChange("password", value)}
                 required
               />
               <div>
@@ -223,10 +338,23 @@ const Page = () => {
               </div>
 
               {/* Resend Code */}
-              <p className="text-[14px] font-poppins text-gray-600 text-center">
-                Resend code in{" "}
-                <span className="font-semibold text-gray-900">00:57</span>
-              </p>
+              <div className="text-center">
+                {resendTimer > 0 ? (
+                  <p className="text-[14px] font-poppins text-gray-600">
+                    Resend code in{" "}
+                    <span className="font-semibold text-gray-900">
+                      00:{resendTimer.toString().padStart(2, "0")}
+                    </span>
+                  </p>
+                ) : (
+                  <button
+                    onClick={handleResendCode}
+                    className="text-[14px] font-poppins text-brand-orange font-semibold hover:underline"
+                  >
+                    Resend code
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
@@ -418,9 +546,11 @@ const Page = () => {
             >
               {currentStep === 5
                 ? "Open camera"
-                : currentStep === totalSteps
-                  ? "Submit"
-                  : "Continue"}
+                : currentStep === 2
+                  ? "Verify Email"
+                  : currentStep === totalSteps
+                    ? "Submit"
+                    : "Continue"}
             </Button>
 
             {currentStep >= 3 && (
@@ -436,7 +566,8 @@ const Page = () => {
             )}
           </div>
         </div>
-      </div>
+        </div>
+      )}
     </main>
   );
 };

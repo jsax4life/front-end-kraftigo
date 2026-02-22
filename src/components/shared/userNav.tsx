@@ -15,7 +15,7 @@ const UserNav = () => {
       path: "/user/home",
     },
     {
-      name: "Tasks",
+      name: "Krafts",
       icon: "/task.svg",
       activeIcon: "/task.svg",
       path: "/user/krafts",
@@ -41,7 +41,7 @@ const UserNav = () => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#0000001A] z-50">
+    <nav className="fixed bottom-0 w-full md:max-w-[480px] bg-white border-t border-[#0000001A] z-50 left-1/2 -translate-x-1/2 pb-[env(safe-area-inset-bottom)]">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-around h-20">
           {navItems.map((item) => {

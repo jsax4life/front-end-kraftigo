@@ -11,7 +11,7 @@ import ErrorBanner from "@/components/shared/ErrorBanner";
 import { useBookingsStore } from "@/store/useBookingsStore";
 import type { Booking } from "@/types";
 
-const Page = () => {
+const KraftsPage = () => {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"upcoming" | "completed">("upcoming");
   const [searchQuery, setSearchQuery] = useState("");
@@ -102,6 +102,13 @@ const Page = () => {
           </button>
           <h1 className="text-[28px] font-gerat font-bold">Krafts</h1>
         </div>
+
+        {showFallback && (
+          <div className="flex items-center gap-2 mb-6 px-3 py-1.5 bg-[#FFF9F5] border border-[#FF660020] rounded-lg w-fit">
+            <div className="w-2 h-2 bg-brand-orange rounded-full animate-pulse"></div>
+            <span className="text-[12px] font-semibold text-[#1D2939] font-poppins">Technical Issue: Showing preview data</span>
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="flex bg-gray-100 p-1 rounded-xl mb-5">
@@ -297,4 +304,4 @@ const Page = () => {
   );
 };
 
-export default Page;
+export default KraftsPage;

@@ -1,0 +1,17 @@
+{
+  "name": "Kraftigo",
+  "short_name": "Kraftigo",
+  "description": "An artisian booking website",
+  "start_url": "/user",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#FF6600",
+  "icons": [
+    {
+      "src": "/craft.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

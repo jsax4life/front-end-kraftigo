@@ -11,10 +11,9 @@ export interface LoginPayload {
 export interface RegisterPayload {
   email: string
   password: string
-  fullName?: string
   phone?: string
   hasAcceptedTerms?: boolean
-  role: 'CUSTOMER' | 'TASKER'
+  role: 'CUSTOMER' | 'ARTISAN' | 'TASKER'
 }
 
 export interface VerifyEmailPayload {
@@ -53,11 +52,11 @@ export const loginUser = async (payload: LoginPayload): Promise<AuthResponse> =>
   return response.data
 }
 
-/** POST /api/auth/register — register a new customer account */
-export const registerUser = async (payload: Omit<RegisterPayload, 'role'>): Promise<RegisterResponse> => {
+/** POST /api/auth/register — register a new customer or artisan account */
+export const registerUser = async (payload: Omit<RegisterPayload, 'role'> & { role?: 'CUSTOMER' | 'ARTISAN' }): Promise<RegisterResponse> => {
   const response = await api.post('/api/auth/register', {
     ...payload,
-    role: 'CUSTOMER',
+    role: payload.role || 'CUSTOMER',
   })
   return response.data
 }
@@ -98,11 +97,11 @@ export const loginTasker = async (payload: LoginPayload): Promise<AuthResponse> 
   return response.data
 }
 
-/** POST /auth/tasker/register — register a new tasker account */
-export const registerTasker = async (payload: Omit<RegisterPayload, 'role'>): Promise<AuthResponse> => {
-  const response = await api.post('/auth/tasker/register', {
+/** POST /api/auth/register — register a new artisan account */
+export const registerTasker = async (payload: Omit<RegisterPayload, 'role'>): Promise<RegisterResponse> => {
+  const response = await api.post('/api/auth/register', {
     ...payload,
-    role: 'TASKER',
+    role: 'ARTISAN',
   })
   return response.data
 }

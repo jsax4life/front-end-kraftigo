@@ -1,74 +1,95 @@
 "use client";
 
-import { Headset, MapPin, ChevronDown, X } from "lucide-react";
+import { Headset, MapPin, ChevronDown, X, LogOut } from "lucide-react";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/store/useAuthStore";
+import { useProfileStore } from "@/store/useProfileStore";
 import Button from "@/components/ui/button";
+import toast from "react-hot-toast";
 import Select from "../ui/select";
 import ImageSelect from "../ui/ImageSelect";
 import AddressModal from "./AddressModal";
 import { useAddressStore } from "@/store/useAddressStore";
-import { useRouter } from "next/navigation";
 
 const Userabt = () => {
   const router = useRouter();
+  const { logout, user } = useAuthStore();
+  const { customerProfile, fetchCustomerProfile } = useProfileStore();
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [language, setLanguage] = useState("EUR");
   const [currency, setCurrency] = useState("USD");
 
+  useEffect(() => {
+    if (!customerProfile) {
+      fetchCustomerProfile();
+    }
+  }, [customerProfile, fetchCustomerProfile]);
+
   // Address store
   const {
     addresses,
     selectedAddressId,
-    currentAddress,
+    currentAddress: storeAddress,
     selectAddress,
     addAddress,
     removeAddress,
     getCurrentLocation,
   } = useAddressStore();
 
-  const handleLanguageChange = (value: string) => {
-    setLanguage(value);
-  };
+  const currentAddress = customerProfile?.serviceAddress 
+    ? `${customerProfile.serviceAddress.street}, ${customerProfile.serviceAddress.city}` 
+    : storeAddress;
 
-  const handleCurrencyChange = (value: string) => {
-    setCurrency(value);
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast.success("Logged out successfully");
+      router.push("/user/login");
+    } catch (error) {
+      toast.error("Logout failed");
+    }
   };
 
   return (
     <>
-      <div className="w-full px-2 lg:px-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
-            <div
-              className="flex items-center gap-2 text-[13px] sm:text-[14px] font-poppins cursor-pointer"
-              onClick={() => setShowAddressModal(true)}
-            >
-              <MapPin size={16} className="text-gray-600" />
-              <span className="text-gray-800">{currentAddress}</span>
-              <ChevronDown size={16} className="text-gray-600" />
-            </div>
+      <div className="flex items-center justify-between py-2">
+        <div
+          className="flex items-center gap-2 text-[13px] sm:text-[14px] font-poppins cursor-pointer flex-1 min-w-0"
+          onClick={() => setShowAddressModal(true)}
+        >
+          <MapPin size={16} className="text-gray-600 shrink-0" />
+          <span className="text-gray-800 truncate">{currentAddress}</span>
+          <ChevronDown size={16} className="text-gray-600 shrink-0" />
+        </div>
 
-            <div className="flex items-center gap-2 sm:gap-3">
-              <Image
-                src="/flag.svg"
-                alt="flag"
-                width={100}
-                height={100}
-                className="w-8 h-8 sm:w-9 sm:h-9 lg:w-10 lg:h-10"
-                onClick={() => setShowLanguageModal(true)}
-              />
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-4">
+          <Image
+            src="/flag.svg"
+            alt="flag"
+            width={40}
+            height={40}
+            className="w-8 h-8 sm:w-9 sm:h-9 lg:w-10 lg:h-10 cursor-pointer"
+            onClick={() => setShowLanguageModal(true)}
+          />
 
-              <button
-                className="relative bg-[#F2F2F2] p-2 rounded-full"
-                onClick={() => router.push("/user/support")}
-              >
-                <Headset size={25} className="sm:w-7 sm:h-7 lg:w-8 lg:h-8" />
-                <div className="absolute top-1.5 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></div>
-              </button>
-            </div>
+          <div 
+            className="relative bg-[#F2F2F2] p-2 rounded-full cursor-pointer" 
+            onClick={() => router.push("/user/support")}
+          >
+            <Headset size={22} className="sm:w-6 sm:h-6 lg:w-7 lg:h-7" />
+            <div className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></div>
           </div>
+
+          <button 
+            onClick={handleLogout}
+            className="bg-red-50 p-2 rounded-full text-[#F04438] hover:bg-red-100 transition-colors"
+            title="Sign Out"
+          >
+            <LogOut size={20} />
+          </button>
         </div>
       </div>
 
@@ -79,6 +100,7 @@ const Userabt = () => {
         selectedAddressId={selectedAddressId || ""}
         onSelectAddress={(addressId) => {
           selectAddress(addressId);
+          setShowAddressModal(false);
         }}
         onAddNewAddress={(label, address) => {
           addAddress(label, address);
@@ -93,46 +115,49 @@ const Userabt = () => {
 
       {/* Language Modal */}
       {showLanguageModal && (
-        <div className="fixed inset-0 bg-black/50 z-60 flex items-end">
-          <div className="bg-white rounded-t-xl w-full lg:mx-70 max-h-[70vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-4 ">
-              <h2 className="text-[18px] sm:text-[20px] font-poppins font-bold">
-                Langauge
-              </h2>
+        <div 
+          className="fixed inset-0 bg-black/50 z-60 flex items-end"
+          onClick={() => setShowLanguageModal(false)}
+        >
+          <div 
+            className="bg-white rounded-t-3xl w-full sm:max-w-md mx-auto max-h-[70vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-6 border-b border-gray-50">
+              <h2 className="text-[20px] font-gerat font-bold">Preferences</h2>
               <button
                 onClick={() => setShowLanguageModal(false)}
-                className="p-1 hover:bg-gray-100 rounded-full"
+                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
               >
-                <X size={22} className="text-gray-500 " />
+                <X size={22} className="text-gray-500" />
               </button>
             </div>
 
-            {/* Modal Content */}
-            <div className="p-4 space-y-6">
-              {/* Saved Addresses */}
+            <div className="p-6 space-y-6">
               <div>
-                <h3 className="text-[14px] font-qurova font-semibold mb-3">
-                  Select a language
+                <h3 className="text-[14px] font-poppins font-semibold text-gray-700 mb-3">
+                  Language
                 </h3>
                 <ImageSelect
-                  placeholder="Select"
+                  placeholder="Select Language"
                   value={language}
-                  onChange={handleLanguageChange}
+                  onChange={(val) => setLanguage(val)}
                   options={[
-                    { value: "EUR", label: "EUR", image: "/flag.svg" },
-                    { value: "USD", label: "USD", image: "/flag.svg" },
+                    { value: "EUR", label: "English (UK)", image: "/flag.svg" },
+                    { value: "USD", label: "English (US)", image: "/flag.svg" },
                   ]}
                   required
                 />
               </div>
+
               <div>
-                <h3 className="text-[14px] font-qurova font-semibold mb-3">
+                <h3 className="text-[14px] font-poppins font-semibold text-gray-700 mb-3">
                   Currency
                 </h3>
-                <ImageSelect
-                  placeholder="Select"
+                <Select
+                  placeholder="Select Currency"
                   value={currency}
-                  onChange={handleCurrencyChange}
+                  onChange={(val) => setCurrency(val)}
                   options={[
                     { value: "USD", label: "$ USD" },
                     { value: "EUR", label: "€ EUR" },
@@ -141,13 +166,15 @@ const Userabt = () => {
                 />
               </div>
 
-              <Button
-                variant="primary"
-                fullWidth
-                onClick={() => setShowLanguageModal(false)}
-              >
-                Done
-              </Button>
+              <div className="pt-4">
+                <Button
+                  variant="primary"
+                  fullWidth
+                  onClick={() => setShowLanguageModal(false)}
+                >
+                  Done
+                </Button>
+              </div>
             </div>
           </div>
         </div>

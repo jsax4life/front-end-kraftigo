@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { Check, MapPin, Plus } from "lucide-react";
+import { Check, MapPin, Plus, Camera, X } from "lucide-react";
 import Button from "@/components/ui/button";
 import AddressModal from "@/components/shared/AddressModal";
 import DatePickerModal from "@/components/shared/DatePickerModal";
@@ -219,7 +219,7 @@ const BookServicePage = () => {
         {/* Add Photos */}
         <PhotoUploader
           photos={formData.photos}
-          onChange={(photos) => setFormData((prev) => ({ ...prev, photos }))}
+          onChange={(photos: Photo[]) => setFormData((prev) => ({ ...prev, photos }))}
           maxPhotos={10}
           title="Add Photos"
         />

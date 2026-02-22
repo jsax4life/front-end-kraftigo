@@ -62,8 +62,14 @@ const AddressModal = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center sm:justify-center">
-      <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md max-h-[90vh] overflow-y-auto">
+    <div 
+      className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center sm:justify-center"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-5 ">
           <h2 className="text-[18px] sm:text-[20px] font-poppins font-bold text-gray-900">
