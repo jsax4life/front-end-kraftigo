@@ -5,8 +5,10 @@ import UserNav from "@/components/shared/userNav";
 import { MapPin, Search, ChevronRight, Home, User, Plus } from "lucide-react";
 import Userabt from "@/components/shared/userabt";
 import ProCard from "@/components/ui/proCard";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/store/useAuthStore";
+import { useProfileStore } from "@/store/useProfileStore";
 
 const Page = () => {
   const categories = [
@@ -44,8 +46,19 @@ const Page = () => {
   ];
 
   const router = useRouter();
+  const { user } = useAuthStore();
+  const { customerProfile, fetchCustomerProfile } = useProfileStore();
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    if (!customerProfile) {
+      fetchCustomerProfile();
+    }
+  }, [customerProfile, fetchCustomerProfile]);
+
+  const displayName = customerProfile?.fullName?.split(" ")[0] || user?.fullName?.split(" ")[0] || "User";
+  const avatar = customerProfile?.profilePhotoUrl || user?.avatar;
 
   const recentSearches = [
     {
@@ -135,29 +148,45 @@ const Page = () => {
             />
           </div>
 
-          {/* Location, Language, Profile Section */}
-          <div className=" mb-4">
+          {/* Top Bar: Address & Actions */}
+          <div className="mb-6">
             <Userabt />
+          </div>
 
-            {/* Profile Picture */}
-            <div className="border-2 border-dashed border-brand-orange rounded-full w-14 h-14 sm:w-16 sm:h-16 lg:w-18 lg:h-18 flex items-center justify-center">
-              <Image
-                src="/images/abt.jpg"
-                alt="propic"
-                width={300}
-                height={300}
-                className="w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 rounded-full object-cover"
-              />
+          {/* Avatar & Greeting Section */}
+          <div className="flex items-center gap-5 mb-8">
+            {/* Avatar with Dashed Border */}
+            <div 
+              className="border-2 border-dashed border-brand-orange rounded-full w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center cursor-pointer shrink-0"
+              onClick={() => router.push("/user/profile")}
+            >
+              <div className="relative w-[70px] h-[70px] sm:w-[84px] sm:h-[84px] rounded-full overflow-hidden bg-gray-50 flex items-center justify-center shadow-sm">
+                {avatar ? (
+                  <Image
+                    src={avatar}
+                    alt="profile"
+                    fill
+                    className="object-cover"
+                  />
+                ) : (
+                  <User size={32} className="text-gray-300" />
+                )}
+              </div>
+            </div>
+
+            {/* Greetings and Title */}
+            <div className="flex-1">
+               <p className="text-[14px] sm:text-[16px] font-poppins text-[#667085] mb-1">
+                 Hello <span className="text-[#1D2939] font-bold">{displayName}</span> 👋
+               </p>
+               <h1 className="text-[28px] sm:text-[36px] lg:text-[42px] font-gerat font-[850] leading-tight text-[#1D2939]">
+                 What do you <br className="sm:hidden" /> need today?
+               </h1>
             </div>
           </div>
 
-          {/* What do you need today? */}
-          <div className="mb-6">
-            <h1 className="text-[28px] sm:text-[32px] lg:text-[36px] font-gerat font-[850] leading-tight mb-4">
-              What do you <br className="lg:hidden" /> need today?
-            </h1>
-
-            {/* Search Bar */}
+          {/* Search Bar section */}
+          <div className="mb-10">
             <div
               className="relative shadow-2xl rounded-full cursor-pointer"
               onClick={() => setShowSearchModal(true)}
@@ -303,16 +332,6 @@ const Page = () => {
           onClick={() => setShowSearchModal(false)}
         >
           <div className="p-4 pt-6" onClick={(e) => e.stopPropagation()}>
-            {/* <div className="flex items-center justify-between mb-4">
-              <button 
-                onClick={() => router.push("/user/home/custom-kraft")}
-                className="flex items-center gap-2 px-4 py-2 bg-brand-orange text-white rounded-full text-[14px] font-poppins font-semibold shadow-md hover:bg-orange-600 transition-all"
-              >
-                <Plus size={18} />
-                Request Custom Kraft
-              </button>
-            </div> */}
-
             <div className="relative mb-6">
               <Search
                 className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"

@@ -7,6 +7,7 @@ export type User = {
   password?: string;
   roles?: string[];
   status?: "PENDING_VERIFICATION" | "ACTIVE" | "SUSPENDED";
+  avatar?: string;
   hasAcceptedTerms?: boolean;
 };
 
@@ -156,4 +157,86 @@ export interface Application {
   description: string;
   is_top_pro?: boolean;
   created_at?: string;
+}
+
+export interface ArtisanProfile {
+  legalFullName: string;
+  displayName: string;
+  profilePhotoUrl?: string;
+  languages: {
+    code: string;
+    name: string;
+    proficiency: string;
+  }[];
+  baseCity: string;
+  postalCode: string;
+  travelRadiusKm: number;
+  primaryTrade: string;
+  secondarySkills: string[];
+  yearsExperienceHomeCountry: number;
+  yearsExperienceCurrentCountry: number;
+  certifications?: {
+    name: string;
+    issuer: string;
+    issueDate: string;
+    expiryDate: string;
+    documentUrl: string;
+  }[];
+  toolsOwned: boolean;
+  transportType: 'CAR' | 'VAN' | 'BIKE' | 'NONE';
+  taxOrVatId?: string;
+  bio: string;
+}
+
+export interface CustomerProfile {
+  fullName: string;
+  phone: string;
+  serviceAddress: {
+    street: string;
+    city: string;
+    postalCode: string;
+    country: string;
+  };
+  profilePhotoUrl?: string;
+  languagePreference: string;
+  notificationPreferences: {
+    email: boolean;
+    sms: boolean;
+    push: boolean;
+    bookingUpdates: boolean;
+    promotions: boolean;
+  };
+}
+
+export interface Conversation {
+  id?: string;
+  conversationId?: string;
+  otherParticipant?: {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
+  participants?: string[];
+  lastMessage?: string;
+  lastMessageAt?: any;
+  unreadCount?: number;
+  isLocked: boolean;
+  contextType?: string;
+  contextId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface Message {
+  id: string;
+  conversationId: string;
+  sender: {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
+  content: string;
+  type: 'text' | 'image' | 'file';
+  readBy: string[];
+  createdAt: string;
 }

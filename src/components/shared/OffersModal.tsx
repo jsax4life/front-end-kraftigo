@@ -93,12 +93,12 @@ const OffersModal = ({ job, onClose }: OffersModalProps) => {
             </button>
           </div>
           <p className="text-[14px] font-poppins font-bold text-brand-orange">
-            {applications.length} Offers Recieved
+            {applications.length} Offers Received
           </p>
         </div>
 
         {/* Artisan Cards — scrollable */}
-        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-28 mb-[5rem]">
+        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-28 mb-20">
           {applications.map((app) => (
             <div
             key={app.id}
@@ -156,7 +156,10 @@ const OffersModal = ({ job, onClose }: OffersModalProps) => {
 
               {/* Accept + Chat buttons */}
               <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                <button className="bg-[#FF66001A] flex items-center justify-center gap-2 px-5 py-3 border border-gray-200 rounded-xl text-[13px] font-poppins font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
+                <button 
+                  onClick={() => router.push(`/user/chat?artisanId=${app.artisan_id}&name=${encodeURIComponent(app.artisan_name)}`)}
+                  className="bg-[#FF66001A] flex items-center justify-center gap-2 px-5 py-3 border border-gray-200 rounded-xl text-[13px] font-poppins font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                >
                   Chat
                 </button>
                 <button
@@ -171,7 +174,7 @@ const OffersModal = ({ job, onClose }: OffersModalProps) => {
         </div>
 
         {/* Sticky Compare button at the bottom */}
-        <div className="fixed bottom-0 left-0 right-0 px-4 pb-6 pt-3 bg-white border-t border-gray-100 mb-[5rem] mt-[5rem]">
+        <div className="fixed bottom-0 left-0 right-0 px-4 pb-6 pt-3 bg-white border-t border-gray-100 mb-20 mt-20">
           <button
             onClick={() => setShowCompare(true)}
             className="w-full py-4 bg-brand-orange text-white rounded-full text-[15px] font-poppins font-semibold flex items-center justify-center gap-2 hover:bg-orange-600 transition-colors shadow-md"

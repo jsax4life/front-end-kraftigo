@@ -3,56 +3,40 @@
 import TaskerNav from "@/components/shared/taskerNav";
 import TaskItem from "@/components/ui/taskItem";
 import { Calendar } from "lucide-react";
+import { useBookingStore } from "@/store/useBookingStore";
+import { useEffect } from "react";
 
 const Page = () => {
+  const { bookings, isLoading, fetchTaskerBookings } = useBookingStore();
+
+  useEffect(() => {
+    fetchTaskerBookings();
+  }, [fetchTaskerBookings]);
+
   const days = [
-    { day: "Mon", date: "12" },
-    { day: "Tue", date: "13", active: true },
-    { day: "Wed", date: "14" },
-    { day: "Thu", date: "15" },
-    { day: "Fri", date: "16" },
-    { day: "Sat", date: "17" },
-    { day: "Sun", date: "18" },
+    { day: "Mon", date: "16" },
+    { day: "Tue", date: "17" },
+    { day: "Wed", date: "18" },
+    { day: "Thu", date: "19" },
+    { day: "Fri", date: "20" },
+    { day: "Sat", date: "21", active: true },
+    { day: "Sun", date: "22" },
   ];
 
-  const tasks = [
-    {
-      time: "8:00 AM - 12:00 AM",
-      title: "AC Maintenance",
-      client: "Client: Michael C",
-      location: "123 Maple Ave, Berlin",
-      status: "Completed",
-      statusColor: "bg-green-100 text-green-700",
-      dotColor: "bg-green-500",
-    },
-    {
-      time: "12:00 PM - 2:00 PM",
-      title: "AC Maintenance",
-      client: "Client: Michael R",
-      location: "123 Maple Ave, Berlin",
-      status: "In Progress",
-      statusColor: "bg-orange-100 text-brand-orange",
-      dotColor: "bg-brand-orange",
-    },
-    {
-      time: "12:00 PM - 2:00 PM",
-      title: "AC Maintenance",
-      client: "Client: Michael R",
-      location: "123 Maple Ave, Berlin",
-      status: "Upcoming",
-      statusColor: "bg-blue-100 text-blue-600",
-      dotColor: "bg-gray-300",
-    },
-    {
-      time: "12:00 PM - 2:00 PM",
-      title: "AC Maintenance",
-      client: "Client: Michael R",
-      location: "123 Maple Ave, Berlin",
-      status: "Upcoming",
-      statusColor: "bg-blue-100 text-blue-600",
-      dotColor: "bg-gray-300",
-    },
-  ];
+  const getStatusInfo = (status: string) => {
+    switch (status) {
+      case 'COMPLETED':
+        return { color: "bg-green-100 text-green-700", dot: "bg-green-500" };
+      case 'CONFIRMED':
+        return { color: "bg-orange-100 text-brand-orange", dot: "bg-brand-orange" };
+      case 'PENDING':
+        return { color: "bg-blue-100 text-blue-600", dot: "bg-blue-400" };
+      case 'CANCELLED':
+        return { color: "bg-red-100 text-red-600", dot: "bg-red-500" };
+      default:
+        return { color: "bg-gray-100 text-gray-600", dot: "bg-gray-400" };
+    }
+  };
 
   return (
     <main className="relative w-full min-h-screen bg-white pb-24">
@@ -92,19 +76,32 @@ const Page = () => {
 
           {/* Tasks Timeline */}
           <div className="space-y-4 px-4">
-            {tasks.map((task, index) => (
-              <TaskItem
-                key={index}
-                time={task.time}
-                title={task.title}
-                client={task.client}
-                location={task.location}
-                status={task.status}
-                statusColor={task.statusColor}
-                dotColor={task.dotColor}
-                isLast={index === tasks.length - 1}
-              />
-            ))}
+            {isLoading ? (
+               <div className="flex justify-center py-10">
+                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-orange"></div>
+               </div>
+            ) : bookings.length > 0 ? (
+              bookings.map((booking, index) => {
+                const statusInfo = getStatusInfo(booking.status);
+                return (
+                  <TaskItem
+                    key={booking.id}
+                    time={booking.time}
+                    title={booking.title}
+                    client={`Client: ${booking.customerName}`}
+                    location={booking.location}
+                    status={booking.status}
+                    statusColor={statusInfo.color}
+                    dotColor={statusInfo.dot}
+                    isLast={index === bookings.length - 1}
+                  />
+                );
+              })
+            ) : (
+              <div className="text-center py-20">
+                <p className="text-gray-500 font-poppins">No tasks found for this period.</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
