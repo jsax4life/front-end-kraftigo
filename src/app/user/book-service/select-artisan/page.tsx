@@ -27,10 +27,10 @@ interface Artisan {
 const SelectArtisanPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const serviceName = searchParams.get("service") || "House Cleaning";
-  const address =
-    searchParams.get("address") || "Hauptstraße 123 - 10115, Berlin";
-  const date = searchParams.get("date") || "16th Jan, 2026";
+  const categoryId = searchParams.get("categoryId") || "";
+  const categoryName = searchParams.get("category") || "Service";
+  const address = searchParams.get("address") || "Hauptstraße 123 - 10115, Berlin";
+  const date = searchParams.get("date") || new Date().toISOString();
 
   // const [selectedArtisan, setSelectedArtisan] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
@@ -123,24 +123,41 @@ const SelectArtisanPage = () => {
 
   const handleChat = (artisanId: number) => {
     // Navigate to chat page
-    const artisan = artisans.find(a => a.id === artisanId);
-    router.push(`/user/chat?artisanId=${artisanId}&name=${encodeURIComponent(artisan?.name || "")}`);
+    const artisan = artisans.find((a) => a.id === artisanId);
+    router.push(
+      `/user/chat?artisanId=${artisanId}&name=${encodeURIComponent(artisan?.name || "")}`,
+    );
   };
 
   return (
     <main className="min-h-screen bg-white">
       {/* Header */}
-      <div className="bg-white border-b border-[#F2F4F7]">
-        <div className="max-w-4xl mx-auto px-4 py-6 flex items-center justify-between">
-          <h1 className="text-[20px] font-gerat font-bold text-[#1D2939]">
-            {serviceName}
-          </h1>
-          <button onClick={() => router.back()} className="p-2 hover:bg-gray-50 rounded-full">
-            <X size={24} className="text-[#667085]" />
+
+      <div className="bg-[#FFF0F0]">
+        <div className="max-w-4xl mx-auto px-4 sm:px-8 lg:px-8 py-6 flex items-center justify-between">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <span className="w-9 h-9 bg-brand-orange rounded-full flex items-center justify-center cursor-pointer hover:bg-orange-600 transition-colors">
+              <Check size={20} className="text-white" />
+            </span>
+            <span className="w-9 h-9 bg-brand-orange rounded-full flex items-center justify-center cursor-pointer hover:bg-orange-600 transition-colors">
+              <Check size={20} className="text-white" />
+            </span>
+            <span className="w-fit px-3 py-2.5 text-xs sm:text-sm bg-brand-orange text-white rounded-full flex items-center justify-center cursor-pointer hover:bg-orange-600 transition-colors">
+              Krafter
+            </span>
+            <span className="w-9 h-9 bg-white font-bold rounded-full text-[#00000066] flex items-center justify-center text-sm">
+              4
+            </span>
+            <span className="w-9 h-9 bg-white font-bold rounded-full text-[#00000066] flex items-center justify-center text-sm">
+              5
+            </span>
+          </div>
+          <button
+            className="text-brand-orange text-[14px] sm:text-[16px] font-poppins font-semibold"
+            onClick={() => router.back()}
+          >
+            Back
           </button>
-        </div>
-        <div className="max-w-4xl mx-auto px-4 pb-4">
-           <p className="text-[14px] font-poppins font-bold text-brand-orange">3 Offers Recieved</p>
         </div>
       </div>
 
@@ -185,7 +202,9 @@ const SelectArtisanPage = () => {
                 <Button
                   variant="primary"
                   className="text-[13px] sm:text-[14px] py-2.5 px-4 inline-flex items-center gap-2"
-                  onClick={() => router.push('/user/book-service/select-artisan/publicTask')}
+                  onClick={() =>
+                    router.push("/user/book-service/select-artisan/publicTask")
+                  }
                 >
                   <p>Post public task</p>
                   <Image
@@ -252,17 +271,20 @@ const SelectArtisanPage = () => {
                 onSelect={handleSelectArtisan}
               />
             ))}
-            <div 
+            <div
               onClick={() => setShowCompare(true)}
-              className="flex items-center justify-center gap-2 bg-brand-orange w-66 h-10 rounded-full cursor-pointer hover:bg-orange-600 transition-colors absolute top-70 left-1/2 transform -translate-x-1/2">
-             <Image
-              src='/double.svg'
-              alt="toggle view"
-              width={15}
-              height={15}
-              className=""
-            />
-              <span className="text-xs font-poppins text-white">Compare Krafter ({artisans.length})</span>
+              className="flex items-center justify-center gap-2 bg-brand-orange w-66 h-10 rounded-full cursor-pointer hover:bg-orange-600 transition-colors absolute top-70 left-1/2 transform -translate-x-1/2"
+            >
+              <Image
+                src="/double.svg"
+                alt="toggle view"
+                width={15}
+                height={15}
+                className=""
+              />
+              <span className="text-xs font-poppins text-white">
+                Compare Krafter ({artisans.length})
+              </span>
             </div>
           </div>
         )}

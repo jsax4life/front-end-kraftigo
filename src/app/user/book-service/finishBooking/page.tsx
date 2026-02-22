@@ -3,23 +3,35 @@
 import { Check } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Input from "@/components/ui/input";
 import { useBookingsStore } from "@/store/useBookingsStore";
+import { usePaymentStore } from "@/store/usePaymentStore";
 import toast from "react-hot-toast";
 import { logger } from "@/utils/logger";
+import PaymentFlowModal from "@/components/shared/PaymentFlowModal";
 
 const Page = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const serviceName = searchParams.get("service") || "House Cleaning";
+  const categoryId = searchParams.get("categoryId") || "";
+  const categoryName = searchParams.get("category") || "Service";
   const address =
     searchParams.get("address") || "Hauptstraße 123 - 10115, Berlin";
-  const date = searchParams.get("date") || "15th Jan, 2025";
-
+  const date = searchParams.get("date") || new Date().toISOString();
   const [promoCode, setPromoCode] = useState("");
-  const [selectedPayment, setSelectedPayment] = useState("card");
-  const [hasPaymentMethods, setHasPaymentMethods] = useState(false); // Toggle this to test both states
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+
+  const { createBooking, isSubmitting } = useBookingsStore();
+  const { paymentMethods, selectedPaymentId, selectPayment, hasPaymentMethods } = usePaymentStore();
+
+  // Set initial selected payment to default or first method
+  useEffect(() => {
+    if (paymentMethods.length > 0 && !selectedPaymentId) {
+      const defaultMethod = paymentMethods.find(m => m.isDefault) || paymentMethods[0];
+      selectPayment(defaultMethod.id);
+    }
+  }, [paymentMethods, selectedPaymentId, selectPayment]);
 
   const hourlyRate = 41.29;
   const hours = Number(searchParams.get("hours") || "1");
@@ -28,20 +40,51 @@ const Page = () => {
   const subtotal = hourlyRate * hours;
   const totalAmount = subtotal + serviceFee - discount;
 
-  const { createBooking, isSubmitting } = useBookingsStore();
-
   const handleConfirmPayment = async () => {
-    logger.log("Initiating booking creation", { serviceName, address, date });
+    logger.log("Initiating booking creation", { categoryId, categoryName, address, date });
 
     try {
-      // Construct payload for API
-      // Note: In a real app, serviceId and artisanId would be extracted from searchParams
+      // Get address coordinates (you'll need to implement geocoding or get from address store)
+      // For now, using default Berlin coordinates
+      const latitude = 52.52;
+      const longitude = 13.40;
+      
+      // Convert time to HH:mm format (remove AM/PM if present)
+      const rawTime = searchParams.get("time") || "09:00";
+      let formattedTime = rawTime;
+      
+      // If time has AM/PM, convert to 24-hour format
+      if (rawTime.includes("AM") || rawTime.includes("PM")) {
+        const timeParts = rawTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
+        if (timeParts) {
+          let hours = parseInt(timeParts[1]);
+          const minutes = timeParts[2];
+          const period = timeParts[3].toUpperCase();
+          
+          if (period === "PM" && hours !== 12) {
+            hours += 12;
+          } else if (period === "AM" && hours === 12) {
+            hours = 0;
+          }
+          
+          formattedTime = `${hours.toString().padStart(2, '0')}:${minutes}`;
+        }
+      }
+      
+      // Construct payload for API in the format backend expects
       const payload = {
-        service_id: searchParams.get("serviceId") || "mock-service-id",
-        scheduled_date: new Date(date).toISOString(), // Ensure proper ISO format
-        location: address,
-        notes: `Hours: ${searchParams.get("hours") || "1"}, Frequency: ${searchParams.get("frequency") || "just-once"}`,
+        serviceCategoryId: searchParams.get("categoryId") || "",
+        jobTitle: categoryName, // Use category name as job title
+        jobDescription: searchParams.get("taskDetails") || "",
+        consentAcknowledged: true,
+        address: address,
+        latitude: latitude,
+        longitude: longitude,
+        preferredDate: new Date(date).toISOString().split('T')[0], // YYYY-MM-DD format
+        preferredTime: formattedTime, // HH:mm format
       };
+
+      logger.log("Booking payload:", payload);
 
       await createBooking(payload);
 
@@ -49,41 +92,24 @@ const Page = () => {
       router.push("/user/book-service/confirmation");
     } catch (err: any) {
       logger.error("Booking creation failed:", err);
-      toast.error(
-        err.response?.data?.message ||
-          "Failed to create booking. Please try again.",
-      );
+      
+      // Handle specific error cases
+      if (err.response?.status === 401) {
+        toast.error("Please log in to create a booking");
+        router.push("/user/login");
+      } else {
+        toast.error(
+          err.response?.data?.message ||
+            "Failed to create booking. Please try again.",
+        );
+      }
     }
   };
 
   const handleAddPayment = () => {
-    // Navigate to add payment method page
-    console.log("Add payment method");
+    // Open payment modal to add new payment method
+    setShowPaymentModal(true);
   };
-
-  const paymentMethods = [
-    {
-      id: "card",
-      name: "Debit/Credit Card",
-      details: {
-        holder: "John Doe",
-        number: "1234 **** **** **** 9898",
-      },
-    },
-    {
-      id: "sepa",
-      name: "SEPA Direct Debit",
-    },
-    {
-      id: "paypal",
-      name: "PayPal",
-    },
-    {
-      id: "googlepay",
-      name: "Google Pay",
-      logo: true,
-    },
-  ];
 
   return (
     <div className="min-h-screen bg-white pb-8">
@@ -115,7 +141,7 @@ const Page = () => {
           </button>
         </div>
         <h2 className="text-[18px] sm:text-[20px] font-poppins font-semibold px-4 sm:px-8 lg:px-8 max-w-4xl mx-auto">
-          {hasPaymentMethods ? "Complete Order" : "Verify Your Details"}
+          {hasPaymentMethods() ? "Complete Order" : "Verify Your Details"}
         </h2>
       </div>
 
@@ -124,7 +150,7 @@ const Page = () => {
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-2">
-              {serviceName}
+              {categoryName}
             </h1>
             <div className="flex items-center gap-2 mb-2">
               <span className="text-[13px] sm:text-[14px] font-poppins font-semibold text-gray-900">
@@ -218,7 +244,7 @@ const Page = () => {
           Payment Options
         </h3>
 
-        {!hasPaymentMethods ? (
+        {!hasPaymentMethods() ? (
           // No Payment Methods State
           <div className="space-y-4 py-5">
             <p className="text-[13px] sm:text-[14px] font-poppins text-gray-500 text-center py-4">
@@ -239,7 +265,7 @@ const Page = () => {
               <div
                 key={method.id}
                 className="border border-[#0000001A] rounded-lg p-4 hover:border-brand-orange transition-colors cursor-pointer"
-                onClick={() => setSelectedPayment(method.id)}
+                onClick={() => selectPayment(method.id)}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 flex-1">
@@ -248,13 +274,13 @@ const Page = () => {
                         type="radio"
                         name="payment"
                         value={method.id}
-                        checked={selectedPayment === method.id}
-                        onChange={(e) => setSelectedPayment(e.target.value)}
+                        checked={selectedPaymentId === method.id}
+                        onChange={(e) => selectPayment(e.target.value)}
                         className="w-5 h-5 appearance-none border-2 border-gray-300 rounded-full checked:border-brand-orange checked:border-[6px] transition-all cursor-pointer"
                       />
                     </div>
                     <div className="flex-1">
-                      {method.logo && method.id === "googlepay" ? (
+                      {method.type === "googlepay" ? (
                         <div className="flex items-center gap-2">
                           <Image
                             src="/google2.svg"
@@ -262,7 +288,7 @@ const Page = () => {
                             width={50}
                             height={20}
                             className="h-5 w-auto"
-                          />{" "}
+                          />
                           Pay
                         </div>
                       ) : (
@@ -272,12 +298,21 @@ const Page = () => {
                           </p>
                           {method.details && (
                             <div className="mt-1">
-                              <p className="text-[13px] font-poppins font-semibold text-gray-900">
-                                {method.details.holder}
-                              </p>
-                              <p className="text-[12px] font-poppins text-gray-600">
-                                {method.details.number}
-                              </p>
+                              {method.details.holder && (
+                                <p className="text-[13px] font-poppins font-semibold text-gray-900">
+                                  {method.details.holder}
+                                </p>
+                              )}
+                              {method.details.number && (
+                                <p className="text-[12px] font-poppins text-gray-600">
+                                  {method.details.number}
+                                </p>
+                              )}
+                              {method.details.iban && (
+                                <p className="text-[12px] font-poppins text-gray-600">
+                                  {method.details.iban}
+                                </p>
+                              )}
                             </div>
                           )}
                         </div>
@@ -292,6 +327,15 @@ const Page = () => {
                 </div>
               </div>
             ))}
+            
+            {/* Add New Payment Button */}
+            <button
+              onClick={handleAddPayment}
+              className="w-full py-3 border-2 border-dashed border-gray-300 text-gray-600 text-[15px] sm:text-[16px] font-poppins font-semibold rounded-lg hover:border-brand-orange hover:text-brand-orange transition-colors flex items-center justify-center gap-2"
+            >
+              <span className="text-xl">+</span>
+              Add new payment method
+            </button>
           </div>
         )}
       </div>
@@ -312,6 +356,10 @@ const Page = () => {
             : `Confirm & Pay $${totalAmount.toFixed(2)}`}
         </button>
       </div>
+
+      {showPaymentModal && (
+        <PaymentFlowModal onClose={() => setShowPaymentModal(false)} />
+      )}
     </div>
   );
 };

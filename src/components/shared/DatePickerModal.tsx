@@ -139,11 +139,11 @@ const DatePickerModal = ({
   };
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center sm:justify-center"
       onClick={onClose}
     >
-      <div 
+      <div
         className="bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >

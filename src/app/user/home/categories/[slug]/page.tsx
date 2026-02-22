@@ -3,182 +3,65 @@
 import { ArrowLeft, Search, ChevronRight } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
+import { useEffect, useMemo } from "react";
+import { useServicesStore } from "@/store/useServicesStore";
+import type { ServiceCategory } from "@/types";
 
 const Page = () => {
   const router = useRouter();
   const params = useParams();
   const slug = params.slug as string;
+  
+  const { services = [], categories = [], isLoading, error, fetchServices, fetchCategories } = useServicesStore();
 
-  // Category data mapping
-  const categoryData: Record<
-    string,
-    {
-      name: string;
-      image: string;
-      services: Array<{
-        id: number;
-        name: string;
-        description: string;
-        price: string;
-        icon: string;
-      }>;
+  // Find current category based on slug or ID
+  const currentCategory: ServiceCategory | undefined = useMemo(() => {
+    return categories.find(cat => 
+      cat.slug === slug || cat.id === slug
+    );
+  }, [slug, categories]);
+
+  useEffect(() => {
+    // Fetch categories if not already loaded
+    if (categories.length === 0) {
+      fetchCategories();
     }
-  > = {
-    "gardening-outdoor": {
-      name: "Gardening & Outdoor Help",
-      image: "/images/home3.jpg",
-      services: [
-        {
-          id: 1,
-          name: "Gardening help",
-          description: "Includes planting, watering, weeding",
-          price: "$45/hr",
-          icon: "🌱",
-        },
-        {
-          id: 2,
-          name: "Landscaping help",
-          description: "Includes planting, watering, weeding",
-          price: "$45/hr",
-          icon: "🌱",
-        },
-        {
-          id: 3,
-          name: "Lawn Maintainance",
-          description: "Includes planting, watering, weeding",
-          price: "$45/hr",
-          icon: "🌱",
-        },
-        {
-          id: 4,
-          name: "Planting Help",
-          description: "Includes planting, watering, weeding",
-          price: "$45/hr",
-          icon: "🌱",
-        },
-      ],
-    },
-    moving: {
-      name: "Moving",
-      image: "/images/home5.jpg",
-      services: [
-        {
-          id: 1,
-          name: "Full Moving Service",
-          description: "Packing, loading, and unloading",
-          price: "$60/hr",
-          icon: "📦",
-        },
-        {
-          id: 2,
-          name: "Loading/Unloading",
-          description: "Help with heavy lifting",
-          price: "$45/hr",
-          icon: "📦",
-        },
-        {
-          id: 3,
-          name: "Packing Help",
-          description: "Professional packing services",
-          price: "$40/hr",
-          icon: "📦",
-        },
-      ],
-    },
-    laundry: {
-      name: "Laundry",
-      image: "/images/home6.jpg",
-      services: [
-        {
-          id: 1,
-          name: "Wash & Fold",
-          description: "Complete laundry service",
-          price: "$35/hr",
-          icon: "👕",
-        },
-        {
-          id: 2,
-          name: "Ironing Service",
-          description: "Professional ironing",
-          price: "$30/hr",
-          icon: "👕",
-        },
-        {
-          id: 3,
-          name: "Dry Cleaning Pickup",
-          description: "Pickup and delivery",
-          price: "$25/hr",
-          icon: "👕",
-        },
-      ],
-    },
-    errands: {
-      name: "Errands",
-      image: "/images/home2.jpg",
-      services: [
-        {
-          id: 1,
-          name: "Grocery Shopping",
-          description: "Shop for groceries and deliver",
-          price: "$30/hr",
-          icon: "🛒",
-        },
-        {
-          id: 2,
-          name: "Package Delivery",
-          description: "Pick up and deliver packages",
-          price: "$25/hr",
-          icon: "🛒",
-        },
-        {
-          id: 3,
-          name: "General Errands",
-          description: "Various errand services",
-          price: "$28/hr",
-          icon: "🛒",
-        },
-      ],
-    },
-    "home-repairs": {
-      name: "Home repairs",
-      image: "/images/home4.jpg",
-      services: [
-        {
-          id: 1,
-          name: "General Repairs",
-          description: "Fix various household items",
-          price: "$55/hr",
-          icon: "🔧",
-        },
-        {
-          id: 2,
-          name: "Plumbing Help",
-          description: "Basic plumbing repairs",
-          price: "$65/hr",
-          icon: "🔧",
-        },
-        {
-          id: 3,
-          name: "Electrical Help",
-          description: "Basic electrical work",
-          price: "$70/hr",
-          icon: "🔧",
-        },
-        {
-          id: 4,
-          name: "Furniture Assembly",
-          description: "Assemble furniture and fixtures",
-          price: "$45/hr",
-          icon: "🔧",
-        },
-      ],
-    },
+  }, [categories.length, fetchCategories]);
+
+  useEffect(() => {
+    // Fetch services for this category when category is found
+    if (currentCategory) {
+      fetchServices({ category: currentCategory.id });
+    }
+  }, [currentCategory, fetchServices]);
+
+  const handleServiceClick = (serviceId: string, serviceTitle: string) => {
+    // Navigate to booking page with service details
+    console.log("Navigate to booking:", serviceId, serviceTitle);
+    router.push(
+      `/user/book-service?serviceId=${serviceId}&service=${encodeURIComponent(serviceTitle)}`
+    );
   };
 
-  const category = categoryData[slug];
+  const handleSearch = () => {
+    // Navigate to search or open search modal
+    console.log("Open search");
+  };
 
-  // Handle invalid slug
-  if (!category) {
+  // Handle invalid slug or loading
+  if (isLoading && !currentCategory) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-[15px] font-poppins text-gray-500">
+            Loading...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!currentCategory && !isLoading && categories.length > 0) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
@@ -194,33 +77,14 @@ const Page = () => {
     );
   }
 
-  const handleServiceClick = (serviceName: string) => {
-    // Navigate to booking page with service details
-    console.log("Navigate to booking:", serviceName);
-    router.push(
-      `/user/book-service?service=${encodeURIComponent(serviceName)}`
-    );
-  };
-
-  const handleCustomKraft = () => {
-    // Navigate to custom kraft request page
-    console.log("Request custom kraft");
-    router.push("/user/home/custom-kraft");
-  };
-
-  const handleSearch = () => {
-    // Navigate to search or open search modal
-    console.log("Open search");
-  };
-
   return (
     <div className="min-h-screen bg-white">
       {/* Hero Section */}
       <div className="relative h-[280px] sm:h-[320px]">
         {/* Background Image */}
         <Image
-          src={category.image}
-          alt={category.name}
+          src={currentCategory?.icon || "/images/home.png"}
+          alt={currentCategory?.name || "Category"}
           fill
           className="object-cover"
           priority
@@ -250,13 +114,13 @@ const Page = () => {
           {/* Badge */}
           <div className="mb-3">
             <span className="bg-[#6B46C1] text-white text-[11px] sm:text-[12px] font-poppins font-semibold px-3 py-1.5">
-              Experts Available
+              {services.length > 0 ? `${services.length} Services Available` : 'Experts Available'}
             </span>
           </div>
 
           {/* Title */}
           <h1 className="text-[32px] sm:text-[40px] lg:text-[48px] font-gerat font-bold text-white leading-tight mb-4">
-            {category.name}
+            {currentCategory?.name}
           </h1>
 
          
@@ -271,50 +135,77 @@ const Page = () => {
 
         {/* Service Cards */}
         <div className="space-y-0">
-          {category.services.map((service, index) => (
-            <button
-              key={service.id}
-              onClick={() => handleServiceClick(service.name)}
-              className="w-full flex items-center gap-4 py-4 hover:bg-gray-50 transition-colors group border-b border-[#0000001A]"
-            >
-              {/* Icon */}
-              <div className="w-14 h-14 bg-[#FFE5D9] rounded-xl flex items-center justify-center shrink-0 text-2xl">
-                {service.icon}
-              </div>
+          {isLoading ? (
+            <div className="py-8 text-center">
+              <p className="text-[15px] font-poppins text-gray-500">
+                Loading services...
+              </p>
+            </div>
+          ) : error ? (
+            <div className="py-8 text-center">
+              <p className="text-[15px] font-poppins text-red-500">
+                {error}
+              </p>
+            </div>
+          ) : services.length > 0 ? (
+            services.map((service) => (
+              <button
+                key={service.id}
+                onClick={() => handleServiceClick(service.id, service.title)}
+                className="w-full flex items-center gap-4 py-4 hover:bg-gray-50 transition-colors group border-b border-[#0000001A]"
+              >
+                {/* Icon/Image */}
+                <div className="w-14 h-14 bg-[#FFE5D9] rounded-xl flex items-center justify-center shrink-0 overflow-hidden">
+                  {service.images && service.images.length > 0 ? (
+                    <Image
+                      src={service.images[0]}
+                      alt={service.title}
+                      width={56}
+                      height={56}
+                      className="object-cover w-full h-full"
+                    />
+                  ) : (
+                    <span className="text-2xl">🔧</span>
+                  )}
+                </div>
 
-              {/* Content */}
-              <div className="flex-1 text-left">
-                <h3 className="text-[16px] sm:text-[17px] font-poppins font-bold text-gray-900 mb-1">
-                  {service.name}
-                </h3>
-                <p className="text-[13px] sm:text-[14px] font-poppins text-gray-600 mb-1">
-                  {service.description}
-                </p>
-                <p className="text-[13px] sm:text-[14px] font-poppins font-semibold text-brand-orange bg-[#FF66001A] px-3 py-1 rounded-full w-fit">
-                  Starting at {service.price}
-                </p>
-              </div>
+                {/* Content */}
+                <div className="flex-1 text-left">
+                  <h3 className="text-[16px] sm:text-[17px] font-poppins font-bold text-gray-900 mb-1">
+                    {service.title}
+                  </h3>
+                  <p className="text-[13px] sm:text-[14px] font-poppins text-gray-600 mb-1 line-clamp-2">
+                    {service.description}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-[13px] sm:text-[14px] font-poppins font-semibold text-brand-orange bg-[#FF66001A] px-3 py-1 rounded-full w-fit">
+                      ${service.price_per_hour}/hr
+                    </p>
+                    {service.artisan && (
+                      <p className="text-[12px] font-poppins text-gray-500">
+                        by {service.artisan.fullName}
+                      </p>
+                    )}
+                  </div>
+                </div>
 
-              {/* Chevron */}
-              <ChevronRight
-                size={20}
-                className="text-gray-400 group-hover:text-brand-orange transition-colors shrink-0"
-              />
-            </button>
-          ))}
-        </div>
-
-        {/* Bottom Section */}
-        <div className="mt-12 text-center">
-          <p className="text-[14px] sm:text-[15px] font-poppins text-gray-600 mb-2">
-            Cant find what you need?
-          </p>
-          <button
-            onClick={handleCustomKraft}
-            className="text-[16px] sm:text-[17px] font-poppins font-bold text-brand-orange hover:underline"
-          >
-            Request A Custom Kraft
-          </button>
+                {/* Chevron */}
+                <ChevronRight
+                  size={20}
+                  className="text-gray-400 group-hover:text-brand-orange transition-colors shrink-0"
+                />
+              </button>
+            ))
+          ) : (
+            <div className="py-8 text-center">
+              <p className="text-[15px] font-poppins text-gray-500 mb-2">
+                No services available in this category yet
+              </p>
+              <p className="text-[13px] font-poppins text-gray-400">
+                Check back soon or request a custom kraft
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
