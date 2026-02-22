@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Search, ChevronRight, User as UserIcon } from "lucide-react";
@@ -12,7 +12,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { chatSocketManager } from "@/lib/socket";
 import { Conversation } from "@/types";
 
-const ChatPage = () => {
+const ChatPageContent = () => {
   const searchParams = useSearchParams();
   const { conversations, fetchConversations, currentConversation, setCurrentConversation } = useChatStore();
   const { accessToken } = useAuthStore();
@@ -127,6 +127,14 @@ const ChatPage = () => {
 
       <TaskerNav />
     </main>
+  );
+};
+
+const ChatPage = () => {
+  return (
+    <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading chat...</div>}>
+      <ChatPageContent />
+    </React.Suspense>
   );
 };
 
