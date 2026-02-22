@@ -44,12 +44,15 @@ const Page = () => {
       };
 
       await createBooking(payload);
-      
+
       toast.success("Booking confirmed successfully!");
       router.push("/user/book-service/confirmation");
     } catch (err: any) {
       logger.error("Booking creation failed:", err);
-      toast.error(err.response?.data?.message || "Failed to create booking. Please try again.");
+      toast.error(
+        err.response?.data?.message ||
+          "Failed to create booking. Please try again.",
+      );
     }
   };
 
@@ -304,7 +307,9 @@ const Page = () => {
           disabled={isSubmitting}
           className="w-full py-3 bg-brand-orange text-white text-[16px] sm:text-[17px] font-poppins font-semibold rounded-lg hover:bg-brand-orange-dark transition-colors disabled:opacity-60"
         >
-          {isSubmitting ? "Processing..." : `Confirm & Pay $${totalAmount.toFixed(2)}`}
+          {isSubmitting
+            ? "Processing..."
+            : `Confirm & Pay $${totalAmount.toFixed(2)}`}
         </button>
       </div>
     </div>
