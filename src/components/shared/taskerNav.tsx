@@ -21,6 +21,12 @@ const TaskerNav = () => {
       path: "/tasker/schedule",
     },
     {
+      name: "Request",
+      icon: "/request.svg",
+      activeIcon: "/request.svg",
+      path: "/tasker/requests",
+    },
+    {
       name: "Chat",
       icon: "/tasketChat.svg",
       activeIcon: "/tasketChat.svg",
@@ -62,8 +68,8 @@ const TaskerNav = () => {
                   <Image
                     src={isActive ? item.activeIcon : item.icon}
                     alt={item.name}
-                    width={24}
-                    height={24}
+                    width={27}
+                    height={27}
                     className="w-full h-full object-contain"
                   />
                   {/* Red notification dot for Chat */}
