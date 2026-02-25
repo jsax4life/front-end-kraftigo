@@ -114,7 +114,7 @@ const Page = () => {
             formData.vatId.trim() !== "");
         return isBasicValid && isBusinessFieldsValid;
       case 5:
-        return formData.selfieImage !== null;
+        return true; // Step 5 is skippable, so it's always valid to continue/skip
       default:
         return false;
     }
@@ -129,8 +129,14 @@ const Page = () => {
     } else if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     } else {
-      // Submit form on last step
-       router.push("/tasker/dashboard");
+      // Submit form on last step or skip
+      router.push("/tasker/login");
+    }
+  };
+
+  const handleSkip = () => {
+    if (currentStep === 5) {
+      router.push("/tasker/login");
     }
   };
 
@@ -461,21 +467,23 @@ const Page = () => {
           {currentStep === 5 && (
             <div className="space-y-6">
               <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-2">
-                Take A Selfie
+                Add up your selfie to your profile
               </h1>
               <p className="text-[14px] font-qurova text-gray-600 mb-8">
                 We use your selfie to compare with your passport photo
               </p>
 
-              {/* Selfie Illustration */}
+              {/* Selfie Illustration Placeholder */}
               <div className="flex justify-center mb-8">
-                <Image
-                  src="/avatar.svg"
-                  alt="avatar"
-                  width={200}
-                  height={200}
-                  className="w-20 h-20 lg:w-50 lg:h-50"
-                />
+                <div className="w-48 h-48 lg:w-64 lg:h-64 bg-gray-100 rounded-3xl flex items-center justify-center border-2 border-dashed border-gray-300 group hover:border-brand-orange transition-colors">
+                  <Image
+                    src="/avatar.svg"
+                    alt="selfie placeholder"
+                    width={200}
+                    height={200}
+                    className="w-32 h-32 lg:w-48 lg:h-48 opacity-50 group-hover:opacity-100 transition-opacity"
+                  />
+                </div>
               </div>
 
               {/* Instructions Box */}
@@ -539,7 +547,7 @@ const Page = () => {
 
           <div>
             <Button
-              variant={currentStep === 5 ? "secondary" : "primary"}
+              variant={currentStep === 5 ? "primary" : "primary"}
               onClick={handleNext}
               fullWidth
               disabled={!isStepValid()}
@@ -552,6 +560,15 @@ const Page = () => {
                     ? "Submit"
                     : "Continue"}
             </Button>
+
+            {currentStep === 5 && (
+               <button
+                 onClick={handleSkip}
+                 className="w-full text-center text-[14px] font-qurova text-gray-700 hover:text-brand-orange mt-4 py-2 font-bold transition-colors"
+               >
+                 Skip
+               </button>
+            )}
 
             {currentStep >= 3 && (
               <button

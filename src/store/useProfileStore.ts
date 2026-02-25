@@ -18,6 +18,11 @@ interface ProfileState {
   createOrUpdateCustomerProfile: (profile: CustomerProfile) => Promise<void>
   updateCustomerProfile: (profile: Partial<CustomerProfile>) => Promise<void>
 
+  // Verification Actions
+  verificationStatus: any | null
+  fetchVerificationStatus: () => Promise<void>
+  submitVerification: (formData: FormData) => Promise<void>
+
   clearProfileError: () => void
 }
 
@@ -103,6 +108,39 @@ export const useProfileStore = create<ProfileState>((set) => ({
     } catch (error: any) {
       set({
         error: error.response?.data?.message || 'Failed to update customer profile',
+        isLoading: false,
+      })
+      throw error
+    }
+  },
+
+  verificationStatus: null,
+
+  fetchVerificationStatus: async () => {
+    set({ isLoading: true, error: null })
+    try {
+      const response = await api.get('/api/verification/my-status')
+      set({ verificationStatus: response.data, isLoading: false })
+    } catch (error: any) {
+      set({
+        error: error.response?.data?.message || 'Failed to fetch verification status',
+        isLoading: false,
+      })
+    }
+  },
+
+  submitVerification: async (formData) => {
+    set({ isLoading: true, error: null })
+    try {
+      const response = await api.post('/api/verification/submit', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+      set({ verificationStatus: response.data, isLoading: false })
+    } catch (error: any) {
+      set({
+        error: error.response?.data?.message || 'Failed to submit verification',
         isLoading: false,
       })
       throw error
