@@ -267,7 +267,7 @@ export const useAuthStore = create<AuthState>()(
       // Helper: Check if current user is a tasker
       isTasker: () => {
         const { user } = get()
-        return user?.roles?.includes('TASKER') || user?.roles?.includes('tasker') || false
+        return user?.roles?.includes('TASKER') || user?.roles?.includes('tasker') || user?.roles?.includes('ARTISAN') || false
       },
     }},
     {

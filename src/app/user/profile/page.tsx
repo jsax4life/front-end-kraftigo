@@ -14,12 +14,15 @@ import {
   LogOut, 
   ChevronRight,
   Plus,
-  Edit2
+  Edit2,
+  Info,
+  ShieldCheck
 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useProfileStore } from "@/store/useProfileStore";
 import { useEffect } from "react";
 import toast from "react-hot-toast";
+import { ProfileInfoSkeleton } from "@/components/shared/Skeletons";
 
 const SettingsItem = ({ icon: Icon, label, onClick, color = "text-gray-600" }: { icon: any, label: string, onClick: () => void, color?: string }) => (
   <button 
@@ -47,17 +50,19 @@ import Header from "@/components/shared/Header";
 const Page = () => {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { customerProfile, fetchCustomerProfile } = useProfileStore();
+  const { customerProfile, fetchCustomerProfile, isLoading, verificationStatus, fetchVerificationStatus } = useProfileStore();
 
   useEffect(() => {
     if (!customerProfile) {
       fetchCustomerProfile();
     }
-  }, [customerProfile, fetchCustomerProfile]);
+    fetchVerificationStatus();
+  }, [customerProfile, fetchCustomerProfile, fetchVerificationStatus]);
 
   const displayName = customerProfile?.fullName || user?.fullName || "User";
   const email = user?.email || "";
   const avatar = customerProfile?.profilePhotoUrl || user?.avatar;
+  const status = verificationStatus?.status; // PENDING, APPROVED, REJECTED
 
   return (
     <main className="relative w-full min-h-screen bg-[#F9FAFB] pb-32">
@@ -66,36 +71,40 @@ const Page = () => {
       <div className="px-4 sm:px-6 lg:px-8 py-8">
 
         {/* User Profile Card */}
-        <div className="flex items-center gap-5 mb-10">
-          <div className="relative border-2 border-dashed border-brand-orange rounded-full w-20 h-20 flex items-center justify-center shrink-0">
-            <div className="relative w-[70px] h-[70px] rounded-full overflow-hidden bg-gray-50 flex items-center justify-center shadow-sm">
-              {avatar ? (
-                <Image 
-                  src={avatar} 
-                  alt="Profile" 
-                  fill 
-                  className="object-cover"
-                />
-              ) : (
-                <User size={32} className="text-gray-300" />
-              )}
+        {isLoading ? (
+          <ProfileInfoSkeleton />
+        ) : (
+          <div className="flex items-center gap-5 mb-10">
+            <div className="relative border-2 border-dashed border-brand-orange rounded-full w-20 h-20 flex items-center justify-center shrink-0">
+              <div className="relative w-[70px] h-[70px] rounded-full overflow-hidden bg-gray-50 flex items-center justify-center shadow-sm">
+                {avatar ? (
+                  <Image 
+                    src={avatar} 
+                    alt="Profile" 
+                    fill 
+                    className="object-cover"
+                  />
+                ) : (
+                  <User size={32} className="text-gray-300" />
+                )}
+              </div>
             </div>
+            <div className="flex-1">
+              <h3 className="text-[22px] font-gerat font-bold text-[#1D2939]">
+                {displayName}
+              </h3>
+              <p className="text-[14px] text-[#667085] font-poppins">
+                {email}
+              </p>
+            </div>
+            <button 
+              onClick={() => router.push("/user/profile/personal-info")}
+              className="w-10 h-10 flex items-center justify-center rounded-full border border-[#F2F4F7] text-[#667085] hover:bg-brand-orange hover:text-white hover:border-brand-orange transition-all bg-white shadow-sm"
+            >
+              <Edit2 size={18} />
+            </button>
           </div>
-          <div className="flex-1">
-            <h3 className="text-[22px] font-gerat font-bold text-[#1D2939]">
-              {displayName}
-            </h3>
-            <p className="text-[14px] text-[#667085] font-poppins">
-              {email}
-            </p>
-          </div>
-          <button 
-            onClick={() => router.push("/user/profile/personal-info")}
-            className="w-10 h-10 flex items-center justify-center rounded-full border border-[#F2F4F7] text-[#667085] hover:bg-brand-orange hover:text-white hover:border-brand-orange transition-all bg-white shadow-sm"
-          >
-            <Edit2 size={18} />
-          </button>
-        </div>
+        )}
 
         {/* Promo Banners */}
         <div className="space-y-4 mb-8">
@@ -147,6 +156,27 @@ const Page = () => {
             onClick={() => router.push("/user/profile/security")}
             color="text-[#FF6600]"
           />
+          {!useAuthStore.getState().isTasker() ? (
+            <SettingsItem 
+              icon={status === 'PENDING' ? Clock : status === 'REJECTED' ? Info : Plus} 
+              label={status === 'PENDING' ? "Verification Pending" : status === 'REJECTED' ? "Verification Rejected (Retry)" : "Become an Artisan"} 
+              onClick={() => {
+                  if (status === 'PENDING') {
+                      toast.success("Your application is being reviewed!");
+                  } else {
+                      router.push("/user/profile/artisan-verification");
+                  }
+              }}
+              color={status === 'PENDING' ? "text-orange-500" : status === 'REJECTED' ? "text-red-500" : "text-[#00A651]"}
+            />
+          ) : (
+            <SettingsItem 
+              icon={ShieldCheck} 
+              label="Crafter Profile Active" 
+              onClick={() => router.push("/tasker/dashboard")}
+              color="text-[#00A651]"
+            />
+          )}
 
           <SectionHeader label="Payments" />
           <SettingsItem 
