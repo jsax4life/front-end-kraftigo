@@ -107,7 +107,7 @@ const Page = () => {
           <Button
             variant="secondary"
             className="w-full"
-            onClick={() => router.push("/tasker/home")}
+            onClick={() => router.push("/tasker/dashboard")}
           >
             Go to home
           </Button>

@@ -1,10 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { X, ChevronRight, Calendar } from "lucide-react";
 import Image from "next/image";
 import { Booking } from "@/store/useBookingStore";
+import { useBookingsStore } from "@/store/useBookingsStore";
 import Button from "../ui/button";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 
 interface TaskDetailModalProps {
   booking: Booking | null;
@@ -49,6 +52,8 @@ export default function TaskDetailModal({
   onCancel,
 }: TaskDetailModalProps) {
   const router = useRouter();
+  const { cancelBooking } = useBookingsStore();
+  const [isCancelling, setIsCancelling] = useState(false);
   if (!booking) return null;
 
   const activeStep = STATUS_STEP[booking.status] ?? 0;
@@ -59,7 +64,7 @@ export default function TaskDetailModal({
       onClick={onClose}
     >
       <div
-        className="relative bg-white rounded-t-xl w-full max-w-md mx-auto max-h-[92vh] overflow-y-auto"
+        className="relative bg-white rounded-t-xl w-full max-w-md mx-auto max-h-[92vh] overflow-y-auto pb-10"
         onClick={(e) => e.stopPropagation()}
       >
         {/* ── Header ── */}
@@ -218,29 +223,43 @@ export default function TaskDetailModal({
           </button>
         </div>
 
-        {/* ── Action Buttons ── */}
-        <div className="px-5 pt-4 pb-8 space-y-3">
-          <Button
-            onClick={() => onReschedule?.(booking)}
-            variant="primary"
-            fullWidth
-          >
-            Reschedule
-          </Button>
-          <Button
-            onClick={() => onReportIssue?.(booking)}
-            variant="secondary"
-            fullWidth
-          >
-            Report Issue
-          </Button>
-          <button
-            onClick={() => onCancel?.(booking)}
-            className="w-full flex items-center justify-center text-brand-blue-deep py-1 hover:opacity-80 transition-opacity"
-          >
-            Cancel Kraft
-          </button>
-        </div>
+        {/* ── Action Buttons (hidden for completed bookings) ── */}
+        {booking.status !== "COMPLETED" && (
+          <div className="px-5 pt-4 pb-8 space-y-3">
+            <Button
+              onClick={() => onReschedule?.(booking)}
+              variant="primary"
+              fullWidth
+            >
+              Reschedule
+            </Button>
+            <Button
+              onClick={() => onReportIssue?.(booking)}
+              variant="secondary"
+              fullWidth
+            >
+              Report Issue
+            </Button>
+            <button
+              onClick={async () => {
+                setIsCancelling(true);
+                try {
+                  await cancelBooking(booking.id);
+                  toast.success("Booking cancelled.");
+                  onClose();
+                } catch {
+                  toast.error("Could not cancel. Try again.");
+                } finally {
+                  setIsCancelling(false);
+                }
+              }}
+              disabled={isCancelling}
+              className="w-full flex items-center justify-center text-brand-blue-deep py-1 hover:opacity-80 transition-opacity disabled:opacity-50"
+            >
+              {isCancelling ? "Cancelling..." : "Cancel Kraft"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
