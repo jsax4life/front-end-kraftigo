@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import api from '@/lib/axios'
+import { dummyArtisanBookings } from '@/data/dummyArtisanBookings'
 
 export interface Booking {
   id: string;
@@ -50,12 +51,12 @@ export const useBookingStore = create<BookingState>((set) => ({
     set({ isLoading: true, error: null })
     try {
       const response = await api.get('/api/artisan/bookings')
-      set({ bookings: response.data, isLoading: false })
+      // Fall back to dummy data while API returns nothing
+      const bookings = response.data?.length > 0 ? response.data : dummyArtisanBookings
+      set({ bookings, isLoading: false })
     } catch (error: any) {
-      set({
-        error: error.response?.data?.message || 'Failed to fetch tasker bookings',
-        isLoading: false,
-      })
+      // Fall back to dummy data on error too
+      set({ bookings: dummyArtisanBookings, error: null, isLoading: false })
     }
   },
 

@@ -8,6 +8,9 @@ import {
   cancelBooking,
   confirmBooking,
   respondToBooking,
+  getArtisanBookings,
+  startBooking as startBookingApi,
+  completeBooking as completeBookingApi,
   type CreateBookingPayload,
   type UpdateBookingPayload,
   type ArtisanRespondPayload,
@@ -31,7 +34,10 @@ interface BookingsState {
   confirmBooking: (id: string) => Promise<Booking>
 
   // Artisan actions
+  fetchArtisanBookings: () => Promise<void>
   respondToBooking: (id: string, payload: ArtisanRespondPayload) => Promise<Booking>
+  startBooking: (id: string) => Promise<Booking>
+  completeBooking: (id: string) => Promise<Booking>
 
   // Selectors
   getUpcomingBookings: () => Booking[]
@@ -147,6 +153,24 @@ export const useBookingsStore = create<BookingsState>()((set, get) => ({
     }
   },
 
+  fetchArtisanBookings: async () => {
+    set({ isLoading: true, error: null })
+    try {
+      const bookings = await getArtisanBookings()
+      set({
+        bookings,
+        isLoading: false,
+        lastFetchStatus: bookings.length > 0 ? 'success' : 'empty',
+      })
+    } catch (err: any) {
+      set({
+        error: err.response?.data?.message || 'Failed to load artisan bookings',
+        isLoading: false,
+        lastFetchStatus: 'error',
+      })
+    }
+  },
+
   respondToBooking: async (id, payload) => {
     set({ isSubmitting: true, error: null })
     try {
@@ -158,6 +182,38 @@ export const useBookingsStore = create<BookingsState>()((set, get) => ({
       return updated
     } catch (err: any) {
       set({ error: err.response?.data?.message || 'Failed to respond to booking', isSubmitting: false })
+      throw err
+    }
+  },
+
+  startBooking: async (id) => {
+    set({ isSubmitting: true, error: null })
+    try {
+      const updated = await startBookingApi(id)
+      set((state) => ({
+        bookings: state.bookings.map((b) => (b.id === id ? updated : b)),
+        selectedBooking: state.selectedBooking?.id === id ? updated : state.selectedBooking,
+        isSubmitting: false,
+      }))
+      return updated
+    } catch (err: any) {
+      set({ error: err.response?.data?.message || 'Failed to start booking', isSubmitting: false })
+      throw err
+    }
+  },
+
+  completeBooking: async (id) => {
+    set({ isSubmitting: true, error: null })
+    try {
+      const updated = await completeBookingApi(id)
+      set((state) => ({
+        bookings: state.bookings.map((b) => (b.id === id ? updated : b)),
+        selectedBooking: state.selectedBooking?.id === id ? updated : state.selectedBooking,
+        isSubmitting: false,
+      }))
+      return updated
+    } catch (err: any) {
+      set({ error: err.response?.data?.message || 'Failed to complete booking', isSubmitting: false })
       throw err
     }
   },
