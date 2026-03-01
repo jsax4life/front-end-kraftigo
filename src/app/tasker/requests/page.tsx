@@ -13,18 +13,25 @@ import { X } from "lucide-react";
 import Input from "@/components/ui/input";
 import Button from "@/components/ui/button";
 import Image from "next/image";
+import { useBookingsStore } from "@/store/useBookingsStore";
+import toast from "react-hot-toast";
 
 const RequestsPage = () => {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"marketplace" | "requests">(
-    "marketplace",
-  );
+  const { respondToBooking } = useBookingsStore();
+
+  const [activeTab, setActiveTab] = useState<"marketplace" | "requests">("marketplace");
   const [selectedDistance, setSelectedDistance] = useState<string>("all");
   const [selectedPrice, setSelectedPrice] = useState<string>("all");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedTime, setSelectedTime] = useState<string>("all");
-  const [openNegotaitionModal, setOpenNegotiationModal] =
-    useState<boolean>(false);
+
+  // "offer" = sending a new offer from marketplace
+  // "counter" = renegotiating an incoming request
+  const [modalMode, setModalMode] = useState<"offer" | "counter">("offer");
+  const [openNegotaitionModal, setOpenNegotiationModal] = useState<boolean>(false);
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     amount: "",
     openToNegotiation: true,
@@ -32,43 +39,78 @@ const RequestsPage = () => {
   });
 
   const { jobs } = useJobStore();
-
-  // Use dummy data if no jobs exist, otherwise filter for open jobs
   const marketplaceJobs =
     jobs.length > 0 ? jobs.filter((job) => job.status === "open") : dummyJobs;
 
-  const handleSendOffer = (jobId: string) => {
-    console.log("Send offer for job:", jobId);
-    // TODO: Implement send offer functionality
+  const openModal = (mode: "offer" | "counter", requestId?: string) => {
+    setModalMode(mode);
+    setSelectedRequestId(requestId ?? null);
+    setFormData({ amount: "", openToNegotiation: true, message: "" });
     setOpenNegotiationModal(true);
   };
 
+  const handleSendOffer = (jobId: string) => openModal("offer");
+
   const handleBookmark = (jobId: string) => {
     console.log("Bookmark job:", jobId);
-    // TODO: Implement bookmark functionality
   };
 
-  const handleAcceptRequest = (requestId: string) => {
-    const request = dummyRequests.find(r => r.id === requestId);
-    if (request) {
-      const params = new URLSearchParams({
-        requestId: request.id,
-        customerName: request.customerName,
-        offerAmount: request.offerAmount.toString(),
-        description: request.description,
-      });
-      router.push(`/tasker/requests/accept-request?${params.toString()}`);
+  const handleAcceptRequest = async (requestId: string) => {
+    try {
+      await respondToBooking(requestId, { action: "ACCEPT" });
+      toast.success("Booking accepted!");
+    } catch {
+      toast.error("Could not accept booking. Try again.");
+      // API not connected yet — fall back to old flow
+      const request = dummyRequests.find((r) => r.id === requestId);
+      if (request) {
+        const params = new URLSearchParams({
+          requestId: request.id,
+          customerName: request.customerName,
+          offerAmount: request.offerAmount.toString(),
+          description: request.description,
+        });
+        // router.push(`/tasker/requests/accept-request?${params.toString()}`);
+      }
     }
   };
 
-  const handleDeclineRequest = (requestId: string) => {
-    console.log("Decline request:", requestId);
-    // TODO: Implement decline request functionality
+  const handleDeclineRequest = async (requestId: string) => {
+    try {
+      await respondToBooking(requestId, { action: "DECLINE" });
+      toast.success("Booking declined.");
+    } catch {
+      toast.error("Could not decline booking. Try again.");
+    }
   };
 
-  const handleRenegotiate = (requestId: string) => {
-    console.log("Renegotiate request:", requestId);
-    // TODO: Implement renegotiate functionality
+  const handleRenegotiate = (requestId: string) => openModal("counter", requestId);
+
+  const handleSubmitModal = async () => {
+    const price = parseFloat(formData.amount);
+    if (!price || price <= 0) {
+      toast.error("Please enter a valid amount.");
+      return;
+    }
+
+    if (modalMode === "counter" && selectedRequestId) {
+      setIsSubmitting(true);
+      try {
+        await respondToBooking(selectedRequestId, {
+          action: "COUNTER",
+          counter_price: price,
+        });
+        toast.success("Counter offer sent!");
+        setOpenNegotiationModal(false);
+      } catch {
+        toast.error("Failed to send counter offer. Try again.");
+      } finally {
+        setIsSubmitting(false);
+      }
+    } else {
+      // Marketplace offer — TODO: wire to marketplace offer API
+      router.push("/tasker/requests/finish");
+    }
   };
 
   return (
@@ -233,7 +275,7 @@ const RequestsPage = () => {
           >
             <div className="flex items-center justify-between p-6 border-b border-gray-50">
               <h2 className="text-[20px] font-gerat font-bold">
-                Send Your offer
+                {modalMode === "counter" ? "Renegotiate Price" : "Send Your Offer"}
               </h2>
               <button
                 onClick={() => setOpenNegotiationModal(false)}
@@ -246,11 +288,11 @@ const RequestsPage = () => {
             <div className="p-6 space-y-6">
               <div>
                 <Input
-                  placeholder="$ 0.00"
-                  label="offer amount"
+                  placeholder="€ 0.00"
+                  label={modalMode === "counter" ? "Your counter price" : "Offer amount"}
                   value={formData.amount}
-                  onChange={() => {}}
-                  type="text"
+                  onChange={(value) => setFormData({ ...formData, amount: value })}
+                  type="number"
                 />
               </div>
 
@@ -314,9 +356,14 @@ const RequestsPage = () => {
                 <Button
                   variant="primary"
                   fullWidth
-                  onClick={() => router.push("/tasker/requests/finish")}
+                  onClick={handleSubmitModal}
+                  disabled={isSubmitting}
                 >
-                  Submit Offer
+                  {isSubmitting
+                    ? "Sending..."
+                    : modalMode === "counter"
+                    ? "Send Counter Offer"
+                    : "Submit Offer"}
                 </Button>
               </div>
             </div>

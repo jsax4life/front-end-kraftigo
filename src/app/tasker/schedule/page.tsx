@@ -1,11 +1,14 @@
 "use client";
 
+import { Suspense } from "react";
 import TaskerNav from "@/components/shared/taskerNav";
 import TaskItem from "@/components/ui/taskItem";
 import TaskDetailModal from "@/components/shared/TaskDetailModal";
+import ActiveJobModal from "@/components/shared/ActiveJobModal";
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { useBookingStore, Booking } from "@/store/useBookingStore";
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 /* ─── calendar helpers ───────────────────────────────────────────── */
 const WEEK_DAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
@@ -22,6 +25,12 @@ function isSameDay(a: Date, b: Date) {
   );
 }
 
+/** Returns true when the booking is 24 h or less away (including past/today jobs) */
+function isWithin24Hours(dateIso: string): boolean {
+  const diff = new Date(dateIso).getTime() - Date.now();
+  return diff <= 24 * 60 * 60 * 1000; // ≤ 24 h (negative = already past → also true)
+}
+
 function buildGrid(year: number, month: number): (Date | null)[] {
   const firstDay = new Date(year, month, 1);
   const startOffset = (firstDay.getDay() + 6) % 7; // Mon-first
@@ -33,9 +42,10 @@ function buildGrid(year: number, month: number): (Date | null)[] {
 }
 /* ─────────────────────────────────────────────────────────────────── */
 
-const Page = () => {
+const SchedulePage = () => {
   const { bookings, isLoading, error, fetchTaskerBookings } = useBookingStore();
   const today = new Date();
+  const searchParams = useSearchParams();
 
   // Calendar state
   const [showFullCalendar, setShowFullCalendar] = useState(false);
@@ -44,43 +54,8 @@ const Page = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(today);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
-  /* ── Dummy data shown when API fails or returns nothing ── */
-  const DUMMY_BOOKINGS: Booking[] = [
-    {
-      id: "dummy-1",
-      title: "AC Maintenance",
-      customerName: "Micheal C",
-      location: "123 Maple Ave, Berlin",
-      date: new Date().toISOString(),
-      time: "8:00 AM – 12:00 AM",
-      status: "COMPLETED",
-      price: 120,
-    },
-    {
-      id: "dummy-2",
-      title: "House Cleaning",
-      customerName: "Sarah L.",
-      location: "45 Oak Street, Berlin",
-      date: new Date().toISOString(),
-      time: "12:00 PM – 2:00 PM",
-      status: "CONFIRMED",
-      price: 80,
-    },
-    {
-      id: "dummy-3",
-      title: "Plumbing Repair",
-      customerName: "James K.",
-      location: "78 Pine Road, Berlin",
-      date: new Date(Date.now() + 86400000).toISOString(),
-      time: "3:00 PM – 5:00 PM",
-      status: "PENDING",
-      price: 200,
-    },
-  ];
-
-  // Fall back to dummy data when the API errors or returns nothing
-  const displayBookings =
-    !isLoading && (error || bookings.length === 0) ? DUMMY_BOOKINGS : bookings;
+  /* ── bookings come from the store; dummy fallback is handled inside fetchTaskerBookings ── */
+  const displayBookings = bookings;
 
   // Booking dates for calendar orange highlights
   const bookingDates = displayBookings
@@ -90,6 +65,15 @@ const Page = () => {
   useEffect(() => {
     fetchTaskerBookings();
   }, [fetchTaskerBookings]);
+
+  // Auto-open ActiveJobModal when navigated from dashboard with ?openJob=<id>
+  useEffect(() => {
+    const openJobId = searchParams.get("openJob");
+    if (openJobId && bookings.length > 0) {
+      const match = bookings.find((b) => b.id === openJobId);
+      if (match) setSelectedBooking(match);
+    }
+  }, [searchParams, bookings]);
 
   // static week strip – 7 days starting from Monday of the selected date's week
   const getWeekDays = (date: Date) => {
@@ -159,18 +143,22 @@ const Page = () => {
             {!showFullCalendar && (
               <div className="grid grid-cols-7 gap-1 sm:gap-2">
                 {weekDays.map((date, index) => {
-                  const isActive = isSameDay(date, selectedDate);
-                  const isTdy = isSameDay(date, today);
+                  const isTdy   = isSameDay(date, today);
+                  const hasTask = bookingDates.some((bd) => isSameDay(bd, date));
                   const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+                  // today = blue, task day = orange, otherwise plain
+                  const bgCls = isTdy
+                    ? "bg-brand-blue text-white"
+                    : hasTask
+                    ? "bg-brand-orange text-white"
+                    : "text-gray-500 hover:bg-gray-200";
+
                   return (
                     <button
                       key={index}
                       onClick={() => setSelectedDate(date)}
-                      className={`flex flex-col items-center py-2 sm:py-3 rounded-lg transition-colors ${
-                        isActive
-                          ? "bg-brand-orange text-white"
-                          : "text-gray-700 hover:bg-gray-200"
-                      }`}
+                      className={`flex flex-col items-center py-2 sm:py-3 rounded-lg transition-colors ${bgCls}`}
                     >
                       <span className="text-[10px] sm:text-[12px] font-poppins mb-1">
                         {DAY_LABELS[index]}
@@ -178,9 +166,6 @@ const Page = () => {
                       <span className="text-[16px] sm:text-[20px] font-gerat font-bold">
                         {date.getDate()}
                       </span>
-                      {isTdy && !isActive && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-brand-blue mt-0.5" />
-                      )}
                     </button>
                   );
                 })}
@@ -231,7 +216,7 @@ const Page = () => {
                     const isSelected = isSameDay(date, selectedDate);
 
                     let cls =
-                      "w-8 h-8 mx-auto flex items-center justify-center rounded-full text-[13px] font-medium transition-colors cursor-pointer select-none";
+                      "w-9 h-9 mx-auto flex items-center justify-center rounded-lg text-[13px] font-medium transition-colors cursor-pointer select-none";
 
                     if (isToday) {
                       cls += " bg-brand-blue text-white";
@@ -272,31 +257,36 @@ const Page = () => {
               <div className="flex justify-center py-10">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-orange" />
               </div>
-            ) : displayBookings.length > 0 ? (
-              displayBookings.map((booking, index) => {
-                const statusInfo = getStatusInfo(booking.status);
-                return (
-                  <TaskItem
-                    key={booking.id}
-                    time={booking.time}
-                    title={booking.title}
-                    client={`Client: ${booking.customerName}`}
-                    location={booking.location}
-                    status={booking.status}
-                    statusColor={statusInfo.color}
-                    dotColor={statusInfo.dot}
-                    isLast={index === displayBookings.length - 1}
-                    onClick={() => setSelectedBooking(booking)}
-                  />
-                );
-              })
-            ) : (
-              <div className="text-center py-20">
-                <p className="text-gray-500 font-poppins">
-                  No tasks found for this period.
-                </p>
-              </div>
-            )}
+            ) : (() => {
+              const dayBookings = displayBookings.filter((b) =>
+                b.date && isSameDay(new Date(b.date), selectedDate)
+              );
+              return dayBookings.length > 0 ? (
+                dayBookings.map((booking, index) => {
+                  const statusInfo = getStatusInfo(booking.status);
+                  return (
+                    <TaskItem
+                      key={booking.id}
+                      time={booking.time}
+                      title={booking.title}
+                      client={`Client: ${booking.customerName}`}
+                      location={booking.location}
+                      status={booking.status}
+                      statusColor={statusInfo.color}
+                      dotColor={statusInfo.dot}
+                      isLast={index === dayBookings.length - 1}
+                      onClick={() => setSelectedBooking(booking)}
+                    />
+                  );
+                })
+              ) : (
+                <div className="text-center py-20">
+                  <p className="text-gray-500 font-poppins">
+                    No tasks for this day.
+                  </p>
+                </div>
+              );
+            })()}
           </div>
         </div>
       </div>
@@ -304,13 +294,26 @@ const Page = () => {
       {/* Bottom Navigation */}
       <TaskerNav />
 
-      {/* Task Detail Modal */}
-      <TaskDetailModal
-        booking={selectedBooking}
-        onClose={() => setSelectedBooking(null)}
-      />
+      {/* ── Modal switcher: show ActiveJobModal within 24h, TaskDetailModal otherwise ── */}
+      {selectedBooking && isWithin24Hours(selectedBooking.date) ? (
+        <ActiveJobModal
+          booking={selectedBooking}
+          onClose={() => setSelectedBooking(null)}
+        />
+      ) : (
+        <TaskDetailModal
+          booking={selectedBooking}
+          onClose={() => setSelectedBooking(null)}
+        />
+      )}
     </main>
   );
 };
 
-export default Page;
+export default function Page() {
+  return (
+    <Suspense fallback={null}>
+      <SchedulePage />
+    </Suspense>
+  );
+}
