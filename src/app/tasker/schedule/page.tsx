@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import TaskerNav from "@/components/shared/taskerNav";
 import TaskItem from "@/components/ui/taskItem";
 import TaskDetailModal from "@/components/shared/TaskDetailModal";
@@ -41,7 +42,7 @@ function buildGrid(year: number, month: number): (Date | null)[] {
 }
 /* ─────────────────────────────────────────────────────────────────── */
 
-const Page = () => {
+const SchedulePage = () => {
   const { bookings, isLoading, error, fetchTaskerBookings } = useBookingStore();
   const today = new Date();
   const searchParams = useSearchParams();
@@ -309,4 +310,10 @@ const Page = () => {
   );
 };
 
-export default Page;
+export default function Page() {
+  return (
+    <Suspense fallback={null}>
+      <SchedulePage />
+    </Suspense>
+  );
+}
