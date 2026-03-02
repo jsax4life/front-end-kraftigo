@@ -7,7 +7,7 @@ import Card from "@/components/ui/card";
 import { MapPin, Dot } from "lucide-react";
 import Button from "@/components/ui/button";
 import Notify from "@/components/ui/notify";
-import { useBookingStore } from "@/store/useBookingStore";
+import { useBookingsStore } from "@/store/useBookingsStore";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -16,13 +16,13 @@ import { DashboardOverviewSkeleton, ScheduleSkeleton, NotificationSkeleton } fro
 const Page = () => {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { bookings, isLoading, fetchTaskerBookings } = useBookingStore();
+  const { bookings, isLoading, fetchArtisanBookings } = useBookingsStore();
 
   useEffect(() => {
-    fetchTaskerBookings();
-  }, [fetchTaskerBookings]);
+    fetchArtisanBookings();
+  }, [fetchArtisanBookings]);
 
-  const upcomingTasks = bookings.filter(b => b.status === 'CONFIRMED' || b.status === 'PENDING');
+  const upcomingTasks = bookings.filter(b => b.status === 'CONFIRMED' || b.status === 'ACCEPTED' || b.status === 'IN_PROGRESS' || b.status === 'REQUESTED');
   const nextTask = upcomingTasks[0]; // Get the most recent one
 
   return (
@@ -92,16 +92,17 @@ const Page = () => {
                 />
                 <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4">
                   <p className="bg-brand-orange text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-full text-[12px] sm:text-[14px] font-poppins flex items-center gap-1 shadow-lg">
-                    Next Task <Dot size={20} /> {nextTask.time}
+                    Next Task <Dot size={20} /> {nextTask.scheduled_time || 'TBD'}
                   </p>
                 </div>
               </div>
               <div className="space-y-2">
                 <p className="font-semibold text-[16px] sm:text-[18px] lg:text-[20px] font-gerat">
-                  {nextTask.customerName || "Customer"}
+                  {/* nextTask doesn't have customerName natively yet unless expanded, so mock mapping for UI for now */}
+                  {"Customer"}
                 </p>
                 <p className="flex items-center text-[14px] sm:text-[16px] font-poppins text-gray-700">
-                  {nextTask.title} <Dot size={20} className="text-gray-400" /> 1.2
+                  {nextTask.service?.title || "Craft"} <Dot size={20} className="text-gray-400" /> 1.2
                   miles away
                 </p>
                 <span className="flex items-center gap-2 text-[14px] sm:text-[16px] font-poppins text-gray-600">

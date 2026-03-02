@@ -5,7 +5,8 @@ import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
 import { ArrowLeft, X, ChevronLeft, ChevronRight, Clock, AlertCircle, Calendar as CalendarIcon } from "lucide-react";
 import Button from "@/components/ui/button";
-import { useBookingStore } from "@/store/useBookingStore";
+import { useBookingsStore } from "@/store/useBookingsStore";
+import type { Booking } from "@/types";
 import toast from "react-hot-toast";
 
 const ReschedulePage = () => {
@@ -13,7 +14,7 @@ const ReschedulePage = () => {
   const params = useParams();
   const bookingId = params.id as string;
   
-  const { bookings, rescheduleBooking, isLoading } = useBookingStore();
+  const { bookings, updateBooking, isLoading } = useBookingsStore();
   const booking = bookings.find(b => b.id === bookingId);
 
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -24,7 +25,7 @@ const ReschedulePage = () => {
   useEffect(() => {
     if (booking) {
       // In a real app, you might parse the existing date/time
-      setSelectedTime(booking.time);
+      setSelectedTime(booking.scheduled_time || "6:00pm");
     }
   }, [booking]);
 
@@ -90,7 +91,7 @@ const ReschedulePage = () => {
   const handleConfirm = async () => {
       try {
           const dateStr = formatDate(selectedDate);
-          await rescheduleBooking(bookingId, dateStr, selectedTime);
+          await updateBooking(bookingId, { scheduled_date: dateStr, scheduled_time: selectedTime });
           toast.success("Successfully rescheduled!");
           router.push("/user/krafts");
       } catch (error: any) {
@@ -119,7 +120,7 @@ const ReschedulePage = () => {
           <ArrowLeft className="w-6 h-6 text-[#1D2939]" />
         </button>
         <span className="text-[20px] font-gerat font-bold text-[#1D2939]">
-          {booking?.title || "Reschedule"}
+          {booking?.service?.title || "Reschedule"}
         </span>
         <button onClick={() => router.push("/user/krafts")} className="hover:opacity-70 p-2">
           <X className="w-6 h-6 text-[#1D2939]" strokeWidth={1.5} />
@@ -223,7 +224,7 @@ const ReschedulePage = () => {
                          <CalendarIcon size={16} className="text-red-500" />
                     </div>
                     <p className="text-[12px] font-poppins text-[#1D2939] font-semibold leading-tight">
-                        {booking?.date} · {booking?.time}
+                        {booking?.scheduled_date} · {booking?.scheduled_time}
                     </p>
                 </div>
             </div>

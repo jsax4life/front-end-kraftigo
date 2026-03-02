@@ -1,6 +1,6 @@
 "use client";
 
-import { X, ArrowLeft, Plus, Send, User as UserIcon } from "lucide-react";
+import { X, ArrowLeft, Plus, Send, User as UserIcon, Phone, Camera, Folder, MapPin, MoreVertical } from "lucide-react";
 import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import { useChatStore } from "@/store/useChatStore";
@@ -8,19 +8,31 @@ import { chatSocketManager } from "@/lib/socket";
 import { Conversation, Message } from "@/types";
 import { useAuthStore } from "@/store/useAuthStore";
 
+// Mock Screens
+import LocationPicker from "./mock-screens/LocationPicker";
+import CallScreen from "./mock-screens/CallScreen";
+import ArtisanProfileView from "./mock-screens/ArtisanProfileView";
+
 interface ChatInterfaceProps {
   isOpen: boolean;
   onClose: () => void;
   conversation: Conversation | null;
 }
 
+type MockScreen = 'none' | 'location' | 'call' | 'profile';
+
 const ChatInterface = ({ isOpen, onClose, conversation }: ChatInterfaceProps) => {
   const [messageContent, setMessageContent] = useState("");
+  const [showAttachments, setShowAttachments] = useState(false);
+  const [activeMockScreen, setActiveMockScreen] = useState<MockScreen>('none');
+  
   const { messages, fetchMessages, sendMessage, isLoading } = useChatStore();
   const { user } = useAuthStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const conversationId = conversation?.id || conversation?.conversationId;
+
+  const displayMessages = messages;
 
   useEffect(() => {
     if (isOpen && conversationId) {
@@ -37,17 +49,25 @@ const ChatInterface = ({ isOpen, onClose, conversation }: ChatInterfaceProps) =>
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [displayMessages]);
 
-  const handleSendMessage = async () => {
-    if (!messageContent.trim() || !conversationId) return;
+  const handleSendMessage = async (content: string = messageContent) => {
+    const finalContent = content || messageContent;
+    if (!finalContent.trim() || !conversationId) return;
     
     try {
-      await sendMessage(conversationId, messageContent);
+      await sendMessage(conversationId, finalContent);
       setMessageContent("");
+      setShowAttachments(false);
     } catch (error) {
-      console.error("Failed to send message", error);
+       console.error("Failed to send message", error);
+       setMessageContent("");
     }
+  };
+
+  const handleLocationSelect = (location: string) => {
+    handleSendMessage(`My Location: ${location}`);
+    setActiveMockScreen('none');
   };
 
   if (!isOpen || !conversation) return null;
@@ -55,85 +75,185 @@ const ChatInterface = ({ isOpen, onClose, conversation }: ChatInterfaceProps) =>
   const otherParticipant = conversation.otherParticipant;
 
   return (
-    <div className="fixed inset-0 z-100 bg-white flex flex-col h-full animate-in slide-in-from-bottom duration-300 px-4 sm:px-6 lg:px-8">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-6 border-b border-[#F2F4F7]">
-        <button onClick={onClose} className="hover:opacity-70">
-          <ArrowLeft className="w-6 h-6 text-[#1D2939]" />
-        </button>
-        <div className="flex flex-col items-center">
-          <span className="text-[18px] font-gerat font-bold text-[#1D2939]">{otherParticipant?.name}</span>
-        </div>
-        <button onClick={onClose} className="hover:opacity-70">
-          <X className="w-6 h-6 text-[#1D2939]" />
-        </button>
-      </div>
-
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto px-4 space-y-4 flex flex-col pt-4 pb-4">
-        {messages.length === 0 && !isLoading && (
-            <div className="flex flex-col items-center py-6 space-y-2">
-                <div className="relative w-16 h-16 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
-                  {otherParticipant?.avatar ? (
-                    <Image src={otherParticipant.avatar} alt={otherParticipant.name} fill className="object-cover" />
-                  ) : (
-                    <UserIcon size={32} className="text-gray-400" />
-                  )}
-                </div>
-                <h2 className="text-[16px] font-gerat font-bold text-[#1D2939]">Start a chat with {otherParticipant?.name}</h2>
-                <p className="text-[12px] text-[#667085] font-poppins">Send your first message to begin the conversation.</p>
-            </div>
-        )}
-
-        {/* Dynamic messages */}
-        {[...messages].reverse().map((msg) => {
-          const isMe = msg.sender.id === user?.id;
-          return (
-            <div 
-              key={msg.id} 
-              className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
-            >
-              <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-[14px] font-poppins ${
-                isMe ? 'bg-brand-blue text-white rounded-tr-none' : 'bg-[#F2F4F7] text-[#1D2939] rounded-tl-none'
-              }`}>
-                {msg.content}
-              </div>
-              <span className="text-[10px] text-[#667085] mt-1 font-poppins">
-                {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </span>
-            </div>
-          );
-        })}
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Input Area */}
-      <div className="p-4 bg-white border-t border-[#F2F4F7] pb-10">
-        <div className="flex items-center gap-2">
-          <button className="w-10 h-10 rounded-full bg-[#F2F4F7] flex items-center justify-center hover:bg-gray-200 transition-colors">
-            <Plus className="w-5 h-5 text-[#667085]" />
-          </button>
-          <div className="flex-1 relative">
-            <input
-              type="text"
-              placeholder="Send a message"
-              value={messageContent}
-              onChange={(e) => setMessageContent(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-              className="w-full bg-[#F2F4F7] rounded-full py-3 px-6 text-[14px] font-poppins outline-none focus:ring-1 focus:ring-brand-blue"
-            />
-            {messageContent.trim() && (
-              <button 
-                onClick={handleSendMessage}
-                className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-brand-blue flex items-center justify-center text-white"
-              >
-                <Send className="w-4 h-4" />
+    <>
+      <div className="fixed inset-x-0 top-0 bottom-[96px] z-60 bg-[#F9FAFB] flex flex-col animate-in slide-in-from-bottom duration-300">
+        {/* Header - Centered Style */}
+        <div className="flex flex-col items-center bg-white border-b border-[#F2F4F7] pt-4 pb-4">
+          <div className="w-full flex justify-between px-6 mb-2">
+              <button onClick={onClose} className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition-colors">
+                  <ArrowLeft className="w-6 h-6 text-[#1D2939]" />
               </button>
-            )}
+              <button 
+                onClick={() => setActiveMockScreen('call')}
+                className="p-2 -mr-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
+              >
+                  <Phone size={24} />
+              </button>
           </div>
+          
+          <button 
+            onClick={() => setActiveMockScreen('profile')}
+            className="flex flex-col items-center gap-2 group cursor-pointer"
+          >
+              <div className="relative w-20 h-20 rounded-full overflow-hidden bg-gray-100 border-4 border-white shadow-sm flex items-center justify-center group-active:scale-95 transition-transform">
+                  {otherParticipant?.avatar ? (
+                      <Image src={otherParticipant.avatar} alt={otherParticipant.name} fill className="object-cover" />
+                  ) : (
+                      <UserIcon size={40} className="text-gray-400" />
+                  )}
+              </div>
+              <h3 className="text-[18px] font-gerat font-bold text-[#1D2939] leading-tight mt-1">{otherParticipant?.name}</h3>
+          </button>
         </div>
+
+        {/* Task Status Banner */}
+        <div className="bg-[#FF6600] px-5 py-2.5 flex justify-center items-center shadow-sm">
+           <span className="text-[11px] font-poppins font-bold text-white text-center">
+              Task booked for Tuesday, 14 May at 10:00.
+           </span>
+        </div>
+
+        {/* Messages Area */}
+        <div className="flex-1 overflow-y-auto px-4 space-y-6 flex flex-col pt-6 pb-6 scrollbar-hide">
+          {displayMessages.length > 0 && (
+              <div className="flex flex-col items-center space-y-6">
+                  {/* Date Badge */}
+                  <div className="px-3 py-1 bg-[#F2F4F7] rounded-lg">
+                      <span className="text-[11px] font-poppins font-semibold text-[#667085]">Jan 22, 2026</span>
+                  </div>
+                  
+                  {/* System Message */}
+                  <div className="flex justify-center w-full">
+                      <p className="text-[13px] font-poppins italic text-brand-blue font-semibold text-center leading-relaxed max-w-[80%]">
+                          You accepted {otherParticipant?.name?.split('.')[0]}s Counter offer at 45$
+                      </p>
+                  </div>
+              </div>
+          )}
+
+          {/* Dynamic messages */}
+          {[...displayMessages].sort((a,b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()).map((msg, index, array) => {
+            const isMe = msg.sender.id === user?.id || msg.sender.id === 'me' || msg.sender.id === 'user-me';
+            
+            return (
+              <div 
+                key={msg.id} 
+                className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} gap-1`}
+              >
+                <div className={`max-w-[75%] rounded-[12px] px-4 py-3 text-[14px] font-poppins leading-relaxed shadow-sm ${
+                  isMe 
+                  ? 'bg-[#EBEBFF] text-[#1D2939]' 
+                  : 'bg-[#F2F4F7] text-[#1D2939]'
+                }`}>
+                  {msg.content}
+                  <div className={`text-[9px] text-gray-400 mt-1 flex justify-end font-poppins`}>
+                     {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Input Area & Attachment Grid */}
+        <div className="px-5 pt-4 bg-white border-t border-[#F2F4F7] pb-2">
+          <div className="flex items-center gap-3 mb-2">
+              <div className="flex-1 flex items-center bg-[#FAFAFA] border border-[#EEEEEE] rounded-[14px] px-4 shadow-sm focus-within:border-brand-orange transition-colors">
+                  <button 
+                    onClick={() => setShowAttachments(!showAttachments)}
+                    className={`p-1 rounded-full transition-all ${showAttachments ? 'rotate-45 text-brand-orange' : 'text-gray-400'}`}
+                  >
+                      <Plus size={24} />
+                  </button>
+                  <input
+                      type="text"
+                      placeholder="Send a message"
+                      value={messageContent}
+                      onChange={(e) => setMessageContent(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                      className="flex-1 bg-transparent py-4 px-2 text-[14px] font-poppins outline-none text-[#1D2939] placeholder:text-[#999999]"
+                  />
+                  <button 
+                      onClick={() => handleSendMessage()}
+                      disabled={!messageContent.trim()}
+                      className={`transition-all ${messageContent.trim() ? 'text-brand-orange' : 'text-gray-300'}`}
+                  >
+                      <Send size={24} />
+                  </button>
+              </div>
+          </div>
+
+          {/* Attachment Grid (WhatsApp Style Collapsible) */}
+          {showAttachments && (
+              <div className="grid grid-cols-3 gap-4 pt-6 pb-2 animate-in slide-in-from-bottom duration-200">
+                  <button className="flex flex-col items-center gap-2 group">
+                      <div className="w-16 h-16 rounded-full border border-[#EEEEEE] flex items-center justify-center text-[#FF6600] active:scale-95 transition-transform shadow-sm bg-white">
+                          <Camera size={26} />
+                      </div>
+                      <span className="text-[12px] font-poppins text-[#444444] font-medium">Camera</span>
+                  </button>
+                  <button className="flex flex-col items-center gap-2 group">
+                      <div className="w-16 h-16 rounded-full border border-[#EEEEEE] flex items-center justify-center text-blue-600 active:scale-95 transition-transform shadow-sm bg-white">
+                          <Folder size={26} />
+                      </div>
+                      <span className="text-[12px] font-poppins text-[#444444] font-medium">Photos</span>
+                  </button>
+                  <button 
+                    onClick={() => {
+                        setActiveMockScreen('location');
+                        setShowAttachments(false);
+                    }}
+                    className="flex flex-col items-center gap-2 group"
+                  >
+                      <div className="w-16 h-16 rounded-full border border-[#EEEEEE] flex items-center justify-center text-red-500 active:scale-95 transition-transform shadow-sm bg-white">
+                          <MapPin size={26} />
+                      </div>
+                      <span className="text-[12px] font-poppins text-[#444444] font-medium">Location</span>
+                  </button>
+              </div>
+          )}
+        </div>
+
+        <style jsx>{`
+            .scrollbar-hide::-webkit-scrollbar {
+                display: none;
+            }
+            .scrollbar-hide {
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+            }
+        `}</style>
       </div>
-    </div>
+
+      {/* Mock Overlays */}
+      {activeMockScreen === 'location' && (
+        <LocationPicker 
+          onClose={() => setActiveMockScreen('none')} 
+          onSelect={handleLocationSelect}
+        />
+      )}
+
+      {activeMockScreen === 'call' && (
+        <CallScreen 
+          onEndCall={() => setActiveMockScreen('none')}
+          participant={{
+             name: otherParticipant?.name || "Artisan",
+             avatar: otherParticipant?.avatar
+          }}
+        />
+      )}
+
+      {activeMockScreen === 'profile' && (
+        <ArtisanProfileView 
+          onClose={() => setActiveMockScreen('none')}
+          artisan={{
+             name: otherParticipant?.name || "Artisan",
+             avatar: otherParticipant?.avatar
+          }}
+        />
+      )}
+    </>
   );
 };
 

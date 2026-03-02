@@ -18,7 +18,7 @@ import {
   Briefcase
 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
-import { useBookingStore } from "@/store/useBookingStore";
+import { useBookingsStore } from "@/store/useBookingsStore";
 import { useProfileStore } from "@/store/useProfileStore";
 import { useEffect } from "react";
 
@@ -46,7 +46,7 @@ const SectionHeader = ({ label }: { label: string }) => (
 const Page = () => {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { bookings } = useBookingStore();
+  const { bookings } = useBookingsStore();
   const { artisanProfile, fetchArtisanProfile } = useProfileStore();
 
   useEffect(() => {

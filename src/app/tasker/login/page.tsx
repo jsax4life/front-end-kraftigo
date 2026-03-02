@@ -14,7 +14,7 @@ import toast from "react-hot-toast";
 
 const Page = () => {
   const router = useRouter();
-  const { loginUser, isAuthenticated, isLoading, error, clearError } = useAuthStore();
+  const { loginTasker, isAuthenticated, isLoading, error, clearError } = useAuthStore();
 
   // Form data state
   const [formData, setFormData] = useState({
@@ -55,8 +55,7 @@ const Page = () => {
     }
 
     try {
-      // For now using the same loginUser, but usually taskers might have a different login endpoint or role
-      await loginUser(formData.email, formData.password);
+      await loginTasker(formData.email, formData.password);
       toast.success("Login successful! Welcome back, Tasker.");
       router.push("/tasker/dashboard");
     } catch (err: any) {

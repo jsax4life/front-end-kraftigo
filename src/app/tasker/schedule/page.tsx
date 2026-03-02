@@ -6,7 +6,8 @@ import TaskItem from "@/components/ui/taskItem";
 import TaskDetailModal from "@/components/shared/TaskDetailModal";
 import ActiveJobModal from "@/components/shared/ActiveJobModal";
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
-import { useBookingStore, Booking } from "@/store/useBookingStore";
+import { useBookingsStore } from "@/store/useBookingsStore";
+import type { Booking } from "@/types";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
@@ -267,9 +268,9 @@ const SchedulePage = () => {
                   return (
                     <TaskItem
                       key={booking.id}
-                      time={booking.time}
-                      title={booking.title}
-                      client={`Client: ${booking.customerName}`}
+                      time={booking.scheduled_time || "TBD"}
+                      title={booking.service?.title || "Craft"}
+                      client={`Client: Customer`}
                       location={booking.location}
                       status={booking.status}
                       statusColor={statusInfo.color}
