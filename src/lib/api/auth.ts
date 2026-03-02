@@ -101,7 +101,7 @@ export const logoutAllDevices = async (): Promise<void> => {
 
 // ─── Tasker Auth ──────────────────────────────────────────────────────────────
 
-/** POST /auth/tasker/login — log in as a tasker */
+/** POST /api/auth/login — log in as a tasker */
 export const loginTasker = async (
   payload: LoginPayload,
 ): Promise<AuthResponse> => {

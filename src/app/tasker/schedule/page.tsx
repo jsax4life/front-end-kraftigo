@@ -6,7 +6,8 @@ import TaskItem from "@/components/ui/taskItem";
 import TaskDetailModal from "@/components/shared/TaskDetailModal";
 import ActiveJobModal from "@/components/shared/ActiveJobModal";
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
-import { useBookingStore, Booking } from "@/store/useBookingStore";
+import { useBookingsStore } from "@/store/useBookingsStore";
+import type { Booking } from "@/types";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
@@ -43,7 +44,7 @@ function buildGrid(year: number, month: number): (Date | null)[] {
 /* ─────────────────────────────────────────────────────────────────── */
 
 const SchedulePage = () => {
-  const { bookings, isLoading, error, fetchTaskerBookings } = useBookingStore();
+  const { bookings, isLoading, error, fetchArtisanBookings } = useBookingsStore();
   const today = new Date();
   const searchParams = useSearchParams();
 
@@ -59,12 +60,12 @@ const SchedulePage = () => {
 
   // Booking dates for calendar orange highlights
   const bookingDates = displayBookings
-    .map((b) => (b.date ? new Date(b.date) : null))
+    .map((b) => (b.scheduled_date ? new Date(b.scheduled_date) : null))
     .filter((d): d is Date => d !== null && !isNaN(d.getTime()));
 
   useEffect(() => {
-    fetchTaskerBookings();
-  }, [fetchTaskerBookings]);
+    fetchArtisanBookings();
+  }, [fetchArtisanBookings]);
 
   // Auto-open ActiveJobModal when navigated from dashboard with ?openJob=<id>
   useEffect(() => {
@@ -259,7 +260,7 @@ const SchedulePage = () => {
               </div>
             ) : (() => {
               const dayBookings = displayBookings.filter((b) =>
-                b.date && isSameDay(new Date(b.date), selectedDate)
+                b.scheduled_date && isSameDay(new Date(b.scheduled_date), selectedDate)
               );
               return dayBookings.length > 0 ? (
                 dayBookings.map((booking, index) => {
@@ -267,9 +268,9 @@ const SchedulePage = () => {
                   return (
                     <TaskItem
                       key={booking.id}
-                      time={booking.time}
-                      title={booking.title}
-                      client={`Client: ${booking.customerName}`}
+                      time={booking.scheduled_time || "TBD"}
+                      title={booking.service?.title || "Craft"}
+                      client={`Client: Customer`}
                       location={booking.location}
                       status={booking.status}
                       statusColor={statusInfo.color}
@@ -295,7 +296,7 @@ const SchedulePage = () => {
       <TaskerNav />
 
       {/* ── Modal switcher: show ActiveJobModal within 24h, TaskDetailModal otherwise ── */}
-      {selectedBooking && isWithin24Hours(selectedBooking.date) ? (
+      {selectedBooking && selectedBooking.scheduled_date && isWithin24Hours(selectedBooking.scheduled_date) ? (
         <ActiveJobModal
           booking={selectedBooking}
           onClose={() => setSelectedBooking(null)}

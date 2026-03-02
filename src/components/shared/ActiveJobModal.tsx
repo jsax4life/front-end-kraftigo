@@ -8,8 +8,8 @@ import { X, MessageCircle, AlertCircle, Pause } from "lucide-react";
 import PhotoUploader, { Photo } from "@/components/shared/PhotoUploader";
 import Button from "@/components/ui/button";
 import RateCustomerModal from "@/components/shared/RateCustomerModal";
-import { Booking } from "@/store/useBookingStore";
 import { useBookingsStore } from "@/store/useBookingsStore";
+import type { Booking } from "@/types";
 
 type JobStatus = "not-started" | "in-transit" | "in-progress" | "completed";
 
@@ -131,7 +131,7 @@ export default function ActiveJobModal({ booking, onClose }: ActiveJobModalProps
           <div className="bg-white px-5 pt-5 pb-4 border-b border-gray-100">
             <div className="flex items-center justify-between mb-5">
               <h1 className="text-[22px] font-bold font-gerat text-gray-900">
-                {booking.title}
+                {booking.service?.title || "Craft"}
               </h1>
               <button
                 onClick={onClose}
@@ -202,16 +202,12 @@ export default function ActiveJobModal({ booking, onClose }: ActiveJobModalProps
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-300 flex items-center justify-center">
-                      {booking.image ? (
-                        <Image src={booking.image} alt={booking.customerName ?? "Customer"} fill className="object-cover" />
-                      ) : (
-                        <span className="text-white text-lg font-bold">
-                          {booking.customerName?.charAt(0) ?? "?"}
-                        </span>
-                      )}
+                      <span className="text-white text-lg font-bold">
+                        {"C"}
+                      </span>
                     </div>
                     <div>
-                      <h3 className="text-[15px] font-bold text-gray-900">{booking.customerName}</h3>
+                      <h3 className="text-[15px] font-bold text-gray-900">{"Customer"}</h3>
                       <div className="flex items-center gap-1 mt-0.5">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="#000" stroke="none">
                           <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
@@ -404,8 +400,8 @@ export default function ActiveJobModal({ booking, onClose }: ActiveJobModalProps
       <RateCustomerModal
         isOpen={showRatingModal}
         onClose={() => setShowRatingModal(false)}
-        customerName={booking.customerName ?? "Customer"}
-        customerAvatar={booking.image ?? "/images/pro.jpg"}
+        customerName={"Customer"}
+        customerAvatar={"/images/pro.jpg"}
         onSubmit={handleRatingSubmit}
       />
     </>

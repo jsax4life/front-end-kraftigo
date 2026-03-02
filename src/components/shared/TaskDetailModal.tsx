@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { X, ChevronRight, Calendar } from "lucide-react";
 import Image from "next/image";
-import { Booking } from "@/store/useBookingStore";
 import { useBookingsStore } from "@/store/useBookingsStore";
+import type { Booking } from "@/types";
 import Button from "../ui/button";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
@@ -70,7 +70,7 @@ export default function TaskDetailModal({
         {/* ── Header ── */}
         <div className="flex items-center justify-between px-5 pt-3 pb-3">
           <h2 className="text-[22px] font-bold text-gray-900 leading-tight">
-            {booking.title}
+            {booking.service?.title || "Craft"}
           </h2>
           <button
             onClick={onClose}
@@ -107,8 +107,8 @@ export default function TaskDetailModal({
         <div className="flex items-center justify-center gap-2 px-5 mb-5 ">
           <Calendar size={16} className="text-gray-400 shrink-0" />
           <p className="text-[14px] text-gray-600">
-            {formatDate(booking.date)}{" "}
-            <span className="font-bold text-gray-900">{booking.time}</span>
+            {formatDate(booking.scheduled_date || new Date().toISOString())}{" "}
+            <span className="font-bold text-gray-900">{booking.scheduled_time || "TBD"}</span>
           </p>
         </div>
 
@@ -116,23 +116,14 @@ export default function TaskDetailModal({
         <div className="mx-5 mb-5 bg-[#F6F6F6] border border-[#0000001A] rounded-lg p-3 flex items-center gap-3">
           {/* Avatar */}
           <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-gray-300 shrink-0 flex items-center justify-center">
-            {booking.image ? (
-              <Image
-                src={booking.image}
-                alt={booking.customerName ?? "Customer"}
-                fill
-                className="object-cover"
-              />
-            ) : (
-              <span className="text-white text-lg font-bold">
-                {booking.customerName?.charAt(0) ?? "?"}
-              </span>
-            )}
+            <span className="text-white text-lg font-bold">
+              {"C"}
+            </span>
           </div>
           {/* Info */}
           <div>
             <p className="text-[15px] font-bold text-gray-900">
-              {booking.customerName}
+              {"Customer"}
             </p>
             <div className="flex items-center gap-1 mt-0.5">
               {/* 3 full stars */}
