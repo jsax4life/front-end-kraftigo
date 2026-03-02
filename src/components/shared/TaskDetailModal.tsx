@@ -116,14 +116,23 @@ export default function TaskDetailModal({
         <div className="mx-5 mb-5 bg-[#F6F6F6] border border-[#0000001A] rounded-lg p-3 flex items-center gap-3">
           {/* Avatar */}
           <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-gray-300 shrink-0 flex items-center justify-center">
-            <span className="text-white text-lg font-bold">
-              {"C"}
-            </span>
+            {booking.image ? (
+              <Image
+                src={booking.image}
+                alt={booking.customerName ?? "Customer"}
+                fill
+                className="object-cover"
+              />
+            ) : (
+              <span className="text-white text-lg font-bold">
+                {booking.customerName?.charAt(0) ?? "?"}
+              </span>
+            )}
           </div>
           {/* Info */}
           <div>
             <p className="text-[15px] font-bold text-gray-900">
-              {"Customer"}
+              {booking.customerName}
             </p>
             <div className="flex items-center gap-1 mt-0.5">
               {/* 3 full stars */}
