@@ -1,92 +1,115 @@
 "use client";
 
 import { ArrowLeft, Plus } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import toast from "react-hot-toast";
 import ProgressStepper from "../components/ProgressStepper";
 import AddressModal from "@/components/shared/AddressModal";
 import { useAddressStore } from "@/store/useAddressStore";
+import { useCustomKraftsStore } from "@/store/useCustomKraftsStore";
+import type { CustomKraftFrequency } from "@/lib/api/custom-krafts";
+
+// ─── Frequency label → API enum map ──────────────────────────────────────────
+const FREQUENCY_MAP: Record<string, CustomKraftFrequency> = {
+  "Just Once": "ONCE",
+  "Weekly": "WEEKLY",
+  "Every 2 weeks": "BIWEEKLY",
+  "Monthly": "MONTHLY",
+};
 
 const Page = () => {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
-  // Use address store
-  const { addresses, currentAddress, selectAddress, addAddress, removeAddress, getCurrentLocation } = useAddressStore();
-  
+  // ─── Stores ─────────────────────────────────────────────────────────────────
+  const {
+    pendingDraftData,
+    setPendingDraftData,
+    selectedKraft,
+    updateStep2,
+    error,
+    clearError,
+    isSubmitting,
+  } = useCustomKraftsStore();
+  const {
+    addresses,
+    selectedAddressId,
+    currentAddress,
+    selectAddress,
+    addAddress,
+    removeAddress,
+    getCurrentLocation,
+  } = useAddressStore();
+
+  // ─── Local state ─────────────────────────────────────────────────────────────
   const [bookingHours, setBookingHours] = useState(1);
   const [frequency, setFrequency] = useState("Just Once");
   const [showAddressModal, setShowAddressModal] = useState(false);
 
-  // Load previous data from URL params
-  const [previousData, setPreviousData] = useState({
-    description: "",
-    category: "",
-    date: "",
-    time: "",
-  });
-
-  useEffect(() => {
-    setPreviousData({
-      description: searchParams.get("description") || "",
-      category: searchParams.get("category") || "",
-      date: searchParams.get("date") || "",
-      time: searchParams.get("time") || "",
-    });
-  }, [searchParams]);
-
   const frequencyOptions = ["Just Once", "Weekly", "Every 2 weeks", "Monthly"];
 
-  const handleBack = () => {
-    // Navigate back to description with current data
-    const params = new URLSearchParams({
-      description: previousData.description,
-      category: previousData.category,
-      date: previousData.date,
-      time: previousData.time,
-    });
-    router.push(`/user/home/custom-kraft/description?${params.toString()}`);
+  // ─── Show store errors as toasts ─────────────────────────────────────────────
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+      clearError();
+    }
+  }, [error, clearError]);
+
+  // ─── Guard: redirect back if neither pending nor saved draft exists ───────────
+  useEffect(() => {
+    if (!pendingDraftData && !selectedKraft) {
+      router.replace("/user/home/custom-kraft/description");
+    }
+  }, [pendingDraftData, selectedKraft, router]);
+
+  // ─── Handlers ────────────────────────────────────────────────────────────────
+  const handleNext = async () => {
+    if (!selectedAddressId) {
+      toast.error("Please select an address");
+      return;
+    }
+
+    const step2Fields = {
+      addressId: selectedAddressId,
+      bookingHours,
+      frequency: FREQUENCY_MAP[frequency],
+    };
+
+    if (pendingDraftData) {
+      // ── First pass: merge Step 2 into pending data — Budget page creates the draft
+      setPendingDraftData({ ...pendingDraftData, ...step2Fields });
+      router.push("/user/home/custom-kraft/budget");
+    } else if (selectedKraft) {
+      // ── Returning to update an existing draft
+      try {
+        await updateStep2(selectedKraft.id, step2Fields);
+        router.push("/user/home/custom-kraft/budget");
+      } catch {
+        // error handled by useEffect above
+      }
+    }
   };
 
-  const handleNext = () => {
-    // Save to localStorage as draft
-    const formData = {
-      ...previousData,
-      savedAddress: currentAddress,
-      bookingHours,
-      frequency,
-    };
-    localStorage.setItem("customKraftDraft", JSON.stringify(formData));
-
-    // Navigate to budget page with all data
-    const params = new URLSearchParams({
-      description: previousData.description,
-      category: previousData.category,
-      date: previousData.date,
-      time: previousData.time,
-      address: currentAddress,
-      hours: bookingHours.toString(),
-      frequency,
-    });
-    router.push(`/user/home/custom-kraft/budget?${params.toString()}`);
-  };
-
-  const handleSaveDraft = () => {
-    const formData = {
-      ...previousData,
-      savedAddress: currentAddress,
-      bookingHours,
-      frequency,
-    };
-    localStorage.setItem("customKraftDraft", JSON.stringify(formData));
-    console.log("Draft saved");
+  const handleSaveDraft = async () => {
+    if (!selectedKraft || !selectedAddressId) return;
+    try {
+      await updateStep2(selectedKraft.id, {
+        addressId: selectedAddressId,
+        bookingHours,
+        frequency: FREQUENCY_MAP[frequency],
+      });
+      toast.success("Draft saved!");
+    } catch {
+      // error handled by useEffect
+    }
   };
 
   return (
     <div className="min-h-screen bg-white pb-24">
       <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-4xl mx-auto">
         <button
-          onClick={handleBack}
+          onClick={() => router.back()}
           className="mb-6 p-2 -ml-2 hover:bg-gray-100 rounded-lg transition-colors"
         >
           <ArrowLeft size={24} className="text-gray-900" />
@@ -115,7 +138,7 @@ const Page = () => {
                 {currentAddress}
               </span>
             </div>
-            <button 
+            <button
               onClick={() => setShowAddressModal(true)}
               className="w-full p-4 bg-[#F6F6F6] rounded-xl text-[14px] font-poppins text-gray-600 hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
             >
@@ -186,18 +209,22 @@ const Page = () => {
           {/* Next Button */}
           <button
             onClick={handleNext}
-            className="w-full py-4 bg-brand-orange text-white text-[16px] font-poppins font-semibold rounded-xl hover:bg-orange-600 transition-colors"
+            disabled={isSubmitting}
+            className="w-full py-4 bg-brand-orange text-white text-[16px] font-poppins font-semibold rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-60"
           >
-            Next
+            {isSubmitting ? "Saving…" : "Next"}
           </button>
 
-          {/* Save as draft */}
-          <button
-            onClick={handleSaveDraft}
-            className="w-full text-[14px] font-poppins text-gray-600 hover:text-gray-900 transition-colors"
-          >
-            Save as draft
-          </button>
+          {/* Save as draft — only for returning users with an existing draft */}
+          {selectedKraft && (
+            <button
+              onClick={handleSaveDraft}
+              disabled={isSubmitting}
+              className="w-full text-[14px] font-poppins text-gray-600 hover:text-gray-900 transition-colors disabled:opacity-50"
+            >
+              Save as draft
+            </button>
+          )}
         </div>
       </div>
 
