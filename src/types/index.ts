@@ -81,6 +81,11 @@ export interface Booking {
   counter_price?: number;
   created_at: string;
   updated_at: string;
+  // Optional enriched fields returned by the backend in some responses
+  title?: string;
+  image?: string;
+  customerName?: string;
+  artisanName?: string;
 }
 
 // ─── Reviews ──────────────────────────────────────────────────────────────────
@@ -240,3 +245,34 @@ export interface Message {
   readBy: string[];
   createdAt: string;
 }
+
+// ─── Custom Krafts ───────────────────────────────────────────────────────────
+
+export type CustomKraftFrequency = 'ONCE' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY'
+
+export type CustomKraftExpiryOption = '24H' | '3DAYS' | '1WEEK' | 'CUSTOM'
+
+export type CustomKraftStatus = 'DRAFT' | 'PUBLISHED' | 'MATCHED' | 'CANCELLED'
+
+export interface CustomKraft {
+  id: string
+  description: string
+  photos?: string[]
+  roughCategoryId?: string
+  scheduledDate?: string
+  scheduledTime?: string
+  addressId: string
+  bookingHours: number
+  frequency: CustomKraftFrequency
+  offerAmount?: number
+  openToNegotiation: boolean
+  expiryOption: CustomKraftExpiryOption
+  expiryDate?: string
+  urgentBoost: boolean
+  status: CustomKraftStatus
+  userId: string
+  createdAt: string
+  updatedAt: string
+}
+
+

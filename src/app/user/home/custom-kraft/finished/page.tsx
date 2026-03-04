@@ -2,17 +2,47 @@
 
 import { Check } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import Button from "@/components/ui/button";
 import Image from "next/image";
+import { useCustomKraftsStore } from "@/store/useCustomKraftsStore";
+
+// ─── Expiry enum → human label ─────────────────────────────────────────────
+const EXPIRY_LABEL: Record<string, string> = {
+  "24H": "1 day",
+  "3DAYS": "3 days",
+  "1WEEK": "1 week",
+  "CUSTOM": "Custom",
+};
 
 const Page = () => {
   const router = useRouter();
+  const { selectedKraft, clearSelectedKraft } = useCustomKraftsStore();
 
-  const conImg = ["/images/abt.jpg", "/images/abt.jpg", "/images/abt.jpg"];
+  // Clear the draft from the store once the user leaves this page
+  useEffect(() => {
+    return () => {
+      clearSelectedKraft();
+    };
+  }, [clearSelectedKraft]);
+
+  // Guard: if somehow landed here without a kraft, go home
+  useEffect(() => {
+    if (!selectedKraft) {
+      router.replace("/user/home");
+    }
+  }, [selectedKraft, router]);
+
+  const expiryLabel = selectedKraft?.expiryOption
+    ? EXPIRY_LABEL[selectedKraft.expiryOption] ?? selectedKraft.expiryOption
+    : "—";
+
+  const bidAmount = selectedKraft?.offerAmount != null
+    ? `€${selectedKraft.offerAmount.toFixed(2)}`
+    : "—";
 
   return (
     <div className="min-h-screen bg-white relative overflow-hidden space-y-3">
-      {/* Content */}
       <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Success Icon */}
         <div className="flex justify-center mb-6">
@@ -31,37 +61,41 @@ const Page = () => {
             Kraft Created
           </h1>
           <p className="text-[14px] sm:text-[15px] font-poppins text-gray-600">
-            Your kraft is now created and is under review, We&apos;ll notify you
-            when it goes live.
+            Your kraft is now live and visible to artisans. We&apos;ll notify
+            you when you receive your first response.
           </p>
         </div>
 
-        <div className="grid grid-cols-3 gap-4 py-4">
-          {conImg.map((img, index) => (
-            <div key={index}>
-              <Image
-                src={img}
-                alt=""
-                width={150}
-                height={100}
-                className="w-full h-30 rounded-lg object-cover"
-              />
-            </div>
-          ))}
-        </div>
+        {/* Photos */}
+        {selectedKraft?.photos && selectedKraft.photos.length > 0 && (
+          <div className="grid grid-cols-3 gap-4 py-4">
+            {selectedKraft.photos.slice(0, 3).map((src, index) => (
+              <div key={index}>
+                <Image
+                  src={src}
+                  alt={`Photo ${index + 1}`}
+                  width={150}
+                  height={100}
+                  className="w-full h-30 rounded-lg object-cover"
+                />
+              </div>
+            ))}
+          </div>
+        )}
 
-        <div>
-          <p className="font-poppins font-bold text-lg">Offer Summary </p>
-          <p className="font-poppins text-sm">
-            I need someone with six years of experience cleaning houses. whose
-            priority is to bring a good service and leave everything very
-            clean✨. I am a reliable person, I will ensure that your apartment
-            is left very clean and I am always open to suggestions 🙏
-          </p>
-        </div>
+        {/* Offer Summary */}
+        {selectedKraft?.description && (
+          <div>
+            <p className="font-poppins font-bold text-lg">Offer Summary</p>
+            <p className="font-poppins text-sm text-gray-700 mt-1 leading-relaxed">
+              {selectedKraft.description}
+            </p>
+          </div>
+        )}
 
+        {/* Key Details */}
         <div className="space-y-5 py-4">
-          <div className="flex items-center gap-2 ">
+          <div className="flex items-center gap-2">
             <div className="bg-[#FF66001A] p-3 rounded-full">
               <Image
                 src="/pro.svg"
@@ -73,10 +107,11 @@ const Page = () => {
             </div>
             <div>
               <p className="font-semibold">Task Valid for</p>
-              <p>3 days</p>
+              <p>{expiryLabel}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 ">
+
+          <div className="flex items-center gap-2">
             <div className="bg-[#FF66001A] p-3 rounded-full">
               <Image
                 src="/money.svg"
@@ -88,11 +123,34 @@ const Page = () => {
             </div>
             <div>
               <p className="font-semibold">Your bid</p>
-              <p>$85</p>
+              <p>{bidAmount}</p>
             </div>
           </div>
+
+          {selectedKraft?.scheduledDate && (
+            <div className="flex items-center gap-2">
+              <div className="bg-[#FF66001A] p-3 rounded-full">
+                <Image
+                  src="/pro.svg"
+                  alt="icon"
+                  width={25}
+                  height={25}
+                />
+              </div>
+              <div>
+                <p className="font-semibold">Scheduled</p>
+                <p>
+                  {selectedKraft.scheduledDate}
+                  {selectedKraft.scheduledTime
+                    ? ` · ${selectedKraft.scheduledTime}`
+                    : ""}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
+        {/* Notice */}
         <div className="bg-[#FF66001A] border border-[#FF6600] text-[#FF6600] text-sm flex items-start gap-2 p-2 rounded-lg">
           <Image
             src="/warn.svg"

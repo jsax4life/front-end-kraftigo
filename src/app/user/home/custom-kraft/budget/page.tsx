@@ -1,91 +1,110 @@
 "use client";
 
-import { ArrowLeft, Handshake } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import toast from "react-hot-toast";
 import ProgressStepper from "../components/ProgressStepper";
+import { useCustomKraftsStore } from "@/store/useCustomKraftsStore";
+import type { CustomKraftExpiryOption } from "@/lib/api/custom-krafts";
+
+// ─── Expiry label → API enum map ──────────────────────────────────────────────
+const EXPIRY_MAP: Record<string, CustomKraftExpiryOption> = {
+  "24h": "24H",
+  "3 days": "3DAYS",
+  "1 Week": "1WEEK",
+};
 
 const Page = () => {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
+  // ─── Store ──────────────────────────────────────────────────────────────────
+  const {
+    selectedKraft,
+    updateStep3,
+    createDraft,
+    uploadDraft,
+    pendingDraftData,
+    clearPendingDraftData,
+    isSubmitting,
+    error,
+    clearError,
+  } = useCustomKraftsStore();
+
+  // ─── Local state ─────────────────────────────────────────────────────────────
   const [offerAmount, setOfferAmount] = useState("");
   const [openToNegotiation, setOpenToNegotiation] = useState(false);
-  const [kraftExpiry, setKraftExpiry] = useState("24h");
+  const [kraftExpiry, setKraftExpiry] = useState("3 days");
   const [urgentBoost, setUrgentBoost] = useState(false);
-
-  // Load previous data from URL params
-  const [previousData, setPreviousData] = useState({
-    description: "",
-    category: "",
-    date: "",
-    time: "",
-    address: "",
-    hours: "",
-    frequency: "",
-  });
-
-  useEffect(() => {
-    setPreviousData({
-      description: searchParams.get("description") || "",
-      category: searchParams.get("category") || "",
-      date: searchParams.get("date") || "",
-      time: searchParams.get("time") || "",
-      address: searchParams.get("address") || "",
-      hours: searchParams.get("hours") || "",
-      frequency: searchParams.get("frequency") || "",
-    });
-  }, [searchParams]);
 
   const expiryOptions = ["24h", "3 days", "1 Week"];
 
+  // ─── Show store errors as toasts ─────────────────────────────────────────────
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+      clearError();
+    }
+  }, [error, clearError]);
+
+  // ─── Guard: redirect back if no draft or pending data ────────────────────────
+  useEffect(() => {
+    if (!pendingDraftData && !selectedKraft) {
+      router.replace("/user/home/custom-kraft/description");
+    }
+  }, [pendingDraftData, selectedKraft, router]);
+
+  // ─── Helpers ─────────────────────────────────────────────────────────────────
+  const buildStep3Fields = () => ({
+    offerAmount: offerAmount ? parseFloat(offerAmount) : undefined,
+    openToNegotiation,
+    expiryOption: EXPIRY_MAP[kraftExpiry],
+    urgentBoost,
+  });
+
+  // ─── Handlers ────────────────────────────────────────────────────────────────
+  const handleNext = async () => {
+    try {
+      if (pendingDraftData) {
+        // ── First time through: create the full draft with ALL accumulated fields
+        const { photos, ...rest } = pendingDraftData;
+        const step3Fields = buildStep3Fields();
+
+        if (photos.length > 0) {
+          await uploadDraft({
+            ...rest,
+            ...step3Fields,
+          });
+        } else {
+          await createDraft({
+            ...rest,
+            ...step3Fields,
+          });
+        }
+        clearPendingDraftData();
+      } else if (selectedKraft) {
+        // ── Returning to update an existing draft
+        await updateStep3(selectedKraft.id, buildStep3Fields());
+      }
+      router.push("/user/home/custom-kraft/review");
+    } catch {
+      // error handled by useEffect above
+    }
+  };
+
+  const handleSaveDraft = async () => {
+    if (!selectedKraft) return;
+    try {
+      await updateStep3(selectedKraft.id, buildStep3Fields());
+      toast.success("Draft saved!");
+    } catch {
+      // error handled by useEffect
+    }
+  };
+
   const handleBack = () => {
-    // Navigate back to details with current data
-    const params = new URLSearchParams({
-      description: previousData.description,
-      category: previousData.category,
-      date: previousData.date,
-      time: previousData.time,
-    });
-    router.push(`/user/home/custom-kraft/details?${params.toString()}`);
-  };
-
-  const handlePost = () => {
-    const allData = {
-      ...previousData,
-      offerAmount,
-      openToNegotiation,
-      kraftExpiry,
-      urgentBoost,
-      totalPrice: calculateTotalPrice(),
-    };
-
-    console.log("Posting kraft...", allData);
-
-    // Clear draft
-    localStorage.removeItem("customKraftDraft");
-
-    // Navigate to confirmation or home
-    router.push("/user/home/custom-kraft/finished");
-  };
-
-  const handleSaveDraft = () => {
-    const formData = {
-      ...previousData,
-      offerAmount,
-      openToNegotiation,
-      kraftExpiry,
-      urgentBoost,
-    };
-    localStorage.setItem("customKraftDraft", JSON.stringify(formData));
-    console.log("Draft saved");
-  };
-
-  const calculateTotalPrice = () => {
-    const base = parseFloat(offerAmount) || 0;
-    const boost = urgentBoost ? 4.99 : 0;
-    return (base + boost).toFixed(2);
+    router.push("/user/home/custom-kraft/details");
   };
 
   return (
@@ -116,13 +135,15 @@ const Page = () => {
               </p>
               <div className="relative">
                 <span className="absolute left-6 top-1/2 -translate-y-1/2 text-[24px] font-poppins text-gray-400">
-                  $
+                  €
                 </span>
                 <input
                   type="number"
                   value={offerAmount}
                   onChange={(e) => setOfferAmount(e.target.value)}
                   placeholder="0.00"
+                  min="0"
+                  step="0.01"
                   className="w-full pl-14 pr-6 py-5 bg-[#F6F6F6] rounded-xl text-[24px] font-poppins text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-orange"
                 />
               </div>
@@ -194,13 +215,13 @@ const Page = () => {
                       Urgent Boost
                     </h4>
                     <p className="text-[13px] font-poppins text-gray-600">
-                      Get seen by 3x more Krafters for just $4.99
+                      Get seen by 3x more Krafters for just €4.99
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={() => setUrgentBoost(!urgentBoost)}
-                  className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors  ${
+                  className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
                     urgentBoost
                       ? "bg-brand-orange border-brand-orange"
                       : "bg-white border-gray-300"
@@ -226,21 +247,25 @@ const Page = () => {
             </div>
           </div>
 
-          {/* Post Button */}
+          {/* Next Button */}
           <button
-            onClick={handlePost}
-            className="w-full py-4 bg-brand-orange text-white text-[16px] font-poppins font-semibold rounded-xl hover:bg-orange-600 transition-colors"
+            onClick={handleNext}
+            disabled={isSubmitting}
+            className="w-full py-4 bg-brand-orange text-white text-[16px] font-poppins font-semibold rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-60"
           >
-            Post my Kraft ${calculateTotalPrice()}
+            {isSubmitting ? "Creating draft…" : "Next"}
           </button>
 
-          {/* Save as draft */}
-          <button
-            onClick={handleSaveDraft}
-            className="w-full text-[14px] font-poppins text-gray-600 hover:text-gray-900 transition-colors"
-          >
-            Save as draft
-          </button>
+          {/* Save as draft — only for returning users with an existing draft */}
+          {selectedKraft && (
+            <button
+              onClick={handleSaveDraft}
+              disabled={isSubmitting}
+              className="w-full text-[14px] font-poppins text-gray-600 hover:text-gray-900 transition-colors disabled:opacity-50"
+            >
+              Save as draft
+            </button>
+          )}
         </div>
       </div>
     </div>

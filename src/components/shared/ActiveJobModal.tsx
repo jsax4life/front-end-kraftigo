@@ -131,7 +131,7 @@ export default function ActiveJobModal({ booking, onClose }: ActiveJobModalProps
           <div className="bg-white px-5 pt-5 pb-4 border-b border-gray-100">
             <div className="flex items-center justify-between mb-5">
               <h1 className="text-[22px] font-bold font-gerat text-gray-900">
-                {booking.service?.title || "Craft"}
+                {booking.title || "Craft"}
               </h1>
               <button
                 onClick={onClose}
