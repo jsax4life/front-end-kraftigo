@@ -1,0 +1,53 @@
+name: Vercel Preview Deployment
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+on:
+  push:
+    branches-ignore:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches-ignore:
+      - main
+
+jobs:
+  deploy-preview:
+    runs-on: ubuntu-latest
+   steps:
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 1. THIS IS THE MISSING PART - IT MUST BE HERE
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9  # Installs pnpm so Vercel can find it
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel Environment Information
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+
+      # 2. Now 'vercel build' will find pnpm and work
+      - name: Build Project Artifacts
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy Project Artifacts to Vercel
+        id: deploy
+        run: |
+          deploymentUrl=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          echo "deploymentUrl=$deploymentUrl" >> $GITHUB_OUTPUT
+          echo "Preview URL: $deploymentUrl"loymentUrl" >> $GITHUB_OUTPUT
+          echo "Preview URL: $deploymentUrl"

@@ -1,0 +1,100 @@
+"use client";
+
+import { useRouter, usePathname } from "next/navigation";
+import Image from "next/image";
+
+const UserNav = () => {
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const navItems = [
+    {
+      name: "Home",
+      icon: "/home.svg",
+      activeIcon: "/home.svg",
+      path: "/user/home",
+    },
+    {
+      name: "Krafts",
+      icon: "/task.svg",
+      activeIcon: "/task.svg",
+      path: "/user/krafts",
+    },
+    {
+      name: "Chat",
+      icon: "/chat.svg",
+      activeIcon: "/chat.svg",
+      path: "/user/chat",
+    },
+    {
+      name: "Support",
+      icon: "/sopport.svg",
+      activeIcon: "/sopport.svg",
+      path: "/user/support",
+    },
+    {
+      name: "Profile",
+      icon: "/taskerpro.svg",
+      activeIcon: "/taskerpro.svg",
+      path: "/user/profile",
+    },
+  ];
+
+  return (
+    <nav className="fixed bottom-0 w-full md:max-w-[430px] h-[96px] bg-white border-t border-[#0000001A] z-50 left-1/2 -translate-x-1/2">
+      <div className="flex items-end justify-between px-[20px] pb-[23px] w-full h-full gap-2">
+        {navItems.map((item) => {
+          const isActive = pathname === item.path;
+          return (
+            <button
+              key={item.name}
+              onClick={() => router.push(item.path)}
+              className="flex flex-col items-center justify-end h-full w-[73px] gap-[8px] relative transition-colors"
+            >
+              {/* Top border indicator */}
+              {isActive && (
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[2px] bg-[#FF6600] rounded-[60px]" />
+              )}
+              
+              <div
+                className="relative w-[23.5px] h-[23.5px]"
+                style={
+                  isActive
+                    ? {
+                        filter:
+                          "invert(48%) sepia(79%) saturate(2476%) hue-rotate(346deg) brightness(98%) contrast(97%)",
+                      }
+                    : {
+                        opacity: 0.8,
+                      }
+                }
+              >
+                <Image
+                  src={item.icon}
+                  alt={item.name}
+                  fill
+                  className="object-contain"
+                />
+                {/* Red notification dot for Chat */}
+                {item.name === "Chat" && (
+                  <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></div>
+                )}
+              </div>
+              <span
+                className={`text-[10px] font-sans text-center leading-[13px] ${
+                  isActive
+                    ? "text-[#FF6600] font-medium"
+                    : "text-[rgba(0,0,0,0.8)] font-medium"
+                }`}
+              >
+                {item.name}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </nav>
+  );
+};
+
+export default UserNav;
