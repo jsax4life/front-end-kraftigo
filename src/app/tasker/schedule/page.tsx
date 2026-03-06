@@ -8,6 +8,7 @@ import ActiveJobModal from "@/components/shared/ActiveJobModal";
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { useBookingsStore } from "@/store/useBookingsStore";
 import type { Booking } from "@/types";
+import { type Booking as LegacyBooking } from "@/store/useBookingStore";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
@@ -41,10 +42,23 @@ function buildGrid(year: number, month: number): (Date | null)[] {
   while (cells.length % 7 !== 0) cells.push(null);
   return cells;
 }
-/* ─────────────────────────────────────────────────────────────────── */
+
+/* Adapts the global Booking type to the legacy shape ActiveJobModal expects */
+function toActiveJobBooking(b: Booking): LegacyBooking {
+  return {
+    id: b.id,
+    title: b.service?.title ?? "Booking",
+    location: b.location,
+    date: b.scheduled_date,
+    time: b.scheduled_time ?? "TBD",
+    status: b.status as LegacyBooking["status"],
+    price: b.price,
+  };
+}
 
 const SchedulePage = () => {
-  const { bookings, isLoading, error, fetchTaskerBookings } = useBookingStore();
+  const { bookings, isLoading, error, fetchArtisanBookings } = useBookingsStore();
+
   const today = new Date();
   const searchParams = useSearchParams();
 
@@ -60,12 +74,12 @@ const SchedulePage = () => {
 
   // Booking dates for calendar orange highlights
   const bookingDates = displayBookings
-    .map((b) => (b.date ? new Date(b.date) : null))
+    .map((b) => (b.scheduled_date ? new Date(b.scheduled_date) : null))
     .filter((d): d is Date => d !== null && !isNaN(d.getTime()));
 
   useEffect(() => {
-    fetchTaskerBookings();
-  }, [fetchTaskerBookings]);
+    fetchArtisanBookings();
+  }, [fetchArtisanBookings]);
 
   // Auto-open ActiveJobModal when navigated from dashboard with ?openJob=<id>
   useEffect(() => {
@@ -260,7 +274,7 @@ const SchedulePage = () => {
               </div>
             ) : (() => {
               const dayBookings = displayBookings.filter((b) =>
-                b.date && isSameDay(new Date(b.date), selectedDate)
+                b.scheduled_date && isSameDay(new Date(b.scheduled_date), selectedDate)
               );
               return dayBookings.length > 0 ? (
                 dayBookings.map((booking, index) => {
@@ -296,9 +310,9 @@ const SchedulePage = () => {
       <TaskerNav />
 
       {/* ── Modal switcher: show ActiveJobModal within 24h, TaskDetailModal otherwise ── */}
-      {selectedBooking && isWithin24Hours(selectedBooking.date) ? (
+      {selectedBooking && isWithin24Hours(selectedBooking.scheduled_date) ? (
         <ActiveJobModal
-          booking={selectedBooking}
+          booking={selectedBooking ? toActiveJobBooking(selectedBooking) : null}
           onClose={() => setSelectedBooking(null)}
         />
       ) : (

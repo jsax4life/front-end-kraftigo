@@ -2,29 +2,87 @@
 
 import { ArrowLeft, Plus, ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import toast from "react-hot-toast";
 import PhotoUploader, { Photo } from "@/components/shared/PhotoUploader";
 import ProgressStepper from "../components/ProgressStepper";
 import DatePickerModal from "@/components/shared/DatePickerModal";
+import { useCustomKraftsStore } from "@/store/useCustomKraftsStore";
+import { useServicesStore } from "@/store/useServicesStore";
+
+// ─── Time slot display → HH:mm value map ──────────────────────────────────────
+const TIME_MAP: Record<string, string> = {
+  "08:00 AM": "08:00",
+  "10:00 AM": "10:00",
+  "1:00 PM": "13:00",
+  "3:00 PM": "15:00",
+  "6:00 PM": "18:00",
+};
 
 const Page = () => {
   const router = useRouter();
 
+  // ─── Store ──────────────────────────────────────────────────────────────────
+  const { setPendingDraftData } = useCustomKraftsStore();
+  const { categories, fetchCategories } = useServicesStore();
+
+  // ─── Local state ────────────────────────────────────────────────────────────
   const [description, setDescription] = useState("");
   const [photos, setPhotos] = useState<Photo[]>([]);
-  const [category, setCategory] = useState("");
+  const [roughCategoryId, setRoughCategoryId] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedTime, setSelectedTime] = useState("");
   const [showDatePicker, setShowDatePicker] = useState(false);
 
-  const categories = [
-    "Gardening & Outdoor Help",
-    "Moving",
-    "Laundry",
-    "Errands",
-    "Home repairs",
-    "Other",
-  ];
+  // ─── Load categories on mount ───────────────────────────────────────────────
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
+
+  // ─── Show store errors as toasts ────────────────────────────────────────────
+  // (No API calls on this page — errors come from the Details page onward)
+
+  // ─── Helpers ────────────────────────────────────────────────────────────────
+  const formatDate = (date: Date) =>
+    date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+
+  // Format a HH:mm string for the API (scheduledDate belongs in Step 2, but
+  // the UI exposes it here; we carry it forward in the store's selectedKraft JSON
+  // and pass it to Step 2 automatically).
+  const scheduledDate = selectedDate
+    ? selectedDate.toISOString().split("T")[0] // "YYYY-MM-DD"
+    : undefined;
+  const scheduledTime =
+    selectedTime && selectedTime !== "Custom"
+      ? TIME_MAP[selectedTime]
+      : undefined;
+
+  // ─── Navigation ─────────────────────────────────────────────────────────────
+  const handleNext = () => {
+    if (!description.trim()) {
+      toast.error("Please enter a description");
+      return;
+    }
+
+    // Collect File objects (photos are only available here as File objects)
+    const filePhotos = photos.flatMap((p) => (p.file ? [p.file] : []));
+
+    // Save Step 1 data to the store — the Details page will create the real
+    // API draft once it also has addressId, bookingHours, frequency, and expiryOption.
+    setPendingDraftData({
+      description,
+      roughCategoryId: roughCategoryId || undefined,
+      scheduledDate,
+      scheduledTime,
+      photos: filePhotos,
+    });
+
+    router.push("/user/home/custom-kraft/details");
+  };
 
   const timeSlots = [
     "08:00 AM",
@@ -34,36 +92,6 @@ const Page = () => {
     "6:00 PM",
     "Custom",
   ];
-
-  const handleNext = () => {
-    // Save to localStorage as draft
-    const formData = {
-      description,
-      photos,
-      category,
-      selectedDate,
-      selectedTime,
-    };
-    localStorage.setItem("customKraftDraft", JSON.stringify(formData));
-
-    // Navigate to details page with data
-    const params = new URLSearchParams({
-      description,
-      category,
-      date: selectedDate ? selectedDate.toLocaleDateString() : "",
-      time: selectedTime,
-    });
-    router.push(`/user/home/custom-kraft/details?${params.toString()}`);
-  };
-
-  const formatDate = (date: Date) => {
-    const options: Intl.DateTimeFormatOptions = {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    };
-    return date.toLocaleDateString("en-US", options);
-  };
 
   return (
     <div className="min-h-screen bg-white pb-24">
@@ -107,23 +135,35 @@ const Page = () => {
             title="Add Photos"
           />
 
-          {/* Rough Category */}
+          {/* Rough Category — populated from API */}
           <div className="border-b border-[#0000001A] pb-7">
             <h3 className="text-[16px] sm:text-[18px] font-poppins font-semibold text-gray-900 mb-3">
               Rough Category
             </h3>
             <div className="relative">
               <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
+                value={roughCategoryId}
+                onChange={(e) => setRoughCategoryId(e.target.value)}
                 className="w-full p-4 bg-[#F6F6F6] rounded-xl text-[14px] sm:text-[15px] font-poppins border border-[#0000001A] text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-orange appearance-none cursor-pointer"
               >
                 <option value="">Select a category</option>
-                {categories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
+                {categories.length > 0 ? (
+                  categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))
+                ) : (
+                  // Fallback options while categories load
+                  <>
+                    <option value="gardening">Gardening &amp; Outdoor Help</option>
+                    <option value="moving">Moving</option>
+                    <option value="laundry">Laundry</option>
+                    <option value="errands">Errands</option>
+                    <option value="home-repairs">Home repairs</option>
+                    <option value="other">Other</option>
+                  </>
+                )}
               </select>
               <ChevronDown
                 size={20}
@@ -173,7 +213,8 @@ const Page = () => {
           {/* Next Button */}
           <button
             onClick={handleNext}
-            className="w-full py-4 bg-brand-orange text-white text-[16px] font-poppins font-semibold rounded-xl hover:bg-orange-600 transition-colors"
+            disabled={!description.trim()}
+            className="w-full py-4 bg-brand-orange text-white text-[16px] font-poppins font-semibold rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-60"
           >
             Next
           </button>
