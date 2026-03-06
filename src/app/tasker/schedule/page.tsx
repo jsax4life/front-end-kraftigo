@@ -42,6 +42,7 @@ function buildGrid(year: number, month: number): (Date | null)[] {
   while (cells.length % 7 !== 0) cells.push(null);
   return cells;
 }
+
 /* Adapts the global Booking type to the legacy shape ActiveJobModal expects */
 function toActiveJobBooking(b: Booking): LegacyBooking {
   return {
@@ -57,6 +58,7 @@ function toActiveJobBooking(b: Booking): LegacyBooking {
 
 const SchedulePage = () => {
   const { bookings, isLoading, error, fetchArtisanBookings } = useBookingsStore();
+
   const today = new Date();
   const searchParams = useSearchParams();
 

@@ -81,11 +81,14 @@ export interface Booking {
   counter_price?: number;
   created_at: string;
   updated_at: string;
+<<<<<<< HEAD
   // Optional enriched fields returned by the backend in some responses
   title?: string;
   image?: string;
   customerName?: string;
   artisanName?: string;
+=======
+>>>>>>> 8fee9723e474cf71f22320f9e3ad9f3d101f27a4
 }
 
 // ─── Reviews ──────────────────────────────────────────────────────────────────
@@ -245,6 +248,7 @@ export interface Message {
   readBy: string[];
   createdAt: string;
 }
+<<<<<<< HEAD
 
 // ─── Custom Krafts ───────────────────────────────────────────────────────────
 
@@ -276,3 +280,5 @@ export interface CustomKraft {
 }
 
 
+=======
+>>>>>>> 8fee9723e474cf71f22320f9e3ad9f3d101f27a4

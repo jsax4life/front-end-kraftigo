@@ -132,7 +132,7 @@ const Page = () => {
             </p>
             <div className="p-4 bg-[#F6F6F6] rounded-xl flex items-center gap-3 mb-3">
               <div className="w-5 h-5 flex items-center justify-center">
-                <div className="w-3 h-3 bg-gray-900 rounded-full" />
+                  <div className="w-3 h-3 bg-gray-900 rounded-full" />
               </div>
               <span className="text-[14px] font-poppins text-gray-900">
                 {currentAddress}
