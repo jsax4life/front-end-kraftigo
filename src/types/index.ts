@@ -81,14 +81,11 @@ export interface Booking {
   counter_price?: number;
   created_at: string;
   updated_at: string;
-<<<<<<< HEAD
   // Optional enriched fields returned by the backend in some responses
   title?: string;
   image?: string;
   customerName?: string;
   artisanName?: string;
-=======
->>>>>>> 8fee9723e474cf71f22320f9e3ad9f3d101f27a4
 }
 
 // ─── Reviews ──────────────────────────────────────────────────────────────────
@@ -191,7 +188,7 @@ export interface ArtisanProfile {
     documentUrl: string;
   }[];
   toolsOwned: boolean;
-  transportType: 'CAR' | 'VAN' | 'BIKE' | 'NONE';
+  transportType: "CAR" | "VAN" | "BIKE" | "NONE";
   taxOrVatId?: string;
   bio: string;
 }
@@ -244,41 +241,36 @@ export interface Message {
     avatar?: string;
   };
   content: string;
-  type: 'text' | 'image' | 'file';
+  type: "text" | "image" | "file";
   readBy: string[];
   createdAt: string;
 }
-<<<<<<< HEAD
 
 // ─── Custom Krafts ───────────────────────────────────────────────────────────
 
-export type CustomKraftFrequency = 'ONCE' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY'
+export type CustomKraftFrequency = "ONCE" | "WEEKLY" | "BIWEEKLY" | "MONTHLY";
 
-export type CustomKraftExpiryOption = '24H' | '3DAYS' | '1WEEK' | 'CUSTOM'
+export type CustomKraftExpiryOption = "24H" | "3DAYS" | "1WEEK" | "CUSTOM";
 
-export type CustomKraftStatus = 'DRAFT' | 'PUBLISHED' | 'MATCHED' | 'CANCELLED'
+export type CustomKraftStatus = "DRAFT" | "PUBLISHED" | "MATCHED" | "CANCELLED";
 
 export interface CustomKraft {
-  id: string
-  description: string
-  photos?: string[]
-  roughCategoryId?: string
-  scheduledDate?: string
-  scheduledTime?: string
-  addressId: string
-  bookingHours: number
-  frequency: CustomKraftFrequency
-  offerAmount?: number
-  openToNegotiation: boolean
-  expiryOption: CustomKraftExpiryOption
-  expiryDate?: string
-  urgentBoost: boolean
-  status: CustomKraftStatus
-  userId: string
-  createdAt: string
-  updatedAt: string
+  id: string;
+  description: string;
+  photos?: string[];
+  roughCategoryId?: string;
+  scheduledDate?: string;
+  scheduledTime?: string;
+  addressId: string;
+  bookingHours: number;
+  frequency: CustomKraftFrequency;
+  offerAmount?: number;
+  openToNegotiation: boolean;
+  expiryOption: CustomKraftExpiryOption;
+  expiryDate?: string;
+  urgentBoost: boolean;
+  status: CustomKraftStatus;
+  userId: string;
+  createdAt: string;
+  updatedAt: string;
 }
-
-
-=======
->>>>>>> 8fee9723e474cf71f22320f9e3ad9f3d101f27a4
