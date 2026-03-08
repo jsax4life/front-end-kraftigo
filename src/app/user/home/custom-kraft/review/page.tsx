@@ -28,7 +28,7 @@ const Page = () => {
     error,
     clearError,
   } = useCustomKraftsStore();
-  const { addresses } = useAddressStore();
+  const { addresses, loadAddresses } = useAddressStore();
   const { categories } = useServicesStore();
   const {
     paymentMethods,
@@ -54,6 +54,11 @@ const Page = () => {
       router.replace("/user/home/custom-kraft/description");
     }
   }, [selectedKraft, router]);
+
+  // ─── Ensure we have addresses loaded to resolve addressId ───────────────
+  useEffect(() => {
+    loadAddresses();
+  }, [loadAddresses]);
 
   // ─── Show store errors as toasts ────────────────────────────────────────
   useEffect(() => {

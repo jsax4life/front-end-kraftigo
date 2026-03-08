@@ -19,6 +19,12 @@ const TIME_MAP: Record<string, string> = {
   "6:00 PM": "18:00",
 };
 
+// Simple UUID v4 validator – backend expects roughCategoryId as UUID
+const isUuid = (value: string) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value,
+  );
+
 const Page = () => {
   const router = useRouter();
 
@@ -30,8 +36,10 @@ const Page = () => {
   const [description, setDescription] = useState("");
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [roughCategoryId, setRoughCategoryId] = useState("");
+  const [customCategory, setCustomCategory] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedTime, setSelectedTime] = useState("");
+  const [customTime, setCustomTime] = useState("");
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   // ─── Load categories on mount ───────────────────────────────────────────────
@@ -59,6 +67,8 @@ const Page = () => {
   const scheduledTime =
     selectedTime && selectedTime !== "Custom"
       ? TIME_MAP[selectedTime]
+      : selectedTime === "Custom" && customTime
+      ? customTime
       : undefined;
 
   // ─── Navigation ─────────────────────────────────────────────────────────────
@@ -71,11 +81,20 @@ const Page = () => {
     // Collect File objects (photos are only available here as File objects)
     const filePhotos = photos.flatMap((p) => (p.file ? [p.file] : []));
 
+    // Only send roughCategoryId to backend if it's a valid UUID (from real categories)
+    // - If user chooses "other" or a fallback option, we omit it so validation passes.
+    const finalCategoryId =
+      roughCategoryId &&
+      roughCategoryId !== "other" &&
+      isUuid(roughCategoryId)
+        ? roughCategoryId
+        : undefined;
+
     // Save Step 1 data to the store — the Details page will create the real
     // API draft once it also has addressId, bookingHours, frequency, and expiryOption.
     setPendingDraftData({
       description,
-      roughCategoryId: roughCategoryId || undefined,
+      roughCategoryId: finalCategoryId,
       scheduledDate,
       scheduledTime,
       photos: filePhotos,
@@ -148,11 +167,14 @@ const Page = () => {
               >
                 <option value="">Select a category</option>
                 {categories.length > 0 ? (
-                  categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </option>
-                  ))
+                  <>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </option>
+                    ))}
+                    <option value="other">Other</option>
+                  </>
                 ) : (
                   // Fallback options while categories load
                   <>
@@ -170,6 +192,19 @@ const Page = () => {
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
               />
             </div>
+            
+            {/* Custom Category Input (shown when 'other' is selected) */}
+            {roughCategoryId === "other" && (
+              <div className="mt-3">
+                <input
+                  type="text"
+                  value={customCategory}
+                  onChange={(e) => setCustomCategory(e.target.value)}
+                  placeholder="Please specify the type of service you need..."
+                  className="w-full p-4 bg-[#F6F6F6] rounded-xl text-[14px] sm:text-[15px] font-poppins border border-[#0000001A] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-orange"
+                />
+              </div>
+            )}
           </div>
 
           {/* Choose Date */}
@@ -208,6 +243,18 @@ const Page = () => {
                 </button>
               ))}
             </div>
+            
+            {/* Custom Time Input (shown when 'Custom' is selected) */}
+            {selectedTime === "Custom" && (
+              <div className="mt-3">
+                <input
+                  type="time"
+                  value={customTime}
+                  onChange={(e) => setCustomTime(e.target.value)}
+                  className="w-full p-3 bg-[#F6F6F6] rounded-xl text-[14px] sm:text-[15px] font-poppins border border-[#0000001A] text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-orange"
+                />
+              </div>
+            )}
           </div>
 
           {/* Next Button */}
@@ -226,11 +273,7 @@ const Page = () => {
         isOpen={showDatePicker}
         onClose={() => setShowDatePicker(false)}
         selectedDate={selectedDate}
-        selectedTime={selectedTime}
-        onSelectDate={(date, time) => {
-          setSelectedDate(date);
-          setSelectedTime(time);
-        }}
+        onSelectDate={(date) => setSelectedDate(date)}
       />
     </div>
   );

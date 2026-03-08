@@ -39,6 +39,7 @@ const Page = () => {
     addAddress,
     removeAddress,
     getCurrentLocation,
+    loadAddresses,
   } = useAddressStore();
 
   // ─── Local state ─────────────────────────────────────────────────────────────
@@ -55,6 +56,11 @@ const Page = () => {
       clearError();
     }
   }, [error, clearError]);
+
+  // Load saved addresses from backend on mount
+  useEffect(() => {
+    loadAddresses();
+  }, [loadAddresses]);
 
   // ─── Guard: redirect back if neither pending nor saved draft exists ───────────
   useEffect(() => {
@@ -233,12 +239,13 @@ const Page = () => {
         isOpen={showAddressModal}
         onClose={() => setShowAddressModal(false)}
         savedAddresses={addresses}
+        selectedAddressId={selectedAddressId || ""}
         onSelectAddress={(addressId) => {
           selectAddress(addressId);
           setShowAddressModal(false);
         }}
-        onAddNewAddress={(label, address) => {
-          addAddress(label, address);
+        onAddNewAddress={({ label, address }) => {
+          addAddress({ label, address });
           setShowAddressModal(false);
         }}
         onUseCurrentLocation={async () => {

@@ -8,45 +8,21 @@ interface DatePickerModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedDate?: Date;
-  selectedTime?: string;
-  onSelectDate?: (date: Date, time: string) => void;
+  onSelectDate?: (date: Date) => void;
 }
 
 const DatePickerModal = ({
   isOpen,
   onClose,
   selectedDate,
-  selectedTime = "6:00 PM",
   onSelectDate,
 }: DatePickerModalProps) => {
   const [currentDate, setCurrentDate] = useState(selectedDate || new Date());
   const [selectedDay, setSelectedDay] = useState<number | null>(
     selectedDate ? selectedDate.getDate() : null,
   );
-  const [time, setTime] = useState(selectedTime);
-  const [showTimePicker, setShowTimePicker] = useState(false);
 
   if (!isOpen) return null;
-
-  const timeOptions = [
-    "6:00 AM",
-    "7:00 AM",
-    "8:00 AM",
-    "9:00 AM",
-    "10:00 AM",
-    "11:00 AM",
-    "12:00 PM",
-    "1:00 PM",
-    "2:00 PM",
-    "3:00 PM",
-    "4:00 PM",
-    "5:00 PM",
-    "6:00 PM",
-    "7:00 PM",
-    "8:00 PM",
-    "9:00 PM",
-    "10:00 PM",
-  ];
 
   const weekDays = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 
@@ -102,7 +78,7 @@ const DatePickerModal = ({
         currentDate.getMonth(),
         selectedDay,
       );
-      onSelectDate(finalDate, time);
+      onSelectDate(finalDate);
     }
     onClose();
   };
@@ -195,49 +171,6 @@ const DatePickerModal = ({
 
           {/* Calendar Grid */}
           <div className="grid grid-cols-7 gap-2 mb-6">{renderCalendar()}</div>
-
-          {/* Time Picker */}
-          <div className="relative">
-            <button
-              onClick={() => setShowTimePicker(!showTimePicker)}
-              className="w-full p-4 bg-[#F6F6F6] border border-[#0000001A] rounded-full flex items-center justify-between hover:bg-gray-100 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <Clock size={20} className="text-gray-600" />
-                <span className="text-[15px] font-poppins text-gray-900">
-                  {time}
-                </span>
-              </div>
-              <ChevronRight
-                size={20}
-                className={`text-gray-400 transition-transform ${
-                  showTimePicker ? "rotate-90" : ""
-                }`}
-              />
-            </button>
-
-            {/* Time Dropdown */}
-            {showTimePicker && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-[#0000001A] rounded-xl shadow-lg max-h-48 overflow-y-auto z-10">
-                {timeOptions.map((timeOption) => (
-                  <button
-                    key={timeOption}
-                    onClick={() => {
-                      setTime(timeOption);
-                      setShowTimePicker(false);
-                    }}
-                    className={`w-full p-3 text-left text-[14px] font-poppins hover:bg-gray-100 transition-colors ${
-                      time === timeOption
-                        ? "bg-brand-orange/10 text-brand-orange font-semibold"
-                        : "text-gray-900"
-                    }`}
-                  >
-                    {timeOption}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
 
           {/* Done Button */}
           <Button variant="primary" fullWidth onClick={handleDone}>

@@ -19,6 +19,8 @@ const Page = () => {
   const address =
     searchParams.get("address") || "Hauptstraße 123 - 10115, Berlin";
   const date = searchParams.get("date") || new Date().toISOString();
+  const isPublic = searchParams.get("isPublic") === "true";
+  const budget = searchParams.get("budget") || "0";
   const [promoCode, setPromoCode] = useState("");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
@@ -37,7 +39,8 @@ const Page = () => {
   const hours = Number(searchParams.get("hours") || "1");
   const serviceFee = 5.0;
   const discount = 10.0;
-  const subtotal = hourlyRate * hours;
+  
+  const subtotal = isPublic ? Number(budget) : hourlyRate * hours;
   const totalAmount = subtotal + serviceFee - discount;
 
   const handleConfirmPayment = async () => {
@@ -130,7 +133,7 @@ const Page = () => {
               <Check size={20} className="text-white" />
             </span>
             <span className="w-fit px-3 py-2.5 text-xs sm:text-sm bg-brand-orange text-white rounded-full flex items-center justify-center">
-              Finish
+              {isPublic ? "Details" : "Krafter"}
             </span>
           </div>
           <button
@@ -141,7 +144,7 @@ const Page = () => {
           </button>
         </div>
         <h2 className="text-[18px] sm:text-[20px] font-poppins font-semibold px-4 sm:px-8 lg:px-8 max-w-4xl mx-auto">
-          {hasPaymentMethods() ? "Complete Order" : "Verify Your Details"}
+          {isPublic ? "Post Your Task" : hasPaymentMethods() ? "Complete Order" : "Verify Your Details"}
         </h2>
       </div>
 
@@ -152,14 +155,20 @@ const Page = () => {
             <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-2">
               {categoryName}
             </h1>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-[13px] sm:text-[14px] font-poppins font-semibold text-gray-900">
-                Edit Ropalanum.
-              </span>
-              <span className="bg-[#E8F5E9] text-[#2E7D32] text-[10px] sm:text-[11px] font-poppins font-semibold px-2 py-0.5 rounded">
-                TOP PRO
-              </span>
-            </div>
+            {isPublic ? (
+              <div className="flex items-center gap-2 mb-2">
+                
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-[13px] sm:text-[14px] font-poppins font-semibold text-gray-900">
+                  Edit Ropalanum.
+                </span>
+                <span className="bg-[#E8F5E9] text-[#2E7D32] text-[10px] sm:text-[11px] font-poppins font-semibold px-2 py-0.5 rounded">
+                  TOP PRO
+                </span>
+              </div>
+            )}
             <p className="text-[13px] sm:text-[14px] text-gray-700 font-poppins">
               {address}
             </p>
@@ -168,192 +177,211 @@ const Page = () => {
             </p>
           </div>
           <div className="flex flex-col items-end gap-2">
-            <span className="text-brand-orange text-[16px] sm:text-[18px] font-poppins font-bold">
-              ${hourlyRate.toFixed(2)}/hr
-            </span>
-            <Image
-              src="/images/pro.jpg"
-              alt="artisan profile"
-              width={70}
-              height={70}
-              className="w-20 h-20 rounded-lg object-cover"
-            />
+            {isPublic ? (
+               <span className="text-brand-orange text-[16px] sm:text-[18px] font-poppins font-bold">
+                 Budget: ${budget}
+               </span>
+            ) : (
+              <>
+                <span className="text-brand-orange text-[16px] sm:text-[18px] font-poppins font-bold">
+                  ${hourlyRate.toFixed(2)}/hr
+                </span>
+                <Image
+                  src="/images/pro.jpg"
+                  alt="artisan profile"
+                  width={70}
+                  height={70}
+                  className="w-20 h-20 rounded-lg object-cover"
+                />
+              </>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Price Breakdown */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 border-t border-[#0000001A]">
-        <h3 className="text-[18px] sm:text-[20px] font-poppins font-semibold mb-4">
-          Price Breakdown
-        </h3>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
+      {/* Payment Options */}
+          {/* Price Breakdown */}
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 border-t border-[#0000001A]">
+            <h3 className="text-[18px] sm:text-[20px] font-poppins font-semibold mb-4">
+              Price Breakdown
+            </h3>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
             <span className="text-[13px] sm:text-[14px] font-poppins text-gray-700">
-              Hourly Rate (${hourlyRate.toFixed(2)}/hr x {hours}hrs)
+              {isPublic 
+                ? "Your Offer Budget"
+                : `Hourly Rate ($${hourlyRate.toFixed(2)}/hr x ${hours}hrs)`}
             </span>
             <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900">
               ${subtotal.toFixed(2)}
             </span>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-[13px] sm:text-[14px] font-poppins text-gray-700">
-              Service fee
-            </span>
-            <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900">
-              ${serviceFee.toFixed(2)}
-            </span>
+              <div className="flex items-center justify-between">
+                <span className="text-[13px] sm:text-[14px] font-poppins text-gray-700">
+                  Service fee
+                </span>
+                <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900">
+                  ${serviceFee.toFixed(2)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[13px] sm:text-[14px] font-poppins text-[#4CAF50]">
+                  Discount (Welcome 10)
+                </span>
+                <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-[#4CAF50]">
+                  -${discount.toFixed(2)}
+                </span>
+              </div>
+              <div className="pt-3 border-t border-[#0000001A] flex items-center justify-between">
+                <span className="text-[15px] sm:text-[16px] font-poppins font-bold text-gray-900">
+                  Total Amount
+                </span>
+                <span className="text-[16px] sm:text-[18px] font-poppins font-bold text-gray-900">
+                  ${totalAmount.toFixed(2)}
+                </span>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-[13px] sm:text-[14px] font-poppins text-[#4CAF50]">
-              Discount (Welcome 10)
-            </span>
-            <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-[#4CAF50]">
-              -${discount.toFixed(2)}
-            </span>
-          </div>
-          <div className="pt-3 border-t border-[#0000001A] flex items-center justify-between">
-            <span className="text-[15px] sm:text-[16px] font-poppins font-bold text-gray-900">
-              Total Amount
-            </span>
-            <span className="text-[16px] sm:text-[18px] font-poppins font-bold text-gray-900">
-              ${totalAmount.toFixed(2)}
-            </span>
-          </div>
-        </div>
-      </div>
 
-      {/* Promo Code */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 -mt-8">
-        <div className="flex items-center gap-1 relative">
-          <Input
-            placeholder="Promo Code"
-            value={promoCode}
-            onChange={setPromoCode}
-            className="flex-1"
-          />
-          <button className="absolute right-2 top-1/2 mt-1 transform -translate-y-1/2 px-6 py-2 bg-[#FFE5D9] text-brand-orange text-[14px] sm:text-[15px] font-poppins font-semibold rounded-lg hover:bg-[#FFD5C2] transition-colors">
-            Apply
-          </button>
-        </div>
-      </div>
-
-      {/* Payment Options */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 border-t border-[#0000001A]">
-        <h3 className="text-[18px] sm:text-[20px] font-poppins font-semibold mb-4">
-          Payment Options
-        </h3>
-
-        {!hasPaymentMethods() ? (
-          // No Payment Methods State
-          <div className="space-y-4 py-5">
-            <p className="text-[13px] sm:text-[14px] font-poppins text-gray-500 text-center py-4">
-              You do not have any saved payment methods
-            </p>
-            <button
-              onClick={handleAddPayment}
-              className="w-full py-3 bg-blue-600 text-white text-[15px] sm:text-[16px] font-poppins font-semibold rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-            >
-              <span className="text-xl">+</span>
-              add new
-            </button>
+          {/* Promo Code */}
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 -mt-8">
+            <div className="flex items-center gap-1 relative">
+              <Input
+                placeholder="Promo Code"
+                value={promoCode}
+                onChange={setPromoCode}
+                className="flex-1"
+              />
+              <button className="absolute right-2 top-1/2 mt-1 transform -translate-y-1/2 px-6 py-2 bg-[#FFE5D9] text-brand-orange text-[14px] sm:text-[15px] font-poppins font-semibold rounded-lg hover:bg-[#FFD5C2] transition-colors">
+                Apply
+              </button>
+            </div>
           </div>
-        ) : (
-          // With Payment Methods State
-          <div className="space-y-3">
-            {paymentMethods.map((method) => (
-              <div
-                key={method.id}
-                className="border border-[#0000001A] rounded-lg p-4 hover:border-brand-orange transition-colors cursor-pointer"
-                onClick={() => selectPayment(method.id)}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 flex-1">
-                    <div className="relative flex items-top">
-                      <input
-                        type="radio"
-                        name="payment"
-                        value={method.id}
-                        checked={selectedPaymentId === method.id}
-                        onChange={(e) => selectPayment(e.target.value)}
-                        className="w-5 h-5 appearance-none border-2 border-gray-300 rounded-full checked:border-brand-orange checked:border-[6px] transition-all cursor-pointer"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      {method.type === "googlepay" ? (
-                        <div className="flex items-center gap-2">
-                          <Image
-                            src="/google2.svg"
-                            alt="Google Pay"
-                            width={50}
-                            height={20}
-                            className="h-5 w-auto"
+
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 border-t border-[#0000001A]">
+            <h3 className="text-[18px] sm:text-[20px] font-poppins font-semibold mb-4">
+              Payment Options
+            </h3>
+
+            {!hasPaymentMethods() ? (
+              // No Payment Methods State
+              <div className="space-y-4 py-5">
+                <p className="text-[13px] sm:text-[14px] font-poppins text-gray-500 text-center py-4">
+                  You do not have any saved payment methods
+                </p>
+                <button
+                  onClick={handleAddPayment}
+                  className="w-full py-3 bg-blue-600 text-white text-[15px] sm:text-[16px] font-poppins font-semibold rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                >
+                  <span className="text-xl">+</span>
+                  add new
+                </button>
+              </div>
+            ) : (
+              // With Payment Methods State
+              <div className="space-y-3">
+                {paymentMethods.map((method) => (
+                  <div
+                    key={method.id}
+                    className="border border-[#0000001A] rounded-lg p-4 hover:border-brand-orange transition-colors cursor-pointer"
+                    onClick={() => selectPayment(method.id)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3 flex-1">
+                        <div className="relative flex items-top">
+                          <input
+                            type="radio"
+                            name="payment"
+                            value={method.id}
+                            checked={selectedPaymentId === method.id}
+                            onChange={(e) => selectPayment(e.target.value)}
+                            className="w-5 h-5 appearance-none border-2 border-gray-300 rounded-full checked:border-brand-orange checked:border-[6px] transition-all cursor-pointer"
                           />
-                          Pay
                         </div>
-                      ) : (
-                        <div>
-                          <p className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900">
-                            {method.name}
-                          </p>
-                          {method.details && (
-                            <div className="mt-1">
-                              {method.details.holder && (
-                                <p className="text-[13px] font-poppins font-semibold text-gray-900">
-                                  {method.details.holder}
-                                </p>
-                              )}
-                              {method.details.number && (
-                                <p className="text-[12px] font-poppins text-gray-600">
-                                  {method.details.number}
-                                </p>
-                              )}
-                              {method.details.iban && (
-                                <p className="text-[12px] font-poppins text-gray-600">
-                                  {method.details.iban}
-                                </p>
+                        <div className="flex-1">
+                          {method.type === "googlepay" ? (
+                            <div className="flex items-center gap-2">
+                              <Image
+                                src="/google2.svg"
+                                alt="Google Pay"
+                                width={50}
+                                height={20}
+                                className="h-5 w-auto"
+                              />
+                              Pay
+                            </div>
+                          ) : (
+                            <div>
+                              <p className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900">
+                                {method.name}
+                              </p>
+                              {method.details && (
+                                <div className="mt-1">
+                                  {method.details.holder && (
+                                    <p className="text-[13px] font-poppins font-semibold text-gray-900">
+                                      {method.details.holder}
+                                    </p>
+                                  )}
+                                  {method.details.number && (
+                                    <p className="text-[12px] font-poppins text-gray-600">
+                                      {method.details.number}
+                                    </p>
+                                  )}
+                                  {method.details.iban && (
+                                    <p className="text-[12px] font-poppins text-gray-600">
+                                      {method.details.iban}
+                                    </p>
+                                  )}
+                                </div>
                               )}
                             </div>
                           )}
                         </div>
+                      </div>
+                      {method.details && (
+                        <button className="text-brand-orange text-[13px] sm:text-[14px] font-poppins font-semibold hover:underline">
+                          Change
+                        </button>
                       )}
                     </div>
                   </div>
-                  {method.details && (
-                    <button className="text-brand-orange text-[13px] sm:text-[14px] font-poppins font-semibold hover:underline">
-                      Change
-                    </button>
-                  )}
-                </div>
+                ))}
+                
+                {/* Add New Payment Button */}
+                <button
+                  onClick={handleAddPayment}
+                  className="w-full py-3 border-2 border-dashed border-gray-300 text-gray-600 text-[15px] sm:text-[16px] font-poppins font-semibold rounded-lg hover:border-brand-orange hover:text-brand-orange transition-colors flex items-center justify-center gap-2"
+                >
+                  <span className="text-xl">+</span>
+                  Add new payment method
+                </button>
               </div>
-            ))}
-            
-            {/* Add New Payment Button */}
-            <button
-              onClick={handleAddPayment}
-              className="w-full py-3 border-2 border-dashed border-gray-300 text-gray-600 text-[15px] sm:text-[16px] font-poppins font-semibold rounded-lg hover:border-brand-orange hover:text-brand-orange transition-colors flex items-center justify-center gap-2"
-            >
-              <span className="text-xl">+</span>
-              Add new payment method
-            </button>
+            )}
           </div>
-        )}
-      </div>
 
       {/* Terms and Confirm Button */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 border-t border-[#0000001A] mt-3">
-        <p className="text-[11px] sm:text-[12px] font-poppins text-gray-600 text-center mb-4">
-          By Clicking &apos;Confirm & Pay&apos;, you agree to Kraftigos Terms of
-          Service and privacy Policy. Payments are processed securely
-        </p>
+        {isPublic ? (
+          <p className="text-[11px] sm:text-[12px] font-poppins text-gray-600 text-center mb-4">
+            By clicking &apos;Post Public Task&apos;, you agree to Kraftigos Terms of
+            Service and Privacy Policy. Taskers will reply with offers based on your budget.
+          </p>
+        ) : (
+          <p className="text-[11px] sm:text-[12px] font-poppins text-gray-600 text-center mb-4">
+            By Clicking &apos;Confirm & Pay&apos;, you agree to Kraftigos Terms of
+            Service and Privacy Policy. Payments are processed securely.
+          </p>
+        )}
         <button
           onClick={handleConfirmPayment}
           disabled={isSubmitting}
-          className="w-full py-3 bg-brand-orange text-white text-[16px] sm:text-[17px] font-poppins font-semibold rounded-lg hover:bg-brand-orange-dark transition-colors disabled:opacity-60"
+          className="w-full py-3 bg-brand-orange text-white text-[16px] sm:text-[17px] font-poppins font-semibold rounded-lg hover:bg-brand-orange-dark transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
         >
           {isSubmitting
             ? "Processing..."
-            : `Confirm & Pay $${totalAmount.toFixed(2)}`}
+            : isPublic 
+              ? "Post Public Task" 
+              : `Confirm & Pay $${totalAmount.toFixed(2)}`}
         </button>
       </div>
 

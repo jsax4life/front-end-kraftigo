@@ -38,7 +38,10 @@ const Page = () => {
 
   const handleNext = () => {
     // Navigate to next page with form data
-    router.push("/user/book-service/verifyDetails");
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("isPublic", "true");
+    if (formData.amount) params.set("budget", formData.amount);
+    router.push(`/user/book-service/verifyDetails?${params.toString()}`);
   };
 
   return (
