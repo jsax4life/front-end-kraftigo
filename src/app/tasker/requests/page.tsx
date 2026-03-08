@@ -98,7 +98,7 @@ const RequestsPage = () => {
       try {
         await respondToBooking(selectedRequestId, {
           action: "COUNTER",
-          counter_price: price,
+          counterPrice: price,
         });
         toast.success("Counter offer sent!");
         setOpenNegotiationModal(false);

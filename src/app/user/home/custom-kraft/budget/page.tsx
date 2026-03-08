@@ -103,15 +103,11 @@ const Page = () => {
     }
   };
 
-  const handleBack = () => {
-    router.push("/user/home/custom-kraft/details");
-  };
-
   return (
     <div className="min-h-screen bg-white pb-24">
       <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-4xl mx-auto">
         <button
-          onClick={handleBack}
+          onClick={() => router.back()}
           className="mb-6 p-2 -ml-2 hover:bg-gray-100 rounded-lg transition-colors"
         >
           <ArrowLeft size={24} className="text-gray-900" />

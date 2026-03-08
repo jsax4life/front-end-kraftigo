@@ -51,13 +51,23 @@ const Page = () => {
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
+  const [localName, setLocalName] = useState("");
+
   useEffect(() => {
     if (!customerProfile) {
       fetchCustomerProfile();
     }
+    if (typeof window !== 'undefined') {
+      const storedName = localStorage.getItem("kraftigo_user_fullName");
+      if (storedName) {
+        setLocalName(storedName);
+      }
+    }
   }, [customerProfile, fetchCustomerProfile]);
 
-  const displayName = customerProfile?.fullName?.split(" ")[0] || user?.fullName?.split(" ")[0] || "User";
+  const displayName = customerProfile?.fullName?.split(" ")[0] 
+    || localName.split(" ")[0]
+    || "User";
   const avatar = customerProfile?.profilePhotoUrl || user?.avatar;
 
   const recentSearches = [
@@ -71,13 +81,6 @@ const Page = () => {
     {
       id: 2,
       name: "Haircut",
-      icon: User,
-      bgColor: "bg-[#FF000033]",
-      iconColor: "text-[#7C2828]",
-    },
-    {
-      id: 3,
-      name: "Body Massage",
       icon: User,
       bgColor: "bg-[#FF000033]",
       iconColor: "text-[#7C2828]",

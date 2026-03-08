@@ -13,10 +13,10 @@ interface Address {
 interface AddressModalProps {
   isOpen: boolean;
   onClose: () => void;
-  savedAddresses: Address[]; // Now required, no default value
+  savedAddresses: Address[]; 
   selectedAddressId?: string;
-  onSelectAddress?: (addressId: string) => void; // Simplified signature
-  onAddNewAddress?: (label: string, address: string) => void;
+  onSelectAddress?: (addressId: string) => void; 
+  onAddNewAddress?: (params: { label: string; address: string }) => void;
   onUseCurrentLocation?: () => void;
   onRemoveAddress?: (addressId: string) => void;
 }
@@ -47,7 +47,7 @@ const AddressModal = ({
 
   const handleAddNew = () => {
     if (newAddressLabel && newAddressValue && onAddNewAddress) {
-      onAddNewAddress(newAddressLabel, newAddressValue);
+      onAddNewAddress({ label: newAddressLabel, address: newAddressValue });
       setNewAddressLabel("");
       setNewAddressValue("");
       setShowAddNewForm(false);

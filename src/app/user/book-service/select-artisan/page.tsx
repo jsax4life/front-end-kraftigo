@@ -1,14 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { Check, X, ChevronDown } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import Button from "@/components/ui/button";
 import ArtisanCard from "@/components/shared/ArtisanCard";
 import ArtisanGridCard from "@/components/shared/ArtisanGridCard";
 import CompareSheet from "@/components/shared/CompareModal";
 import { Application } from "@/types";
+import { useBookingsStore } from "@/store/useBookingsStore";
+import { useAddressStore } from "@/store/useAddressStore";
 
 interface Artisan {
   id: number;
@@ -24,19 +26,26 @@ interface Artisan {
   isNewTasker?: boolean;
 }
 
-const SelectArtisanPage = () => {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const categoryId = searchParams.get("categoryId") || "";
-  const categoryName = searchParams.get("category") || "Service";
-  const address = searchParams.get("address") || "Hauptstraße 123 - 10115, Berlin";
-  const date = searchParams.get("date") || new Date().toISOString();
+/** Map API recommendation item to UI Artisan shape (flexible for backend fields) */
+function mapRecommendationToArtisan(item: any, index: number): Artisan {
+  const id = Number(item?.id ?? item?.artisanId ?? item?.artisan_id ?? index + 1);
+  return {
+    id,
+    name: item?.fullName ?? item?.name ?? item?.artisanName ?? "Krafter",
+    profileImage: item?.avatar ?? item?.profileImage ?? item?.profilePhotoUrl ?? "/images/pro.jpg",
+    badge: item?.badge === "TOP PRO" || item?.isTopPro ? "TOP PRO" : item?.badge ?? null,
+    rating: Number(item?.rating ?? item?.reviewsRating ?? 0) || 0,
+    reviewCount: Number(item?.reviewsCount ?? item?.reviewCount ?? item?.reviews_count ?? 0) || 0,
+    taskCount: Number(item?.completedJobs ?? item?.taskCount ?? item?.tasks_count ?? 0) || 0,
+    location: item?.location ?? item?.city ?? item?.baseCity ?? "New Tasker",
+    description: item?.bio ?? item?.description ?? item?.proposal_message ?? "",
+    pricePerHour: Number(item?.pricePerHour ?? item?.price_per_hour ?? item?.proposedPrice ?? 0) || 0,
+    isNewTasker: item?.isNewTasker ?? item?.is_new ?? false,
+  };
+}
 
-  // const [selectedArtisan, setSelectedArtisan] = useState<number | null>(null);
-  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
-  const [showCompare, setShowCompare] = useState(false);
-
-  const artisans: Artisan[] = [
+/** Dummy Krafters used when API returns none or fails */
+const DUMMY_ARTISANS: Artisan[] = [
     {
       id: 1,
       name: "Edith R.",
@@ -94,6 +103,74 @@ const SelectArtisanPage = () => {
       isNewTasker: false,
     },
   ];
+
+const SelectArtisanPage = () => {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const categoryId = searchParams.get("categoryId") || "";
+  const categoryName = searchParams.get("category") || "Service";
+  const address = searchParams.get("address") || "Hauptstraße 123 - 10115, Berlin";
+  const dateParam = searchParams.get("date") || new Date().toISOString();
+  const timeParam = searchParams.get("time") || "08:00";
+  const taskDetails = searchParams.get("taskDetails") || "";
+
+  const { getRecommendations, isLoading } = useBookingsStore();
+  const { currentLatitude, currentLongitude } = useAddressStore();
+
+  const [artisans, setArtisans] = useState<Artisan[]>(DUMMY_ARTISANS);
+  const [artisansFromApi, setArtisansFromApi] = useState(false);
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+  const [showCompare, setShowCompare] = useState(false);
+
+  // Fetch recommendations from API; fall back to dummy data when empty or on error
+  useEffect(() => {
+    if (!categoryId || !taskDetails.trim()) {
+      setArtisans(DUMMY_ARTISANS);
+      setArtisansFromApi(false);
+      return;
+    }
+
+    const lat = currentLatitude ?? 0;
+    const lng = currentLongitude ?? 0;
+    const preferredDate = dateParam.includes("T")
+      ? new Date(dateParam).toISOString().split("T")[0]
+      : dateParam.slice(0, 10);
+
+    getRecommendations({
+      serviceCategoryId: categoryId,
+      jobTitle: categoryName,
+      jobDescription: taskDetails,
+      latitude: lat,
+      longitude: lng,
+      preferredDate,
+      preferredTime: timeParam,
+      limit: 16,
+    })
+      .then((list) => {
+        if (Array.isArray(list) && list.length > 0) {
+          setArtisans(
+            list.map((item, i) => mapRecommendationToArtisan(item, i)),
+          );
+          setArtisansFromApi(true);
+        } else {
+          setArtisans(DUMMY_ARTISANS);
+          setArtisansFromApi(false);
+        }
+      })
+      .catch(() => {
+        setArtisans(DUMMY_ARTISANS);
+        setArtisansFromApi(false);
+      });
+  }, [
+    categoryId,
+    categoryName,
+    taskDetails,
+    dateParam,
+    timeParam,
+    currentLatitude,
+    currentLongitude,
+    getRecommendations,
+  ]);
 
   const handleSelectArtisan = (artisanId: number) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -230,7 +307,7 @@ const SelectArtisanPage = () => {
         {/* Taskers Available */}
         <div className="mb-4 mx-4 flex justify-between items-center">
           <h2 className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-600">
-            12 Krafters Available
+            {isLoading ? "Loading Krafters…" : `${artisans.length} Krafters Available`}
           </h2>
           <button
             onClick={() => setViewMode(viewMode === "list" ? "grid" : "list")}
@@ -299,6 +376,8 @@ const SelectArtisanPage = () => {
             setShowCompare(false);
             handleSelectArtisan(parseInt(app.id));
           }}
+          fromRecommendations={artisansFromApi}
+          serviceCategoryId={categoryId || undefined}
         />
       )}
     </main>

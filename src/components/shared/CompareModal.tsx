@@ -1,14 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Star } from "lucide-react";
 import Image from "next/image";
 import { Application } from "@/types";
+import { useBookingsStore } from "@/store/useBookingsStore";
 
 interface CompareSheetProps {
   allArtisans: Application[];
   onClose: () => void;
   onSelect: (artisan: Application) => void;
+  /** When true and two Krafters are selected, call POST /api/bookings/compare-krafters */
+  fromRecommendations?: boolean;
+  serviceCategoryId?: string;
 }
 
 // ─── Empty Slot Placeholder ───────────────────────────────────────────────────
@@ -152,16 +156,80 @@ const ArtisanPicker = ({
   </div>
 );
 
+/** Map API compare response item to Application for display */
+function mapCompareItemToApplication(item: any, fallback: Application): Application {
+  if (!item) return fallback;
+  const id = item?.id ?? item?.artisanId ?? item?.krafterId ?? fallback.id;
+  const name = item?.fullName ?? item?.name ?? item?.artisanName ?? fallback.artisan_name;
+  const image = item?.avatar ?? item?.image ?? item?.profilePhotoUrl ?? fallback.image;
+  const price = item?.price ?? item?.pricePerHour != null ? `$${item.pricePerHour}/hr` : fallback.price;
+  return {
+    ...fallback,
+    id: String(id),
+    artisan_id: String(id),
+    artisan_name: name,
+    image: image || fallback.image,
+    price: price || fallback.price,
+    rating: Number(item?.rating ?? fallback.rating) || 0,
+    reviews_count: Number(item?.reviewsCount ?? item?.reviews_count ?? fallback.reviews_count) || 0,
+    tasks_count: Number(item?.completedJobs ?? item?.tasks_count ?? fallback.tasks_count) || 0,
+    description: item?.bio ?? item?.description ?? item?.reviewSnippet ?? fallback.description,
+  };
+}
+
 // ─── Main CompareSheet ────────────────────────────────────────────────────────
-const CompareSheet = ({ allArtisans, onClose, onSelect }: CompareSheetProps) => {
+const CompareSheet = ({
+  allArtisans,
+  onClose,
+  onSelect,
+  fromRecommendations = false,
+  serviceCategoryId,
+}: CompareSheetProps) => {
+  const { compareKrafters } = useBookingsStore();
   const [slots, setSlots] = useState<[Application | null, Application | null]>([
     null,
     null,
   ]);
   const [pickingSlot, setPickingSlot] = useState<0 | 1 | null>(null);
   const [showFullCompare, setShowFullCompare] = useState(false);
+  const [comparisonFromApi, setComparisonFromApi] = useState<any>(null);
+  const [compareLoading, setCompareLoading] = useState(false);
 
   const bothFilled = slots[0] !== null && slots[1] !== null;
+
+  // When both slots filled and from recommendations, fetch compare from API
+  useEffect(() => {
+    if (
+      !bothFilled ||
+      !fromRecommendations ||
+      !serviceCategoryId ||
+      !slots[0]?.artisan_id ||
+      !slots[1]?.artisan_id
+    ) {
+      setComparisonFromApi(null);
+      return;
+    }
+    const krafterIds = [slots[0].artisan_id, slots[1].artisan_id];
+    setCompareLoading(true);
+    setComparisonFromApi(null);
+    compareKrafters({ krafterIds, serviceCategoryId })
+      .then((data) => {
+        setComparisonFromApi(data);
+      })
+      .catch(() => {
+        setComparisonFromApi(null);
+      })
+      .finally(() => {
+        setCompareLoading(false);
+      });
+  }, [
+    bothFilled,
+    fromRecommendations,
+    serviceCategoryId,
+    slots[0]?.artisan_id,
+    slots[1]?.artisan_id,
+    compareKrafters,
+  ]);
 
   const handlePick = (artisan: Application) => {
     if (pickingSlot === null) return;
@@ -185,6 +253,21 @@ const CompareSheet = ({ allArtisans, onClose, onSelect }: CompareSheetProps) => 
   };
 
   const skills = ["Assembly", "Mounting"];
+
+  // Use API comparison result if we have two items; else use slots (dummy/local)
+  const displaySlots: [Application | null, Application | null] = (() => {
+    if (compareLoading || !comparisonFromApi) return slots;
+    const list = Array.isArray(comparisonFromApi)
+      ? comparisonFromApi
+      : comparisonFromApi?.krafters ?? comparisonFromApi?.comparisons ?? Object.values(comparisonFromApi);
+    if (Array.isArray(list) && list.length >= 2 && slots[0] && slots[1]) {
+      return [
+        mapCompareItemToApplication(list[0], slots[0]),
+        mapCompareItemToApplication(list[1], slots[1]),
+      ];
+    }
+    return slots;
+  })();
 
   return (
     <>
@@ -228,9 +311,14 @@ const CompareSheet = ({ allArtisans, onClose, onSelect }: CompareSheetProps) => 
           ) : (
             /* ── Full Comparison State ── */
             <>
+              {compareLoading && (
+                <p className="text-[13px] font-poppins text-gray-500 text-center py-2">
+                  Loading comparison…
+                </p>
+              )}
               {/* Photos + names */}
               <div className="grid grid-cols-2 gap-4 mb-6">
-                {slots.map((artisan, idx) =>
+                {displaySlots.map((artisan, idx) =>
                   artisan ? (
                     <div key={idx} className="flex flex-col items-center text-center">
                       <div className="w-full aspect-square rounded-2xl overflow-hidden mb-3 bg-gray-100">
@@ -266,7 +354,7 @@ const CompareSheet = ({ allArtisans, onClose, onSelect }: CompareSheetProps) => 
 
               {/* Hourly Rate */}
               <CompareRow label="Hourly Rate">
-                {slots.map((a, i) =>
+                {displaySlots.map((a, i) =>
                   a ? (
                     <div key={i} className="text-center">
                       <p className="text-[16px] font-poppins font-bold text-brand-orange">
@@ -279,7 +367,7 @@ const CompareSheet = ({ allArtisans, onClose, onSelect }: CompareSheetProps) => 
 
               {/* Top Skills */}
               <CompareRow label="Top Skills">
-                {slots.map((a, i) =>
+                {displaySlots.map((a, i) =>
                   a ? (
                     <div key={i} className="flex flex-wrap gap-1 justify-center">
                       {skills.map((skill) => (
@@ -297,7 +385,7 @@ const CompareSheet = ({ allArtisans, onClose, onSelect }: CompareSheetProps) => 
 
               {/* Krafts Completed */}
               <CompareRow label="Krafts Completed">
-                {slots.map((a, i) =>
+                {displaySlots.map((a, i) =>
                   a ? (
                     <div key={i} className="text-center">
                       <p className="text-[15px] font-poppins font-semibold text-black">
@@ -310,7 +398,7 @@ const CompareSheet = ({ allArtisans, onClose, onSelect }: CompareSheetProps) => 
 
               {/* Relevant Review */}
               <CompareRow label="Relevant Review">
-                {slots.map((a, i) =>
+                {displaySlots.map((a, i) =>
                   a ? (
                     <div key={i} className="text-center">
                       <p className="text-[12px] font-poppins text-gray-600 leading-relaxed">
@@ -323,7 +411,7 @@ const CompareSheet = ({ allArtisans, onClose, onSelect }: CompareSheetProps) => 
 
               {/* Select Buttons */}
               <div className="grid grid-cols-2 gap-3 mt-4">
-                {slots.map((artisan, i) =>
+                {displaySlots.map((artisan, i) =>
                   artisan ? (
                     <button
                       key={i}

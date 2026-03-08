@@ -3,6 +3,11 @@ import { persist } from "zustand/middleware";
 import toast from "react-hot-toast";
 import { logger } from "@/utils/logger";
 import type { Address } from "@/types";
+import {
+  createAddress,
+  getAddresses,
+  getAddressById,
+} from "@/lib/api/addresses";
 
 interface AddressStore {
   addresses: Address[];
@@ -11,14 +16,21 @@ interface AddressStore {
   currentLatitude: number | null;
   currentLongitude: number | null;
   isLoadingLocation: boolean;
+  isLoadingAddresses: boolean;
 
-  // Actions
-  addAddress: (
-    label: string,
-    address: string,
-    latitude?: number,
-    longitude?: number,
-  ) => void;
+  loadAddresses: () => Promise<void>;
+  reloadAddressById: (id: string) => Promise<Address | null>;
+
+  addAddress: (params: {
+    label?: string;
+    address: string;
+    latitude?: number;
+    longitude?: number;
+    city?: string;
+    postalCode?: string;
+    country?: string;
+    externalPlaceId?: string;
+  }) => Promise<Address | null>;
   removeAddress: (id: string) => void;
   selectAddress: (id: string) => void;
   getCurrentLocation: () => Promise<void>;
@@ -66,31 +78,159 @@ export const useAddressStore = create<AddressStore>()(
       currentLatitude: null,
       currentLongitude: null,
       isLoadingLocation: false,
+      isLoadingAddresses: false,
 
-      addAddress: (
-        label: string,
-        address: string,
-        latitude?: number,
-        longitude?: number,
-      ) => {
-        const newAddress: Address = {
-          id: `address-${Date.now()}`,
-          label: label || "Unnamed Location",
-          address,
-          latitude,
-          longitude,
-        };
+      loadAddresses: async () => {
+        set({ isLoadingAddresses: true });
+        try {
+          const backendAddresses = await getAddresses();
+
+          const normalised = backendAddresses.map((addr) => ({
+            ...addr,
+            address:
+              addr.address ||
+              addr.fullAddress ||
+              addr.label ||
+              "Unnamed Location",
+            label: addr.label || "Unnamed Location",
+          }));
+
+          set((state) => {
+            let selectedAddressId = state.selectedAddressId;
+            let currentAddress = state.currentAddress;
+            let currentLatitude = state.currentLatitude;
+            let currentLongitude = state.currentLongitude;
+
+            // If nothing is selected yet but we have addresses, default to the first one
+            if (!selectedAddressId && normalised.length > 0) {
+              const first = normalised[0];
+              selectedAddressId = first.id;
+              currentAddress = first.address;
+              currentLatitude = first.latitude ?? null;
+              currentLongitude = first.longitude ?? null;
+            }
+
+            return {
+              addresses: normalised,
+              selectedAddressId,
+              currentAddress,
+              currentLatitude,
+              currentLongitude,
+              isLoadingAddresses: false,
+            };
+          });
+        } catch (error) {
+          logger.error("Failed to load addresses from backend:", error);
+          toast.error("Could not load your saved addresses.");
+          set({ isLoadingAddresses: false });
+        }
+      },
+
+      reloadAddressById: async (id: string) => {
+        try {
+          const addr = await getAddressById(id);
+          const normalised: Address = {
+            ...addr,
+            address:
+              addr.address ||
+              addr.fullAddress ||
+              addr.label ||
+              "Unnamed Location",
+            label: addr.label || "Unnamed Location",
+          };
+
+          set((state) => {
+            const idx = state.addresses.findIndex((a) => a.id === id);
+            const addresses =
+              idx === -1
+                ? [...state.addresses, normalised]
+                : [
+                    ...state.addresses.slice(0, idx),
+                    normalised,
+                    ...state.addresses.slice(idx + 1),
+                  ];
+
+            const isSelected = state.selectedAddressId === id;
+
+            return {
+              addresses,
+              currentAddress: isSelected
+                ? normalised.address
+                : state.currentAddress,
+              currentLatitude: isSelected
+                ? normalised.latitude ?? null
+                : state.currentLatitude,
+              currentLongitude: isSelected
+                ? normalised.longitude ?? null
+                : state.currentLongitude,
+            };
+          });
+
+          return normalised;
+        } catch (error) {
+          logger.error("Failed to reload address from backend:", error);
+          toast.error("Could not refresh this address.");
+          return null;
+        }
+      },
+
+      addAddress: async ({
+        label,
+        address,
+        latitude,
+        longitude,
+        city,
+        postalCode,
+        country,
+        externalPlaceId,
+      }) => {
+        let savedAddress: Address | null = null;
+
+        try {
+          // Persist to backend — server returns a stable UUID as `id`
+          savedAddress = await createAddress({
+            fullAddress: address,
+            label: label || "Unnamed Location",
+            latitude,
+            longitude,
+            city,
+            postalCode,
+            country,
+            externalPlaceId,
+          });
+
+          // Normalise: ensure `address` field (used by UI) is always set
+          if (!savedAddress.address) {
+            savedAddress = { ...savedAddress, address: savedAddress.fullAddress ?? address };
+          }
+        } catch (err) {
+          logger.warn("Backend save failed, using local address ID:", err);
+          // Graceful fallback — create a local address so the UI keeps working
+          savedAddress = {
+            id: `address-${Date.now()}`,
+            label: label || "Unnamed Location",
+            address,
+            fullAddress: address,
+            latitude,
+            longitude,
+            city,
+            postalCode,
+            country,
+            externalPlaceId,
+          };
+        }
 
         set((state) => ({
-          addresses: [...state.addresses, newAddress],
-          selectedAddressId: newAddress.id,
-          currentAddress: newAddress.address,
-          currentLatitude: latitude || null,
-          currentLongitude: longitude || null,
+          addresses: [...state.addresses, savedAddress!],
+          selectedAddressId: savedAddress!.id,
+          currentAddress: savedAddress!.address,
+          currentLatitude: latitude ?? null,
+          currentLongitude: longitude ?? null,
         }));
 
-        logger.log("New address added:", newAddress);
+        logger.log("New address saved:", savedAddress);
         toast.success("Address added successfully!");
+        return savedAddress;
       },
 
       selectAddress: (id: string) => {
@@ -134,6 +274,9 @@ export const useAddressStore = create<AddressStore>()(
             const { latitude, longitude } = position.coords;
 
             let formattedAddress: string | null = null;
+            let city: string | undefined;
+            let postalCode: string | undefined;
+            let country: string | undefined;
 
             // Try Nominatim first
             try {
@@ -149,9 +292,22 @@ export const useAddressStore = create<AddressStore>()(
               );
               if (response.ok) {
                 const data = await response.json();
-                formattedAddress = data.address
-                  ? formatGermanAddress(data.address)
-                  : data.display_name || null;
+                if (data.address) {
+                  formattedAddress = formatGermanAddress(data.address);
+                  city =
+                    data.address.city ||
+                    data.address.town ||
+                    data.address.village ||
+                    data.address.suburb ||
+                    data.address.county;
+                  postalCode = data.address.postcode;
+                  country =
+                    (data.address.country_code &&
+                      data.address.country_code.toUpperCase()) ||
+                    data.address.country;
+                } else {
+                  formattedAddress = data.display_name || null;
+                }
               }
             } catch (e) {
               logger.warn("Nominatim failed, trying fallback...", e);
@@ -166,6 +322,10 @@ export const useAddressStore = create<AddressStore>()(
                 );
                 if (response.ok) {
                   const data = await response.json();
+                  city = data.city || data.locality || data.localityInfo?.locality || undefined;
+                  postalCode = data.postcode || data.postalCode || undefined;
+                  country = data.countryCode || data.countryName || undefined;
+
                   formattedAddress =
                     [
                       data.city || data.locality,
@@ -181,22 +341,28 @@ export const useAddressStore = create<AddressStore>()(
             }
 
             const finalAddress = formattedAddress || "Current Location";
-            const newAddress = {
-              id: `address-${Date.now()}`,
+
+            // Save to backend to get a server UUID
+            const saved = await get().addAddress({
               label: "Current Location",
               address: finalAddress,
               latitude,
               longitude,
-            };
+              city,
+              postalCode,
+              country,
+            });
 
-            set((state) => ({
-              addresses: [...state.addresses, newAddress],
-              selectedAddressId: newAddress.id,
-              currentAddress: finalAddress,
+            // addAddress already updates the store — just fix loading state
+            set({
               currentLatitude: latitude,
               currentLongitude: longitude,
               isLoadingLocation: false,
-            }));
+            });
+
+            if (!saved) {
+              // Fallback already handled inside addAddress, nothing extra needed
+            }
 
             toast.success(
               formattedAddress

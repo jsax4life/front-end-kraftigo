@@ -19,7 +19,7 @@ const Userabt = () => {
   const { customerProfile, fetchCustomerProfile } = useProfileStore();
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
-  const [language, setLanguage] = useState("EUR");
+  const [language, setLanguage] = useState("de");
   const [currency, setCurrency] = useState("USD");
 
   useEffect(() => {
@@ -37,11 +37,17 @@ const Userabt = () => {
     addAddress,
     removeAddress,
     getCurrentLocation,
+    loadAddresses,
   } = useAddressStore();
 
   const currentAddress = customerProfile?.serviceAddress 
     ? `${customerProfile.serviceAddress.street}, ${customerProfile.serviceAddress.city}` 
     : storeAddress;
+
+  // Ensure we have the latest addresses from backend on mount
+  useEffect(() => {
+    loadAddresses();
+  }, [loadAddresses]);
 
   const handleLogout = async () => {
     try {
@@ -67,11 +73,11 @@ const Userabt = () => {
 
         <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-4">
           <Image
-            src="/flag.svg"
+            src={language === "de" ? "/flag-de.svg" : language === "fr" ? "/flag-fr.svg" : "/flag-en.svg"}
             alt="flag"
             width={40}
             height={40}
-            className="w-8 h-8 sm:w-9 sm:h-9 lg:w-10 lg:h-10 cursor-pointer"
+            className="w-8 h-8 sm:w-9 sm:h-9 lg:w-10 lg:h-10 cursor-pointer object-cover rounded-full"
             onClick={() => setShowLanguageModal(true)}
           />
 
@@ -102,8 +108,8 @@ const Userabt = () => {
           selectAddress(addressId);
           setShowAddressModal(false);
         }}
-        onAddNewAddress={(label, address) => {
-          addAddress(label, address);
+        onAddNewAddress={({ label, address }) => {
+          addAddress({ label, address });
           setShowAddressModal(false);
         }}
         onUseCurrentLocation={async () => {
@@ -143,8 +149,9 @@ const Userabt = () => {
                   value={language}
                   onChange={(val) => setLanguage(val)}
                   options={[
-                    { value: "EUR", label: "English (UK)", image: "/flag.svg" },
-                    { value: "USD", label: "English (US)", image: "/flag.svg" },
+                    { value: "en", label: "English", image: "/flag-en.svg" },
+                    { value: "de", label: "German (Deutsch)", image: "/flag-de.svg" },
+                    { value: "fr", label: "French", image: "/flag-fr.svg" },
                   ]}
                   required
                 />
@@ -161,6 +168,7 @@ const Userabt = () => {
                   options={[
                     { value: "USD", label: "$ USD" },
                     { value: "EUR", label: "€ EUR" },
+                    { value: "GBP", label: "£ GBP" },
                   ]}
                   required
                 />

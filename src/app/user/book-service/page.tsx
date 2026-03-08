@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Check, MapPin, Plus, Camera, X } from "lucide-react";
@@ -19,7 +19,16 @@ const BookServicePage = () => {
   const [selectedAddress, setSelectedAddress] = useState("home");
 
   // Use address store
-  const { addresses, currentAddress, selectAddress, addAddress, removeAddress, getCurrentLocation } = useAddressStore();
+  const {
+    addresses,
+    selectedAddressId,
+    currentAddress,
+    selectAddress,
+    addAddress,
+    removeAddress,
+    getCurrentLocation,
+    loadAddresses,
+  } = useAddressStore();
 
   interface BookServiceForm {
     selectedDate: Date | undefined;
@@ -79,6 +88,11 @@ const BookServicePage = () => {
     };
     return date.toLocaleDateString("en-US", options);
   };
+
+  // Load saved addresses from backend on mount
+  useEffect(() => {
+    loadAddresses();
+  }, [loadAddresses]);
 
   return (
     <main className="min-h-screen bg-white">
@@ -290,12 +304,13 @@ const BookServicePage = () => {
         isOpen={showAddressModal}
         onClose={() => setShowAddressModal(false)}
         savedAddresses={addresses}
+        selectedAddressId={selectedAddressId || ""}
         onSelectAddress={(addressId) => {
           selectAddress(addressId);
           setShowAddressModal(false);
         }}
-        onAddNewAddress={(label, address) => {
-          addAddress(label, address);
+        onAddNewAddress={({ label, address }) => {
+          addAddress({ label, address });
           setShowAddressModal(false);
         }}
         onUseCurrentLocation={async () => {
@@ -310,9 +325,8 @@ const BookServicePage = () => {
         isOpen={showDatePicker}
         onClose={() => setShowDatePicker(false)}
         selectedDate={formData.selectedDate}
-        selectedTime={formData.selectedTime}
-        onSelectDate={(date, time) => {
-          setFormData({ ...formData, selectedDate: date, selectedTime: time });
+        onSelectDate={(date) => {
+          setFormData({ ...formData, selectedDate: date });
         }}
       />
     </main>
