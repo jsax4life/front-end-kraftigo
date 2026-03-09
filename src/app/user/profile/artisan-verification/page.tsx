@@ -154,7 +154,7 @@ export default function ArtisanVerificationPage() {
 
       await submitVerification(data);
       toast.success("Verification submitted successfully!");
-      router.push("/user/profile");
+      router.push("/tasker/dashboard");
     } catch (error) {
       toast.error("Failed to submit verification");
     }

@@ -7,7 +7,7 @@ import Select from "@/components/ui/select";
 import Button from "@/components/ui/button";
 import PhoneInput from "@/components/ui/PhoneInput";
 import Image from "next/image";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Briefcase, CreditCard, Shield, CheckCircle2 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import toast from "react-hot-toast";
 import Loader from "@/components/ui/loader";
@@ -21,7 +21,7 @@ import {
 const Page = () => {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
-  const totalSteps = 5;
+  const totalSteps = 6;
   const {
     registerTasker,
     verifyEmail,
@@ -87,6 +87,8 @@ const Page = () => {
   const isStepValid = () => {
     switch (currentStep) {
       case 1:
+        return true; // Intro step is always valid
+      case 2:
         return (
           isNotEmpty(formData.fullName) &&
           isNotEmpty(formData.email) &&
@@ -96,15 +98,15 @@ const Page = () => {
           formData.term1Accepted !== false &&
           formData.term2Accepted !== false
         );
-      case 2:
-        return formData.verificationCode.every((digit) => digit !== "");
       case 3:
+        return formData.verificationCode.every((digit) => digit !== "");
+      case 4:
         return (
           formData.country.trim() !== "" &&
           formData.city.trim() !== "" &&
           formData.postal.trim() !== ""
         );
-      case 4:
+      case 5:
         const isBasicValid = formData.trade !== "" && formData.workingAs !== "";
         const isRegisteredBusiness =
           formData.workingAs === "registered-business";
@@ -113,8 +115,8 @@ const Page = () => {
           (formData.businessRegistrationNumber !== "" &&
             formData.vatId.trim() !== "");
         return isBasicValid && isBusinessFieldsValid;
-      case 5:
-        return true; // Step 5 is skippable, so it's always valid to continue/skip
+      case 6:
+        return true; 
       default:
         return false;
     }
@@ -122,12 +124,14 @@ const Page = () => {
 
   // Navigate to next step
   const handleNext = async () => {
-    if (currentStep === 1) {
-      await handleSubmit();
-    } else if (currentStep === 2) {
-      await handleVerifyEmail();
-    } else if (currentStep < totalSteps) {
-      setCurrentStep(currentStep + 1);
+    if (currentStep < totalSteps) {
+      if (currentStep === 2) {
+        await handleSubmit();
+      } else if (currentStep === 3) {
+        await handleVerifyEmail();
+      } else {
+        setCurrentStep(currentStep + 1);
+      }
     } else {
       // Submit form on last step or skip
       router.push("/tasker/login");
@@ -135,9 +139,7 @@ const Page = () => {
   };
 
   const handleSkip = () => {
-    if (currentStep === 5) {
-      router.push("/tasker/login");
-    }
+    router.push("/tasker/login");
   };
 
   // Navigate to previous step
@@ -178,7 +180,7 @@ const Page = () => {
       }
       logger.log("Registration successful!", result);
       toast.success(result.message || "Registration successful! Please check your email.");
-      setCurrentStep(2);
+      setCurrentStep(3);
     } catch (err: any) {
       logger.error("Registration failed:", err);
       const errorMessage = err.response?.data?.message || "Registration failed. Please try again.";
@@ -194,8 +196,8 @@ const Page = () => {
     try {
       await verifyEmail(formData.email, otpCode);
       logger.log("Email verified successfully!");
-      toast.success("Email verified successfully!");
-      setCurrentStep(3);
+      toast.success("Email verified successfully! You can now log in to complete your profile.");
+      router.push("/tasker/login");
     } catch (err: any) {
       logger.error("Verification failed:", err);
       const errorMessage = err.response?.data?.message || "Verification failed. Please check your code.";
@@ -223,22 +225,75 @@ const Page = () => {
       ) : (
         <div className="w-full max-w-2xl mx-auto min-h-screen flex flex-col py-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-5">
           <button
             onClick={handleBack}
             className="text-2xl hover:opacity-70 transition-opacity"
           >
             <ArrowLeft />
           </button>
-          <span className="text-[14px] text-gray-500 font-poppins">
-            Step {currentStep} of {totalSteps}
-          </span>
+          {currentStep > 1 && (
+            <span className="text-[14px] text-gray-500 font-poppins">
+              Step {currentStep - 1} of {totalSteps - 1}
+            </span>
+          )}
         </div>
 
         {/* Step Content */}
         <div className="flex-1">
-          {/* Step 1: Basic Info */}
+          {/* Step 1: Intro */}
           {currentStep === 1 && (
+            <div className="space-y-6">
+              <div className="flex flex-col items-center mb-2">
+                <Image src="/taskerLogo.svg" alt="kraftigo logo" width={150} height={50} className="mb-8" />
+                <div className="w-full relative h-[250px] rounded-2xl overflow-hidden mb-4">
+                  <Image src="/get-started.png" alt="Become a Krafter" fill className="object-cover" />
+                </div>
+              </div>
+              
+              <h1 className="text-[32px] font-gerat font-bold leading-tight mb-4">
+                Become a kraftigo Krafter
+              </h1>
+              
+              <p className="text-[15px] font-poppins text-gray-600 mb-8 leading-relaxed">
+                Join our community of professionals. To maintain a safe and professional marketplace, all Krafters must meet the following requirements:
+              </p>
+
+              <div className="space-y-6">
+                {[
+                  {
+                    icon: <div className="p-3 bg-[#0000FF1A] text-blue-600 rounded-xl"><Briefcase size={22} /></div>,
+                    title: "Must be legally allowed to work",
+                    desc: "You must be eligible to work in your current location"
+                  },
+                  {
+                    icon: <div className="p-3 bg-[#0000FF1A] text-blue-600 rounded-xl"><CreditCard size={22} /></div>,
+                    title: "Identity verification is required",
+                    desc: "A valid government issued ID is required for screening"
+                  },
+                  {
+                    icon: <div className="p-3 bg-[#0000FF1A] text-blue-600 rounded-xl"><Shield size={22} /></div>,
+                    title: "Approval needed before jobs",
+                    desc: "Our team will review your profile before you can start"
+                  }
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center gap-4">
+                    {item.icon}
+                    <div className="flex-1">
+                      <h4 className="text-[16px] font-gerat font-bold text-[#1D2939]">{item.title}</h4>
+                      <p className="text-[13px] font-poppins text-gray-500">{item.desc}</p>
+                    </div>
+                    <div className="text-blue-600">
+                      <CheckCircle2 size={24} className="fill-blue-600 text-white" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: Basic Info */}
+          {currentStep === 2 && (
             <div className="space-y-6">
               <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-8">
                 Tell Us About You
@@ -306,8 +361,8 @@ const Page = () => {
             </div>
           )}
 
-          {/* Step 2: Email verification */}
-          {currentStep === 2 && (
+          {/* Step 3: Email verification */}
+          {currentStep === 3 && (
             <div className="space-y-6">
               <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-4">
                 Confirm Your Email
@@ -364,8 +419,8 @@ const Page = () => {
             </div>
           )}
 
-          {/* Step 3: legal identity*/}
-          {currentStep === 3 && (
+          {/* Step 4: legal identity*/}
+          {currentStep === 4 && (
             <div className="space-y-6">
               <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-8">
                 Legal Identity
@@ -394,7 +449,8 @@ const Page = () => {
             </div>
           )}
 
-          {currentStep === 4 && (
+          {/* Step 5: Trade & Work Eligibility */}
+          {currentStep === 5 && (
             <div className="space-y-6">
               <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-8">
                 Trade & Work Eligibility
@@ -463,8 +519,8 @@ const Page = () => {
             </div>
           )}
 
-          {/* Step 5: Take a Selfie */}
-          {currentStep === 5 && (
+          {/* Step 6: Take a Selfie */}
+          {currentStep === 6 && (
             <div className="space-y-6">
               <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-2">
                 Add up your selfie to your profile
@@ -531,7 +587,7 @@ const Page = () => {
         </button>
 
         <div className="mt-auto space-y-4">
-          {currentStep === 1 && (
+          {currentStep === 2 && (
             <div className="text-center text-[14px] font-poppins">
               <span className="text-brand-orange">
                 Already have an account?{" "}
@@ -547,21 +603,22 @@ const Page = () => {
 
           <div>
             <Button
-              variant={currentStep === 5 ? "primary" : "primary"}
+              variant="primary"
               onClick={handleNext}
               fullWidth
               disabled={!isStepValid()}
+              className="py-4 text-[16px] font-gerat font-bold mt-[2rem]"
             >
-              {currentStep === 5
-                ? "Open camera"
-                : currentStep === 2
-                  ? "Verify Email"
-                  : currentStep === totalSteps
-                    ? "Submit"
+              {currentStep === 1 
+                ? "Get Started" 
+                : currentStep === 6
+                  ? "Open camera"
+                  : currentStep === 3
+                    ? "Verify Email"
                     : "Continue"}
             </Button>
 
-            {currentStep === 5 && (
+            {currentStep === 6 && (
                <button
                  onClick={handleSkip}
                  className="w-full text-center text-[14px] font-qurova text-gray-700 hover:text-brand-orange mt-4 py-2 font-bold transition-colors"
@@ -570,16 +627,16 @@ const Page = () => {
                </button>
             )}
 
-            {currentStep >= 3 && (
-              <button
-                onClick={() => {
-                  console.log("Saving draft:", formData);
-                  // Handle save draft logic here
-                }}
-                className="w-full text-center text-[14px] font-qurova text-gray-700 hover:text-gray-900 mt-4 py-2"
-              >
-                Save draft
-              </button>
+            {currentStep >= 4 && (
+               <button
+                 onClick={() => {
+                   console.log("Saving draft:", formData);
+                   // Handle save draft logic here
+                 }}
+                 className="w-full text-center text-[14px] font-qurova text-gray-700 hover:text-gray-900 mt-4 py-2"
+               >
+                 Save draft
+               </button>
             )}
           </div>
         </div>

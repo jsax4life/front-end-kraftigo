@@ -73,16 +73,24 @@ const About = () => {
                 Hello {displayName}
               </p>
               <span className="flex items-center gap-1">
-                <Image
-                  src="/badge.svg"
-                  alt="badge"
-                  width={100}
-                  height={100}
-                  className="w-3 h-3 sm:w-3.5 sm:h-3.5"
-                />
-                <p className="font-poppins font-bold text-[11px] sm:text-[12px] text-brand-orange">
-                  Lvl 12
-                </p>
+                {isTasker() && user?.status !== 'ACTIVE' ? (
+                  <div className="bg-brand-orange/10 text-brand-orange px-2 py-0.5 rounded text-[10px] font-bold mt-1">
+                    PENDING APPROVAL
+                  </div>
+                ) : (
+                  <>
+                    <Image
+                      src="/badge.svg"
+                      alt="badge"
+                      width={100}
+                      height={100}
+                      className="w-3 h-3 sm:w-3.5 sm:h-3.5"
+                    />
+                    <p className="font-poppins font-bold text-[11px] sm:text-[12px] text-brand-orange">
+                      Lvl 12
+                    </p>
+                  </>
+                )}
               </span>
             </div>
           </div>

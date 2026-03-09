@@ -147,6 +147,30 @@ const Page = () => {
             color="text-[#FF6600]"
           />
 
+          <SectionHeader label="Verification" />
+          <div className="w-full flex items-center justify-between py-4 bg-white border-b border-[#0000000D] last:border-0 px-1">
+            <div className="flex items-center gap-4">
+              <div className="p-2 rounded-lg bg-orange-50 text-brand-orange">
+                <CheckCircle size={20} />
+              </div>
+              <div>
+                <span className="text-[16px] font-poppins font-medium text-[#1D2939] block">Identity & Documents</span>
+                <span className="text-[12px] font-poppins text-[#667085]">
+                  {user?.status === 'ACTIVE' ? 'Fully Verified' : 'Pending Verification'}
+                </span>
+              </div>
+            </div>
+            {user?.status !== 'ACTIVE' && (
+              <button 
+                onClick={() => router.push("/user/profile/artisan-verification")}
+                className="text-brand-orange text-[14px] font-poppins font-bold hover:underline"
+              >
+                Complete
+              </button>
+            )}
+            {user?.status === 'ACTIVE' && <CheckCircle size={20} className="text-green-500" />}
+          </div>
+
           <SectionHeader label="Account" />
           <SettingsItem 
             icon={Lock} 

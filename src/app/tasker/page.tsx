@@ -100,6 +100,7 @@ const Page = () => {
           {/* Buttons Section */}
           <div className="space-y-3 relative z-10 w-full max-w-md mx-auto -mt-30">
             <Button
+              className="cursor-pointer hover:scale-105"
               variant="secondary"
               onClick={() => router.push("/tasker/createacc")}
               fullWidth
@@ -108,6 +109,7 @@ const Page = () => {
             </Button>
 
             <Button
+              className="cursor-pointer hover:scale-105"
               variant="primary"
               onClick={() => router.push("/tasker/login")}
               fullWidth
