@@ -23,13 +23,13 @@ const Page = () => {
         <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center items-center max-w-2xl mx-auto">
           <button
             onClick={() => router.push("/tasker")}
-            className="w-full sm:w-auto px-12 py-4 bg-brand-blue text-white font-qurova text-lg rounded-xl hover:bg-opacity-90 transition-all"
+            className="w-full sm:w-auto px-12 py-4 bg-brand-blue text-white font-qurova text-lg rounded-xl hover:bg-opacity-90 transition-all cursor-pointer hover:scale-105"
           >
             I&apos;m a Krafter
           </button>
           <button
             onClick={() => router.push("/user")}
-            className="w-full sm:w-auto px-12 py-4 bg-brand-orange text-white font-qurova text-lg rounded-xl hover:bg-opacity-90 transition-all"
+            className="w-full sm:w-auto px-12 py-4 bg-brand-orange text-white font-qurova text-lg rounded-xl hover:bg-opacity-90 transition-all cursor-pointer hover:scale-105"
           >
             I&apos;m a Client
           </button>
