@@ -34,7 +34,10 @@ const About = () => {
     ? artisanProfile?.displayName || artisanProfile?.legalFullName 
     : (customerProfile && typeof customerProfile === 'object' ? customerProfile.fullName : null);
     
-  const displayName = (fullName || user?.fullName)?.split(" ")[0] || "User";
+  // Check localStorage for a name if we just registered but profile hasn't updated yet
+  const localName = typeof window !== "undefined" ? localStorage.getItem("kraftigo_tasker_fullName") : null;
+    
+  const displayName = (fullName || localName || user?.fullName)?.split(" ")[0] || "User";
   const avatar = (isTasker() ? artisanProfile?.profilePhotoUrl : (customerProfile && typeof customerProfile === 'object' ? customerProfile.profilePhotoUrl : null)) || user?.avatar;
 
   const handleLogout = async () => {

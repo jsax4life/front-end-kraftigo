@@ -2,7 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
-import { X, Check } from "lucide-react";
+import { X, Check, User as UserIcon } from "lucide-react";
 import Button from "@/components/ui/button";
 
 interface Step {
@@ -49,60 +49,72 @@ const FinishProfileModal: React.FC<FinishProfileModalProps> = ({
         </div>
 
         {/* Header Illustration */}
-        <div className="relative h-48 w-full flex items-center justify-center pt-4">
+        <div className="relative h-64 w-full flex items-center justify-center pt-8">
           <button 
             onClick={onClose}
-            className="absolute top-4 right-6 p-2 text-gray-400 hover:text-gray-600 transition-colors"
+            className="absolute top-6 right-8 p-1.5 text-gray-400 hover:text-gray-600 transition-colors z-10"
           >
-            <X size={24} />
+            <X size={24} strokeWidth={1.5} />
           </button>
           
-          <div className="w-40 h-40 relative flex items-center justify-center">
-            {/* Dashed outer circle */}
-            <div className="absolute inset-0 border-2 border-dashed border-brand-orange/60 rounded-[32px]" />
-            {/* Inner avatar icon */}
-            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center shadow-sm">
-                <div className="w-16 h-16 relative">
-                    <Image src="/avatar.svg" alt="User avatar" fill className="opacity-60" />
+          <div className="w-56 h-44 relative flex items-center justify-center">
+            {/* Dashed outer rounded box/circle */}
+            <div className="absolute inset-0 border-2 border-dashed border-brand-orange rounded-[40px] opacity-80" />
+            <div className="absolute inset-4 border border-[#0000000D] rounded-[32px] bg-white flex items-center justify-center shadow-sm">
+                <div className="w-24 h-24 relative flex items-center justify-center border-2 border-brand-orange border-dashed rounded-full p-2">
+                    <div className="w-full h-full bg-orange-50 rounded-full flex items-center justify-center">
+                      <UserIcon size={40} className="text-brand-orange opacity-80" />
+                    </div>
                 </div>
             </div>
             {/* Bottom line in illustration */}
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-24 h-1 bg-brand-orange/40 rounded-full" />
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-28 h-1 bg-brand-orange rounded-full opacity-60" />
           </div>
         </div>
 
-        <div className="px-8 pb-10 text-center">
-          <h2 className="text-[24px] font-gerat font-bold text-[#1D2939] mb-2">
+        <div className="px-8 pb-10 text-center -mt-4">
+          <h2 className="text-[26px] font-gerat font-bold text-[#1D2939] mb-1">
             Finish Your Profile
           </h2>
-          <p className="text-[14px] font-poppins text-[#667085] mb-8 px-4">
+          <p className="text-[14px] font-poppins text-[#667085] mb-8">
             Youre already {completedPercentage}% of the way there! Complete these steps to start accepting jobs
           </p>
 
-          <div className="space-y-0 text-left mb-8">
+          <div className="space-y-0 text-left mb-10">
             {steps.map((step) => {
               const isCompleted = completedStepIds.includes(step.id);
               return (
                 <div 
                   key={step.id}
-                  className="flex items-start gap-4 py-4 border-b border-gray-50 last:border-0"
+                  className="flex items-center justify-between py-4 border-b border-[#F2F4F7] last:border-0"
                 >
-                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 ${
-                    isCompleted 
-                      ? "bg-brand-orange border-brand-orange text-white" 
-                      : "border-gray-300"
-                  }`}>
-                    {isCompleted && <Check size={14} strokeWidth={3} />}
-                  </div>
-                  <div>
-                    <h4 className={`text-[15px] font-gerat font-bold ${
-                      isCompleted ? "text-[#1D2939]" : "text-[#475467]"
+                  <div className="flex items-center gap-4">
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                      isCompleted 
+                        ? "bg-brand-orange border-brand-orange text-white" 
+                        : "border-gray-300"
                     }`}>
-                      {step.label}
-                    </h4>
-                    <p className="text-[13px] font-poppins text-[#667085]">
-                      {step.sublabel}
-                    </p>
+                      {isCompleted ? (
+                        <Check size={12} strokeWidth={4} />
+                      ) : (
+                        <div className="w-1.5 h-1.5 bg-transparent" />
+                      )}
+                    </div>
+                    <div>
+                      <h4 className={`text-[15px] font-gerat font-bold ${
+                        isCompleted ? "text-[#98A2B3]" : "text-[#1D2939]"
+                      }`}>
+                        {step.label}
+                      </h4>
+                      {!isCompleted && step.sublabel && (
+                        <p className="text-[13px] font-poppins text-[#667085]">
+                          {step.sublabel}
+                        </p>
+                      )}
+                      {isCompleted && (
+                        <p className="text-[13px] font-poppins text-[#98A2B3]">Completed</p>
+                      )}
+                    </div>
                   </div>
                 </div>
               );

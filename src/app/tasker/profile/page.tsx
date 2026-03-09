@@ -3,50 +3,95 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import TaskerNav from "@/components/shared/taskerNav";
-import Header from "@/components/shared/Header";
 import { 
   User as UserIcon, 
   Lock, 
-  CreditCard, 
-  Clock, 
-  Globe, 
-  Bell, 
-  Languages, 
   ChevronRight,
   Star,
-  CheckCircle,
-  Briefcase
+  Bell,
+  Languages,
+  HelpCircle,
+  MessageCircleQuestion,
+  Globe,
+  Wallet,
+  LogOut,
+  Target
 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
-import { useBookingsStore } from "@/store/useBookingsStore";
 import { useProfileStore } from "@/store/useProfileStore";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 
-const SettingsItem = ({ icon: Icon, label, onClick, color = "text-gray-600" }: { icon: any, label: string, onClick: () => void, color?: string }) => (
+const SimpleLineChart = () => {
+  return (
+    <div className="w-full h-32 relative mt-4">
+      <svg viewBox="0 0 400 120" className="w-full h-full">
+        {/* Background Grid Lines (Horizontal) */}
+        {[0, 40, 80].map((y) => (
+          <line 
+            key={y} 
+            x1="0" y1={y} x2="400" y2={y} 
+            stroke="#F2F4F7" 
+            strokeWidth="1" 
+          />
+        ))}
+        
+        {/* The Line - Simple wave pattern */}
+        <path 
+          d="M 10 90 L 60 70 L 110 85 L 160 60 L 210 50 L 260 40 L 310 55 L 360 45 L 400 50" 
+          fill="none" 
+          stroke="#FF6600" 
+          strokeWidth="2.5" 
+          strokeLinecap="round" 
+          strokeLinejoin="round" 
+        />
+        
+        {/* Points with shadows */}
+        {[
+          {x: 60, y: 70}, 
+          {x: 110, y: 85}, 
+          {x: 160, y: 60}, 
+          {x: 210, y: 50}, 
+          {x: 260, y: 40}, 
+          {x: 310, y: 55}
+        ].map((p, i) => (
+          <circle 
+            key={i} 
+            cx={p.x} cy={p.y} r="3" 
+            fill="#1D2939" 
+            stroke="white" 
+            strokeWidth="1.5" 
+          />
+        ))}
+        
+        {/* Labels */}
+        <text x="45" y="115" fontSize="10" fill="#98A2B3" fontFamily="Poppins">Mon</text>
+        <text x="95" y="115" fontSize="10" fill="#98A2B3" fontFamily="Poppins">Tue</text>
+        <text x="145" y="115" fontSize="10" fill="#98A2B3" fontFamily="Poppins">Wed</text>
+        <text x="195" y="115" fontSize="10" fill="#98A2B3" fontFamily="Poppins">Thu</text>
+        <text x="245" y="115" fontSize="10" fill="#98A2B3" fontFamily="Poppins">Fri</text>
+        <text x="295" y="115" fontSize="10" fill="#98A2B3" fontFamily="Poppins">Sat</text>
+      </svg>
+    </div>
+  );
+};
+
+const SettingsRow = ({ icon: Icon, label, onClick }: { icon: any, label: string, onClick: () => void }) => (
   <button 
     onClick={onClick}
-    className="w-full flex items-center justify-between py-4 bg-white border-b border-[#0000000D] last:border-0 hover:bg-gray-50 transition-all px-1"
+    className="w-full flex items-center justify-between py-4 bg-white border-b border-[#F2F4F7] last:border-0 hover:bg-gray-50 transition-colors px-4 group"
   >
-    <div className="flex items-center gap-4">
-      <div className={`p-2 rounded-lg ${color.replace('text', 'bg').replace('600', '50')} ${color}`}>
-        <Icon size={20} />
-      </div>
+    <div className="flex items-center gap-3">
+      <Icon size={22} className="text-[#1D2939]" strokeWidth={1.5} />
       <span className="text-[16px] font-poppins font-medium text-[#1D2939]">{label}</span>
     </div>
-    <ChevronRight size={20} className="text-[#98A2B3]" />
+    <ChevronRight size={20} className="text-[#98A2B3] group-hover:translate-x-1 transition-transform" />
   </button>
-);
-
-const SectionHeader = ({ label }: { label: string }) => (
-  <h2 className="text-[12px] font-poppins font-semibold text-[#667085] uppercase tracking-wider mt-8 mb-2">
-    {label}
-  </h2>
 );
 
 const Page = () => {
   const router = useRouter();
-  const { user } = useAuthStore();
-  const { bookings } = useBookingsStore();
+  const { user, logout } = useAuthStore();
   const { artisanProfile, fetchArtisanProfile } = useProfileStore();
 
   useEffect(() => {
@@ -55,171 +100,100 @@ const Page = () => {
     }
   }, [artisanProfile, fetchArtisanProfile]);
 
-  const completedTasks = bookings.filter(b => b.status === 'COMPLETED').length;
-  const displayName = artisanProfile?.displayName || artisanProfile?.legalFullName || user?.fullName || "Tasker";
+  const fallbackName = typeof window !== "undefined" ? localStorage.getItem("kraftigo_tasker_fullName") : null;
+  const displayName = artisanProfile?.displayName || artisanProfile?.legalFullName || fallbackName || user?.fullName || "User";
   const avatar = artisanProfile?.profilePhotoUrl || user?.avatar;
 
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast.success("Logged out successfully");
+      router.push("/user/login");
+    } catch (error) {
+      toast.error("Logout failed");
+    }
+  };
+
   return (
-    <main className="relative w-full min-h-screen bg-[#F9FAFB] pb-32">
-      <Header title="Your Profile" showBack={false} showLogout={true} />
-      
-      <div className="px-4 sm:px-6 lg:px-8 py-8">
+    <main className="relative w-full min-h-screen bg-white pb-32">
+      {/* Header */}
+      <div className="pt-8 px-6 mb-6">
+        <h1 className="text-[28px] font-gerat font-bold text-[#1D2939]">Profile</h1>
+      </div>
 
-        {/* Tasker Profile Card */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-[#0000000D] mb-8">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-brand-orange shadow-sm bg-white shrink-0 flex items-center justify-center">
-              {avatar ? (
-                <Image 
-                  src={avatar} 
-                  alt="Profile" 
-                  fill 
-                  className="object-cover"
-                />
-              ) : (
-                <UserIcon size={40} className="text-gray-300" />
-              )}
-            </div>
-            <div className="flex-1">
-              <h3 className="text-[22px] font-gerat font-bold text-[#1D2939]">
-                {displayName}
-              </h3>
-              <div className="flex items-center gap-2 text-[#667085] font-poppins text-[14px]">
-                <span className="flex items-center gap-1 text-brand-orange font-bold">
-                  <Star size={14} className="fill-brand-orange" /> 5.0
-                </span>
-                <span>•</span>
-                <span className="flex items-center gap-1">
-                  <CheckCircle size={14} className="text-green-500" /> Top Rated
-                </span>
+      <div className="px-4 space-y-8">
+        {/* User Info Section */}
+        <div className="flex items-center gap-4 px-2">
+          <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-dashed border-brand-blue shrink-0 flex items-center justify-center">
+            {avatar ? (
+              <Image src={avatar} alt="Profile" fill className="object-cover rounded-full p-1" />
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-gray-400">
+                <UserIcon size={24} />
               </div>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4 border-t border-gray-50 pt-6">
-            <div className="text-center">
-              <p className="text-[12px] text-[#667085] font-poppins uppercase">Completed Tasks</p>
-              <p className="text-[20px] font-gerat font-bold text-[#1D2939]">{completedTasks}</p>
-            </div>
-            <div className="text-center border-l border-gray-50">
-              <p className="text-[12px] text-[#667085] font-poppins uppercase">Member Since</p>
-              <p className="text-[20px] font-gerat font-bold text-[#1D2939]">Jan 2025</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Stats Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-           <div className="bg-brand-blue rounded-2xl p-5 text-white flex items-center justify-between">
-              <div>
-                <p className="text-[12px] font-poppins text-blue-100 uppercase mb-1">Total Earnings</p>
-                <p className="text-[24px] font-gerat font-bold">$1,250.00</p>
-              </div>
-              <div className="bg-white/10 p-3 rounded-xl">
-                 <Briefcase size={24} />
-              </div>
-           </div>
-           
-           <div className="bg-brand-orange rounded-2xl p-5 text-white flex items-center justify-between">
-              <div>
-                <p className="text-[12px] font-poppins text-orange-100 uppercase mb-1">Active Bids</p>
-                <p className="text-[24px] font-gerat font-bold">4</p>
-              </div>
-              <div className="bg-white/10 p-3 rounded-xl">
-                 <Clock size={24} />
-              </div>
-           </div>
-        </div>
-
-        {/* Sections */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-[#0000000D]">
-          <SectionHeader label="Professional" />
-          <SettingsItem 
-            icon={UserIcon} 
-            label="Service Profile" 
-            onClick={() => router.push("/tasker/profile/edit")}
-            color="text-[#3538CD]"
-          />
-          <SettingsItem 
-            icon={Briefcase} 
-            label="My Crafts (Offers)" 
-            onClick={() => {}}
-            color="text-[#FF6600]"
-          />
-
-          <SectionHeader label="Verification" />
-          <div className="w-full flex items-center justify-between py-4 bg-white border-b border-[#0000000D] last:border-0 px-1">
-            <div className="flex items-center gap-4">
-              <div className="p-2 rounded-lg bg-orange-50 text-brand-orange">
-                <CheckCircle size={20} />
-              </div>
-              <div>
-                <span className="text-[16px] font-poppins font-medium text-[#1D2939] block">Identity & Documents</span>
-                <span className="text-[12px] font-poppins text-[#667085]">
-                  {user?.status === 'ACTIVE' ? 'Fully Verified' : 'Pending Verification'}
-                </span>
-              </div>
-            </div>
-            {user?.status !== 'ACTIVE' && (
-              <button 
-                onClick={() => router.push("/user/profile/artisan-verification")}
-                className="text-brand-orange text-[14px] font-poppins font-bold hover:underline"
-              >
-                Complete
-              </button>
             )}
-            {user?.status === 'ACTIVE' && <CheckCircle size={20} className="text-green-500" />}
           </div>
-
-          <SectionHeader label="Account" />
-          <SettingsItem 
-            icon={Lock} 
-            label="Security" 
-            onClick={() => {}}
-            color="text-[#00A651]"
-          />
-          <SettingsItem 
-            icon={CreditCard} 
-            label="Payout Methods" 
-            onClick={() => {}}
-            color="text-[#7A5AF8]"
-          />
-          
-          <SectionHeader label="App Preferences" />
-          <SettingsItem 
-            icon={Bell} 
-            label="Push notifications" 
-            onClick={() => {}}
-            color="text-[#F04438]"
-          />
-          <SettingsItem 
-            icon={Globe} 
-            label="Country & Currency" 
-            onClick={() => {}}
-            color="text-[#2E90FA]"
-          />
-          <SettingsItem 
-            icon={Languages} 
-            label="App Language" 
-            onClick={() => {}}
-            color="text-[#7A5AF8]"
-          />
+          <div>
+            <h2 className="text-[20px] font-gerat font-bold text-[#1D2939]">{displayName}</h2>
+            <div className="flex items-center gap-1.5 bg-orange-50 text-brand-orange px-2 py-0.5 rounded-full w-fit mt-1">
+              <Star size={12} className="fill-brand-orange" />
+              <span className="text-[12px] font-bold font-poppins uppercase tracking-wider">Lvl 12</span>
+            </div>
+          </div>
         </div>
 
-        {/* Logout */}
-        <button 
-          onClick={async () => {
-            try {
-              await useAuthStore.getState().logout();
-              router.push("/tasker/login");
-            } catch (error) {
-              console.error("Logout failed:", error);
-            }
-          }}
-          className="w-full mt-8 py-4 text-center text-[#667085] text-[14px] font-poppins font-medium hover:text-[#F04438] transition-colors"
-        >
-          Log Out
-        </button>
+        {/* Weekly Earnings Card */}
+        <div className="bg-[#F9FAFB] rounded-3xl p-6 border border-[#EAECF0]">
+          <div className="space-y-1">
+            <p className="text-[14px] font-poppins text-[#667085]">Weekly Earnings</p>
+            <h3 className="text-[32px] font-gerat font-bold text-[#1D2939] leading-tight">$840.00</h3>
+            <p className="text-[12px] font-poppins text-[#98A2B3]">Oct 18 - Oct 24, 2026</p>
+          </div>
+          <SimpleLineChart />
+        </div>
+
+
+        {/* Setting Groups */}
+        <div className="space-y-8 pb-4">
+          
+          {/* Section 1: Account & Verification */}
+          <div>
+            <h5 className="text-[14px] font-gerat font-bold text-[#1D2939] px-2 mb-4">Account & Verification</h5>
+            <div className="bg-white border border-[#F2F4F7] rounded-3xl overflow-hidden shadow-sm">
+              <SettingsRow icon={UserIcon} label="Personal Information" onClick={() => router.push("/tasker/profile/edit")} />
+              <SettingsRow icon={Lock} label="Security" onClick={() => router.push("/tasker/profile/security")} />
+              <SettingsRow icon={MessageCircleQuestion} label="Work Eligibility" onClick={() => router.push("/user/profile/artisan-verification")} />
+              <SettingsRow icon={Target} label="Work Preferences" onClick={() => {}} />
+            </div>
+          </div>
+
+          {/* Section 2: Earnings & Billing */}
+          <div>
+            <h5 className="text-[14px] font-gerat font-bold text-[#1D2939] px-2 mb-4">Earnings & Billing</h5>
+            <div className="bg-white border border-[#F2F4F7] rounded-3xl overflow-hidden shadow-sm">
+              <SettingsRow icon={Wallet} label="Earnings & Activity" onClick={() => router.push("/tasker/profile/earnings")} />
+              <SettingsRow icon={Globe} label="Currency" onClick={() => {}} />
+            </div>
+          </div>
+
+          {/* Section 3: Account & Support */}
+          <div>
+            <h5 className="text-[14px] font-gerat font-bold text-[#1D2939] px-2 mb-4">Account & Support</h5>
+            <div className="bg-white border border-[#F2F4F7] rounded-3xl overflow-hidden shadow-sm">
+              <SettingsRow icon={Bell} label="Notifications" onClick={() => {}} />
+              <SettingsRow icon={Languages} label="Language" onClick={() => {}} />
+              <SettingsRow icon={HelpCircle} label="Help Center" onClick={() => {}} />
+            </div>
+          </div>
+          
+          {/* Logout Button */}
+          <button 
+            onClick={handleLogout}
+            className="w-full bg-[#FEF3F2] py-5 rounded-3xl text-[#F04438] font-gerat font-bold text-[16px] hover:bg-red-100 transition-colors flex items-center justify-center gap-2"
+          >
+            Log out
+          </button>
+        </div>
       </div>
 
       <TaskerNav />
