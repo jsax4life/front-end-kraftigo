@@ -13,3 +13,12 @@ export const passwordsMatch = (password: string, confirmPassword: string): boole
 export const isNotEmpty = (value: string): boolean => {
   return value.trim() !== "";
 };
+
+export const isNumeric = (value: string): boolean => {
+  return /^\d+$/.test(value);
+};
+
+export const isStrongPassword = (password: string): boolean => {
+  // At least 8 characters, 1 letter, 1 number
+  return /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&]{8,}$/.test(password);
+};

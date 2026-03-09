@@ -15,7 +15,9 @@ import { logger } from "@/utils/logger";
 import { 
   isValidEmail, 
   isNotEmpty, 
-  isValidPassword 
+  isValidPassword,
+  isNumeric,
+  isStrongPassword
 } from "@/utils/validation";
 
 const Page = () => {
@@ -59,11 +61,28 @@ const Page = () => {
     selfieImage: null as string | null,
   });
 
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
   const handleInputChange = (field: string, value: string | boolean) => {
+    // Numeric-only fields restriction
+    const numericFields = ["postal", "businessRegistrationNumber"];
+    if (numericFields.includes(field) && typeof value === "string") {
+      if (value !== "" && !/^\d+$/.test(value)) return;
+    }
+
     setFormData((prev) => ({
       ...prev,
       [field]: value,
     }));
+
+    // Clear error for this field
+    if (fieldErrors[field]) {
+      setFieldErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
   };
 
   const handleCodeChange = (index: number, value: string) => {
@@ -94,7 +113,7 @@ const Page = () => {
           isNotEmpty(formData.email) &&
           isValidEmail(formData.email) &&
           isNotEmpty(formData.phone) &&
-          isNotEmpty(formData.password) &&
+          isStrongPassword(formData.password) &&
           formData.term1Accepted !== false &&
           formData.term2Accepted !== false
         );
@@ -102,18 +121,19 @@ const Page = () => {
         return formData.verificationCode.every((digit) => digit !== "");
       case 4:
         return (
-          formData.country.trim() !== "" &&
-          formData.city.trim() !== "" &&
-          formData.postal.trim() !== ""
+          isNotEmpty(formData.country) &&
+          isNotEmpty(formData.city) &&
+          isNotEmpty(formData.postal) &&
+          isNumeric(formData.postal)
         );
       case 5:
-        const isBasicValid = formData.trade !== "" && formData.workingAs !== "";
-        const isRegisteredBusiness =
-          formData.workingAs === "registered-business";
+        const isBasicValid = isNotEmpty(formData.trade) && isNotEmpty(formData.workingAs);
+        const isRegisteredBusiness = formData.workingAs === "registered-business";
         const isBusinessFieldsValid =
           !isRegisteredBusiness ||
-          (formData.businessRegistrationNumber !== "" &&
-            formData.vatId.trim() !== "");
+          (isNotEmpty(formData.businessRegistrationNumber) &&
+            isNumeric(formData.businessRegistrationNumber) &&
+            isNotEmpty(formData.vatId));
         return isBasicValid && isBusinessFieldsValid;
       case 6:
         return true; 
@@ -311,6 +331,7 @@ const Page = () => {
                 placeholder="Enter your email"
                 value={formData.email}
                 onChange={(value) => handleInputChange("email", value)}
+                error={formData.email && !isValidEmail(formData.email) ? "Please enter a valid email" : ""}
                 required
               />
               <PhoneInput
@@ -326,6 +347,7 @@ const Page = () => {
                 placeholder="Enter your password"
                 value={formData.password}
                 onChange={(value) => handleInputChange("password", value)}
+                error={formData.password && !isStrongPassword(formData.password) ? "At least 8 characters, with letters and numbers" : ""}
                 required
               />
               <div>
@@ -444,6 +466,7 @@ const Page = () => {
                 placeholder="88019"
                 value={formData.postal}
                 onChange={(value) => handleInputChange("postal", value)}
+                error={formData.postal && !isNumeric(formData.postal) ? "Numbers only" : ""}
                 required
               />
             </div>
@@ -505,6 +528,7 @@ const Page = () => {
                     onChange={(value) =>
                       handleInputChange("businessRegistrationNumber", value)
                     }
+                    error={formData.businessRegistrationNumber && !isNumeric(formData.businessRegistrationNumber) ? "Numbers only" : ""}
                     required
                   />
                   <Input

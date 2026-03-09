@@ -206,7 +206,7 @@ const Page = () => {
         onClose={() => setIsModalOpen(false)}
         onComplete={() => {
             setIsModalOpen(false);
-            router.push("/user/profile/artisan-verification");
+            router.push("/tasker/profile/complete");
         }}
         onMaybeLater={() => setIsModalOpen(false)}
         completedPercentage={completedPercentage}
