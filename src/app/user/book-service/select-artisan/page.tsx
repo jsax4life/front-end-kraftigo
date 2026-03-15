@@ -279,9 +279,10 @@ const SelectArtisanPage = () => {
                 <Button
                   variant="primary"
                   className="text-[13px] sm:text-[14px] py-2.5 px-4 inline-flex items-center gap-2"
-                  onClick={() =>
-                    router.push("/user/book-service/select-artisan/publicTask")
-                  }
+                  onClick={() => {
+                    const params = new URLSearchParams(searchParams.toString());
+                    router.push(`/user/book-service/select-artisan/publicTask?${params.toString()}`);
+                  }}
                 >
                   <p>Post public task</p>
                   <Image

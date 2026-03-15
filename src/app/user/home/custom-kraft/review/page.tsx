@@ -29,12 +29,12 @@ const Page = () => {
     clearError,
   } = useCustomKraftsStore();
   const { addresses, loadAddresses } = useAddressStore();
-  const { categories } = useServicesStore();
+  const { categories, fetchCategories } = useServicesStore();
   const {
-    paymentMethods,
+    savedMethods,
     selectedPaymentId,
     selectPayment,
-    hasPaymentMethods,
+    fetchSavedMethods,
   } = usePaymentStore();
 
   // ─── Resolve human-readable labels from IDs ─────────────────────────────
@@ -55,10 +55,19 @@ const Page = () => {
     }
   }, [selectedKraft, router]);
 
-  // ─── Ensure we have addresses loaded to resolve addressId ───────────────
+  // Ensure we have addresses + categories loaded to resolve IDs
   useEffect(() => {
     loadAddresses();
   }, [loadAddresses]);
+
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
+
+  // Fetch saved payment methods from the API on mount
+  useEffect(() => {
+    fetchSavedMethods();
+  }, [fetchSavedMethods]);
 
   // ─── Show store errors as toasts ────────────────────────────────────────
   useEffect(() => {
@@ -68,14 +77,14 @@ const Page = () => {
     }
   }, [error, clearError]);
 
-  // ─── Set default payment method ─────────────────────────────────────────
+  // Auto-select the default payment method once methods are loaded
   useEffect(() => {
-    if (paymentMethods.length > 0 && !selectedPaymentId) {
+    if (savedMethods.length > 0 && !selectedPaymentId) {
       const defaultMethod =
-        paymentMethods.find((m) => m.isDefault) || paymentMethods[0];
+        savedMethods.find((m) => m.isDefault) ?? savedMethods[0];
       selectPayment(defaultMethod.id);
     }
-  }, [paymentMethods, selectedPaymentId, selectPayment]);
+  }, [savedMethods, selectedPaymentId, selectPayment]);
 
   // ─── Pricing ─────────────────────────────────────────────────────────────
   const offerAmount = selectedKraft?.offerAmount ?? 0;
@@ -130,10 +139,12 @@ const Page = () => {
           <p className="text-[13px] font-poppins text-gray-700">
             {resolvedAddress}
           </p>
-          <p className="text-[13px] font-poppins text-gray-500">
-            {selectedKraft?.scheduledDate ?? ""}
-            {selectedKraft?.scheduledTime ? ` · ${selectedKraft.scheduledTime}` : ""}
-          </p>
+          {(selectedKraft?.scheduledDate || selectedKraft?.scheduledTime) && (
+            <p className="text-[13px] font-poppins text-gray-500">
+              {selectedKraft.scheduledDate ?? ""}
+              {selectedKraft.scheduledTime ? ` · ${selectedKraft.scheduledTime}` : ""}
+            </p>
+          )}
         </div>
 
         {/* ── Kraft Details ── */}
@@ -243,7 +254,7 @@ const Page = () => {
             Payment Options
           </h3>
 
-          {!hasPaymentMethods() ? (
+          {!savedMethods.length ? (
             // No Payment Methods State
             <div className="space-y-4 py-5">
               <p className="text-[13px] sm:text-[14px] font-poppins text-gray-500 text-center py-4">
@@ -254,13 +265,13 @@ const Page = () => {
                 className="w-full py-3 bg-blue-600 text-white text-[15px] sm:text-[16px] font-poppins font-semibold rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
               >
                 <span className="text-xl">+</span>
-                add new
+                Add new
               </button>
             </div>
           ) : (
             // With Payment Methods State
             <div className="space-y-3">
-              {paymentMethods.map((method) => (
+              {savedMethods.map((method) => (
                 <div
                   key={method.id}
                   className="border border-[#0000001A] rounded-lg p-4 hover:border-brand-orange transition-colors cursor-pointer"
@@ -279,50 +290,25 @@ const Page = () => {
                         />
                       </div>
                       <div className="flex-1">
-                        {method.type === "googlepay" ? (
-                          <div className="flex items-center gap-2">
-                            <Image
-                              src="/google2.svg"
-                              alt="Google Pay"
-                              width={50}
-                              height={20}
-                              className="h-5 w-auto"
-                            />
-                            Pay
+                        {method.card ? (
+                          <div>
+                            <p className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900 capitalize">
+                              {method.card.brand} •••• {method.card.last4}
+                            </p>
+                            <p className="text-[12px] font-poppins text-gray-500 mt-0.5">
+                              Expires {method.card.expMonth}/{method.card.expYear}
+                            </p>
                           </div>
                         ) : (
-                          <div>
-                            <p className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900">
-                              {method.name}
-                            </p>
-                            {method.details && (
-                              <div className="mt-1">
-                                {method.details.holder && (
-                                  <p className="text-[13px] font-poppins font-semibold text-gray-900">
-                                    {method.details.holder}
-                                  </p>
-                                )}
-                                {method.details.number && (
-                                  <p className="text-[12px] font-poppins text-gray-600">
-                                    {method.details.number}
-                                  </p>
-                                )}
-                                {method.details.iban && (
-                                  <p className="text-[12px] font-poppins text-gray-600">
-                                    {method.details.iban}
-                                  </p>
-                                )}
-                              </div>
-                            )}
-                          </div>
+                          <p className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900 capitalize">
+                            {method.type}
+                          </p>
+                        )}
+                        {method.isDefault && (
+                          <span className="text-[11px] font-poppins font-semibold text-brand-orange mt-0.5 block">Default</span>
                         )}
                       </div>
                     </div>
-                    {method.details && (
-                      <button className="text-brand-orange text-[13px] sm:text-[14px] font-poppins font-semibold hover:underline">
-                        Change
-                      </button>
-                    )}
                   </div>
                 </div>
               ))}

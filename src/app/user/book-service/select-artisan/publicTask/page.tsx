@@ -10,10 +10,27 @@ import Button from "@/components/ui/button";
 const Page = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const serviceName = searchParams.get("service") || "House Cleaning";
+  const serviceName = searchParams.get("category") || searchParams.get("service") || "Service";
   const address =
-    searchParams.get("address") || "Hauptstraße 123 - 10115, Berlin";
-  const date = searchParams.get("date") || "15th Jan, 2025";
+    searchParams.get("address") || "Your selected location";
+  const dateParam = searchParams.get("date") || "";
+  const timeParam = searchParams.get("time") || "";
+
+  // Format date for display
+  const formattedDate = dateParam
+    ? (() => {
+        try {
+          return new Date(dateParam).toLocaleDateString("en-GB", {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          });
+        } catch {
+          return dateParam;
+        }
+      })()
+    : "";
+  const dateDisplay = [formattedDate, timeParam].filter(Boolean).join(" · ");
 
   const [formData, setFormData] = useState({
     amount: "",
@@ -85,7 +102,7 @@ const Page = () => {
                 {address}
               </p>
               <p className="text-[13px] sm:text-[14px] text-gray-700 font-poppins">
-                {date}
+                {dateDisplay}
               </p>
             </div>
             <div className="w-16 h-16 sm:w-20 sm:h-20 bg-[#FFF4E6] rounded-lg flex items-center justify-center">
