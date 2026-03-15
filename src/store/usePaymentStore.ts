@@ -1,99 +1,167 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import {
+  saveCard,
+  savePaymentMethod,
+  getSavedPaymentMethods,
+  deleteSavedPaymentMethod,
+  setDefaultSavedPaymentMethod,
+} from '@/lib/api/payments'
+import type { SetupIntentResponse, SavedPaymentMethod } from '@/lib/api/payments'
 
-export type PaymentMethodType = 'card' | 'sepa' | 'paypal' | 'googlepay'
-
-export interface PaymentMethod {
-  id: string
-  type: PaymentMethodType
-  name: string
-  details?: {
-    holder?: string
-    number?: string
-    last4?: string
-    expiryDate?: string
-    iban?: string
-  }
-  isDefault: boolean
-  createdAt: string
-}
+// ─── State ────────────────────────────────────────────────────────────────────
 
 interface PaymentState {
-  paymentMethods: PaymentMethod[]
+  savedMethods: SavedPaymentMethod[]
   selectedPaymentId: string | null
-  
-  // Actions
-  addPaymentMethod: (method: Omit<PaymentMethod, 'id' | 'createdAt'>) => void
-  removePaymentMethod: (id: string) => void
-  setDefaultPayment: (id: string) => void
+
+  // Request state
+  isLoading: boolean
+  error: string | null
+  setupIntent: SetupIntentResponse | null
+
+  // ─── UI helpers ─────────────────────────────────────────────────────────────
   selectPayment: (id: string) => void
-  getDefaultPayment: () => PaymentMethod | null
   hasPaymentMethods: () => boolean
+  getDefaultPayment: () => SavedPaymentMethod | null
+
+  // ─── API actions ─────────────────────────────────────────────────────────────
+  initiateSaveCard: (idempotencyKey?: string) => Promise<SetupIntentResponse | null>
+  persistPaymentMethod: (paymentMethodId: string, isDefault?: boolean) => Promise<boolean>
+  fetchSavedMethods: () => Promise<void>
+  removeSavedMethod: (id: string) => Promise<boolean>
+  setDefaultSavedMethod: (id: string) => Promise<boolean>
+  clearSetupIntent: () => void
 }
+
+// ─── Store ────────────────────────────────────────────────────────────────────
 
 export const usePaymentStore = create<PaymentState>()(
   persist(
     (set, get) => ({
-      paymentMethods: [],
+      savedMethods: [],
       selectedPaymentId: null,
+      isLoading: false,
+      error: null,
+      setupIntent: null,
 
-      addPaymentMethod: (method) => {
-        const newMethod: PaymentMethod = {
-          ...method,
-          id: `pm_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          createdAt: new Date().toISOString(),
-        }
-
-        set((state) => {
-          // If this is the first payment method, make it default
-          const isFirstMethod = state.paymentMethods.length === 0
-          const updatedMethods = isFirstMethod
-            ? [{ ...newMethod, isDefault: true }]
-            : [...state.paymentMethods, newMethod]
-
-          return {
-            paymentMethods: updatedMethods,
-            selectedPaymentId: isFirstMethod ? newMethod.id : state.selectedPaymentId,
-          }
-        })
-      },
-
-      removePaymentMethod: (id) => {
-        set((state) => {
-          const updatedMethods = state.paymentMethods.filter((m) => m.id !== id)
-          
-          // If removed method was default, make first remaining method default
-          if (state.paymentMethods.find((m) => m.id === id)?.isDefault && updatedMethods.length > 0) {
-            updatedMethods[0].isDefault = true
-          }
-
-          return {
-            paymentMethods: updatedMethods,
-            selectedPaymentId: state.selectedPaymentId === id ? updatedMethods[0]?.id || null : state.selectedPaymentId,
-          }
-        })
-      },
-
-      setDefaultPayment: (id) => {
-        set((state) => ({
-          paymentMethods: state.paymentMethods.map((method) => ({
-            ...method,
-            isDefault: method.id === id,
-          })),
-        }))
-      },
+      // ─── UI helpers ───────────────────────────────────────────────────────
 
       selectPayment: (id) => {
         set({ selectedPaymentId: id })
       },
 
-      getDefaultPayment: () => {
-        const state = get()
-        return state.paymentMethods.find((m) => m.isDefault) || state.paymentMethods[0] || null
+      hasPaymentMethods: () => {
+        return get().savedMethods.length > 0
       },
 
-      hasPaymentMethods: () => {
-        return get().paymentMethods.length > 0
+      getDefaultPayment: () => {
+        const { savedMethods } = get()
+        return savedMethods.find((m) => m.isDefault) ?? savedMethods[0] ?? null
+      },
+
+      // ─── API actions ──────────────────────────────────────────────────────
+
+      initiateSaveCard: async (idempotencyKey) => {
+        set({ isLoading: true, error: null })
+        try {
+          const result = await saveCard({ idempotencyKey })
+          set({ setupIntent: result, isLoading: false })
+          return result
+        } catch (err: any) {
+          const message =
+            err?.response?.data?.message ||
+            err?.message ||
+            'Failed to create SetupIntent. Please try again.'
+          set({ error: message, isLoading: false })
+          return null
+        }
+      },
+
+      persistPaymentMethod: async (paymentMethodId, isDefault = false) => {
+        set({ isLoading: true, error: null })
+        try {
+          await savePaymentMethod({ paymentMethodId, isDefault })
+          if (isDefault) {
+            set((state) => ({
+              savedMethods: state.savedMethods.map((m) => ({
+                ...m,
+                isDefault: m.paymentMethodId === paymentMethodId,
+              })),
+              isLoading: false,
+            }))
+          } else {
+            set({ isLoading: false })
+          }
+          return true
+        } catch (err: any) {
+          const message =
+            err?.response?.data?.message ||
+            err?.message ||
+            'Failed to save payment method. Please try again.'
+          set({ error: message, isLoading: false })
+          return false
+        }
+      },
+
+      fetchSavedMethods: async () => {
+        set({ isLoading: true, error: null })
+        try {
+          const methods = await getSavedPaymentMethods()
+          set({ savedMethods: methods, isLoading: false })
+        } catch (err: any) {
+          const message =
+            err?.response?.data?.message ||
+            err?.message ||
+            'Failed to fetch saved payment methods.'
+          set({ error: message, isLoading: false })
+        }
+      },
+
+      removeSavedMethod: async (id) => {
+        set({ isLoading: true, error: null })
+        try {
+          await deleteSavedPaymentMethod(id)
+          set((state) => ({
+            savedMethods: state.savedMethods.filter((m) => m.id !== id),
+            selectedPaymentId: state.selectedPaymentId === id ? null : state.selectedPaymentId,
+            isLoading: false,
+          }))
+          return true
+        } catch (err: any) {
+          const message =
+            err?.response?.data?.message ||
+            err?.message ||
+            'Failed to delete payment method. Please try again.'
+          set({ error: message, isLoading: false })
+          return false
+        }
+      },
+
+      setDefaultSavedMethod: async (id) => {
+        set({ isLoading: true, error: null })
+        try {
+          await setDefaultSavedPaymentMethod(id)
+          set((state) => ({
+            savedMethods: state.savedMethods.map((m) => ({
+              ...m,
+              isDefault: m.id === id,
+            })),
+            isLoading: false,
+          }))
+          return true
+        } catch (err: any) {
+          const message =
+            err?.response?.data?.message ||
+            err?.message ||
+            'Failed to set default payment method. Please try again.'
+          set({ error: message, isLoading: false })
+          return false
+        }
+      },
+
+      clearSetupIntent: () => {
+        set({ setupIntent: null, error: null })
       },
     }),
     {
