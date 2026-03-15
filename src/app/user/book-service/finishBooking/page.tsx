@@ -25,7 +25,7 @@ const Page = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   const { createBooking, isSubmitting } = useBookingsStore();
-  const { paymentMethods, selectedPaymentId, selectPayment, hasPaymentMethods } = usePaymentStore();
+  const { savedMethods: paymentMethods, selectedPaymentId, selectPayment, hasPaymentMethods } = usePaymentStore();
 
   // Set initial selected payment to default or first method
   useEffect(() => {
@@ -310,35 +310,26 @@ const Page = () => {
                               />
                               Pay
                             </div>
+                          ) : method.card ? (
+                            <div>
+                              <p className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900 capitalize">
+                                {method.card.brand} •••• {method.card.last4}
+                              </p>
+                              <p className="text-[12px] font-poppins text-gray-600 mt-0.5">
+                                Expires {method.card.expMonth.toString().padStart(2, "0")}/
+                                {method.card.expYear}
+                              </p>
+                            </div>
                           ) : (
                             <div>
-                              <p className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900">
-                                {method.name}
+                              <p className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900 capitalize">
+                                {method.type}
                               </p>
-                              {method.details && (
-                                <div className="mt-1">
-                                  {method.details.holder && (
-                                    <p className="text-[13px] font-poppins font-semibold text-gray-900">
-                                      {method.details.holder}
-                                    </p>
-                                  )}
-                                  {method.details.number && (
-                                    <p className="text-[12px] font-poppins text-gray-600">
-                                      {method.details.number}
-                                    </p>
-                                  )}
-                                  {method.details.iban && (
-                                    <p className="text-[12px] font-poppins text-gray-600">
-                                      {method.details.iban}
-                                    </p>
-                                  )}
-                                </div>
-                              )}
                             </div>
                           )}
                         </div>
                       </div>
-                      {method.details && (
+                      {method.card && (
                         <button className="text-brand-orange text-[13px] sm:text-[14px] font-poppins font-semibold hover:underline">
                           Change
                         </button>
