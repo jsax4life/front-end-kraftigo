@@ -43,30 +43,32 @@ interface AddressStore {
   };
 }
 
-/** Formats a Nominatim address object into German structure: Straße HausNr, PLZ Stadt (names stay in English) */
 function formatGermanAddress(nominatimAddress: Record<string, string>): string {
-  const {
-    road,
-    house_number,
-    postcode,
-    city,
-    town,
-    village,
-    suburb,
-    county,
-    country,
-  } = nominatimAddress;
+  const road =
+    nominatimAddress.road ||
+    nominatimAddress.pedestrian ||
+    nominatimAddress.street ||
+    "";
+  const houseNumber = nominatimAddress.house_number || "";
+  const postcode = nominatimAddress.postcode || "";
 
-  // German format: Street Name + House Number, Postcode City, Country
-  const streetPart = road
-    ? house_number
-      ? `${road} ${house_number}`
-      : road
-    : "";
-  const cityPart = city || town || village || suburb || county || "";
-  const postalPart = postcode ? `${postcode} ${cityPart}`.trim() : cityPart;
+  const city =
+    nominatimAddress.city ||
+    nominatimAddress.town ||
+    nominatimAddress.village ||
+    nominatimAddress.suburb ||
+    nominatimAddress.county ||
+    "";
 
-  return [streetPart, postalPart, country].filter(Boolean).join(", ");
+  const streetPart = `${road} ${houseNumber}`.trim();
+
+  const cityPart = `${postcode} ${city}`.trim();
+
+  if (streetPart && cityPart) return `${streetPart}, ${cityPart}`;
+  if (streetPart) return streetPart;
+  if (cityPart) return cityPart;
+
+  return "";
 }
 
 export const useAddressStore = create<AddressStore>()(
@@ -158,10 +160,10 @@ export const useAddressStore = create<AddressStore>()(
                 ? normalised.address
                 : state.currentAddress,
               currentLatitude: isSelected
-                ? normalised.latitude ?? null
+                ? (normalised.latitude ?? null)
                 : state.currentLatitude,
               currentLongitude: isSelected
-                ? normalised.longitude ?? null
+                ? (normalised.longitude ?? null)
                 : state.currentLongitude,
             };
           });
@@ -201,7 +203,10 @@ export const useAddressStore = create<AddressStore>()(
 
           // Normalise: ensure `address` field (used by UI) is always set
           if (!savedAddress.address) {
-            savedAddress = { ...savedAddress, address: savedAddress.fullAddress ?? address };
+            savedAddress = {
+              ...savedAddress,
+              address: savedAddress.fullAddress ?? address,
+            };
           }
         } catch (err) {
           logger.warn("Backend save failed, using local address ID:", err);
@@ -278,22 +283,24 @@ export const useAddressStore = create<AddressStore>()(
             let postalCode: string | undefined;
             let country: string | undefined;
 
-            // Try Nominatim first
             try {
+              // Added zoom=18 for exact street level accuracy
               const response = await fetch(
-                `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&email=support@krafitgo.com`,
+                `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&zoom=18&addressdetails=1&email=support@krafitgo.com`,
                 {
                   headers: {
-                    "Accept-Language": "en",
+                    "Accept-Language": "en", // Keeps the names in English, but format stays German
                     "User-Agent": "Krafitgo/1.0",
                   },
-                  signal: AbortSignal.timeout(8000), // don't wait forever
+                  signal: AbortSignal.timeout(8000),
                 },
               );
+
               if (response.ok) {
                 const data = await response.json();
                 if (data.address) {
                   formattedAddress = formatGermanAddress(data.address);
+
                   city =
                     data.address.city ||
                     data.address.town ||
@@ -322,7 +329,11 @@ export const useAddressStore = create<AddressStore>()(
                 );
                 if (response.ok) {
                   const data = await response.json();
-                  city = data.city || data.locality || data.localityInfo?.locality || undefined;
+                  city =
+                    data.city ||
+                    data.locality ||
+                    data.localityInfo?.locality ||
+                    undefined;
                   postalCode = data.postcode || data.postalCode || undefined;
                   country = data.countryCode || data.countryName || undefined;
 

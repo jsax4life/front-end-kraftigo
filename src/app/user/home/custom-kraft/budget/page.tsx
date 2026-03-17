@@ -23,6 +23,7 @@ const Page = () => {
   const {
     selectedKraft,
     updateStep3,
+    updateStep2,
     createDraft,
     uploadDraft,
     pendingDraftData,
@@ -71,17 +72,35 @@ const Page = () => {
         const { photos, ...rest } = pendingDraftData;
         const step3Fields = buildStep3Fields();
 
+        let newKraft;
         if (photos.length > 0) {
-          await uploadDraft({
+          newKraft = await uploadDraft({
             ...rest,
             ...step3Fields,
+            photos,
           });
         } else {
-          await createDraft({
+          newKraft = await createDraft({
             ...rest,
             ...step3Fields,
           });
         }
+
+        // Force step 2 and 3 updates to ensure backend saves all fields correctly
+        // Some backends drop non-step-1 fields during draft creation
+        if (newKraft && rest.addressId && rest.bookingHours && rest.frequency) {
+          await updateStep2(newKraft.id, {
+            addressId: rest.addressId,
+            bookingHours: rest.bookingHours,
+            frequency: rest.frequency,
+            scheduledDate: rest.scheduledDate,
+            scheduledTime: rest.scheduledTime,
+          });
+        }
+        if (newKraft) {
+          await updateStep3(newKraft.id, step3Fields);
+        }
+
         clearPendingDraftData();
       } else if (selectedKraft) {
         // ── Returning to update an existing draft

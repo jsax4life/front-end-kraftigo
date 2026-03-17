@@ -101,7 +101,7 @@ const Page = () => {
               />
               
               <div className="mt-10">
-                <div className="text-center text-[16px] my-4 font-qurova">
+                <div className="text-center text-[16px] my-4 font-mabry">
                   Or sign in with
                 </div>
                 <div className="flex gap-4 justify-center pb-4">
@@ -117,7 +117,7 @@ const Page = () => {
           </div>
 
           <div className="mt-auto space-y-4">
-            <div className="text-center text-[14px] font-qurova">
+            <div className="text-center text-[14px] font-mabry">
               <span className="text-brand-orange">
                 Don&apos;t have a tasker account?{" "}
               </span>

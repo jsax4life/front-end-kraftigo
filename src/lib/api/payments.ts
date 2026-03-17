@@ -27,11 +27,15 @@ export interface SavedPaymentMethod {
   paymentMethodId: string
   type: string
   isDefault: boolean
+  name?: string
+  details?: any
   card?: {
     brand: string
     last4: string
     expMonth: number
     expYear: number
+    name?: string
+    holder?: string
   }
   createdAt: string
 }

@@ -5,6 +5,7 @@ import { Toaster } from "react-hot-toast";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import "./globals.css";
 import AppWrapper from "@/components/shared/AppWrapper";
+import AuthPromptModal from "@/components/shared/AuthPromptModal";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -17,9 +18,25 @@ const local = localFont({
   variable: "--font-gerat",
 });
 
-const local2 = localFont({
-  src: "./fonts/QurovaDEMO-Regular.otf",
-  variable: "--font-qurova",
+const mabry = localFont({
+  src: [
+    {
+      path: "./fonts/MabryPro-Regular.woff",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "./fonts/MabryPro-Medium.woff",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "./fonts/MabryPro-Bold.woff",
+      weight: "700",
+      style: "normal",
+    },
+  ],
+  variable: "--font-mabry",
 });
 
 export const metadata: Metadata = {
@@ -50,7 +67,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${poppins.variable} ${local.variable} ${local2.variable} antialiased selection:bg-brand-orange selection:text-white`}
+        className={`${poppins.variable} ${local.variable} ${mabry.variable} antialiased selection:bg-brand-orange selection:text-white`}
       >
         {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? (
           <GoogleOAuthProvider
@@ -80,6 +97,7 @@ export default function RootLayout({
                 },
               }}
             />
+            <AuthPromptModal />
             <main className="w-full min-h-screen bg-white">{children}</main>
           </GoogleOAuthProvider>
         ) : (
@@ -96,6 +114,7 @@ export default function RootLayout({
                 },
               }}
             />
+            <AuthPromptModal />
             <main className="w-full min-h-screen bg-white">{children}</main>
           </>
         )}

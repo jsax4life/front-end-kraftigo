@@ -4,11 +4,20 @@ import { ArrowLeft, ChevronRight, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useServicesStore } from "@/store/useServicesStore";
+import { useAuthStore } from "@/store/useAuthStore";
+import { useAuthPromptStore } from "@/store/useAuthPromptStore";
 
 const Page = () => {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
+  const { isAuthenticated } = useAuthStore();
+  const { openPrompt } = useAuthPromptStore();
   const { categories, isLoading, error, fetchCategories } = useServicesStore();
+  
+  const handleProtectedAction = (path: string) => {
+    if (!isAuthenticated) openPrompt();
+    else router.push(path);
+  };
 
   useEffect(() => {
     fetchCategories();
@@ -21,13 +30,13 @@ const Page = () => {
   const handleCategoryClick = (categoryId: string, categoryName: string) => {
     // Navigate directly to booking page with category info
     console.log("Navigate to booking for category:", categoryId, categoryName);
-    router.push(`/user/book-service?categoryId=${categoryId}&category=${encodeURIComponent(categoryName)}`);
+    handleProtectedAction(`/user/book-service?categoryId=${categoryId}&category=${encodeURIComponent(categoryName)}`);
   };
 
   const handleCustomKraft = () => {
     // Navigate to custom kraft request page
     console.log("Request custom kraft");
-    router.push("/user/home/custom-kraft");
+    handleProtectedAction("/user/home/custom-kraft");
   };
 
   return (

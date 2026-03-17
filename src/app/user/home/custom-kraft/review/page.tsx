@@ -21,26 +21,18 @@ const Page = () => {
   const router = useRouter();
 
   // ─── Stores ──────────────────────────────────────────────────────────────
-  const {
-    selectedKraft,
-    publishKraft,
-    isSubmitting,
-    error,
-    clearError,
-  } = useCustomKraftsStore();
+  const { selectedKraft, publishKraft, isSubmitting, error, clearError } =
+    useCustomKraftsStore();
   const { addresses, loadAddresses } = useAddressStore();
   const { categories, fetchCategories } = useServicesStore();
-  const {
-    savedMethods,
-    selectedPaymentId,
-    selectPayment,
-    fetchSavedMethods,
-  } = usePaymentStore();
+  const { savedMethods, selectedPaymentId, selectPayment, fetchSavedMethods } =
+    usePaymentStore();
 
   // ─── Resolve human-readable labels from IDs ─────────────────────────────
-  const resolvedCategory = categories.find(
-    (c) => c.id === selectedKraft?.roughCategoryId,
-  )?.name ?? selectedKraft?.roughCategoryId ?? "—";
+  const resolvedCategory =
+    categories.find((c) => c.id === selectedKraft?.roughCategoryId)?.name ??
+    selectedKraft?.roughCategoryId ??
+    "—";
   const resolvedAddress =
     addresses.find((a) => a.id === selectedKraft?.addressId)?.address ?? "—";
 
@@ -87,7 +79,7 @@ const Page = () => {
   }, [savedMethods, selectedPaymentId, selectPayment]);
 
   // ─── Pricing ─────────────────────────────────────────────────────────────
-  const offerAmount = selectedKraft?.offerAmount ?? 0;
+  const offerAmount = Number(selectedKraft?.offerAmount || 0);
   const boostFee = selectedKraft?.urgentBoost ? URGENT_BOOST_FEE : 0;
   const promoDiscount = promoApplied ? 5 : 0;
   const total = offerAmount + SERVICE_FEE + boostFee - promoDiscount;
@@ -142,7 +134,9 @@ const Page = () => {
           {(selectedKraft?.scheduledDate || selectedKraft?.scheduledTime) && (
             <p className="text-[13px] font-poppins text-gray-500">
               {selectedKraft.scheduledDate ?? ""}
-              {selectedKraft.scheduledTime ? ` · ${selectedKraft.scheduledTime}` : ""}
+              {selectedKraft.scheduledTime
+                ? ` · ${selectedKraft.scheduledTime}`
+                : ""}
             </p>
           )}
         </div>
@@ -270,49 +264,103 @@ const Page = () => {
             </div>
           ) : (
             // With Payment Methods State
-            <div className="space-y-3">
-              {savedMethods.map((method) => (
-                <div
-                  key={method.id}
-                  className="border border-[#0000001A] rounded-lg p-4 hover:border-brand-orange transition-colors cursor-pointer"
-                  onClick={() => selectPayment(method.id)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3 flex-1">
-                      <div className="relative flex items-top">
-                        <input
-                          type="radio"
-                          name="payment"
-                          value={method.id}
-                          checked={selectedPaymentId === method.id}
-                          onChange={(e) => selectPayment(e.target.value)}
-                          className="w-5 h-5 appearance-none border-2 border-gray-300 rounded-full checked:border-brand-orange checked:border-[6px] transition-all cursor-pointer"
-                        />
-                      </div>
-                      <div className="flex-1">
-                        {method.card ? (
-                          <div>
-                            <p className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900 capitalize">
-                              {method.card.brand} •••• {method.card.last4}
-                            </p>
-                            <p className="text-[12px] font-poppins text-gray-500 mt-0.5">
-                              Expires {method.card.expMonth}/{method.card.expYear}
-                            </p>
-                          </div>
-                        ) : (
-                          <p className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900 capitalize">
-                            {method.type}
-                          </p>
-                        )}
-                        {method.isDefault && (
-                          <span className="text-[11px] font-poppins font-semibold text-brand-orange mt-0.5 block">Default</span>
+            <div className="space-y-4">
+              {savedMethods.map((method) => {
+                // 1. Extract data safely
+                const cardData =
+                  method.card ||
+                  (method as any).details ||
+                  (method as any).paymentMethod?.card ||
+                  ((method as any).brand ? method : null);
+                const isCard = !!cardData;
+
+                // We only get last4 from Stripe for security
+                const last4 =
+                  cardData?.last4 ||
+                  cardData?.number?.slice(-4) ||
+                  (method as any).cardLast4 ||
+                  "****";
+                const holderName =
+                  cardData?.holder ||
+                  cardData?.name ||
+                  (method as any).name ||
+                  (method as any).billingDetails?.name ||
+                  "John Doe";
+
+                // 2. Determine the Title based on the payment type
+                let methodTitle = "Debit/Credit Card";
+                if (!isCard) {
+                  if (method.type === "sepa_debit")
+                    methodTitle = "SEPA Direct Debit";
+                  else if (method.type === "paypal") methodTitle = "PayPal";
+                  else methodTitle = method.type; // Fallback
+                }
+
+                return (
+                  <div
+                    key={method.id}
+                    onClick={() => selectPayment(method.id)}
+                    className={`p-5 rounded-2xl border transition-all cursor-pointer ${
+                      selectedPaymentId === method.id
+                        ? "bg-[#F4F4F5] border-gray-300" // Selected state border
+                        : "bg-[#F4F4F5] border-transparent hover:border-gray-200" // Unselected state
+                    }`}
+                  >
+                    {/* Top Row: Title & Radio Button */}
+                    <div className="flex justify-between items-start">
+                      <span className="font-poppins text-[15px] text-gray-800 capitalize">
+                        {methodTitle}
+                      </span>
+
+                      {/* Custom Radio Button */}
+                      <div
+                        className={`w-[20px] h-[20px] rounded-full border-[2px] flex items-center justify-center shrink-0 transition-colors ${
+                          selectedPaymentId === method.id
+                            ? "border-black"
+                            : "border-gray-400"
+                        }`}
+                      >
+                        {selectedPaymentId === method.id && (
+                          <div className="w-2.5 h-2.5 bg-black rounded-full" />
                         )}
                       </div>
                     </div>
-                  </div>
-                </div>
-              ))}
 
+                    {/* Bottom Row: Card Details & "Change" Button */}
+                    {isCard && (
+                      <div className="mt-4 flex justify-between items-end">
+                        {/* Left Side: Name and Number */}
+                        <div className="flex flex-col gap-1.5">
+                          <h4 className="font-poppins font-bold text-[15px] text-gray-900 leading-none">
+                            {holderName}
+                          </h4>
+                          <p className="font-poppins text-[14px] text-gray-800 tracking-widest leading-none mt-1">
+                            **** **** **** {last4}
+                          </p>
+                          {method.isDefault && (
+                            <span className="text-[11px] font-poppins font-semibold text-brand-orange mt-1">
+                              Default
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Right Side: Change Button */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevents clicking this from triggering the selectPayment radio
+                            // TODO: Add your logic here to open the Stripe Modal to update the card
+                            console.log("Change button clicked for", method.id);
+                          }}
+                          className="font-poppins font-bold text-[13px] text-brand-orange hover:text-orange-600 transition-colors"
+                        >
+                          Change
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
               {/* Add New Payment Button */}
               <button
                 onClick={handleAddPayment}
@@ -340,9 +388,7 @@ const Page = () => {
           disabled={isSubmitting}
           className="w-full py-4 bg-brand-orange text-white text-[16px] font-poppins font-semibold rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-60"
         >
-          {isSubmitting
-            ? "Publishing…"
-            : `Confirm & Pay €${total.toFixed(2)}`}
+          {isSubmitting ? "Publishing…" : `Confirm & Pay €${total.toFixed(2)}`}
         </button>
       </div>
       {showPaymentModal && (
