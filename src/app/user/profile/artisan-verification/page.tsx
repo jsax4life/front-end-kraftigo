@@ -2,6 +2,7 @@
 
 import React, { useState, useRef } from "react";
 import Image from "next/image";
+import axios from "axios";
 import { useRouter } from "next/navigation";
 import { 
   ArrowLeft, 
@@ -33,12 +34,14 @@ const steps = [
 
 export default function ArtisanVerificationPage() {
   const router = useRouter();
-  const { submitVerification, isLoading } = useProfileStore();
+  const { submitVerification, startKyc, getProfilePhotoUploadUrl, isLoading } = useProfileStore();
   const [currentStep, setCurrentStep] = useState(1);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [langInput, setLangInput] = useState("");
   const [skillInput, setSkillInput] = useState("");
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [verificationUrl, setVerificationUrl] = useState("");
   
   const [formData, setFormData] = useState({
     legalFullName: "",
@@ -58,12 +61,14 @@ export default function ArtisanVerificationPage() {
     transportType: "NONE",
     taxOrVatId: "",
     bio: "",
-    countryOfResidence: "NG",
+    countryOfResidence: "DE",
     governmentIdType: "passport",
     governmentIdNumber: "",
     governmentIdDocument: null as File | null,
     idCard: null as File | null,
     employmentStatus: "SELF_EMPLOYED",
+    businessRegistrationNumber: "",
+    vatId: "",
     skillsAndExpertise: [] as { skill: string; hourlyRate: number }[],
     portfolioPhotos: [] as File[],
     portfolioPreviews: [] as string[],
@@ -114,10 +119,55 @@ export default function ArtisanVerificationPage() {
     }));
   };
 
+  const handleStartKyc = async () => {
+    try {
+      if (verificationUrl) {
+        window.location.href = verificationUrl;
+        return;
+      }
+      const result = await startKyc();
+      if (result.verificationUrl) {
+         window.location.href = result.verificationUrl;
+      } else {
+         toast.error("Could not start identity verification. Please try again later.");
+      }
+    } catch (error) {
+      toast.error("Failed to start identity verification");
+    }
+  };
+
+  const handleUploadToS3 = async (file: File) => {
+    try {
+      const { uploadUrl, publicUrl } = await getProfilePhotoUploadUrl(
+        file.name,
+        file.type,
+        file.size
+      );
+
+      await axios.put(uploadUrl, file, {
+        headers: {
+          'Content-Type': file.type,
+        },
+      });
+
+      return publicUrl;
+    } catch (error) {
+      console.error("Direct upload failed:", error);
+      throw error;
+    }
+  };
+
   const handleSubmit = async () => {
     try {
       const data = new FormData();
       
+      let profilePhotoUrl = "";
+      if (formData.profilePhoto) {
+         toast.loading("Uploading profile photo...", { id: "uploading" });
+         profilePhotoUrl = await handleUploadToS3(formData.profilePhoto);
+         toast.success("Photo uploaded!", { id: "uploading" });
+      }
+
       // Basic Fields
       data.append('legalFullName', formData.legalFullName);
       data.append('displayName', formData.displayName);
@@ -132,6 +182,8 @@ export default function ArtisanVerificationPage() {
       data.append('taxOrVatId', formData.taxOrVatId);
       data.append('bio', formData.bio);
       data.append('countryOfResidence', formData.countryOfResidence);
+      data.append('businessRegistrationNumber', formData.businessRegistrationNumber);
+      data.append('vatId', formData.vatId);
       data.append('governmentIdType', formData.governmentIdType);
       data.append('governmentIdNumber', formData.governmentIdNumber);
       data.append('employmentStatus', formData.employmentStatus);
@@ -142,9 +194,15 @@ export default function ArtisanVerificationPage() {
       data.append('secondarySkills', JSON.stringify(formData.secondarySkills));
       data.append('certifications', JSON.stringify(formData.certifications));
       data.append('skillsAndExpertise', JSON.stringify(formData.skillsAndExpertise));
+      
+      // Map certifications/expertise to skillDocuments as required by Swagger
+      const skillDocs = formData.skillsAndExpertise.map(s => ({ type: 'skill', name: s.skill }));
+      data.append('skillDocuments', JSON.stringify(skillDocs));
 
-      // Files
-      if (formData.profilePhoto) data.append('profilePhoto', formData.profilePhoto);
+      // Use the uploaded photo URL instead of the binary
+      if (profilePhotoUrl) data.append('profilePhotoUrl', profilePhotoUrl);
+
+      // Files (keeping others as binary unless there are more presigned endpoints)
       if (formData.governmentIdDocument) data.append('governmentIdDocument', formData.governmentIdDocument);
       if (formData.idCard) data.append('idCard', formData.idCard);
       
@@ -153,8 +211,16 @@ export default function ArtisanVerificationPage() {
       });
 
       await submitVerification(data);
-      toast.success("Verification submitted successfully!");
-      router.push("/tasker/dashboard");
+      toast.success("Verification form submitted successfully!");
+      setHasSubmitted(true);
+      
+      // Pre-fetch KYC session URL
+      try {
+        const result = await startKyc();
+        if (result.verificationUrl) setVerificationUrl(result.verificationUrl);
+      } catch (e) {
+        console.error("KYC pre-fetch error:", e);
+      }
     } catch (error) {
       toast.error("Failed to submit verification");
     }
@@ -386,6 +452,19 @@ export default function ArtisanVerificationPage() {
 
       <div className="bg-white p-6 rounded-3xl border border-[#F2F4F7] space-y-6">
         <Select 
+          label="Country of residence" 
+          value={formData.countryOfResidence}
+          onChange={(v) => handleInputChange('countryOfResidence', v)}
+          options={[
+            { value: "DE", label: "Germany" },
+            { value: "NG", label: "Nigeria" },
+            { value: "UK", label: "United Kingdom" },
+            { value: "US", label: "United States" },
+          ]}
+          required
+        />
+
+        <Select 
           label="ID Type" 
           value={formData.governmentIdType}
           onChange={(v) => handleInputChange('governmentIdType', v)}
@@ -522,34 +601,57 @@ export default function ArtisanVerificationPage() {
         </div>
 
         <div className="space-y-4">
-            <label className="text-[14px] font-qurova text-gray-800">Employment Status</label>
-            <div className="grid grid-cols-2 gap-3">
-                {['SELF_EMPLOYED', 'FREELANCING'].map((status) => (
+            <label className="text-[14px] font-qurova text-gray-800">Are you working as:</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {[
+                  { id: 'SELF_EMPLOYED', label: 'Self Employed' },
+                  { id: 'FREELANCING', label: 'Freelancer' },
+                  { id: 'REGISTERED_BUSINESS', label: 'Registered Business' }
+                ].map((option) => (
                     <button
-                        key={status}
-                        onClick={() => handleInputChange('employmentStatus', status)}
-                        className={`py-4 rounded-xl text-[13px] font-gerat font-bold transition-all border ${
-                            formData.employmentStatus === status 
+                        key={option.id}
+                        onClick={() => handleInputChange('employmentStatus', option.id)}
+                        className={`py-4 px-2 rounded-xl text-[13px] font-gerat font-bold transition-all border ${
+                            formData.employmentStatus === option.id 
                             ? 'bg-brand-orange text-white border-brand-orange shadow-md scale-[1.02]' 
                             : 'bg-[#F6F6F6] text-gray-600 border-transparent hover:border-gray-200'
                         }`}
                     >
-                        {status.replace('_', ' ')}
+                        {option.label}
                     </button>
                 ))}
             </div>
+            
+            {formData.employmentStatus === 'REGISTERED_BUSINESS' && (
+              <div className="space-y-4 pt-2 animate-in fade-in duration-300">
+                <Input 
+                  label="Business Registration Number" 
+                  placeholder="Enter number" 
+                  value={formData.businessRegistrationNumber}
+                  onChange={(v) => handleInputChange('businessRegistrationNumber', v)}
+                  required
+                />
+                <Input 
+                  label="VAT ID" 
+                  placeholder="Enter VAT ID" 
+                  value={formData.vatId}
+                  onChange={(v) => handleInputChange('vatId', v)}
+                  required
+                />
+              </div>
+            )}
         </div>
 
         <div className="grid grid-cols-2 gap-4">
             <Input 
-                label="Exp (Home)" 
+                label="Years of Experience (Total)" 
                 type="number"
                 placeholder="Years" 
                 value={formData.yearsExperienceHomeCountry.toString()}
                 onChange={(v) => handleInputChange('yearsExperienceHomeCountry', parseInt(v) || 0)}
             />
             <Input 
-                label="Exp (Current)" 
+                label="Years in Germany" 
                 type="number"
                 placeholder="Years" 
                 value={formData.yearsExperienceCurrentCountry.toString()}
@@ -747,7 +849,43 @@ export default function ArtisanVerificationPage() {
       case 3: return renderDocumentsStep();
       case 4: return renderExpertiseStep();
       case 5: return renderPortfolioStep();
-      case 6: return (
+      case 6: return hasSubmitted ? (
+        <div className="text-center space-y-8 animate-in zoom-in-95 duration-500">
+            <div className="w-24 h-24 bg-green-50 text-green-500 rounded-full flex items-center justify-center mx-auto shadow-sm">
+                <CheckCircle2 size={48} />
+            </div>
+            <div className="space-y-4">
+                <h2 className="text-[28px] font-gerat font-bold text-[#1D2939]">Form Submitted!</h2>
+                <p className="text-[14px] font-poppins text-[#667085] max-w-[320px] mx-auto leading-relaxed">
+                    Your professional details have been secured. The final step is to verify your identity.
+                </p>
+            </div>
+            
+            <div className="bg-white p-6 rounded-[32px] border border-[#00000008] shadow-sm text-left space-y-4">
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center">
+                        <ShieldCheck size={18} />
+                    </div>
+                    <p className="text-[14px] font-gerat font-bold text-[#1D2939]">Form Secured</p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-green-50 text-green-600 rounded-full flex items-center justify-center">
+                        <CheckCircle2 size={18} />
+                    </div>
+                    <p className="text-[14px] font-gerat font-bold text-[#1D2939]">Profile Details Uploaded</p>
+                </div>
+            </div>
+
+            <Button 
+                onClick={handleStartKyc}
+                fullWidth 
+                className="py-4 rounded-2xl h-14 text-[16px] flex items-center justify-center gap-2"
+            >
+                <Camera size={20} />
+                Start identity verification
+            </Button>
+        </div>
+      ) : (
         <div className="text-center space-y-8 animate-in zoom-in-95 duration-300">
             <div className="w-24 h-24 bg-green-50 text-green-500 rounded-full flex items-center justify-center mx-auto shadow-sm">
                 <ShieldCheck size={48} />
@@ -764,7 +902,7 @@ export default function ArtisanVerificationPage() {
                     <span className="text-gray-400 font-poppins text-[13px]">Full Name</span>
                     <span className="font-gerat font-bold text-[14px]">{formData.legalFullName}</span>
                 </div>
-                <div className="flex justify-between items-center pb-4 border-b border-gray-50">
+                <div className="flex justify-between items-center pb-4 border-b border-gray-0">
                     <span className="text-gray-400 font-poppins text-[13px]">Primary Trade</span>
                     <span className="font-gerat font-bold text-[14px] capitalize">{formData.primaryTrade}</span>
                 </div>

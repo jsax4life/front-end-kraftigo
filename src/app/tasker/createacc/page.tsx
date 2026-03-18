@@ -22,7 +22,7 @@ import {
 const Page = () => {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
-  const totalSteps = 6;
+  const totalSteps = 4;
   const {
     registerTasker,
     verifyEmail,
@@ -49,18 +49,9 @@ const Page = () => {
     term1Accepted: false,
     term2Accepted: false,
     verificationCode: ["", "", "", "", "", ""],
-    country: "",
-    city: "",
-    postal: "",
-    trade: "",
-    workingAs: "",
     businessRegistrationNumber: "",
     vatId: "",
     selfieImage: null as string | null,
-    documentType: "",
-    documentNumber: "",
-    yearsOfExperience: "",
-    experienceInGermany: "",
   });
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -121,28 +112,6 @@ const Page = () => {
       case 3:
         return formData.verificationCode.every((digit) => digit !== "");
       case 4:
-        return (
-          isNotEmpty(formData.country) &&
-          isNotEmpty(formData.city) &&
-          isNotEmpty(formData.postal) &&
-          isNumeric(formData.postal) &&
-          isNotEmpty(formData.documentType) &&
-          isNotEmpty(formData.documentNumber)
-        );
-      case 5:
-        const isBasicValid = 
-          isNotEmpty(formData.trade) && 
-          isNotEmpty(formData.workingAs) &&
-          isNotEmpty(formData.yearsOfExperience) &&
-          isNotEmpty(formData.experienceInGermany);
-        const isRegisteredBusiness = formData.workingAs === "registered-business";
-        const isBusinessFieldsValid =
-          !isRegisteredBusiness ||
-          (isNotEmpty(formData.businessRegistrationNumber) &&
-            isNumeric(formData.businessRegistrationNumber) &&
-            isNotEmpty(formData.vatId));
-        return isBasicValid && isBusinessFieldsValid;
-      case 6:
         return true; 
       default:
         return false;
@@ -256,7 +225,7 @@ const Page = () => {
           </button>
           {currentStep > 1 && (
             <span className="text-[14px] text-gray-500 font-poppins">
-              Step {currentStep - 1} of 5
+              Step {currentStep - 1} of 3
             </span>
           )}
         </div>
@@ -457,161 +426,8 @@ const Page = () => {
             </div>
           )}
 
-          {/* Step 4: legal identity*/}
+          {/* Step 4: Take a Selfie */}
           {currentStep === 4 && (
-            <div className="space-y-6">
-              <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-8">
-                Legal Identity
-              </h1>
-              <Input
-                label="Country of residence"
-                placeholder="Germany"
-                value={formData.country}
-                onChange={(value) => handleInputChange("country", value)}
-                required
-              />
-              <Input
-                label="City"
-                placeholder="Berlin"
-                value={formData.city}
-                onChange={(value) => handleInputChange("city", value)}
-                required
-              />
-              <Input
-                label="Postal Code"
-                placeholder="88019"
-                value={formData.postal}
-                onChange={(value) => handleInputChange("postal", value)}
-                error={formData.postal && !isNumeric(formData.postal) ? "Numbers only" : ""}
-                required
-              />
-              <Select
-                label="Document Type"
-                placeholder="Select ID Card"
-                value={formData.documentType}
-                onChange={(value) => handleInputChange("documentType", value)}
-                options={[
-                  { value: "id-card", label: "ID Card" },
-                  { value: "passport", label: "Passport" },
-                  { value: "residence-permit", label: "Residence Permit" },
-                  { value: "drivers-license", label: "Driver's License" },
-                ]}
-                required
-              />
-              {formData.documentType && (
-                <Input
-                  label={`${formData.documentType === 'passport' ? 'Passport Number' : 'ID Card Number'}`}
-                  placeholder={`Enter ${formData.documentType === 'passport' ? 'Passport Number' : 'ID Card Number'}`}
-                  value={formData.documentNumber}
-                  onChange={(value) => handleInputChange("documentNumber", value)}
-                  required
-                />
-              )}
-            </div>
-          )}
-
-          {/* Step 5: Trade & Work Eligibility */}
-          {currentStep === 5 && (
-            <div className="space-y-6">
-              <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-8">
-                Trade & Work Eligibility
-              </h1>
-              <Select
-                label="Primary Trade"
-                placeholder="Select"
-                value={formData.trade}
-                onChange={(value) => handleInputChange("trade", value)}
-                options={[
-                  { value: "select", label: "select" },
-                  { value: "plumbing", label: "Plumbing" },
-                  { value: "electrical", label: "Electrical" },
-                  { value: "carpentry", label: "Carpentry" },
-                  { value: "painting", label: "Painting" },
-                  { value: "hvac", label: "HVAC" },
-                  { value: "masonry", label: "Masonry" },
-                  { value: "roofing", label: "Roofing" },
-                  { value: "landscaping", label: "Landscaping" },
-                  { value: "other", label: "Other" },
-                ]}
-                required
-              />
-              <Select
-                label="Are you working as:"
-                placeholder="Self employed / freelancer"
-                value={formData.workingAs}
-                onChange={(value) => handleInputChange("workingAs", value)}
-                options={[
-                  {
-                    value: "self-employed",
-                    label: "Self employed / freelancer",
-                  },
-                  { value: "company-employee", label: "Company employee" },
-                  { value: "contractor", label: "Contractor" },
-                  { value: "business-owner", label: "Business owner" },
-                  {
-                    value: "registered-business",
-                    label: "Registered business",
-                  },
-                ]}
-                required
-              />
-
-              {formData.workingAs === "registered-business" && (
-                <>
-                  <Input
-                    label="Business registration number"
-                    placeholder="Enter registration number"
-                    value={formData.businessRegistrationNumber}
-                    onChange={(value) =>
-                      handleInputChange("businessRegistrationNumber", value)
-                    }
-                    error={formData.businessRegistrationNumber && !isNumeric(formData.businessRegistrationNumber) ? "Numbers only" : ""}
-                    required
-                  />
-                  <Input
-                    label="VAT ID"
-                    placeholder="Enter VAT ID"
-                    value={formData.vatId}
-                    onChange={(value) => handleInputChange("vatId", value)}
-                    required
-                  />
-                </>
-              )}
-
-              <Select
-                label="How many years of work experience do you have in this trade?"
-                placeholder="Select"
-                value={formData.yearsOfExperience}
-                onChange={(value) => handleInputChange("yearsOfExperience", value)}
-                options={[
-                  { value: "0-1", label: "0-1 Years" },
-                  { value: "1-3", label: "1-3 Years" },
-                  { value: "3-5", label: "3-5 Years" },
-                  { value: "5-10", label: "5-10 Years" },
-                  { value: "10+", label: "10+ Years" },
-                ]}
-                required
-              />
-
-              <Select
-                label="How many years of work experience in Germany?"
-                placeholder="Select"
-                value={formData.experienceInGermany}
-                onChange={(value) => handleInputChange("experienceInGermany", value)}
-                options={[
-                  { value: "0", label: "None" },
-                  { value: "0-1", label: "0-1 Years" },
-                  { value: "1-3", label: "1-3 Years" },
-                  { value: "3-5", label: "3-5 Years" },
-                  { value: "5+", label: "5+ Years" },
-                ]}
-                required
-              />
-            </div>
-          )}
-
-          {/* Step 6: Take a Selfie */}
-          {currentStep === 6 && (
             <div className="space-y-6">
               <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-2">
                 Take A Selfie
