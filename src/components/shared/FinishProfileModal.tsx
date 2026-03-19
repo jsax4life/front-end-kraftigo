@@ -25,9 +25,9 @@ const steps = [
   { id: "personal", label: "Add Personal Details", sublabel: "Let customers know you better" },
   { id: "skills", label: "Add Your Skills To Your Profile", sublabel: "Show users what you worked" },
   { id: "eligibility", label: "Add Your Work Eligibility", sublabel: "Tell them about your expertise" },
-  { id: "identity", label: "Verify Identity", sublabel: "Identity & document verification" },
-  { id: "payout", label: "Add Payout Information", sublabel: "Set up how you get paid" },
-  { id: "verify", label: "Verify Email", sublabel: "Completed during signup" },
+  { id: "identity", label: "Add Legal Identity & Document", sublabel: "Help customers recognize you" },
+  { id: "payout", label: "Add Payout Information", sublabel: "Help customers recognize you" },
+  { id: "verify", label: "Verify Identity", sublabel: "Completed" },
 ];
 
 const FinishProfileModal: React.FC<FinishProfileModalProps> = ({

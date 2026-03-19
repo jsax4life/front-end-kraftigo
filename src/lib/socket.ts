@@ -10,25 +10,17 @@ class ChatSocketManager {
     
     this.token = token;
     
-    // Using the same base URL as API
+    // Using the same base URL as API, but for websocket
     const baseURL = process.env.NEXT_PUBLIC_API_URL || 'https://api.xn--kraftig-g1a.com';
-    console.log('Connecting to socket at:', baseURL);
+    const socketURL = baseURL.replace('https://', 'wss://').replace('http://', 'ws://');
     
-    this.socket = io(baseURL, {
+    this.socket = io(`${socketURL}/chat`, {
       auth: { token },
-      transports: ['websocket', 'polling'],
-      secure: true,
-      reconnectionAttempts: 5,
-      timeout: 10000,
+      transports: ['websocket', 'polling']
     });
 
     this.socket.on('connect', () => {
-      console.log('Successfully connected to chat server. ID:', this.socket?.id);
-    });
-
-    this.socket.on('connect_error', (error) => {
-      console.error('Socket connection error detail:', error.message);
-      console.error('Socket engine error:', (error as any).description);
+      console.log('Connected to chat server');
     });
 
     this.socket.on('new_message', (data) => {
@@ -44,11 +36,11 @@ class ChatSocketManager {
     });
 
     this.socket.on('error', (error) => {
-      console.error('Socket internal error:', error);
+      console.error('Socket error:', error);
     });
 
-    this.socket.on('disconnect', (reason) => {
-      console.log('Disconnected from chat server. Reason:', reason);
+    this.socket.on('disconnect', () => {
+      console.log('Disconnected from chat server');
     });
   }
 
