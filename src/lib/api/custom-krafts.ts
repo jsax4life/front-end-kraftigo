@@ -155,16 +155,14 @@ export const uploadCustomKraftDraft = async (
 ): Promise<CustomKraft> => {
   const formData = new FormData();
 
-  // All fields are conditionally appended — backend accepts partial drafts
   formData.append("description", payload.description);
-  if (payload.addressId) formData.append("addressId", payload.addressId);
+  if (payload.addressId != null) formData.append("addressId", payload.addressId);
   if (payload.bookingHours != null)
     formData.append("bookingHours", String(payload.bookingHours));
   if (payload.frequency) formData.append("frequency", payload.frequency);
   if (payload.expiryOption)
     formData.append("expiryOption", payload.expiryOption);
 
-  // Optional fields
   if (payload.roughCategoryId)
     formData.append("roughCategoryId", payload.roughCategoryId);
   if (payload.scheduledDate)
@@ -180,7 +178,6 @@ export const uploadCustomKraftDraft = async (
     formData.append("urgentBoost", String(payload.urgentBoost));
   formData.append("status", payload.status ?? "DRAFT");
 
-  // Photo files
   payload.photos?.forEach((file) => formData.append("photos", file));
 
   const response = await api.post("/api/custom-krafts/draft/upload", formData, {

@@ -87,6 +87,9 @@ const DatePickerModal = ({
     const daysInMonth = getDaysInMonth(currentDate);
     const firstDay = getFirstDayOfMonth(currentDate);
     const days = [];
+    
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
 
     // Empty cells for days before the first day of month
     for (let i = 0; i < firstDay; i++) {
@@ -96,14 +99,20 @@ const DatePickerModal = ({
     // Days of the month
     for (let day = 1; day <= daysInMonth; day++) {
       const isSelected = day === selectedDay;
+      const cellDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+      const isPast = cellDate < todayStart;
+
       days.push(
         <button
           key={day}
-          onClick={() => handleDayClick(day)}
+          onClick={() => !isPast && handleDayClick(day)}
+          disabled={isPast}
           className={`aspect-square flex items-center justify-center text-[16px] font-poppins font-medium rounded-lg transition-colors ${
-            isSelected
-              ? "bg-brand-orange text-white"
-              : "text-gray-900 hover:bg-gray-100"
+            isPast
+              ? "text-gray-400 opacity-40 cursor-not-allowed bg-transparent"
+              : isSelected
+              ? "bg-brand-orange text-white cursor-pointer"
+              : "text-gray-900 hover:bg-gray-100 cursor-pointer"
           }`}
         >
           {day}

@@ -19,13 +19,6 @@ const Page = () => {
   const router = useRouter();
   const { selectedKraft, clearSelectedKraft } = useCustomKraftsStore();
 
-  // Clear the draft from the store once the user leaves this page
-  useEffect(() => {
-    return () => {
-      clearSelectedKraft();
-    };
-  }, [clearSelectedKraft]);
-
   // Guard: if somehow landed here without a kraft, go home
   useEffect(() => {
     if (!selectedKraft) {
@@ -38,7 +31,7 @@ const Page = () => {
     : "—";
 
   const bidAmount = selectedKraft?.offerAmount != null
-    ? `€${selectedKraft.offerAmount.toFixed(2)}`
+    ? `€${Number(selectedKraft.offerAmount).toFixed(2)}`
     : "—";
 
   return (
@@ -166,7 +159,10 @@ const Page = () => {
           <Button
             variant="primary"
             className="w-full"
-            onClick={() => router.push("/user/home")}
+            onClick={() => {
+              clearSelectedKraft();
+              router.push("/user/home");
+            }}
           >
             Go back home
           </Button>

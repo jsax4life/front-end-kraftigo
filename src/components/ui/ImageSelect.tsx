@@ -58,7 +58,7 @@ const ImageSelect = ({
   return (
     <div className="flex flex-col gap-2 w-full" ref={containerRef}>
       {label && (
-        <label className="text-[14px] font-qurova text-gray-700">
+        <label className="text-[14px] font-mabry text-gray-700">
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>

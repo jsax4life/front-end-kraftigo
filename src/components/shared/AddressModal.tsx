@@ -239,7 +239,7 @@ const AddressModal = ({
                 <div className="space-y-3">
                   {/* Address Label */}
                   <div>
-                    <label className="text-[13px] font-qurova text-gray-600 mb-1 block">
+                    <label className="text-[13px] font-mabry text-gray-600 mb-1 block">
                       Name this address (Optional)
                     </label>
                     <input
@@ -253,7 +253,7 @@ const AddressModal = ({
 
                   {/* Address Input */}
                   <div>
-                    <label className="text-[13px] font-qurova text-gray-600 mb-1 block">
+                    <label className="text-[13px] font-mabry text-gray-600 mb-1 block">
                       Search for Area, Street Name
                     </label>
                     <input

@@ -12,7 +12,7 @@
   --font-mono: var(--font-geist-mono);
   --font-poppins: var(--font-poppins);
   --font-gerat: var(--font-gerat);
-  --font-qurova: var(--font-qurova);
+  --font-mabry: var(--font-mabry);
   --color-brand-orange: #ff6600;
   --color-brand-blue-deep: #1a0ae6;
   --color-brand-blue: #0000ff;
@@ -20,7 +20,8 @@
   --color-brand-yellow: #ffffcc;
 }
 
-html, body {
+html,
+body {
   background: #ffffff;
   color: var(--foreground);
   font-family: var(--font-poppins), Arial, Helvetica, sans-serif;

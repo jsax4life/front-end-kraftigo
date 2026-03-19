@@ -358,7 +358,7 @@ export default function ArtisanVerificationPage() {
         />
         
         <div>
-           <label className="text-[14px] font-qurova text-gray-800 mb-2 block">Professional Bio</label>
+           <label className="text-[14px] font-mabry text-gray-800 mb-2 block">Professional Bio</label>
            <textarea 
             className="w-full h-32 px-4 py-3 bg-[#F6F6F6] rounded-xl border border-[#0000001A] outline-none text-[14px] font-poppins transition-all focus:ring-1 focus:ring-brand-orange"
             placeholder="Tell customers why you're the best for the job..."
@@ -384,7 +384,7 @@ export default function ArtisanVerificationPage() {
         />
 
         <div className="space-y-3">
-          <label className="text-[14px] font-qurova text-gray-800">Languages</label>
+          <label className="text-[14px] font-mabry text-gray-800">Languages</label>
           <div className="flex flex-wrap gap-2 mb-2">
             {formData.languages.map((lang, idx) => (
               <span key={idx} className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[12px] font-bold flex items-center gap-1 animate-in zoom-in-50">
@@ -421,7 +421,7 @@ export default function ArtisanVerificationPage() {
 
         <div className="space-y-4">
             <div className="flex justify-between items-center">
-                <label className="text-[14px] font-qurova text-gray-800">Travel Radius (Km)</label>
+                <label className="text-[14px] font-mabry text-gray-800">Travel Radius (Km)</label>
                 <span className="text-brand-orange font-bold font-gerat">{formData.travelRadiusKm} km</span>
             </div>
             <input 
@@ -484,7 +484,7 @@ export default function ArtisanVerificationPage() {
         />
 
         <div className="space-y-2">
-            <label className="text-[14px] font-qurova text-gray-800">Government ID Document</label>
+            <label className="text-[14px] font-mabry text-gray-800">Government ID Document</label>
             <div 
                 className="w-full aspect-video bg-[#F6F6F6] rounded-2xl border-2 border-dashed border-[#0000001A] flex flex-col items-center justify-center p-4 cursor-pointer hover:bg-gray-100 transition-colors group"
                 onClick={() => {
@@ -512,7 +512,7 @@ export default function ArtisanVerificationPage() {
         </div>
 
         <div className="space-y-2">
-            <label className="text-[14px] font-qurova text-gray-800">Secondary ID (Optional)</label>
+            <label className="text-[14px] font-mabry text-gray-800">Secondary ID (Optional)</label>
             <div 
                 className="w-full aspect-video bg-[#F6F6F6] rounded-2xl border-2 border-dashed border-[#0000001A] flex flex-col items-center justify-center p-4 cursor-pointer hover:bg-gray-100 transition-colors group"
                 onClick={() => {
@@ -565,7 +565,7 @@ export default function ArtisanVerificationPage() {
         />
 
         <div className="space-y-3">
-          <label className="text-[14px] font-qurova text-gray-800">Secondary Skills</label>
+          <label className="text-[14px] font-mabry text-gray-800">Secondary Skills</label>
           <div className="flex flex-wrap gap-2 mb-2">
             {formData.secondarySkills.map((skill, idx) => (
               <span key={idx} className="px-3 py-1 bg-orange-50 text-orange-600 rounded-full text-[12px] font-bold flex items-center gap-1 animate-in zoom-in-50">
@@ -601,13 +601,9 @@ export default function ArtisanVerificationPage() {
         </div>
 
         <div className="space-y-4">
-            <label className="text-[14px] font-qurova text-gray-800">Are you working as:</label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {[
-                  { id: 'SELF_EMPLOYED', label: 'Self Employed' },
-                  { id: 'FREELANCING', label: 'Freelancer' },
-                  { id: 'REGISTERED_BUSINESS', label: 'Registered Business' }
-                ].map((option) => (
+            <label className="text-[14px] font-mabry text-gray-800">Employment Status</label>
+            <div className="grid grid-cols-2 gap-3">
+                {['SELF_EMPLOYED', 'FREELANCING'].map((status) => (
                     <button
                         key={option.id}
                         onClick={() => handleInputChange('employmentStatus', option.id)}
@@ -661,7 +657,7 @@ export default function ArtisanVerificationPage() {
 
         <div className="space-y-4">
             <div className="flex items-center justify-between">
-                <label className="text-[14px] font-qurova text-gray-800">Certification</label>
+                <label className="text-[14px] font-mabry text-gray-800">Certification</label>
                 <button 
                     onClick={addCertification}
                     className="text-brand-orange flex items-center gap-1 text-[12px] font-bold hover:underline"
@@ -741,7 +737,7 @@ export default function ArtisanVerificationPage() {
       <div className="bg-white p-6 rounded-3xl border border-[#F2F4F7] space-y-6">
         <div className="space-y-4">
             <div className="flex items-center justify-between">
-                <label className="text-[14px] font-qurova text-gray-800">Skills & Rates</label>
+                <label className="text-[14px] font-mabry text-gray-800">Skills & Rates</label>
                 <button 
                     onClick={addSkillExpertise}
                     className="text-brand-orange flex items-center gap-1 text-[12px] font-bold hover:underline"
@@ -792,7 +788,7 @@ export default function ArtisanVerificationPage() {
         </div>
 
         <div className="space-y-3">
-            <label className="text-[14px] font-qurova text-gray-800">Unique Selling Point</label>
+            <label className="text-[14px] font-mabry text-gray-800">Unique Selling Point</label>
             <Input 
                 placeholder="What makes you stand out?" 
                 value={formData.uniqueSellingPoint}
@@ -801,7 +797,7 @@ export default function ArtisanVerificationPage() {
         </div>
 
         <div className="space-y-4">
-            <label className="text-[14px] font-qurova text-gray-800">Portfolio Photos</label>
+            <label className="text-[14px] font-mabry text-gray-800">Portfolio Photos</label>
             <div className="grid grid-cols-3 gap-2">
                 {formData.portfolioPreviews.map((src, idx) => (
                     <div key={idx} className="aspect-square rounded-xl relative group overflow-hidden border border-gray-100">

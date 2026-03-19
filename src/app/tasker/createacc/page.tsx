@@ -314,54 +314,33 @@ const Page = () => {
                 error={formData.password && !isStrongPassword(formData.password) ? "At least 8 characters, with letters and numbers" : ""}
                 required
               />
-              <div className="space-y-4 pt-4">
-                <label className="flex items-start gap-3 cursor-pointer group">
-                  <div className="mt-1 relative flex items-center justify-center">
-                    <input
-                      type="checkbox"
-                      checked={formData.term1Accepted}
-                      onChange={(e) =>
-                        handleInputChange("term1Accepted", e.target.checked)
-                      }
-                      className="peer h-5 w-5 cursor-pointer appearance-none rounded border-2 border-[#EAECF0] bg-white transition-all checked:border-brand-orange checked:bg-brand-orange"
-                    />
-                    <svg
-                      className="absolute h-3 w-3 text-white opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="3"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                  <span className="text-[13px] font-poppins text-[#667085] leading-tight">
-                    By continuing you accept the <span className="text-brand-orange font-semibold">terms and conditions</span>
+              <div>
+                <label className="flex items-start gap-3 cursor-pointer ">
+                  <input
+                    type="checkbox"
+                    checked={formData.term1Accepted}
+                    onChange={(e) =>
+                      handleInputChange("term1Accepted", e.target.checked)
+                    }
+                    className="w-5 h-5 mt-1 cursor-pointer shrink-0 appearance-none border border-brand-orange rounded checked:bg-brand-orange checked:border-brand-orange relative
+                  after:content-[''] after:absolute after:left-1.25 after:top-px after:w-1.5 after:h-2.5 after:border-white after:border-r-2 after:border-b-2 after:rotate-45 after:opacity-0 checked:after:opacity-100"
+                  />
+                  <span className="text-[13px] font-mabry text-gray-700 mt-2 lg:mt-2">
+                    By continuing you accept the terms and conditions
                   </span>
                 </label>
-                
-                <label className="flex items-start gap-3 cursor-pointer group">
-                  <div className="mt-1 relative flex items-center justify-center">
-                    <input
-                      type="checkbox"
-                      checked={formData.term2Accepted}
-                      onChange={(e) =>
-                        handleInputChange("term2Accepted", e.target.checked)
-                      }
-                      className="peer h-5 w-5 cursor-pointer appearance-none rounded border-2 border-[#EAECF0] bg-white transition-all checked:border-brand-orange checked:bg-brand-orange"
-                    />
-                    <svg
-                      className="absolute h-3 w-3 text-white opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="3"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                  <span className="text-[14px] font-poppins text-[#667085] leading-tight">
-                    By continuing you accept the <span className="text-brand-orange font-semibold">privacy policy</span>
+                <label className="flex items-start gap-3 cursor-pointer mt-1">
+                  <input
+                    type="checkbox"
+                    checked={formData.term2Accepted}
+                    onChange={(e) =>
+                      handleInputChange("term2Accepted", e.target.checked)
+                    }
+                    className="w-5 h-5 mt-1 cursor-pointer shrink-0 appearance-none border border-brand-orange rounded checked:bg-brand-orange checked:border-brand-orange relative
+                  after:content-[''] after:absolute after:left-1.25 after:top-px after:w-1.5 after:h-2.5 after:border-white after:border-r-2 after:border-b-2 after:rotate-45 after:opacity-0 checked:after:opacity-100"
+                  />
+                  <span className="text-[14px] font-mabry text-gray-700 mt-2 lg:mt-2">
+                    By continuing you accept the privacy policy
                   </span>
                 </label>
               </div>
@@ -432,7 +411,7 @@ const Page = () => {
               <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-2">
                 Take A Selfie
               </h1>
-              <p className="text-[14px] font-poppins text-gray-600 mb-8">
+              <p className="text-[14px] font-mabry text-gray-600 mb-8">
                 We use your selfie to compare with your passport photo
               </p>
 
@@ -541,7 +520,7 @@ const Page = () => {
             {currentStep === 6 && (
                <button
                  onClick={handleSkip}
-                 className="w-full text-center text-[14px] font-qurova text-gray-700 hover:text-brand-orange mt-4 py-2 font-bold transition-colors"
+                 className="w-full text-center text-[14px] font-mabry text-gray-700 hover:text-brand-orange mt-4 py-2 font-bold transition-colors"
                >
                  Skip
                </button>
@@ -553,7 +532,7 @@ const Page = () => {
                    console.log("Saving draft:", formData);
                    // Handle save draft logic here
                  }}
-                 className="w-full text-center text-[14px] font-qurova text-gray-700 hover:text-gray-900 mt-4 py-2"
+                 className="w-full text-center text-[14px] font-mabry text-gray-700 hover:text-gray-900 mt-4 py-2"
                >
                  Save draft
                </button>

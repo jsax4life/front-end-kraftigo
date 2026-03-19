@@ -170,7 +170,7 @@ const Page = () => {
                   <Button
                     variant="primary"
                     fullWidth
-                    className="font-qurova flex justify-center items-center gap-2"
+                    className="font-mabry flex justify-center items-center gap-2"
                     onClick={() => router.push(`/tasker/schedule?openJob=${nextTask.id}`)}
                   >
                     <Image
