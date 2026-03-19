@@ -1,4 +1,4 @@
-2import { create } from 'zustand'
+import { create } from 'zustand'
 import { ArtisanProfile, CustomerProfile } from '@/types'
 import api from '@/lib/axios'
 
@@ -21,9 +21,7 @@ interface ProfileState {
   // Verification Actions
   verificationStatus: any | null
   fetchVerificationStatus: () => Promise<void>
-  submitVerification: (formData: FormData) => Promise<any>
-  startKyc: () => Promise<{ verificationUrl: string }>
-  getProfilePhotoUploadUrl: (filename: string, mimetype: string, fileSize: number) => Promise<{ uploadUrl: string, fileKey: string, publicUrl: string }>
+  submitVerification: (formData: FormData) => Promise<void>
 
   clearProfileError: () => void
 }
@@ -140,44 +138,9 @@ export const useProfileStore = create<ProfileState>((set) => ({
         },
       })
       set({ verificationStatus: response.data, isLoading: false })
-      return response.data;
     } catch (error: any) {
       set({
         error: error.response?.data?.message || 'Failed to submit verification',
-        isLoading: false,
-      })
-      throw error
-    }
-  },
-
-  startKyc: async () => {
-    set({ isLoading: true, error: null })
-    try {
-      const response = await api.post('/api/verification/start')
-      set({ isLoading: false })
-      return response.data;
-    } catch (error: any) {
-      set({
-        error: error.response?.data?.message || 'Failed to start KYC verification',
-        isLoading: false,
-      })
-      throw error
-    }
-  },
-
-  getProfilePhotoUploadUrl: async (filename: string, mimetype: string, fileSize: number) => {
-    set({ isLoading: true, error: null })
-    try {
-      const response = await api.post('/api/profile/artisan/upload-photo', {
-        filename,
-        mimetype,
-        fileSize
-      })
-      set({ isLoading: false })
-      return response.data;
-    } catch (error: any) {
-      set({
-        error: error.response?.data?.message || 'Failed to get upload URL',
         isLoading: false,
       })
       throw error
