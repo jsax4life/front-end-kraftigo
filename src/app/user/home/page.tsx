@@ -9,6 +9,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useProfileStore } from "@/store/useProfileStore";
+import { useAuthPromptStore } from "@/store/useAuthPromptStore";
 
 const Page = () => {
   const categories = [
@@ -46,7 +47,16 @@ const Page = () => {
   ];
 
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
+  const { openPrompt } = useAuthPromptStore();
+  
+  const handleProtectedAction = (path: string) => {
+    if (!isAuthenticated) {
+      openPrompt();
+    } else {
+      router.push(path);
+    }
+  };
   const { customerProfile, fetchCustomerProfile } = useProfileStore();
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -54,7 +64,7 @@ const Page = () => {
   const [localName, setLocalName] = useState("");
 
   useEffect(() => {
-    if (!customerProfile) {
+    if (isAuthenticated && !customerProfile) {
       fetchCustomerProfile();
     }
     if (typeof window !== 'undefined') {
@@ -63,7 +73,7 @@ const Page = () => {
         setLocalName(storedName);
       }
     }
-  }, [customerProfile, fetchCustomerProfile]);
+  }, [isAuthenticated, customerProfile, fetchCustomerProfile]);
 
   const displayName = customerProfile?.fullName?.split(" ")[0] 
     || localName.split(" ")[0]
@@ -132,7 +142,7 @@ const Page = () => {
   const handleCustomKraft = () => {
     // Navigate to custom kraft request page
     console.log("Request custom kraft");
-    router.push("/user/home/custom-kraft");
+    handleProtectedAction("/user/home/custom-kraft");
   };
 
   return (
@@ -161,7 +171,7 @@ const Page = () => {
             {/* Avatar with Dashed Border */}
             <div 
               className="border-2 border-dashed border-brand-orange rounded-full w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center cursor-pointer shrink-0"
-              onClick={() => router.push("/user/profile")}
+              onClick={() => handleProtectedAction("/user/profile")}
             >
               <div className="relative w-[70px] h-[70px] sm:w-[84px] sm:h-[84px] rounded-full overflow-hidden bg-gray-50 flex items-center justify-center shadow-sm">
                 {avatar ? (
@@ -234,7 +244,7 @@ const Page = () => {
                       className="object-cover group-hover:scale-110 transition-transform duration-300"
                     />
                   </div>
-                  <p className="text-left text-[12px] sm:text-[14px] font-qurova font-semibold text-gray-800">
+                  <p className="text-left text-[12px] sm:text-[14px] font-mabry font-semibold text-gray-800">
                     {category.name}
                   </p>
                 </div>
@@ -365,7 +375,7 @@ const Page = () => {
                         <button
                           key={item.id}
                           onClick={() => {
-                            router.push(
+                            handleProtectedAction(
                               `/user/book-service?service=${encodeURIComponent(item.name)}`,
                             );
                             setShowSearchModal(false);
@@ -435,6 +445,12 @@ const Page = () => {
                     return (
                       <button
                         key={item.id}
+                        onClick={() => {
+                          handleProtectedAction(
+                            `/user/book-service?service=${encodeURIComponent(item.name)}`,
+                          );
+                          setShowSearchModal(false);
+                        }}
                         className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors"
                       >
                         <div

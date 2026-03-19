@@ -2,12 +2,21 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import Button from "@/components/ui/button";
 import TaskerLoad from "@/components/shared/taskerLoad";
+import { useAuthStore } from "@/store/useAuthStore";
 
 const Page = () => {
   const router = useRouter();
+  const { isAuthenticated } = useAuthStore();
   const isLoading = false;
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace("/tasker/dashboard");
+    }
+  }, [isAuthenticated, router]);
 
   return (
     <main className="relative w-full min-h-screen bg-white flex items-center justify-center">

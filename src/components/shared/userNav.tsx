@@ -2,10 +2,14 @@
 
 import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
+import { useAuthStore } from "@/store/useAuthStore";
+import { useAuthPromptStore } from "@/store/useAuthPromptStore";
 
 const UserNav = () => {
   const router = useRouter();
   const pathname = usePathname();
+  const { isAuthenticated } = useAuthStore();
+  const { openPrompt } = useAuthPromptStore();
 
   const navItems = [
     {
@@ -40,15 +44,24 @@ const UserNav = () => {
     },
   ];
 
+  const handleNavClick = (path: string) => {
+    // If user is not authenticated, only allow home
+    if (!isAuthenticated && path !== "/user/home" && path !== "/") {
+      openPrompt();
+    } else {
+      router.push(path);
+    }
+  };
+
   return (
     <nav className="fixed bottom-0 w-full md:max-w-[430px] h-[96px] bg-white border-t border-[#0000001A] z-50 left-1/2 -translate-x-1/2">
       <div className="flex items-end justify-between px-[20px] pb-[23px] w-full h-full gap-2">
         {navItems.map((item) => {
-          const isActive = pathname === item.path;
+          const isActive = pathname === item.path || (pathname === "/" && item.path === "/user/home");
           return (
             <button
               key={item.name}
-              onClick={() => router.push(item.path)}
+              onClick={() => handleNavClick(item.path)}
               className="flex flex-col items-center justify-end h-full w-[73px] gap-[8px] relative transition-colors"
             >
               {/* Top border indicator */}

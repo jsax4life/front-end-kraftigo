@@ -33,7 +33,7 @@ const Input = ({
 
   return (
     <div className={`flex flex-col gap-2 ${className}`}>
-      <label className="text-[14px] font-qurova text-gray-800">
+      <label className="text-[14px] font-mabry text-gray-800">
         {label}
         {required && <span className="text-red-500 ml-1">*</span>}
       </label>

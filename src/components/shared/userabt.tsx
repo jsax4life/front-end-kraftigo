@@ -1,21 +1,22 @@
 "use client";
 
-import { Headset, MapPin, ChevronDown, X, LogOut } from "lucide-react";
+import { Headset, MapPin, ChevronDown, X } from "lucide-react";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/store/useAuthStore";
 import { useProfileStore } from "@/store/useProfileStore";
 import Button from "@/components/ui/button";
-import toast from "react-hot-toast";
 import Select from "../ui/select";
 import ImageSelect from "../ui/ImageSelect";
 import AddressModal from "./AddressModal";
 import { useAddressStore } from "@/store/useAddressStore";
+import { useAuthStore } from "@/store/useAuthStore";
+import { useAuthPromptStore } from "@/store/useAuthPromptStore";
 
 const Userabt = () => {
   const router = useRouter();
-  const { logout, user } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
+  const { openPrompt } = useAuthPromptStore();
   const { customerProfile, fetchCustomerProfile } = useProfileStore();
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
@@ -23,10 +24,10 @@ const Userabt = () => {
   const [currency, setCurrency] = useState("USD");
 
   useEffect(() => {
-    if (!customerProfile) {
+    if (isAuthenticated && !customerProfile) {
       fetchCustomerProfile();
     }
-  }, [customerProfile, fetchCustomerProfile]);
+  }, [isAuthenticated, customerProfile, fetchCustomerProfile]);
 
   // Address store
   const {
@@ -40,31 +41,26 @@ const Userabt = () => {
     loadAddresses,
   } = useAddressStore();
 
-  const currentAddress = customerProfile?.serviceAddress 
-    ? `${customerProfile.serviceAddress.street}, ${customerProfile.serviceAddress.city}` 
+  const currentAddress = customerProfile?.serviceAddress
+    ? `${customerProfile.serviceAddress.street}, ${customerProfile.serviceAddress.city}`
     : storeAddress;
 
   // Ensure we have the latest addresses from backend on mount
   useEffect(() => {
-    loadAddresses();
-  }, [loadAddresses]);
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-      toast.success("Logged out successfully");
-      router.push("/user/login");
-    } catch (error) {
-      toast.error("Logout failed");
+    if (isAuthenticated) {
+      loadAddresses();
     }
-  };
+  }, [isAuthenticated, loadAddresses]);
 
   return (
     <>
       <div className="flex items-center justify-between py-2">
         <div
           className="flex items-center gap-2 text-[13px] sm:text-[14px] font-poppins cursor-pointer flex-1 min-w-0"
-          onClick={() => setShowAddressModal(true)}
+          onClick={() => {
+            if (!isAuthenticated) openPrompt();
+            else setShowAddressModal(true);
+          }}
         >
           <MapPin size={16} className="text-gray-600 shrink-0" />
           <span className="text-gray-800 truncate">{currentAddress}</span>
@@ -73,7 +69,13 @@ const Userabt = () => {
 
         <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-4">
           <Image
-            src={language === "de" ? "/flag-de.svg" : language === "fr" ? "/flag-fr.svg" : "/flag-en.svg"}
+            src={
+              language === "de"
+                ? "/flag-de.svg"
+                : language === "fr"
+                  ? "/flag-fr.svg"
+                  : "/flag-en.svg"
+            }
             alt="flag"
             width={40}
             height={40}
@@ -81,21 +83,16 @@ const Userabt = () => {
             onClick={() => setShowLanguageModal(true)}
           />
 
-          <div 
-            className="relative bg-[#F2F2F2] p-2 rounded-full cursor-pointer" 
-            onClick={() => router.push("/user/support")}
+          <div
+            className="relative bg-[#F2F2F2] p-2 rounded-full cursor-pointer"
+            onClick={() => {
+              if (!isAuthenticated) openPrompt();
+              else router.push("/user/support");
+            }}
           >
             <Headset size={22} className="sm:w-6 sm:h-6 lg:w-7 lg:h-7" />
             <div className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></div>
           </div>
-
-          <button 
-            onClick={handleLogout}
-            className="bg-red-50 p-2 rounded-full text-[#F04438] hover:bg-red-100 transition-colors"
-            title="Sign Out"
-          >
-            <LogOut size={20} />
-          </button>
         </div>
       </div>
 
@@ -121,11 +118,11 @@ const Userabt = () => {
 
       {/* Language Modal */}
       {showLanguageModal && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-60 flex items-end"
           onClick={() => setShowLanguageModal(false)}
         >
-          <div 
+          <div
             className="bg-white rounded-t-3xl w-full sm:max-w-md mx-auto max-h-[70vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
@@ -150,7 +147,11 @@ const Userabt = () => {
                   onChange={(val) => setLanguage(val)}
                   options={[
                     { value: "en", label: "English", image: "/flag-en.svg" },
-                    { value: "de", label: "German (Deutsch)", image: "/flag-de.svg" },
+                    {
+                      value: "de",
+                      label: "German (Deutsch)",
+                      image: "/flag-de.svg",
+                    },
                     { value: "fr", label: "French", image: "/flag-fr.svg" },
                   ]}
                   required

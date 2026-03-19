@@ -361,7 +361,7 @@ const Page = () => {
                     className="w-5 h-5 mt-1 cursor-pointer shrink-0 appearance-none border border-brand-orange rounded checked:bg-brand-orange checked:border-brand-orange relative
                   after:content-[''] after:absolute after:left-1.25 after:top-px after:w-1.5 after:h-2.5 after:border-white after:border-r-2 after:border-b-2 after:rotate-45 after:opacity-0 checked:after:opacity-100"
                   />
-                  <span className="text-[13px] font-qurova text-gray-700 mt-2 lg:mt-2">
+                  <span className="text-[13px] font-mabry text-gray-700 mt-2 lg:mt-2">
                     By continuing you accept the terms and conditions
                   </span>
                 </label>
@@ -375,7 +375,7 @@ const Page = () => {
                     className="w-5 h-5 mt-1 cursor-pointer shrink-0 appearance-none border border-brand-orange rounded checked:bg-brand-orange checked:border-brand-orange relative
                   after:content-[''] after:absolute after:left-1.25 after:top-px after:w-1.5 after:h-2.5 after:border-white after:border-r-2 after:border-b-2 after:rotate-45 after:opacity-0 checked:after:opacity-100"
                   />
-                  <span className="text-[14px] font-qurova text-gray-700 mt-2 lg:mt-2">
+                  <span className="text-[14px] font-mabry text-gray-700 mt-2 lg:mt-2">
                     By continuing you accept the privacy policy
                   </span>
                 </label>
@@ -549,7 +549,7 @@ const Page = () => {
               <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-2">
                 Add up your selfie to your profile
               </h1>
-              <p className="text-[14px] font-qurova text-gray-600 mb-8">
+              <p className="text-[14px] font-mabry text-gray-600 mb-8">
                 We use your selfie to compare with your passport photo
               </p>
 
@@ -645,7 +645,7 @@ const Page = () => {
             {currentStep === 6 && (
                <button
                  onClick={handleSkip}
-                 className="w-full text-center text-[14px] font-qurova text-gray-700 hover:text-brand-orange mt-4 py-2 font-bold transition-colors"
+                 className="w-full text-center text-[14px] font-mabry text-gray-700 hover:text-brand-orange mt-4 py-2 font-bold transition-colors"
                >
                  Skip
                </button>
@@ -657,7 +657,7 @@ const Page = () => {
                    console.log("Saving draft:", formData);
                    // Handle save draft logic here
                  }}
-                 className="w-full text-center text-[14px] font-qurova text-gray-700 hover:text-gray-900 mt-4 py-2"
+                 className="w-full text-center text-[14px] font-mabry text-gray-700 hover:text-gray-900 mt-4 py-2"
                >
                  Save draft
                </button>

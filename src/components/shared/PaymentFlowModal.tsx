@@ -3,7 +3,12 @@
 import { ArrowLeft, X, ChevronRight, Lock } from "lucide-react";
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import {
+  Elements,
+  PaymentElement,
+  useStripe,
+  useElements,
+} from "@stripe/react-stripe-js";
 import toast from "react-hot-toast";
 import { usePaymentStore } from "@/store/usePaymentStore";
 import stripePromise from "@/lib/stripe";
@@ -12,19 +17,6 @@ interface PaymentFlowModalProps {
   onClose: () => void;
 }
 
-// ─── Card Element appearance ───────────────────────────────────────────────────
-const CARD_ELEMENT_OPTIONS = {
-  style: {
-    base: {
-      fontSize: "15px",
-      fontFamily: "'Poppins', sans-serif",
-      color: "#111827",
-      "::placeholder": { color: "#9CA3AF" },
-    },
-    invalid: { color: "#EF4444" },
-  },
-};
-
 // ─── Inner form — must be a child of <Elements> ────────────────────────────────
 interface StripeCardFormProps {
   clientSecret: string;
@@ -32,7 +24,11 @@ interface StripeCardFormProps {
   onCancel: () => void;
 }
 
-const StripeCardForm = ({ clientSecret, onSuccess, onCancel }: StripeCardFormProps) => {
+const StripeCardForm = ({
+  clientSecret,
+  onSuccess,
+  onCancel,
+}: StripeCardFormProps) => {
   const stripe = useStripe();
   const elements = useElements();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -40,8 +36,6 @@ const StripeCardForm = ({ clientSecret, onSuccess, onCancel }: StripeCardFormPro
 
   const handleDone = async () => {
     if (!stripe || !elements) return;
-    const cardElement = elements.getElement(CardElement);
-    if (!cardElement) return;
 
     if (!nameOnCard.trim()) {
       toast.error("Please enter the name on card");
@@ -50,11 +44,16 @@ const StripeCardForm = ({ clientSecret, onSuccess, onCancel }: StripeCardFormPro
 
     setIsSubmitting(true);
     try {
-      const { error, setupIntent } = await stripe.confirmCardSetup(clientSecret, {
-        payment_method: {
-          card: cardElement,
-          billing_details: { name: nameOnCard },
+      // 2. USE confirmSetup instead of confirmCardSetup
+      const { error, setupIntent } = await stripe.confirmSetup({
+        elements,
+        confirmParams: {
+          payment_method_data: {
+            billing_details: { name: nameOnCard },
+          },
         },
+        // IMPORTANT: prevents Stripe from redirecting the user to a new URL
+        redirect: "if_required",
       });
 
       if (error) {
@@ -82,7 +81,7 @@ const StripeCardForm = ({ clientSecret, onSuccess, onCancel }: StripeCardFormPro
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-[18px] sm:text-[20px] font-poppins font-bold">
-          Add Debit/Credit Card
+          Add Payment Method
         </h3>
         <button
           onClick={onCancel}
@@ -94,7 +93,7 @@ const StripeCardForm = ({ clientSecret, onSuccess, onCancel }: StripeCardFormPro
 
       {/* Form */}
       <div className="flex-1 overflow-y-auto no-scrollbar space-y-6">
-        {/* Name on card */}
+        {/* Name on card (Kept custom to match your UI) */}
         <div>
           <label className="block text-[14px] font-poppins font-bold text-gray-900 mb-2">
             Name on Card
@@ -108,15 +107,16 @@ const StripeCardForm = ({ clientSecret, onSuccess, onCancel }: StripeCardFormPro
           />
         </div>
 
-        {/* Stripe Card Element */}
+        {/* 3. USE PaymentElement instead of CardElement */}
         <div>
           <label className="block text-[14px] font-poppins font-bold text-gray-900 mb-2">
             Card Details
           </label>
-          <div className="w-full p-4 border border-gray-200 rounded-xl bg-[#FAFAFA] focus-within:border-brand-orange transition-colors">
-            <CardElement options={CARD_ELEMENT_OPTIONS} />
+          {/* Note: Removed the custom border from this div, as the appearance API handles it now */}
+          <div className="w-full">
+            <PaymentElement options={{ layout: "tabs" }} />
           </div>
-          <p className="text-[12px] font-poppins text-gray-400 mt-2 flex items-center gap-1">
+          <p className="text-[12px] font-poppins text-gray-400 mt-4 flex items-center gap-1">
             <Lock size={12} />
             Secured by Stripe. We never store your card details.
           </p>
@@ -160,10 +160,8 @@ const PaymentFlowModal = ({ onClose }: PaymentFlowModalProps) => {
     fetchSavedMethods();
   }, [fetchSavedMethods]);
 
-  // ─── Open Stripe card form ────────────────────────────────────────────────
   const handleOpenCardForm = async () => {
     setShowAddMethod(false);
-    // Backend requires a unique idempotency key to prevent duplicate SetupIntents
     const idempotencyKey = `card-setup-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
     const result = await initiateSaveCard(idempotencyKey);
     if (result?.clientSecret) {
@@ -172,36 +170,69 @@ const PaymentFlowModal = ({ onClose }: PaymentFlowModalProps) => {
     }
   };
 
-  // ─── After Stripe confirms the card ──────────────────────────────────────
   const handleCardSuccess = async (paymentMethodId: string) => {
     const isFirst = savedMethods.length === 0;
     const ok = await persistPaymentMethod(paymentMethodId, isFirst);
     if (ok) {
       toast.success("Card saved successfully!");
-      await fetchSavedMethods(); // refresh list
+      await fetchSavedMethods();
       if (isFirst) selectPayment(paymentMethodId);
     }
     setShowStripeCard(false);
     setClientSecret(null);
   };
 
-  // ─── Delete a saved method ────────────────────────────────────────────────
   const handleDelete = async (id: string) => {
     const ok = await removeSavedMethod(id);
     if (ok) toast.success("Payment method removed");
   };
 
-  // ─── Brand logo helper ────────────────────────────────────────────────────
   const cardBrand = (brand: string) => {
     const b = brand.toLowerCase();
-    if (b === "visa") return <span className="text-[13px] font-poppins font-bold text-[#1A1F71]">VISA</span>;
-    if (b === "mastercard") return (
-      <div className="relative w-8 h-5 flex items-center">
-        <div className="w-4.5 h-4.5 rounded-full bg-[#EB001B] absolute left-0 opacity-90" />
-        <div className="w-4.5 h-4.5 rounded-full bg-[#F79E1B] absolute left-2.5 opacity-90 mix-blend-multiply" />
-      </div>
+    if (b === "visa")
+      return (
+        <span className="text-[13px] font-poppins font-bold text-[#1A1F71]">
+          VISA
+        </span>
+      );
+    if (b === "mastercard")
+      return (
+        <div className="relative w-8 h-5 flex items-center">
+          <div className="w-4.5 h-4.5 rounded-full bg-[#EB001B] absolute left-0 opacity-90" />
+          <div className="w-4.5 h-4.5 rounded-full bg-[#F79E1B] absolute left-2.5 opacity-90 mix-blend-multiply" />
+        </div>
+      );
+    return (
+      <span className="text-[12px] font-poppins text-gray-600 capitalize">
+        {brand}
+      </span>
     );
-    return <span className="text-[12px] font-poppins text-gray-600 capitalize">{brand}</span>;
+  };
+
+  // 4. STRIPE APPEARANCE CONFIGURATION (Matches your Tailwind UI)
+  const stripeOptions = {
+    clientSecret: clientSecret || "",
+    appearance: {
+      theme: "stripe" as const,
+      variables: {
+        fontFamily: "'Poppins', sans-serif",
+        colorPrimary: "#f97316", // brand-orange
+        colorBackground: "#FAFAFA", // matches your bg-[#FAFAFA]
+        colorText: "#111827",
+        colorDanger: "#EF4444",
+        borderRadius: "12px", // rounded-xl
+      },
+      rules: {
+        ".Input": {
+          border: "1px solid #E5E7EB", // border-gray-200
+          padding: "16px", // p-4
+          boxShadow: "none",
+        },
+        ".Input:focus": {
+          border: "1px solid #f97316", // focus-within:border-brand-orange
+        },
+      },
+    },
   };
 
   return (
@@ -211,8 +242,10 @@ const PaymentFlowModal = ({ onClose }: PaymentFlowModalProps) => {
         <button
           type="button"
           onClick={() => {
-            if (showStripeCard) { setShowStripeCard(false); setClientSecret(null); }
-            else if (showAddMethod) setShowAddMethod(false);
+            if (showStripeCard) {
+              setShowStripeCard(false);
+              setClientSecret(null);
+            } else if (showAddMethod) setShowAddMethod(false);
             else onClose();
           }}
           className="text-gray-900 p-2 -ml-2 hover:bg-gray-100 rounded-full transition-colors"
@@ -248,55 +281,95 @@ const PaymentFlowModal = ({ onClose }: PaymentFlowModalProps) => {
         </>
       ) : (
         <div className="flex-1 px-4 mt-4 overflow-y-auto no-scrollbar pb-32">
-          <h3 className="text-[14px] sm:text-[15px] font-qurova font-bold text-gray-900 mb-4 px-1">
+          <h3 className="text-[14px] sm:text-[15px] font-mabry font-bold text-gray-900 mb-4 px-1">
             Saved Payment Methods
           </h3>
           <div className="space-y-4">
-            {savedMethods.map((method) => (
-              <div
-                key={method.id}
-                onClick={() => selectPayment(method.id)}
-                className={`p-5 rounded-xl border cursor-pointer transition-colors ${
-                  selectedPaymentId === method.id
-                    ? "bg-[#F8F9FA] border-gray-300"
-                    : "bg-white border-gray-200 hover:border-gray-300"
-                }`}
-              >
-                <div className="flex justify-between items-start mb-3">
-                  {/* Brand logo */}
-                  <div>{method.card ? cardBrand(method.card.brand) : <span className="text-[13px] font-poppins text-gray-600 capitalize">{method.type}</span>}</div>
+            {savedMethods.map((method) => {
+              // Extract data safely
+              const cardData =
+                method.card ||
+                (method as any).details ||
+                (method as any).paymentMethod?.card ||
+                ((method as any).brand ? method : null);
+              const brand = (
+                cardData?.brand ||
+                (method as any).cardBrand ||
+                ""
+              ).toLowerCase();
+              const last4 =
+                cardData?.last4 ||
+                cardData?.number?.slice(-4) ||
+                (method as any).cardLast4 ||
+                "****";
 
-                  {/* Radio */}
-                  <div className={`w-5.5 h-5.5 rounded-full border-2 flex items-center justify-center shrink-0 ${selectedPaymentId === method.id ? "border-black" : "border-gray-300"}`}>
-                    {selectedPaymentId === method.id && <div className="w-2.5 h-2.5 bg-black rounded-full" />}
+              // Get name and address
+              const holderName =
+                cardData?.holder ||
+                cardData?.name ||
+                (method as any).name ||
+                (method as any).billingDetails?.name ||
+                "John Doe";
+
+              return (
+                <div
+                  key={method.id}
+                  onClick={() => selectPayment(method.id)}
+                  className={`relative p-5 rounded-2xl border transition-all cursor-pointer ${
+                    selectedPaymentId === method.id
+                      ? "bg-[#F4F4F5] border-gray-300" // Matches the light gray background in your image
+                      : "bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                  }`}
+                >
+                  {/* Top Row: Logo & Radio Button */}
+                  <div className="flex justify-between items-start mb-4">
+                    {/* Logo Badge (White background container) */}
+                    <div className="bg-white w-[42px] h-[28px] rounded flex items-center justify-center shadow-sm border border-gray-100">
+                      {brand === "mastercard" ? (
+                        <div className="flex items-center">
+                          <div className="w-3.5 h-3.5 rounded-full bg-[#EB001B] opacity-90" />
+                          <div className="w-3.5 h-3.5 rounded-full bg-[#F79E1B] opacity-90 -ml-1.5 mix-blend-multiply" />
+                        </div>
+                      ) : brand === "visa" ? (
+                        <span className="text-[12px] font-bold text-[#1A1F71] italic tracking-tight">
+                          VISA
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold text-gray-600 uppercase tracking-wider">
+                          {brand || "Card"}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Custom Radio Button */}
+                    <div
+                      className={`w-[22px] h-[22px] rounded-full border-[2px] flex items-center justify-center shrink-0 transition-colors ${
+                        selectedPaymentId === method.id
+                          ? "border-black"
+                          : "border-gray-400"
+                      }`}
+                    >
+                      {selectedPaymentId === method.id && (
+                        <div className="w-2.5 h-2.5 bg-black rounded-full" />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Bottom Details Row */}
+                  <div className="flex flex-col gap-1.5">
+                    {/* Name */}
+                    <h4 className="font-poppins font-bold text-[16px] text-gray-900 leading-none">
+                      {holderName}
+                    </h4>
+
+                    {/* Card Number */}
+                    <p className="font-poppins text-[15px] text-gray-800 tracking-widest mt-1 leading-none">
+                      **** **** **** {last4}
+                    </p>
                   </div>
                 </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    {method.card && (
-                      <>
-                        <p className="font-qurova font-bold text-[15px] text-gray-900">
-                          •••• •••• •••• {method.card.last4}
-                        </p>
-                        <p className="text-[12px] font-poppins text-gray-500 mt-0.5">
-                          Expires {method.card.expMonth}/{method.card.expYear}
-                        </p>
-                      </>
-                    )}
-                    {method.isDefault && (
-                      <span className="text-[11px] font-poppins font-semibold text-brand-orange mt-1 block">Default</span>
-                    )}
-                  </div>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleDelete(method.id); }}
-                    className="text-red-400 text-[13px] font-poppins hover:text-red-600 transition-colors"
-                  >
-                    Remove
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="mt-8">
@@ -313,13 +386,19 @@ const PaymentFlowModal = ({ onClose }: PaymentFlowModalProps) => {
       {/* ── Add Payment Method Bottom Sheet ── */}
       {showAddMethod && (
         <div className="fixed inset-0 z-110 flex flex-col justify-end animate-in fade-in duration-200">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setShowAddMethod(false)} />
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setShowAddMethod(false)}
+          />
           <div className="relative bg-white w-full h-[90vh] rounded-t-2xl p-4 sm:p-6 pb-8 animate-in slide-in-from-bottom-full duration-300">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-[18px] sm:text-[20px] font-poppins font-bold">
                 Add a Payment Method
               </h3>
-              <button onClick={() => setShowAddMethod(false)} className="text-gray-400 hover:text-gray-600 p-2 -mr-2">
+              <button
+                onClick={() => setShowAddMethod(false)}
+                className="text-gray-400 hover:text-gray-600 p-2 -mr-2"
+              >
                 <X size={24} strokeWidth={3} />
               </button>
             </div>
@@ -329,40 +408,29 @@ const PaymentFlowModal = ({ onClose }: PaymentFlowModalProps) => {
                 onClick={handleOpenCardForm}
                 className="w-full flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-gray-400 transition-colors bg-white"
               >
-                <span className="font-poppins text-[14px] sm:text-[15px] text-gray-800">Debit/Credit Card</span>
+                <span className="font-poppins text-[14px] sm:text-[15px] text-gray-800">
+                  Debit/Credit Card
+                </span>
                 <ChevronRight className="text-gray-400" size={20} />
               </button>
-
-              {/* SEPA — stub */}
               <button className="w-full flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-gray-400 transition-colors bg-white opacity-50 cursor-not-allowed">
-                <span className="font-poppins text-[14px] sm:text-[15px] text-gray-800">SEPA Direct Debit</span>
+                <span className="font-poppins text-[14px] sm:text-[15px] text-gray-800">
+                  SEPA Direct Debit
+                </span>
                 <ChevronRight className="text-gray-400" size={20} />
               </button>
-
-              {/* PayPal */}
               <button
-                onClick={() => { setShowAddMethod(false); setShowAddPaypal(true); }}
+                onClick={() => {
+                  setShowAddMethod(false);
+                  setShowAddPaypal(true);
+                }}
                 className="w-full flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-gray-400 transition-colors bg-white"
               >
-                <span className="font-poppins text-[14px] sm:text-[15px] text-gray-800">PayPal</span>
+                <span className="font-poppins text-[14px] sm:text-[15px] text-gray-800">
+                  PayPal
+                </span>
                 <ChevronRight className="text-gray-400" size={20} />
               </button>
-
-              {/* Google Pay — stub */}
-              <button className="w-full flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-gray-400 transition-colors bg-white opacity-50 cursor-not-allowed">
-                <div className="flex items-center gap-2">
-                  <Image src="/google2.svg" alt="Google Pay" width={50} height={20} className="h-4 w-auto object-contain" />
-                  <span className="font-poppins text-[14px] sm:text-[15px] text-gray-800">Pay</span>
-                </div>
-                <ChevronRight className="text-gray-400" size={20} />
-              </button>
-            </div>
-
-            <div className="flex items-start justify-center gap-2 mt-8 px-4">
-              <Lock size={16} className="text-gray-600 shrink-0 mt-0.5" />
-              <p className="font-poppins text-gray-600 text-[12px] sm:text-[13px] text-center max-w-xs leading-relaxed">
-                Your payment details are encrypted and never shared with Krafters.
-              </p>
             </div>
           </div>
         </div>
@@ -371,43 +439,24 @@ const PaymentFlowModal = ({ onClose }: PaymentFlowModalProps) => {
       {/* ── Stripe Card Entry Bottom Sheet ── */}
       {showStripeCard && clientSecret && (
         <div className="fixed inset-0 z-120 flex flex-col justify-end animate-in fade-in duration-200">
-          <div className="absolute inset-0 bg-black/40" onClick={() => { setShowStripeCard(false); setClientSecret(null); }} />
-          <Elements stripe={stripePromise} options={{ clientSecret }}>
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => {
+              setShowStripeCard(false);
+              setClientSecret(null);
+            }}
+          />
+          {/* 5. APPLY STRIPE OPTIONS HERE */}
+          <Elements stripe={stripePromise} options={stripeOptions}>
             <StripeCardForm
               clientSecret={clientSecret}
               onSuccess={handleCardSuccess}
-              onCancel={() => { setShowStripeCard(false); setClientSecret(null); }}
+              onCancel={() => {
+                setShowStripeCard(false);
+                setClientSecret(null);
+              }}
             />
           </Elements>
-        </div>
-      )}
-
-      {/* ── PayPal stub ── */}
-      {showAddPaypal && (
-        <div className="fixed inset-0 z-120 flex flex-col justify-end animate-in fade-in duration-200">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setShowAddPaypal(false)} />
-          <div className="relative bg-white w-full h-[90vh] rounded-t-2xl p-4 sm:p-6 pb-8 animate-in slide-in-from-bottom-full duration-300 flex flex-col">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-[18px] sm:text-[20px] font-poppins font-medium">Connect Paypal</h3>
-              <button onClick={() => setShowAddPaypal(false)} className="text-gray-400 hover:text-gray-600 p-2 -mr-2">
-                <X size={24} strokeWidth={3} />
-              </button>
-            </div>
-            <div className="flex-1 flex flex-col items-center justify-center -mt-20">
-              <div className="flex flex-col items-center gap-1">
-                <Image src="/craft.svg" alt="Kraftigo" width={100} height={35} className="w-30 h-auto mb-2" />
-                <div className="flex flex-col items-center py-2 h-16 w-10">
-                  <div className="w-0.5 h-4 bg-brand-orange border-l border-brand-orange border-dashed" />
-                  <div className="relative flex items-center justify-center w-6 h-6 my-1">
-                    <div className="absolute inset-0 border-[3px] border-brand-orange rounded-full" />
-                  </div>
-                  <div className="w-0.5 h-4 bg-brand-orange border-l border-brand-orange border-dashed" />
-                </div>
-                <Image src="/paypal.svg" alt="PayPal" width={100} height={25} className="w-25 h-auto mt-2" />
-              </div>
-              <p className="font-poppins text-[13px] text-gray-500 mt-10">Launching PayPal…</p>
-            </div>
-          </div>
         </div>
       )}
     </div>

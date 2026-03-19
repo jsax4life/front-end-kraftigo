@@ -1,12 +1,24 @@
 "use client";
 
 import { Check, Calendar, Clock, MapPin } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 
-const Page = () => {
+const ConfirmationContent = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isPublic = searchParams.get("isPublic") === "true";
+  const categoryName = searchParams.get("category") || "Service";
+  const address = searchParams.get("address")
+  const rawDate = searchParams.get("date") || "";
+  const rawTime = searchParams.get("time")
+
+  const parsedDate = new Date(rawDate);
+  const formattedDisplayDate = !isNaN(parsedDate.getTime()) 
+    ? new Intl.DateTimeFormat('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }).format(parsedDate)
+    : "Oct 24, 2023";
+
   const [particles, setParticles] = useState<
     Array<{
       id: number;
@@ -81,65 +93,69 @@ const Page = () => {
         {/* Success Message */}
         <div className="text-center mb-8">
           <h1 className="text-[28px] sm:text-[32px] font-gerat font-bold mb-3">
-            Booking Confirmed
+            {isPublic ? "Task Posted Successfully" : "Booking Confirmed"}
           </h1>
           <p className="text-[14px] sm:text-[15px] font-poppins text-gray-600">
-            You&apos;ve successfully booked Alex for your house cleaning service
+            {isPublic 
+              ? `You've successfully posted your ${categoryName} task to the marketplace.` 
+              : `You've successfully booked Edith for your ${categoryName} service.`}
           </p>
         </div>
 
-        {/* Artisan Card */}
-        <div className="bg-[#F9F9F9] border border-[#0000001A] rounded-xl p-4 mb-6 shadow-sm">
-          <div className="flex items-start gap-4">
-            <div className="relative">
-              <Image
-                src="/images/pro.jpg"
-                alt="Edith Ropalanum"
-                width={60}
-                height={60}
-                className="w-20 h-20 rounded-lg object-cover"
-              />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-2">
-                <h3 className="text-[16px] sm:text-[17px] font-poppins font-bold text-gray-900">
-                  Edith Ropalanum.
-                </h3>
-                <span className="bg-[#E8F5E9] text-[#2E7D32] text-[10px] font-poppins font-semibold px-2 py-0.5 rounded">
-                  TOP PRO
-                </span>
+        {/* Artisan Card - Only show if not a public post */}
+        {!isPublic && (
+          <div className="bg-[#F9F9F9] border border-[#0000001A] rounded-xl p-4 mb-6 shadow-sm">
+            <div className="flex items-start gap-4">
+              <div className="relative">
+                <Image
+                  src="/images/pro.jpg"
+                  alt="Edith Ropalanum"
+                  width={60}
+                  height={60}
+                  className="w-20 h-20 rounded-lg object-cover"
+                />
               </div>
-              <div className="flex items-center gap-2 mb-2">
-                <div className="flex items-center gap-1">
-                  {[1, 2, 3, 4].map((star) => (
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="text-[16px] sm:text-[17px] font-poppins font-bold text-gray-900">
+                    Edith Ropalanum.
+                  </h3>
+                  <span className="bg-[#E8F5E9] text-[#2E7D32] text-[10px] font-poppins font-semibold px-2 py-0.5 rounded">
+                    TOP PRO
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3, 4].map((star) => (
+                      <svg
+                        key={star}
+                        className="w-4 h-4 text-blue-600 fill-current"
+                        viewBox="0 0 20 20"
+                      >
+                        <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+                      </svg>
+                    ))}
                     <svg
-                      key={star}
-                      className="w-4 h-4 text-blue-600 fill-current"
+                      className="w-4 h-4 text-gray-300 fill-current"
                       viewBox="0 0 20 20"
                     >
                       <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
                     </svg>
-                  ))}
-                  <svg
-                    className="w-4 h-4 text-gray-300 fill-current"
-                    viewBox="0 0 20 20"
-                  >
-                    <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
-                  </svg>
+                  </div>
+                  <span className="text-[13px] font-poppins text-gray-600">
+                    (23 reviews)
+                  </span>
+                  <span className="text-[13px] font-poppins text-gray-600">
+                    72 Krafts
+                  </span>
                 </div>
-                <span className="text-[13px] font-poppins text-gray-600">
-                  (23 reviews)
-                </span>
-                <span className="text-[13px] font-poppins text-gray-600">
-                  72 Krafts
+                <span className="inline-block bg-[#FFF9C4] text-[#F57F17] text-[10px] font-poppins font-semibold px-2 py-1 rounded">
+                  NEW KRAFTER
                 </span>
               </div>
-              <span className="inline-block bg-[#FFF9C4] text-[#F57F17] text-[10px] font-poppins font-semibold px-2 py-1 rounded">
-                NEW KRAFTER
-              </span>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Booking Details */}
         <div className="space-y-4 mb-6 grid grid-cols-2">
@@ -148,7 +164,7 @@ const Page = () => {
             <Calendar size={20} className="text-gray-700" />
             <div>
               <p className="text-[13px] font-poppins text-gray-600">
-                Oct 24, 2023
+                {formattedDisplayDate}
               </p>
               <p className="text-[15px] sm:text-[16px] font-poppins font-semibold text-gray-900">
                 Scheduled Date
@@ -161,7 +177,7 @@ const Page = () => {
             <Clock size={20} className="text-gray-700" />
             <div>
               <p className="text-[13px] font-poppins text-gray-600">
-                2:00 PM - 4:00 PM
+                {rawTime}
               </p>
               <p className="text-[15px] sm:text-[16px] font-poppins font-semibold text-gray-900">
                 Estimated Window
@@ -174,7 +190,7 @@ const Page = () => {
             <MapPin size={20} className="text-gray-700" />
             <div>
               <p className="text-[13px] font-poppins text-gray-600">
-                123 Maple Street
+                {address}
               </p>
               <p className="text-[15px] sm:text-[16px] font-poppins font-semibold text-gray-900">
                 Service Address
@@ -201,12 +217,14 @@ const Page = () => {
 
         {/* Action Buttons */}
         <div className="space-y-3 mb-6 mt-7">
-          <button
-            onClick={handleMessageKrafter}
-            className="text-[16px] sm:text-[17px] w-full py-3 bg-brand-orange text-white  font-poppins  rounded-xl hover: transition-colors  "
-          >
-            Message Krafter
-          </button>
+          {!isPublic && (
+            <button
+              onClick={handleMessageKrafter}
+              className="text-[16px] sm:text-[17px] w-full py-3 bg-brand-orange text-white  font-poppins  rounded-xl hover: transition-colors  "
+            >
+              Message Krafter
+            </button>
+          )}
           <button
             onClick={handleViewDetails}
             className="w-full py-3 bg-[#0000FF] text-white text-[16px] sm:text-[17px] font-poppins rounded-xl hover:bg-blue-700 transition-colors"
@@ -216,12 +234,14 @@ const Page = () => {
         </div>
 
         {/* Footer Info */}
-        <div className="flex items-center justify-center gap-2 text-center">
-          <Image src="/sheid.svg" alt="shield" width={18} height={18} />
-          <p className="text-[13px] sm:text-[14px] font-poppins text-gray-600">
-            Krafter will arrive at the scheduled time
-          </p>
-        </div>
+        {!isPublic && (
+          <div className="flex items-center justify-center gap-2 text-center">
+            <Image src="/sheid.svg" alt="shield" width={18} height={18} />
+            <p className="text-[13px] sm:text-[14px] font-poppins text-gray-600">
+              Krafter will arrive at the scheduled time
+            </p>
+          </div>
+        )}
       </div>
 
       {/* CSS for confetti animation */}
@@ -248,4 +268,10 @@ const Page = () => {
   );
 };
 
-export default Page;
+export default function Page() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ConfirmationContent />
+    </Suspense>
+  );
+}
