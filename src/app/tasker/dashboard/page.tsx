@@ -20,35 +20,55 @@ import { useProfileStore } from "@/store/useProfileStore";
 const Page = () => {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { artisanProfile, fetchArtisanProfile } = useProfileStore();
+  const { 
+    artisanProfile, 
+    fetchArtisanProfile, 
+    verificationStatus, 
+    fetchVerificationStatus 
+  } = useProfileStore();
   const { bookings, isLoading, fetchArtisanBookings } = useBookingsStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     fetchArtisanBookings();
-    if (!artisanProfile) {
-      fetchArtisanProfile();
-    }
-  }, [fetchArtisanBookings, fetchArtisanProfile, artisanProfile]);
+    fetchArtisanProfile(); 
+    fetchVerificationStatus();
+
+    // Poll for verification status every 10 seconds
+    const interval = setInterval(() => {
+      fetchVerificationStatus();
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [fetchArtisanBookings, fetchArtisanProfile, fetchVerificationStatus]);
 
   const upcomingTasks = bookings.filter(b => b.status === 'CONFIRMED' || b.status === 'ACCEPTED' || b.status === 'IN_PROGRESS' || b.status === 'REQUESTED');
   const nextTask = upcomingTasks[0]; // Get the most recent one
 
   // Determination logic for profile status
-  const isPendingApproval = user?.status === 'PENDING_VERIFICATION' && artisanProfile?.legalFullName; 
-  const isProfileIncomplete = user?.status !== 'ACTIVE' || !artisanProfile?.legalFullName || !artisanProfile?.primaryTrade;
+  // Show incomplete widget if artisanProfile is missing or fields are empty
+  const hasSkills = !!(artisanProfile?.primaryTrade && artisanProfile?.secondarySkills?.length);
+  const hasBio = !!(artisanProfile?.bio && artisanProfile?.profilePhotoUrl);
+  const hasIdentity = verificationStatus?.kycStatus === 'APPROVED';
+  const hasEligibility = verificationStatus?.status === 'APPROVED';
+  const hasPayout = !!artisanProfile?.taxOrVatId; // Simple check for payout for now
+
+  const hasBaseAddress = !!(artisanProfile?.baseCity && artisanProfile?.postalCode);
+  const isProfileFilled = !!(artisanProfile?.legalFullName && hasSkills && hasBio && hasEligibility && hasBaseAddress);
+  const isPendingApproval = user?.status === 'PENDING_VERIFICATION' || verificationStatus?.status === 'PENDING'; 
+  const isProfileIncomplete = user?.status !== 'ACTIVE' || !isProfileFilled;
   
-  const completedStepIds = ["verify"];
-  if (artisanProfile?.legalFullName) completedStepIds.push("identity");
-  if (artisanProfile?.primaryTrade) completedStepIds.push("skills");
-  if (artisanProfile?.profilePhotoUrl) completedStepIds.push("personal");
-  // Assume eligibility and payout are pending if not fully active
-  if (user?.status === 'ACTIVE') {
-    completedStepIds.push("eligibility", "payout");
-  }
+  const completedStepIds = ["verify"]; // Verify Email is always done if logged in
+  if (hasIdentity) completedStepIds.push("identity"); 
+  if (hasSkills) completedStepIds.push("skills");
+  if (hasBio) completedStepIds.push("personal");
+  if (hasEligibility) completedStepIds.push("eligibility");
+  if (hasPayout) completedStepIds.push("payout");
 
   const completedSteps = completedStepIds.length;
+  // total steps in modal: personal, skills, eligibility, identity, payout, verify (6)
   const totalSteps = 6;
+  const remainingSteps = totalSteps - completedSteps;
   const completedPercentage = Math.round((completedSteps / totalSteps) * 100);
 
   return (

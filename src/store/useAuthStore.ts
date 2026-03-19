@@ -260,14 +260,18 @@ export const useAuthStore = create<AuthState>()(
 
       // Helper: Check if current user is a regular user
       isUser: () => {
-        const { user } = get()
-        return user?.roles?.includes('CUSTOMER') || user?.roles?.includes('user') || false
+        const { user } = get() as any
+        const roles = user?.roles || (user?.role ? [user.role] : [])
+        const normalizedRoles = roles.map((r: string) => r.toUpperCase())
+        return normalizedRoles.includes('CUSTOMER') || normalizedRoles.includes('USER')
       },
 
       // Helper: Check if current user is a tasker
       isTasker: () => {
-        const { user } = get()
-        return user?.roles?.includes('TASKER') || user?.roles?.includes('tasker') || user?.roles?.includes('ARTISAN') || false
+        const { user } = get() as any
+        const roles = user?.roles || (user?.role ? [user.role] : [])
+        const normalizedRoles = roles.map((r: string) => r.toUpperCase())
+        return normalizedRoles.includes('TASKER') || normalizedRoles.includes('ARTISAN')
       },
     }},
     {

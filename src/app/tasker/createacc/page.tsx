@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Input from "@/components/ui/input";
 import Select from "@/components/ui/select";
 import Button from "@/components/ui/button";
-import PhoneInput from "@/components/ui/PhoneInput";
 import Image from "next/image";
 import { ArrowLeft, Briefcase, CreditCard, Shield, CheckCircle2 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -23,7 +22,7 @@ import {
 const Page = () => {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
-  const totalSteps = 6;
+  const totalSteps = 4;
   const {
     registerTasker,
     verifyEmail,
@@ -46,16 +45,10 @@ const Page = () => {
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
-    phone: "",
     password: "",
     term1Accepted: false,
     term2Accepted: false,
     verificationCode: ["", "", "", "", "", ""],
-    country: "",
-    city: "",
-    postal: "",
-    trade: "",
-    workingAs: "",
     businessRegistrationNumber: "",
     vatId: "",
     selfieImage: null as string | null,
@@ -112,7 +105,6 @@ const Page = () => {
           isNotEmpty(formData.fullName) &&
           isNotEmpty(formData.email) &&
           isValidEmail(formData.email) &&
-          isNotEmpty(formData.phone) &&
           isStrongPassword(formData.password) &&
           formData.term1Accepted !== false &&
           formData.term2Accepted !== false
@@ -120,22 +112,6 @@ const Page = () => {
       case 3:
         return formData.verificationCode.every((digit) => digit !== "");
       case 4:
-        return (
-          isNotEmpty(formData.country) &&
-          isNotEmpty(formData.city) &&
-          isNotEmpty(formData.postal) &&
-          isNumeric(formData.postal)
-        );
-      case 5:
-        const isBasicValid = isNotEmpty(formData.trade) && isNotEmpty(formData.workingAs);
-        const isRegisteredBusiness = formData.workingAs === "registered-business";
-        const isBusinessFieldsValid =
-          !isRegisteredBusiness ||
-          (isNotEmpty(formData.businessRegistrationNumber) &&
-            isNumeric(formData.businessRegistrationNumber) &&
-            isNotEmpty(formData.vatId));
-        return isBasicValid && isBusinessFieldsValid;
-      case 6:
         return true; 
       default:
         return false;
@@ -178,14 +154,9 @@ const Page = () => {
       return;
     }
 
-    const formattedPhone = formData.phone.startsWith("+")
-      ? formData.phone
-      : `+49${formData.phone.replace(/^0+/, "")}`;
-
     const registrationData = {
       email: formData.email,
       password: formData.password,
-      phone: formattedPhone,
       hasAcceptedTerms: formData.term1Accepted && formData.term2Accepted,
     };
 
@@ -216,8 +187,8 @@ const Page = () => {
     try {
       await verifyEmail(formData.email, otpCode);
       logger.log("Email verified successfully!");
-      toast.success("Email verified successfully! You can now log in to complete your profile.");
-      router.push("/tasker/login");
+      toast.success("Email verified successfully!");
+      setCurrentStep(4);
     } catch (err: any) {
       logger.error("Verification failed:", err);
       const errorMessage = err.response?.data?.message || "Verification failed. Please check your code.";
@@ -254,7 +225,7 @@ const Page = () => {
           </button>
           {currentStep > 1 && (
             <span className="text-[14px] text-gray-500 font-poppins">
-              Step {currentStep - 1} of {totalSteps - 1}
+              Step {currentStep - 1} of 3
             </span>
           )}
         </div>
@@ -264,18 +235,18 @@ const Page = () => {
           {/* Step 1: Intro */}
           {currentStep === 1 && (
             <div className="space-y-6">
-              <div className="flex flex-col items-center mb-2">
-                <Image src="/taskerLogo.svg" alt="kraftigo logo" width={150} height={50} className="mb-8" />
-                <div className="w-full relative h-[250px] rounded-2xl overflow-hidden mb-4">
+              <div className="flex flex-col items-start mb-2">
+                <Image src="/taskerLogo.svg" alt="kraftigo logo" width={120} height={40} className="mb-8" />
+                <div className="w-full relative h-[180px] rounded-[32px] overflow-hidden mb-6 bg-[#F6F6F6]">
                   <Image src="/get-started.png" alt="Become a Krafter" fill className="object-cover" />
                 </div>
               </div>
               
-              <h1 className="text-[32px] font-gerat font-bold leading-tight mb-4">
+              <h1 className="text-[28px] font-gerat font-bold leading-tight mb-2 text-[#1D2939]">
                 Become a kraftigo Krafter
               </h1>
               
-              <p className="text-[15px] font-poppins text-gray-600 mb-8 leading-relaxed">
+              <p className="text-[14px] font-poppins text-[#667085] mb-8 leading-relaxed">
                 Join our community of professionals. To maintain a safe and professional marketplace, all Krafters must meet the following requirements:
               </p>
 
@@ -332,13 +303,6 @@ const Page = () => {
                 value={formData.email}
                 onChange={(value) => handleInputChange("email", value)}
                 error={formData.email && !isValidEmail(formData.email) ? "Please enter a valid email" : ""}
-                required
-              />
-              <PhoneInput
-                label="Phone Number"
-                placeholder="000 000 0000"
-                value={formData.phone}
-                onChange={(value) => handleInputChange("phone", value)}
                 required
               />
               <Input
@@ -441,113 +405,11 @@ const Page = () => {
             </div>
           )}
 
-          {/* Step 4: legal identity*/}
+          {/* Step 4: Take a Selfie */}
           {currentStep === 4 && (
             <div className="space-y-6">
-              <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-8">
-                Legal Identity
-              </h1>
-              <Input
-                label="Country of residence"
-                placeholder="Germany"
-                value={formData.country}
-                onChange={(value) => handleInputChange("country", value)}
-                required
-              />
-              <Input
-                label="City"
-                placeholder="Berlin"
-                value={formData.city}
-                onChange={(value) => handleInputChange("city", value)}
-                required
-              />
-              <Input
-                label="Postal Code"
-                placeholder="88019"
-                value={formData.postal}
-                onChange={(value) => handleInputChange("postal", value)}
-                error={formData.postal && !isNumeric(formData.postal) ? "Numbers only" : ""}
-                required
-              />
-            </div>
-          )}
-
-          {/* Step 5: Trade & Work Eligibility */}
-          {currentStep === 5 && (
-            <div className="space-y-6">
-              <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-8">
-                Trade & Work Eligibility
-              </h1>
-              <Select
-                label="Primary Trade"
-                placeholder="Select"
-                value={formData.trade}
-                onChange={(value) => handleInputChange("trade", value)}
-                options={[
-                  { value: "select", label: "select" },
-                  { value: "plumbing", label: "Plumbing" },
-                  { value: "electrical", label: "Electrical" },
-                  { value: "carpentry", label: "Carpentry" },
-                  { value: "painting", label: "Painting" },
-                  { value: "hvac", label: "HVAC" },
-                  { value: "masonry", label: "Masonry" },
-                  { value: "roofing", label: "Roofing" },
-                  { value: "landscaping", label: "Landscaping" },
-                  { value: "other", label: "Other" },
-                ]}
-                required
-              />
-              <Select
-                label="Are you working as:"
-                placeholder="Self employed / freelancer"
-                value={formData.workingAs}
-                onChange={(value) => handleInputChange("workingAs", value)}
-                options={[
-                  {
-                    value: "self-employed",
-                    label: "Self employed / freelancer",
-                  },
-                  { value: "company-employee", label: "Company employee" },
-                  { value: "contractor", label: "Contractor" },
-                  { value: "business-owner", label: "Business owner" },
-                  {
-                    value: "registered-business",
-                    label: "Registered business",
-                  },
-                ]}
-                required
-              />
-
-              {/* Conditional fields for Registered Business */}
-              {formData.workingAs === "registered-business" && (
-                <>
-                  <Input
-                    label="Business registration number"
-                    placeholder="Enter registration number"
-                    value={formData.businessRegistrationNumber}
-                    onChange={(value) =>
-                      handleInputChange("businessRegistrationNumber", value)
-                    }
-                    error={formData.businessRegistrationNumber && !isNumeric(formData.businessRegistrationNumber) ? "Numbers only" : ""}
-                    required
-                  />
-                  <Input
-                    label="VAT ID"
-                    placeholder="Enter VAT ID"
-                    value={formData.vatId}
-                    onChange={(value) => handleInputChange("vatId", value)}
-                    required
-                  />
-                </>
-              )}
-            </div>
-          )}
-
-          {/* Step 6: Take a Selfie */}
-          {currentStep === 6 && (
-            <div className="space-y-6">
               <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-2">
-                Add up your selfie to your profile
+                Take A Selfie
               </h1>
               <p className="text-[14px] font-mabry text-gray-600 mb-8">
                 We use your selfie to compare with your passport photo
@@ -555,51 +417,64 @@ const Page = () => {
 
               {/* Selfie Illustration Placeholder */}
               <div className="flex justify-center mb-8">
-                <div className="w-48 h-48 lg:w-64 lg:h-64 bg-gray-100 rounded-3xl flex items-center justify-center border-2 border-dashed border-gray-300 group hover:border-brand-orange transition-colors">
-                  <Image
-                    src="/avatar.svg"
-                    alt="selfie placeholder"
-                    width={200}
-                    height={200}
-                    className="w-32 h-32 lg:w-48 lg:h-48 opacity-50 group-hover:opacity-100 transition-opacity"
-                  />
+                <div className="relative w-56 h-56 flex items-center justify-center">
+                  {/* Outer circle with dashed crosshairs */}
+                  <div className="absolute inset-0 border-2 border-dashed border-brand-orange/40 rounded-full" />
+                  <div className="absolute left-[-20px] right-[-20px] top-1/2 border-t-2 border-dashed border-brand-orange/40" />
+                  <div className="absolute top-[-20px] bottom-[-20px] left-1/2 border-l-2 border-dashed border-brand-orange/40" />
+                  
+                  <div className="w-48 h-48 bg-gray-100 rounded-full overflow-hidden flex items-center justify-center relative border-4 border-white shadow-sm">
+                    <Image
+                      src="/avatar.svg"
+                      alt="selfie placeholder"
+                      width={180}
+                      height={180}
+                      className="w-40 h-40 opacity-70"
+                    />
+                  </div>
                 </div>
               </div>
 
               {/* Instructions Box */}
-              <div className=" p-2 space-y-3">
-                <p className="text-[13px] font-poppins font-semibold text-gray-800">
+              <div className="space-y-4">
+                <p className="text-[14px] font-poppins font-medium text-gray-800">
                   Make sure you have:
                 </p>
-                <div className="space-y-2">
-                  <div className="flex items-start gap-2">
-                    <span className="text-brand-orange bg-brand-yellow px-3 py-1 rounded-full  font-bold text-[14px] mt-0.5">
+                <div className="space-y-4">
+                  <div className="flex items-start gap-4">
+                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-brand-yellow text-brand-orange font-bold text-[13px] shrink-0">
                       1
                     </span>
-                    <div>
-                      <p className="text-[13px] font-poppins font-semibold text-gray-800">
+                    <div className="space-y-0.5">
+                      <p className="text-[14px] font-poppins font-bold text-[#1D2939]">
                         Good lighting
                       </p>
-                      <p className="text-[12px] font-poppins text-gray-600">
-                        Make sure you in a well lit area and both ears are
+                      <p className="text-[13px] font-poppins text-gray-500">
+                        Make sure you are in a well lit area and both ears are
                         uncovered
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-brand-orange bg-brand-yellow px-3 py-1 rounded-full font-bold text-[14px] mt-0.5">
+                  <div className="flex items-start gap-4">
+                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-brand-yellow text-brand-orange font-bold text-[13px] shrink-0">
                       2
                     </span>
-                    <div>
-                      <p className="text-[13px] font-poppins font-semibold text-gray-800">
+                    <div className="space-y-0.5">
+                      <p className="text-[14px] font-poppins font-bold text-[#1D2939]">
                         Look straight
                       </p>
-                      <p className="text-[12px] font-poppins text-gray-600">
+                      <p className="text-[13px] font-poppins text-gray-500">
                         Hold your phone at eye level and look straight into the
                         camera
                       </p>
                     </div>
                   </div>
+                </div>
+                
+                <div className="pt-2 flex justify-end">
+                   <button className="bg-gray-100 text-[#1D2939] px-4 py-2 rounded-full text-[12px] font-poppins font-medium hover:bg-gray-200 transition-colors">
+                      Why do we ask this?
+                   </button>
                 </div>
               </div>
             </div>
@@ -631,7 +506,7 @@ const Page = () => {
               onClick={handleNext}
               fullWidth
               disabled={!isStepValid()}
-              className="py-4 text-[16px] font-gerat font-bold mt-[2rem]"
+              className="py-4 text-[16px] font-gerat font-bold mt-8"
             >
               {currentStep === 1 
                 ? "Get Started" 

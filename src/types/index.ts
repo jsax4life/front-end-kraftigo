@@ -7,6 +7,7 @@ export type User = {
   password?: string;
   roles?: string[];
   status?: "PENDING_VERIFICATION" | "ACTIVE" | "SUSPENDED";
+  kycStatus?: "NOT_STARTED" | "PENDING" | "APPROVED" | "REJECTED";
   avatar?: string;
   hasAcceptedTerms?: boolean;
 };
@@ -196,6 +197,8 @@ export interface ArtisanProfile {
   transportType: 'CAR' | 'VAN' | 'BIKE' | 'NONE';
   taxOrVatId?: string;
   bio: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  kycStatus: "NOT_STARTED" | "PENDING" | "APPROVED" | "REJECTED";
 }
 
 export interface CustomerProfile {
