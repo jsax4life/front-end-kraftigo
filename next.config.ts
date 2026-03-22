@@ -27,9 +27,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'cdn.kraftigo.com',
-        port: '',
-        pathname: '/**',
+        hostname: 'kraftigo-s3-buckeet.s3.eu-west-1.amazonaws.com',
       },
     ],
   },

@@ -1,36 +1,49 @@
-2import { create } from 'zustand'
-import { ArtisanProfile, CustomerProfile } from '@/types'
+import { create } from 'zustand'
+import { ArtisanProfile, CustomerProfile, PayoutInfo } from '@/types'
 import api from '@/lib/axios'
 
 interface ProfileState {
   artisanProfile: ArtisanProfile | null
   customerProfile: CustomerProfile | null
-  isLoading: boolean
-  error: string | null
+  verificationStatus: {
+    status: string;
+    kycStatus: string;
+  } | null;
+  payoutInfo: PayoutInfo | null;
+  isLoading: boolean;
+  error: string | null;
 
   // Artisan Actions
-  fetchArtisanProfile: () => Promise<void>
-  createOrUpdateArtisanProfile: (profile: ArtisanProfile) => Promise<void>
-  updateArtisanProfile: (profile: Partial<ArtisanProfile>) => Promise<void>
+  fetchArtisanProfile: () => Promise<void>;
+  createOrUpdateArtisanProfile: (profile: FormData | Partial<ArtisanProfile>) => Promise<void>;
+  updateArtisanProfile: (profile: FormData | Partial<ArtisanProfile>) => Promise<void>;
 
   // Customer Actions
-  fetchCustomerProfile: () => Promise<void>
-  createOrUpdateCustomerProfile: (profile: CustomerProfile) => Promise<void>
-  updateCustomerProfile: (profile: Partial<CustomerProfile>) => Promise<void>
+  fetchCustomerProfile: () => Promise<void>;
+  createOrUpdateCustomerProfile: (profile: CustomerProfile) => Promise<void>;
+  updateCustomerProfile: (profile: Partial<CustomerProfile>) => Promise<void>;
 
   // Verification Actions
-  verificationStatus: any | null
-  fetchVerificationStatus: () => Promise<void>
-  submitVerification: (formData: FormData) => Promise<any>
-  startKyc: () => Promise<{ verificationUrl: string }>
-  getProfilePhotoUploadUrl: (filename: string, mimetype: string, fileSize: number) => Promise<{ uploadUrl: string, fileKey: string, publicUrl: string }>
+  fetchVerificationStatus: () => Promise<void>;
+  submitVerification: (formData: FormData) => Promise<any>;
+  submitVerificationUrl: (payload: any) => Promise<any>;
+  startKyc: () => Promise<{ verificationUrl: string }>;
+  
+  // Storage Actions
+  getUploadUrl: (filename: string, mimetype: string, fileSize: number) => Promise<{ uploadUrl: string, fileKey: string, publicUrl: string }>;
 
-  clearProfileError: () => void
+  // Payout Actions
+  fetchPayouts: () => Promise<void>;
+
+  // Misc
+  clearProfileError: () => void;
 }
 
-export const useProfileStore = create<ProfileState>((set) => ({
+export const useProfileStore = create<ProfileState>((set, get) => ({
   artisanProfile: null,
   customerProfile: null,
+  verificationStatus: null,
+  payoutInfo: null,
   isLoading: false,
   error: null,
 
@@ -47,10 +60,24 @@ export const useProfileStore = create<ProfileState>((set) => ({
     }
   },
 
+  fetchPayouts: async () => {
+    try {
+      const response = await api.get('/api/payouts/my');
+      set({ payoutInfo: Array.isArray(response.data) ? response.data[0] : (response.data || null) });
+    } catch (error) {
+      console.error('Failed to fetch payouts:', error);
+    }
+  },
+
   createOrUpdateArtisanProfile: async (profile) => {
+    const { artisanProfile } = get()
     set({ isLoading: true, error: null })
     try {
-      const response = await api.post('/api/profile/artisan', profile)
+      const isFormData = profile instanceof FormData;
+      const method = artisanProfile?.id ? 'put' : 'post';
+      const response = await api[method]('/api/profile/artisan', profile, {
+        headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : undefined,
+      })
       set({ artisanProfile: response.data, isLoading: false })
     } catch (error: any) {
       set({
@@ -64,7 +91,10 @@ export const useProfileStore = create<ProfileState>((set) => ({
   updateArtisanProfile: async (profile) => {
     set({ isLoading: true, error: null })
     try {
-      const response = await api.put('/api/profile/artisan', profile)
+      const isFormData = profile instanceof FormData;
+      const response = await api.put('/api/profile/artisan', profile, {
+        headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : undefined,
+      })
       set({ artisanProfile: response.data, isLoading: false })
     } catch (error: any) {
       set({
@@ -116,8 +146,6 @@ export const useProfileStore = create<ProfileState>((set) => ({
     }
   },
 
-  verificationStatus: null,
-
   fetchVerificationStatus: async () => {
     set({ isLoading: true, error: null })
     try {
@@ -150,6 +178,21 @@ export const useProfileStore = create<ProfileState>((set) => ({
     }
   },
 
+  submitVerificationUrl: async (payload: any) => {
+    set({ isLoading: true, error: null })
+    try {
+      const response = await api.post('/api/verification/submit/url', payload)
+      set({ verificationStatus: response.data, isLoading: false })
+      return response.data;
+    } catch (error: any) {
+      set({
+        error: error.response?.data?.message || 'Failed to submit verification',
+        isLoading: false,
+      })
+      throw error
+    }
+  },
+
   startKyc: async () => {
     set({ isLoading: true, error: null })
     try {
@@ -165,7 +208,7 @@ export const useProfileStore = create<ProfileState>((set) => ({
     }
   },
 
-  getProfilePhotoUploadUrl: async (filename: string, mimetype: string, fileSize: number) => {
+  getUploadUrl: async (filename: string, mimetype: string, fileSize: number) => {
     set({ isLoading: true, error: null })
     try {
       const response = await api.post('/api/profile/artisan/upload-photo', {

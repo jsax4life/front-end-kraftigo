@@ -4,12 +4,13 @@ import Image from "next/image";
 import { Headset, User as UserIcon, LogOut } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useProfileStore } from "@/store/useProfileStore";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
 const About = () => {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
   const { user, isTasker, isUser, logout } = useAuthStore();
   const { 
     artisanProfile, 
@@ -19,6 +20,7 @@ const About = () => {
   } = useProfileStore();
 
   useEffect(() => {
+    setMounted(true);
     if (isTasker() && !artisanProfile) {
       fetchArtisanProfile();
     } else if (isUser() && !customerProfile) {
@@ -37,7 +39,10 @@ const About = () => {
   // Check localStorage for a name if we just registered but profile hasn't updated yet
   const localName = typeof window !== "undefined" ? localStorage.getItem("kraftigo_tasker_fullName") : null;
     
-  const displayName = (fullName || localName || user?.fullName)?.split(" ")[0] || "User";
+  // To avoid hydration mismatch, we default to "User" or user?.fullName during server render
+  const displayName = !mounted 
+    ? (user?.fullName?.split(" ")[0] || "User")
+    : ((fullName || localName || user?.fullName)?.split(" ")[0] || "User");
   const avatar = (isTasker() ? artisanProfile?.profilePhotoUrl : (customerProfile && typeof customerProfile === 'object' ? customerProfile.profilePhotoUrl : null)) || user?.avatar;
 
   const handleLogout = async () => {
@@ -63,6 +68,7 @@ const About = () => {
                   alt="propic"
                   width={300}
                   height={300}
+                  unoptimized
                   className="w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 rounded-full object-cover"
                 />
               ) : (
@@ -76,23 +82,25 @@ const About = () => {
                 Hello {displayName}
               </p>
               <span className="flex items-center gap-1">
-                {isTasker() && user?.status !== 'ACTIVE' ? (
-                  <div className="bg-brand-orange/10 text-brand-orange px-2 py-0.5 rounded text-[10px] font-bold mt-1">
-                    PENDING APPROVAL
-                  </div>
-                ) : (
-                  <>
-                    <Image
-                      src="/badge.svg"
-                      alt="badge"
-                      width={100}
-                      height={100}
-                      className="w-3 h-3 sm:w-3.5 sm:h-3.5"
-                    />
-                    <p className="font-poppins font-bold text-[11px] sm:text-[12px] text-brand-orange">
-                      Lvl 12
-                    </p>
-                  </>
+                {mounted && (
+                  isTasker() && user?.status !== 'ACTIVE' ? (
+                    <div className="bg-brand-orange/10 text-brand-orange px-2 py-0.5 rounded text-[10px] font-bold mt-1">
+                      PENDING APPROVAL
+                    </div>
+                  ) : (
+                    <>
+                      <Image
+                        src="/badge.svg"
+                        alt="badge"
+                        width={100}
+                        height={100}
+                        className="w-3 h-3 sm:w-3.5 sm:h-3.5"
+                      />
+                      <p className="font-poppins font-bold text-[11px] sm:text-[12px] text-brand-orange">
+                        Lvl 12
+                      </p>
+                    </>
+                  )
                 )}
               </span>
             </div>

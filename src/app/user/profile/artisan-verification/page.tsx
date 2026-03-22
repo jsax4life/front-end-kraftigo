@@ -2,7 +2,6 @@
 
 import React, { useState, useRef } from "react";
 import Image from "next/image";
-import axios from "axios";
 import { useRouter } from "next/navigation";
 import { 
   ArrowLeft, 
@@ -34,7 +33,7 @@ const steps = [
 
 export default function ArtisanVerificationPage() {
   const router = useRouter();
-  const { submitVerification, startKyc, getProfilePhotoUploadUrl, isLoading } = useProfileStore();
+  const { submitVerification, startKyc, isLoading } = useProfileStore();
   const [currentStep, setCurrentStep] = useState(1);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -136,38 +135,10 @@ export default function ArtisanVerificationPage() {
     }
   };
 
-  const handleUploadToS3 = async (file: File) => {
-    try {
-      const { uploadUrl, publicUrl } = await getProfilePhotoUploadUrl(
-        file.name,
-        file.type,
-        file.size
-      );
-
-      await axios.put(uploadUrl, file, {
-        headers: {
-          'Content-Type': file.type,
-        },
-      });
-
-      return publicUrl;
-    } catch (error) {
-      console.error("Direct upload failed:", error);
-      throw error;
-    }
-  };
-
   const handleSubmit = async () => {
     try {
       const data = new FormData();
       
-      let profilePhotoUrl = "";
-      if (formData.profilePhoto) {
-         toast.loading("Uploading profile photo...", { id: "uploading" });
-         profilePhotoUrl = await handleUploadToS3(formData.profilePhoto);
-         toast.success("Photo uploaded!", { id: "uploading" });
-      }
-
       // Basic Fields
       data.append('legalFullName', formData.legalFullName);
       data.append('displayName', formData.displayName);
@@ -199,10 +170,8 @@ export default function ArtisanVerificationPage() {
       const skillDocs = formData.skillsAndExpertise.map(s => ({ type: 'skill', name: s.skill }));
       data.append('skillDocuments', JSON.stringify(skillDocs));
 
-      // Use the uploaded photo URL instead of the binary
-      if (profilePhotoUrl) data.append('profilePhotoUrl', profilePhotoUrl);
-
-      // Files (keeping others as binary unless there are more presigned endpoints)
+      // Files
+      if (formData.profilePhoto) data.append('profilePhoto', formData.profilePhoto);
       if (formData.governmentIdDocument) data.append('governmentIdDocument', formData.governmentIdDocument);
       if (formData.idCard) data.append('idCard', formData.idCard);
       

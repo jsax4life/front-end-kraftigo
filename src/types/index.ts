@@ -171,6 +171,7 @@ export interface Application {
 }
 
 export interface ArtisanProfile {
+  id?: string;
   legalFullName: string;
   displayName: string;
   profilePhotoUrl?: string;
@@ -197,8 +198,26 @@ export interface ArtisanProfile {
   transportType: 'CAR' | 'VAN' | 'BIKE' | 'NONE';
   taxOrVatId?: string;
   bio: string;
+  employmentStatus?: 'SELF_EMPLOYED' | 'FREELANCING';
+  skillsAndExpertise?: { name: string; hourlyRate: number }[];
+  portfolioPhotoUrls?: string[];
+  uniqueSellingPoint?: string;
+  iban?: string;
+  bic?: string;
+  idCardUrl?: string;
   status: "PENDING" | "APPROVED" | "REJECTED";
   kycStatus: "NOT_STARTED" | "PENDING" | "APPROVED" | "REJECTED";
+}
+
+export interface PayoutInfo {
+  id: string;
+  artisanId: string;
+  accountHolderName: string;
+  iban: string;
+  bic: string;
+  bankName?: string;
+  isDefault: boolean;
+  createdAt: string;
 }
 
 export interface CustomerProfile {

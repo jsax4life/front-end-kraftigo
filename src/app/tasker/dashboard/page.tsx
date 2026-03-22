@@ -119,7 +119,7 @@ const Page = () => {
             <ProfileCompletionWidget 
               totalSteps={totalSteps} 
               completedSteps={completedSteps} 
-              onClick={() => setIsModalOpen(true)}
+              onClick={() => router.push("/tasker/profile/complete")}
             />
           )}
 
