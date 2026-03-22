@@ -168,7 +168,6 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
         },
       })
       set({ verificationStatus: response.data, isLoading: false })
-      return response.data;
     } catch (error: any) {
       set({
         error: error.response?.data?.message || 'Failed to submit verification',
