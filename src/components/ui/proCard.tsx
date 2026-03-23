@@ -41,15 +41,15 @@ const ProCard = ({
         <div className="flex-1">
           <div className="flex items-start justify-between mb-2">
             <div className="space-y-1">
-              <div className="flex items-center gap-4">
-                <h3 className="text-[16px] sm:text-[18px] font-gerat font-bold">
-                  {name}
-                </h3>
+              <div className="flex flex-col items-left gap-2">
                 {badge && (
-                  <span className="text-xs font-poppins bg-[#014F2A1A] text-[#014F2A] px-2 py-0.5">
+                  <span className="text-xs  w-fit rounded-full font-poppins bg-[#014F2A1A] text-[#014F2A] px-2 py-0.5">
                     {badge}
                   </span>
                 )}
+                <h3 className="text-[16px] sm:text-[18px] font-gerat font-bold">
+                  {name}
+                </h3>
               </div>
               <div className="flex items-center gap-2 mt-1">
                 <div className="flex items-center">

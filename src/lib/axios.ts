@@ -164,6 +164,7 @@ api.interceptors.response.use(
                     }
                 } catch (e) {}
             }
+            
             localStorage.removeItem('auth-storage')
             updateCachedToken(null)
             window.location.href = loginUrl

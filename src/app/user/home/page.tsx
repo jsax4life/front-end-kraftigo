@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import UserNav from "@/components/shared/userNav";
-import { MapPin, Search, ChevronRight, Home, User, Plus } from "lucide-react";
+import { MapPin, Search, ChevronRight, Home, User, Plus, Clock } from "lucide-react";
 import Userabt from "@/components/shared/userabt";
 import ProCard from "@/components/ui/proCard";
 import { useState, useEffect } from "react";
@@ -10,46 +10,134 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useProfileStore } from "@/store/useProfileStore";
 import { useAuthPromptStore } from "@/store/useAuthPromptStore";
+import { useHomeStore, normSrc } from "@/store/useHomeStore";
+
+// ─── Static fallbacks ─────────────────────────────────────────────────────────
+
+const STATIC_CATEGORIES = [
+  { name: "Gardening", image: "/images/home3.jpg" },
+  { name: "Moving", image: "/images/home5.jpg" },
+  { name: "Laundry", image: "/images/home6.jpg" },
+  { name: "Errands", image: "/images/home2.jpg" },
+  { name: "Outside", image: "/images/home1.jpg" },
+  { name: "Home repairs", image: "/images/home4.jpg" },
+];
+
+const STATIC_PROS = [
+  {
+    name: "Edith R.",
+    rating: 4,
+    reviews: 65,
+    tasks: 72,
+    description:
+      "I have six years of experience cleaning houses. My priority is to bring a good service and leav...",
+    price: "$41.29/hr",
+    image: "/images/pro.jpg",
+    badge: "TOP PRO",
+  },
+  {
+    name: "Sarah M.",
+    rating: 5,
+    reviews: 89,
+    tasks: 120,
+    description:
+      "Professional cleaner with attention to detail. I ensure every corner is spotless and your home...",
+    price: "$45.00/hr",
+    image: "/images/pro.jpg",
+    badge: "TOP PRO",
+  },
+];
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const formatScheduledAt = (iso: string) => {
+  try {
+    const date = new Date(iso);
+    return date.toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return iso;
+  }
+};
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 const Page = () => {
-  const categories = [
-    { name: "Gardening", image: "/images/home3.jpg" },
-    { name: "Moving", image: "/images/home5.jpg" },
-    { name: "Laundry", image: "/images/home6.jpg" },
-    { name: "Errands", image: "/images/home2.jpg" },
-    { name: "Outside", image: "/images/home1.jpg" },
-    { name: "Home repairs", image: "/images/home4.jpg" },
-  ];
-
-  const pros = [
-    {
-      name: "Edith R.",
-      rating: 4,
-      reviews: 65,
-      tasks: 72,
-      description:
-        "I have six years of experience cleaning houses. My priority is to bring a good service and leav...",
-      price: "$41.29/hr",
-      image: "/images/pro.jpg",
-      badge: "TOP PRO",
-    },
-    {
-      name: "Sarah M.",
-      rating: 5,
-      reviews: 89,
-      tasks: 120,
-      description:
-        "Professional cleaner with attention to detail. I ensure every corner is spotless and your home...",
-      price: "$45.00/hr",
-      image: "/images/pro.jpg",
-      badge: "TOP PRO",
-    },
-  ];
-
   const router = useRouter();
   const { user, isAuthenticated } = useAuthStore();
   const { openPrompt } = useAuthPromptStore();
-  
+  const { customerProfile, fetchCustomerProfile } = useProfileStore();
+
+  const {
+    categories: apiCategories,
+    prosOfWeek,
+    upcoming,
+    isLoading,
+    hasFetched,
+    error,
+    fetchHomeData,
+    recentSearches,
+    addRecentSearch,
+  } = useHomeStore();
+
+  const [showSearchModal, setShowSearchModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [localName, setLocalName] = useState("");
+
+  // ── Fetch profile & home data on mount ─────────────────────────────────────
+  useEffect(() => {
+    if (isAuthenticated) {
+      if (!customerProfile) fetchCustomerProfile();
+      if (!hasFetched) fetchHomeData();
+    }
+    if (typeof window !== "undefined") {
+      const storedName = localStorage.getItem("kraftigo_user_fullName");
+      if (storedName) setLocalName(storedName);
+    }
+  }, [isAuthenticated, customerProfile, fetchCustomerProfile, hasFetched, fetchHomeData]);
+
+  // ── Derived display values ──────────────────────────────────────────────────
+  const displayName =
+    customerProfile?.fullName?.split(" ")[0] ||
+    localName.split(" ")[0] ||
+    "User";
+  const avatar = customerProfile?.profilePhotoUrl || user?.avatar;
+
+  // Categories: prefer API data, fall back to static ONLY on confirmed API failure
+  const displayCategories =
+    apiCategories.length > 0
+      ? apiCategories.map((c) => ({
+          id: c.id,
+          name: c.name,
+          image: normSrc(c.imageUrl) || "/images/home3.jpg",
+        }))
+      : hasFetched && error
+      ? STATIC_CATEGORIES.map((c) => ({ id: "", ...c }))
+      : [];
+
+  // Pros: fall back to static ONLY on confirmed API failure
+  const displayPros =
+    prosOfWeek.length > 0
+      ? prosOfWeek.map((p) => ({
+          name: p.displayName,
+          rating: Math.round(p.rating),
+          reviews: p.reviewCount,
+          tasks: p.completedKrafts,
+          description: `${p.distanceKm} km away · ${p.badges.join(", ")}`,
+          price: `$${p.hourlyRate.toFixed(2)}/hr`,
+          image: normSrc(p.profilePhotoUrl) ?? "/images/pro.jpg",
+          badge: p.badges[0] ?? undefined,
+        }))
+      : hasFetched && error
+      ? STATIC_PROS
+      : [];
+
+  // ── Handlers ────────────────────────────────────────────────────────────────
   const handleProtectedAction = (path: string) => {
     if (!isAuthenticated) {
       openPrompt();
@@ -57,93 +145,18 @@ const Page = () => {
       router.push(path);
     }
   };
-  const { customerProfile, fetchCustomerProfile } = useProfileStore();
-  const [showSearchModal, setShowSearchModal] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-
-  const [localName, setLocalName] = useState("");
-
-  useEffect(() => {
-    if (isAuthenticated && !customerProfile) {
-      fetchCustomerProfile();
-    }
-    if (typeof window !== 'undefined') {
-      const storedName = localStorage.getItem("kraftigo_user_fullName");
-      if (storedName) {
-        setLocalName(storedName);
-      }
-    }
-  }, [isAuthenticated, customerProfile, fetchCustomerProfile]);
-
-  const displayName = customerProfile?.fullName?.split(" ")[0] 
-    || localName.split(" ")[0]
-    || "User";
-  const avatar = customerProfile?.profilePhotoUrl || user?.avatar;
-
-  const recentSearches = [
-    {
-      id: 1,
-      name: "House Cleaning",
-      icon: Home,
-      bgColor: "bg-[#0000FF33]",
-      iconColor: "text-blue-900",
-    },
-    {
-      id: 2,
-      name: "Haircut",
-      icon: User,
-      bgColor: "bg-[#FF000033]",
-      iconColor: "text-[#7C2828]",
-    },
-  ];
-
-  const searchServices = [
-    {
-      id: 1,
-      name: "House Cleaning",
-      icon: Home,
-      bgColor: "bg-[#0000FF33]",
-      iconColor: "text-blue-900",
-    },
-    {
-      id: 2,
-      name: "Haircut",
-      icon: User,
-      bgColor: "bg-[#FF000033]",
-      iconColor: "text-[#7C2828]",
-    },
-    {
-      id: 3,
-      name: "Hold Spot",
-      icon: User,
-      bgColor: "bg-[#FF000033]",
-      iconColor: "text-[#7C2828]",
-    },
-  ];
-
-  const searchArtisans = [
-    {
-      id: 1,
-      name: "Heatherh Ropalanum.",
-      image: "/images/pro.jpg",
-    },
-    {
-      id: 2,
-      name: "Hannah Kane",
-      image: "/images/pro.jpg",
-    },
-    {
-      id: 3,
-      name: "Heather K",
-      image: "/images/pro.jpg",
-    },
-  ];
 
   const handleCustomKraft = () => {
-    // Navigate to custom kraft request page
-    console.log("Request custom kraft");
     handleProtectedAction("/user/home/custom-kraft");
   };
+
+  const filteredCategories = displayCategories.filter((c) =>
+    c.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredPros = displayPros.filter((p) =>
+    p.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <main className="relative w-full min-h-screen bg-white pb-24">
@@ -169,7 +182,7 @@ const Page = () => {
           {/* Avatar & Greeting Section */}
           <div className="flex items-center gap-5 mb-8">
             {/* Avatar with Dashed Border */}
-            <div 
+            <div
               className="border-2 border-dashed border-brand-orange rounded-full w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center cursor-pointer shrink-0"
               onClick={() => handleProtectedAction("/user/profile")}
             >
@@ -189,16 +202,16 @@ const Page = () => {
 
             {/* Greetings and Title */}
             <div className="flex-1">
-               <p className="text-[14px] sm:text-[16px] font-poppins text-[#667085] mb-1">
-                 Hello <span className="text-[#1D2939] font-bold">{displayName}</span> 👋
-               </p>
-               <h1 className="text-[28px] sm:text-[36px] lg:text-[42px] font-gerat font-[850] leading-tight text-[#1D2939]">
-                 What do you <br className="sm:hidden" /> need today?
-               </h1>
+              <p className="text-[14px] sm:text-[16px] font-poppins text-[#667085] mb-1">
+                Hello <span className="text-[#1D2939] font-bold">{displayName}</span> 👋
+              </p>
+              <h1 className="text-[28px] sm:text-[36px] lg:text-[42px] font-gerat font-[850] leading-tight text-[#1D2939]">
+                What do you <br className="sm:hidden" /> need today?
+              </h1>
             </div>
           </div>
 
-          {/* Search Bar section */}
+          {/* Search Bar */}
           <div className="mb-10">
             <div
               className="relative shadow-2xl rounded-full cursor-pointer"
@@ -232,24 +245,47 @@ const Page = () => {
               </button>
             </div>
 
-            <div className="grid grid-cols-3 gap-3 sm:gap-4">
-              {categories.map((category, index) => (
-                <div key={index} className="cursor-pointer group">
-                  <div className="relative rounded-xl overflow-hidden aspect-square mb-2">
-                    <Image
-                      src={category.image}
-                      alt={category.name}
-                      fill
-                      sizes="(max-width: 640px) 33vw, (max-width: 1024px) 20vw, 15vw"
-                      className="object-cover group-hover:scale-110 transition-transform duration-300"
-                    />
+            {isLoading && !hasFetched ? (
+              <div className="grid grid-cols-3 gap-3 sm:gap-4">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="animate-pulse">
+                    <div className="rounded-xl aspect-square mb-2 bg-gray-200" />
+                    <div className="h-3 bg-gray-200 rounded w-3/4" />
                   </div>
-                  <p className="text-left text-[12px] sm:text-[14px] font-mabry font-semibold text-gray-800">
-                    {category.name}
-                  </p>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : displayCategories.length > 0 ? (
+              <div className="grid grid-cols-3 gap-3 sm:gap-4">
+                {displayCategories.map((category, index) => {
+                  const handleCategoryClick = () => {
+                    const params = new URLSearchParams({ category: category.name });
+                    if (category.id) params.set("categoryId", category.id);
+                    router.push(`/user/book-service?${params.toString()}`);
+                  };
+                  return (
+                    <div
+                      key={index}
+                      className="cursor-pointer group"
+                      onClick={handleCategoryClick}
+                    >
+                      <div className="relative rounded-xl overflow-hidden aspect-square mb-2">
+                        <Image
+                          src={category.image}
+                          alt={category.name}
+                          fill
+                          sizes="(max-width: 640px) 33vw, (max-width: 1024px) 20vw, 15vw"
+                          className="object-cover group-hover:scale-110 transition-transform duration-300"
+                        />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 rounded-xl" />
+                      </div>
+                      <p className="text-left text-[12px] sm:text-[14px] font-mabry font-semibold text-gray-800 group-hover:text-brand-orange group-hover:underline group-hover:underline-offset-2 transition-all duration-200">
+                        {category.name}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : null}
           </div>
 
           {/* Pro's Of The Week */}
@@ -258,10 +294,19 @@ const Page = () => {
               Pro&apos;s Of The Week
             </h2>
 
-            {pros.length > 1 ? (
+            {isLoading && !hasFetched ? (
+              <div className="flex gap-4">
+                {[...Array(2)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="animate-pulse bg-gray-100 rounded-xl p-4 w-[85%] sm:w-[70%] lg:w-[48%] shrink-0 h-40"
+                  />
+                ))}
+              </div>
+            ) : displayPros.length > 1 ? (
               <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
                 <div className="flex gap-4">
-                  {pros.map((pro, index) => (
+                  {displayPros.map((pro, index) => (
                     <ProCard
                       key={index}
                       name={pro.name}
@@ -278,7 +323,7 @@ const Page = () => {
               </div>
             ) : (
               <div>
-                {pros.map((pro, index) => (
+                {displayPros.map((pro, index) => (
                   <ProCard
                     key={index}
                     name={pro.name}
@@ -295,45 +340,81 @@ const Page = () => {
             )}
           </div>
 
-          {/* Upcoming */}
+          {/* Upcoming Bookings */}
           <div className="mb-6">
             <h2 className="text-[18px] sm:text-[20px] font-gerat font-bold mb-4">
               Upcoming
             </h2>
 
-            <div className="bg-[#FF66001A] rounded-xl p-4 sm:p-5 border border-[#0000001A]">
-              <div className="flex gap-4">
-                {/* Appointment Details */}
-                <div className="flex-1">
-                  <h3 className="text-[16px] sm:text-[14px] font-poppins font-bold mb-2">
-                    House Cleaning with Sarah M.
-                  </h3>
-                  <div className="space-y-1 text-[12px] sm:text-[13px] text-gray-700 font-poppins">
-                    <div className="flex items-center gap-2">
-                      <MapPin size={14} className="text-gray-500" />
-                      <span>Hauptstraße 123 - 10115, Berlin</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Image
-                        src="/taskerCal.svg"
-                        alt="calender"
-                        width={15}
-                        height={15}
-                      />
-                      <span>16th Jan, 2025 (In 5 Minutes)</span>
+            {isLoading && !hasFetched ? (
+              // Skeleton
+              <div className="animate-pulse bg-gray-100 rounded-xl h-28" />
+            ) : upcoming.length > 0 ? (
+              <div className="flex flex-col gap-3">
+                {upcoming.map((booking) => (
+                  <div
+                    key={booking.bookingId}
+                    className="bg-[#FF66001A] rounded-xl p-4 sm:p-5 border border-[#0000001A]"
+                  >
+                    <div className="flex gap-4">
+                      {/* Booking Details */}
+                      <div className="flex-1">
+                        <h3 className="text-[16px] sm:text-[14px] font-poppins font-bold mb-2">
+                          {booking.jobTitle}
+                        </h3>
+                        <div className="space-y-1 text-[12px] sm:text-[13px] text-gray-700 font-poppins">
+                          <div className="flex items-center gap-2">
+                            <MapPin size={14} className="text-gray-500" />
+                            <span>{booking.addressSummary}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Image
+                              src="/taskerCal.svg"
+                              alt="calendar"
+                              width={15}
+                              height={15}
+                            />
+                            <span>{formatScheduledAt(booking.scheduledAt)}</span>
+                          </div>
+                          <div>
+                            <span className="inline-block mt-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                              {booking.status}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Krafter Photo */}
+                      <div className="relative w-[88px] h-[88px] sm:w-[100px] sm:h-[100px] rounded-xl overflow-hidden shrink-0">
+                        <Image
+                          src={normSrc(booking.krafter.profilePhotoUrl) ?? "/images/pro.jpg"}
+                          alt={booking.krafter.displayName}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
-
-                <Image
-                  src="/images/pro.jpg"
-                  alt="Sarah M."
-                  width={100}
-                  height={100}
-                  className="w-23 h-23 sm:w-25 sm:h-25 rounded-xl object-cover shrink-0"
-                />
+                ))}
               </div>
-            </div>
+            ) : (
+              // Empty state — no upcoming bookings
+              <div className="bg-[#FF66001A] rounded-xl p-4 sm:p-5 border border-[#0000001A]">
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <h3 className="text-[16px] sm:text-[14px] font-poppins font-bold mb-2">
+                      No upcoming bookings
+                    </h3>
+                    <p className="text-[12px] sm:text-[13px] text-gray-600 font-poppins">
+                      Book a service to see your upcoming appointments here.
+                    </p>
+                  </div>
+                  <div className="w-[88px] h-[88px] rounded-xl bg-gray-200 shrink-0 flex items-center justify-center">
+                    <Plus size={28} className="text-gray-400" />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -369,30 +450,35 @@ const Page = () => {
                     Services
                   </h3>
                   <div>
-                    {searchServices.map((item) => {
-                      const Icon = item.icon;
+                    {filteredCategories.slice(0, 5).map((category, index) => {
                       return (
                         <button
-                          key={item.id}
+                          key={index}
                           onClick={() => {
-                            handleProtectedAction(
-                              `/user/book-service?service=${encodeURIComponent(item.name)}`,
-                            );
+                            addRecentSearch(category.name);
+                            const params = new URLSearchParams({ category: category.name });
+                            if (category.id) params.set("categoryId", category.id);
+                            handleProtectedAction(`/user/book-service?${params.toString()}`);
                             setShowSearchModal(false);
                           }}
                           className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors"
                         >
-                          <div
-                            className={`${item.bgColor} ${item.iconColor} w-10 h-10 rounded-lg flex items-center justify-center shrink-0`}
-                          >
-                            <Icon size={20} />
+                          <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 relative bg-gray-100 flex items-center justify-center">
+                            {category.image ? (
+                              <Image src={category.image} alt={category.name} fill className="object-cover" />
+                            ) : (
+                              <Home size={20} className="text-gray-400" />
+                            )}
                           </div>
                           <span className="text-[14px] font-poppins text-gray-800">
-                            {item.name}
+                            {category.name}
                           </span>
                         </button>
                       );
                     })}
+                    {filteredCategories.length === 0 && (
+                      <p className="text-[14px] text-gray-500 font-poppins px-3 pb-3">No services found.</p>
+                    )}
                   </div>
                 </div>
 
@@ -402,23 +488,33 @@ const Page = () => {
                     Artisans
                   </h3>
                   <div>
-                    {searchArtisans.map((artisan) => (
+                    {filteredPros.slice(0, 5).map((artisan, index) => (
                       <button
-                        key={artisan.id}
+                        key={index}
+                        onClick={() => {
+                          addRecentSearch(artisan.name);
+                          // Needs artisan profile route mapping - routing to custom for now as placeholder
+                          handleProtectedAction("/user/home/custom-kraft");
+                          setShowSearchModal(false);
+                        }}
                         className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors"
                       >
-                        <Image
-                          src={artisan.image}
-                          alt={artisan.name}
-                          width={40}
-                          height={40}
-                          className="w-10 h-10 rounded-lg object-cover shrink-0"
-                        />
+                        <div className="relative w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-gray-100">
+                           <Image
+                            src={artisan.image}
+                            alt={artisan.name}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
                         <span className="text-[14px] font-poppins text-gray-800">
                           {artisan.name}
                         </span>
                       </button>
                     ))}
+                    {filteredPros.length === 0 && (
+                      <p className="text-[14px] text-gray-500 font-poppins px-3 pb-3">No artisans found.</p>
+                    )}
                   </div>
                   <div className="mt-12 text-center">
                     <p className="text-[14px] sm:text-[15px] font-poppins text-gray-600 mb-2">
@@ -440,30 +536,26 @@ const Page = () => {
                   Recents
                 </h3>
                 <div>
-                  {recentSearches.map((item) => {
-                    const Icon = item.icon;
-                    return (
+                  {recentSearches.length > 0 ? (
+                    recentSearches.map((term, index) => (
                       <button
-                        key={item.id}
+                        key={index}
                         onClick={() => {
-                          handleProtectedAction(
-                            `/user/book-service?service=${encodeURIComponent(item.name)}`,
-                          );
-                          setShowSearchModal(false);
+                          setSearchQuery(term);
                         }}
                         className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors"
                       >
-                        <div
-                          className={`${item.bgColor} ${item.iconColor} w-10 h-10 rounded-lg flex items-center justify-center shrink-0`}
-                        >
-                          <Icon size={20} />
+                        <div className="bg-gray-100 text-gray-500 w-10 h-10 rounded-lg flex items-center justify-center shrink-0">
+                          <Clock size={20} />
                         </div>
                         <span className="text-[14px] font-poppins text-gray-800">
-                          {item.name}
+                          {term}
                         </span>
                       </button>
-                    );
-                  })}
+                    ))
+                  ) : (
+                    <p className="text-[14px] text-gray-500 font-poppins px-3 pb-3">No recent searches.</p>
+                  )}
                 </div>
                 <div className="mt-12 text-center">
                   <p className="text-[14px] sm:text-[15px] font-poppins text-gray-600 mb-2">

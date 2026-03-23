@@ -92,13 +92,23 @@ const Page = () => {
                 value={formData.email}
                 onChange={(value) => handleInputChange("email", value)}
               />
-              <Input
-                label="Password"
-                type="password"
-                placeholder="Enter your password"
-                value={formData.password}
-                onChange={(value) => handleInputChange("password", value)}
-              />
+              <div className="flex flex-col gap-1">
+                  <div className="flex justify-end">
+                    <p
+                      onClick={() => router.push("/tasker/forget-password")}
+                      className="text-brand-blue text-[14px] font-mabry cursor-pointer underline -mb-6"
+                    >
+                      Forgot password?
+                    </p>
+                  </div>
+                  <Input
+                    label="Password"
+                    type="password"
+                    placeholder="Enter your password"
+                    value={formData.password}
+                    onChange={(value) => handleInputChange("password", value)}
+                  />
+                </div>
               
               <div className="mt-10">
                 <div className="text-center text-[16px] my-4 font-mabry">

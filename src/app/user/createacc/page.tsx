@@ -17,6 +17,11 @@ import {
 } from "@/utils/validation";
 import { logger } from "@/utils/logger";
 import { Checkbox } from "@/components/ui/Checkbox";
+import { LegalModal } from "@/components/ui/LegalModal";
+import { TermsContent } from "@/components/ui/TermsContent";
+import { PrivacyContent } from "@/components/ui/PrivacyContent";
+import WhyModal from "@/components/ui/whyModal";
+import PasswordStrength from "@/components/ui/PasswordStrength";
 import { AUTH_CONFIG } from "@/constants/auth";
 import toast from "react-hot-toast";
 
@@ -34,6 +39,9 @@ const Page = () => {
   } = useAuthStore();
   const [registrationComplete, setRegistrationComplete] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [showWhyModal, setShowWhyModal] = useState(false);
 
   // Form data state
   const [formData, setFormData] = useState({
@@ -298,6 +306,7 @@ const Page = () => {
                   onChange={(value) => handleInputChange("password", value)}
                   required
                 />
+                <PasswordStrength password={formData.password} />
                 <Input
                   label="Confirm Password"
                   type="password"
@@ -314,9 +323,13 @@ const Page = () => {
             {/* Step 3: Terms of Use */}
             {currentStep === 3 && (
               <div className="space-y-6">
-                <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-8">
+                <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-3">
                   Terms Of Use
                 </h1>
+                <p className="text-[14px] font-poppins text-gray-600">
+                  By clicking, you agree to receive updates and newsletters
+                  about Kraftigo services & products
+                </p>
 
                 <div className="fixed bottom-25">
                   <Checkbox
@@ -324,9 +337,54 @@ const Page = () => {
                     onChange={(checked: boolean) =>
                       handleInputChange("termsAccepted", checked)
                     }
-                    label="Send me updates and newsletters about Kraftigo services & products"
+                    labelNode={
+                      <span className="text-[14px] font-poppins text-gray-700 leading-relaxed">
+                        I agree to the{" "}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setShowTermsModal(true);
+                          }}
+                          className="text-brand-blue underline underline-offset-2 font-semibold hover:opacity-75 transition-opacity"
+                        >
+                          Terms of Use
+                        </button>{" "}
+                        and{" "}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setShowPrivacyModal(true);
+                          }}
+                          className="text-brand-blue underline underline-offset-2 font-semibold hover:opacity-75 transition-opacity"
+                        >
+                          Privacy Policy
+                        </button>
+                      </span>
+                    }
                   />
                 </div>
+
+                {/* Terms of Use Modal */}
+                <LegalModal
+                  isOpen={showTermsModal}
+                  onClose={() => setShowTermsModal(false)}
+                  title="Terms of Use"
+                >
+                  <TermsContent />
+                </LegalModal>
+
+                {/* Privacy Policy Modal — wire up PrivacyContent when ready */}
+                <LegalModal
+                  isOpen={showPrivacyModal}
+                  onClose={() => setShowPrivacyModal(false)}
+                  title="Privacy Policy"
+                >
+                  <PrivacyContent />
+                </LegalModal>
               </div>
             )}
 
@@ -402,6 +460,14 @@ const Page = () => {
               </div>
             )}
 
+            {currentStep === 2 && (
+              <div className="text-center text-[14px] font-poppins">
+                <span className="text-gray-600" onClick={() => setShowWhyModal(true)}>
+                  Why do we collect this information?
+                </span>
+              </div>
+            )}
+
             <div>
               <Button
                 variant="primary"
@@ -419,6 +485,9 @@ const Page = () => {
           </div>
         </div>
       )}
+
+      {/* Why Modal */}
+      <WhyModal isOpen={showWhyModal} onClose={() => setShowWhyModal(false)} />
     </main>
   );
 };
