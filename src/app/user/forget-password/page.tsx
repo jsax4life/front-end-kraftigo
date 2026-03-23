@@ -1,37 +1,24 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter } from "next/navigation";
 import Loader from "@/components/ui/loader";
 import { ArrowLeft, MailCheck } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { isValidEmail, isNotEmpty } from "@/utils/validation";
 import Input from "@/components/ui/input";
 import Button from "@/components/ui/button";
-import PasswordStrength from "@/components/ui/PasswordStrength";
-import { AUTH_CONFIG } from "@/constants/auth";
 import { logger } from "@/utils/logger";
 import toast from "react-hot-toast";
 
 const ForgetPasswordContent = () => {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const token = searchParams.get("token");
 
-  const { isLoading, forgotPassword, resetPassword } = useAuthStore();
+  const { isLoading, forgotPassword } = useAuthStore();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     email: "",
-    password: "",
-    confirmPassword: "",
   });
-
-  useEffect(() => {
-    // If we land on the page with a token in the URL, go straight to Step 3
-    if (token) {
-      setCurrentStep(3);
-    }
-  }, [token]);
 
   const handleBack = () => {
     if (currentStep === 2) {
@@ -47,13 +34,6 @@ const ForgetPasswordContent = () => {
         return isNotEmpty(formData.email) && isValidEmail(formData.email);
       case 2:
         return true;
-      case 3:
-        return (
-          isNotEmpty(formData.password) &&
-          isNotEmpty(formData.confirmPassword) &&
-          formData.password === formData.confirmPassword &&
-          formData.password.length >= AUTH_CONFIG.MIN_PASSWORD_LENGTH
-        );
       default:
         return false;
     }
@@ -73,23 +53,6 @@ const ForgetPasswordContent = () => {
     } else if (currentStep === 2) {
       // Just a check email screen, button sends back to login
       router.push("/user/login");
-    } else if (currentStep === 3) {
-      if (!token) {
-        toast.error("Invalid or missing reset token.");
-        return;
-      }
-      // Reset password
-      try {
-        const message = await resetPassword({
-          token,
-          password: formData.password,
-        });
-        toast.success(message || "Password reset successfully!");
-        router.push("/user/login");
-      } catch (err: any) {
-        logger.error("Reset password failed:", err);
-        // Error toast handled by store
-      }
     }
   };
 
@@ -152,39 +115,6 @@ const ForgetPasswordContent = () => {
                 </p>
               </div>
             )}
-
-            {currentStep === 3 && (
-              <div className="space-y-6">
-                <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-4">
-                  Secure Your Account
-                </h1>
-                <p className="text-[14px] font-poppins text-gray-600 mb-8">
-                  Create a strong new password to protect your information and
-                  privacy
-                </p>
-
-                {/* Password Input */}
-                <Input
-                  label="New Password"
-                  type="password"
-                  placeholder="Enter your new password"
-                  value={formData.password}
-                  onChange={(value) => handleInputChange("password", value)}
-                />
-                <PasswordStrength password={formData.password} />
-
-                {/* Confirm Password Input */}
-                <Input
-                  label="Confirm New Password"
-                  type="password"
-                  placeholder="Confirm your new password"
-                  value={formData.confirmPassword}
-                  onChange={(value) =>
-                    handleInputChange("confirmPassword", value)
-                  }
-                />
-              </div>
-            )}
           </div>
 
           {/* Fixed bottom actions */}
@@ -212,9 +142,7 @@ const ForgetPasswordContent = () => {
               >
                 {currentStep === 1
                   ? "Send Instructions"
-                  : currentStep === 2
-                  ? "Back to Login"
-                  : "Reset Password"}
+                  : "Back to Login"}
               </Button>
             </div>
           </div>
