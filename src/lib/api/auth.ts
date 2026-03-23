@@ -25,6 +25,11 @@ export interface GoogleAuthPayload {
   idToken: string;
 }
 
+export interface ResetPasswordPayload {
+  token: string;
+  password: string;
+}
+
 // ─── Response Shapes ──────────────────────────────────────────────────────────
 
 export interface AuthResponse {
@@ -43,6 +48,51 @@ export interface VerifyEmailResponse {
   user: User;
   message: string;
 }
+
+export interface HomeProOfWeek {
+  krafterId: string;
+  displayName: string;
+  profilePhotoUrl: string;
+  rating: number;
+  reviewCount: number;
+  completedKrafts: number;
+  hourlyRate: number;
+  badges: string[];
+  distanceKm: number;
+}
+
+export interface HomeUpcomingKrafter {
+  id: string;
+  displayName: string;
+  profilePhotoUrl: string;
+}
+
+export interface HomeUpcomingBooking {
+  bookingId: string;
+  jobTitle: string;
+  status: string;
+  scheduledAt: string;
+  addressSummary: string;
+  krafter: HomeUpcomingKrafter;
+}
+
+export interface HomePageResponse {
+  categories: HomeCategory[];
+  prosOfWeek: HomeProOfWeek[];
+  upcoming: HomeUpcomingBooking[];
+}
+
+// ─── Home Page ────────────────────────────────────────────────────────────────
+
+export interface HomeCategory {
+  id: string;
+  name: string;
+  description: string;
+  imageUrl: string;
+  activeListingsCount: number;
+}
+
+
 
 // ─── Customer Auth ────────────────────────────────────────────────────────────
 
@@ -81,6 +131,22 @@ export const resendVerificationCode = async (
   return response.data;
 };
 
+/** POST /api/auth/forgot-password — Request password reset email */
+export const forgotPassword = async (
+  email: string,
+): Promise<{ message: string }> => {
+  const response = await api.post("/api/auth/forgot-password", { email });
+  return response.data;
+};
+
+/** POST /api/auth/reset-password — Complete password reset */
+export const resetPassword = async (
+  payload: ResetPasswordPayload,
+): Promise<{ message: string }> => {
+  const response = await api.post("/api/auth/reset-password", payload);
+  return response.data;
+};
+
 /** POST /api/auth/google — sign in / sign up via Google OAuth */
 export const loginWithGoogle = async (
   payload: GoogleAuthPayload,
@@ -97,6 +163,12 @@ export const logoutUser = async (refreshToken: string): Promise<void> => {
 /** DELETE /api/auth/logout-all — revoke all refresh tokens (all devices) */
 export const logoutAllDevices = async (): Promise<void> => {
   await api.delete("/api/auth/logout-all");
+};
+
+/** GET /api/home — dynamic customer home page data */
+export const getHomeData = async (): Promise<HomePageResponse> => {
+  const response = await api.get("/api/home");
+  return response.data;
 };
 
 // ─── Tasker Auth ──────────────────────────────────────────────────────────────

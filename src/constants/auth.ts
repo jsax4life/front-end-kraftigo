@@ -3,4 +3,5 @@ export const AUTH_CONFIG = {
   OTP_LENGTH: 6,
   LOGIN_STEPS: 2,
   REGISTRATION_STEPS: 4,
+  FORGET_PASSWORD_STEPS: 3,
 } as const;

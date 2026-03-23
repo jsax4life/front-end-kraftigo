@@ -2,12 +2,14 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { User } from '@/types'
 import { updateCachedToken } from '@/lib/axios'
-import type { RegisterPayload } from '@/lib/api/auth'
+import type { RegisterPayload, ResetPasswordPayload } from '@/lib/api/auth'
 import {
   loginUser,
   registerUser,
   verifyEmail,
   resendVerificationCode,
+  forgotPassword,
+  resetPassword,
   loginWithGoogle,
   loginTasker,
   registerTasker,
@@ -29,6 +31,8 @@ interface AuthState {
   registerUser: (userData: Omit<RegisterPayload, 'role'> & { role?: 'CUSTOMER' | 'ARTISAN' }) => Promise<{ verificationRequired: boolean; message: string }>
   verifyEmail: (email: string, code: string) => Promise<void>
   resendVerificationCode: (email: string) => Promise<string>
+  forgotPassword: (email: string) => Promise<string>
+  resetPassword: (payload: ResetPasswordPayload) => Promise<string>
   loginWithGoogle: (idToken: string) => Promise<void>
   
   // Tasker Actions
@@ -150,6 +154,38 @@ export const useAuthStore = create<AuthState>()(
           } catch (error: any) {
             set({
               error: error.response?.data?.message || 'Verification failed',
+              isLoading: false,
+            })
+            throw error
+          }
+        },
+
+        // Forgot Password
+        forgotPassword: async (email: string) => {
+          set({ isLoading: true, error: null })
+          try {
+            const { message } = await forgotPassword(email)
+            set({ isLoading: false })
+            return message
+          } catch (error: any) {
+            set({
+              error: error.response?.data?.message || 'Failed to send reset email',
+              isLoading: false,
+            })
+            throw error
+          }
+        },
+
+        // Reset Password
+        resetPassword: async (payload) => {
+          set({ isLoading: true, error: null })
+          try {
+            const { message } = await resetPassword(payload)
+            set({ isLoading: false })
+            return message
+          } catch (error: any) {
+            set({
+              error: error.response?.data?.message || 'Failed to reset password',
               isLoading: false,
             })
             throw error
