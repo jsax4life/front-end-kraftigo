@@ -18,6 +18,7 @@ import {
   saveVerificationDraft,
   patchVerificationDraft,
   shouldRedirectToDiditKyc,
+  shouldRouteToKrafterProfileOnboarding,
 } from "@/lib/api/verification";
 import { 
   isValidEmail, 
@@ -160,6 +161,10 @@ const Page = () => {
         if (cancelled) return;
         if (shouldRedirectToDiditKyc(myStatus)) {
           router.replace("/krafter/kyc-welcome");
+          return;
+        }
+        if (shouldRouteToKrafterProfileOnboarding(myStatus)) {
+          router.replace("/krafter/profile-completion");
           return;
         }
 

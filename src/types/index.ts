@@ -169,10 +169,42 @@ export interface Application {
   created_at?: string;
 }
 
+/** JSON body for `POST /api/profile/artisan/url` (URL-based media, no multipart). */
+export type ArtisanProfileUrlSubmitPayload = {
+  legalFullName: string;
+  displayName: string;
+  profilePhotoUrl?: string;
+  languages: { code: string; name: string; proficiency: string }[];
+  baseCity: string;
+  postalCode: string;
+  travelRadiusKm: number;
+  primarySkillCategoryId: string;
+  secondarySkillIds: string[];
+  yearsExperienceHomeCountry: number;
+  yearsExperienceCurrentCountry: number;
+  certifications: {
+    name: string;
+    issuer: string;
+    issueDate: string;
+    expiryDate: string;
+    documentUrl?: string;
+  }[];
+  portfolioPhotoUrls: string[];
+  toolsOwned: boolean;
+  transportType: "CAR" | "VAN" | "BIKE" | "NONE";
+  taxOrVatId: string;
+  bio: string;
+  countryOfResidence: string;
+  idCardUrl?: string;
+  employmentStatus: "SELF_EMPLOYED" | "FREELANCING";
+};
+
 export interface ArtisanProfile {
   legalFullName: string;
   displayName: string;
   profilePhotoUrl?: string;
+  /** Service category UUID from `GET /api/services/skills/groups` */
+  primarySkillCategoryId?: string;
   languages: {
     code: string;
     name: string;
@@ -183,6 +215,8 @@ export interface ArtisanProfile {
   travelRadiusKm: number;
   primaryTrade: string;
   secondarySkills: string[];
+  /** Skill UUIDs from services catalog */
+  secondarySkillIds?: string[];
   yearsExperienceHomeCountry: number;
   yearsExperienceCurrentCountry: number;
   certifications?: {

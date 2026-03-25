@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { 
@@ -19,56 +19,483 @@ import Header from "@/components/shared/Header";
 import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
 import Select from "@/components/ui/select";
+import api from "@/lib/axios";
 import { useProfileStore } from "@/store/useProfileStore";
+import type { ArtisanProfile, ArtisanProfileUrlSubmitPayload } from "@/types";
+import { getServiceSkillGroups, type ServiceSkillGroup } from "@/lib/api/services";
+import {
+  getVerificationMyStatus,
+  getVerificationWire,
+  type VerificationMyStatus,
+  type KycStatus,
+} from "@/lib/api/verification";
+import {
+  SecondarySkillsPickerModal,
+  secondarySkillsMeetsRules,
+  type SecondarySkillPick,
+} from "@/components/krafter/SecondarySkillsPickerModal";
 import toast from "react-hot-toast";
+
+type ArtisanVerificationFormData = {
+  legalFullName: string;
+  displayName: string;
+  profilePhoto: File | null;
+  profilePhotoPreview: string;
+  languages: string[];
+  baseCity: string;
+  postalCode: string;
+  travelRadiusKm: number;
+  /** Category UUID — same as krafter verification (`GET /api/services/skills/groups`). */
+  primarySkillCategoryId: string;
+  /** Display label for primary trade (category name). */
+  primaryTrade: string;
+  secondarySkillPicks: SecondarySkillPick[];
+  yearsExperienceHomeCountry: number;
+  yearsExperienceCurrentCountry: number;
+  certifications: {
+    name: string;
+    issuer: string;
+    issueDate: string;
+    expiryDate: string;
+    documentUrl?: string;
+  }[];
+  toolsOwned: boolean;
+  transportType: "NONE" | "CAR" | "VAN" | "BIKE";
+  taxOrVatId: string;
+  bio: string;
+  countryOfResidence: string;
+  governmentIdType: string;
+  governmentIdNumber: string;
+  governmentIdDocument: File | null;
+  idCard: File | null;
+  employmentStatus: "SELF_EMPLOYED" | "FREELANCING";
+  portfolioPhotos: string[];
+  portfolioPreviews: string[];
+  uniqueSellingPoint: string;
+};
+
+/** Map GET /api/profile/artisan/me (camel or snake_case) into the wizard form. */
+function buildFormPrefill(
+  prev: ArtisanVerificationFormData,
+  raw: ArtisanProfile | (Record<string, unknown> & Partial<ArtisanProfile>),
+): ArtisanVerificationFormData {
+  const a = raw as Record<string, unknown>;
+  const str = (...keys: string[]): string | undefined => {
+    for (const k of keys) {
+      const v = a[k];
+      if (typeof v === "string" && v.trim()) return v;
+    }
+    return undefined;
+  };
+  const num = (...keys: string[]): number | undefined => {
+    for (const k of keys) {
+      const v = a[k];
+      if (typeof v === "number" && !Number.isNaN(v)) return v;
+    }
+    return undefined;
+  };
+  const bool = (...keys: string[]): boolean | undefined => {
+    for (const k of keys) {
+      const v = a[k];
+      if (typeof v === "boolean") return v;
+    }
+    return undefined;
+  };
+
+  const langsRaw = a.languages;
+  let languages = prev.languages;
+  if (Array.isArray(langsRaw) && langsRaw.length > 0) {
+    languages = langsRaw
+      .map((l: unknown) => {
+        if (typeof l === "string") return l;
+        if (l && typeof l === "object" && l !== null && "name" in l) {
+          return String((l as { name: string }).name);
+        }
+        return "";
+      })
+      .filter(Boolean);
+  }
+
+  const picksRaw = a.secondarySkillPicks ?? a.secondary_skill_picks;
+  let secondarySkillPicks = prev.secondarySkillPicks;
+  if (Array.isArray(picksRaw) && picksRaw.length > 0) {
+    const first = picksRaw[0];
+    if (first && typeof first === "object" && "skillId" in first) {
+      secondarySkillPicks = (picksRaw as { skillId: string; categoryId: string; name: string }[]).map(
+        (p) => ({
+          skillId: String(p.skillId),
+          categoryId: String(p.categoryId),
+          name: String(p.name),
+        }),
+      );
+    }
+  }
+
+  const primaryCat =
+    str("primarySkillCategoryId", "primary_skill_category_id") ?? prev.primarySkillCategoryId;
+
+  const certsRaw = a.certifications;
+  let certifications = prev.certifications;
+  if (Array.isArray(certsRaw) && certsRaw.length > 0) {
+    certifications = certsRaw.map((c: unknown) => {
+      if (!c || typeof c !== "object") {
+        return { name: "", issuer: "", issueDate: "", expiryDate: "" };
+      }
+      const o = c as Record<string, unknown>;
+      return {
+        name: String(o.name ?? o.title ?? ""),
+        issuer: String(o.issuer ?? o.organization ?? ""),
+        issueDate: String(o.issueDate ?? o.issue_date ?? ""),
+        expiryDate: String(o.expiryDate ?? o.expiry_date ?? ""),
+        documentUrl: str("documentUrl", "document_url") ?? undefined,
+      };
+    });
+  }
+
+  const photoUrl = str("profilePhotoUrl", "profile_photo_url");
+  const transportRaw = str("transportType", "transport_type");
+  const transportType =
+    transportRaw && ["NONE", "BIKE", "CAR", "VAN"].includes(transportRaw)
+      ? (transportRaw as ArtisanVerificationFormData["transportType"])
+      : prev.transportType;
+
+  const govRaw = str("governmentIdType", "government_id_type") ?? "";
+  let governmentIdType = prev.governmentIdType;
+  if (govRaw) {
+    const g = govRaw.toLowerCase().replace(/-/g, "_");
+    if (g.includes("passport")) governmentIdType = "passport";
+    else if (g.includes("driver") || g.includes("license")) governmentIdType = "driver_license";
+    else if (g.includes("national")) governmentIdType = "national_id";
+  }
+
+  const country = str("countryOfResidence", "country_of_residence");
+  const emp = str("employmentStatus", "employment_status");
+  const employmentStatus =
+    emp === "FREELANCING" || emp === "SELF_EMPLOYED" ? emp : prev.employmentStatus;
+
+  return {
+    ...prev,
+    legalFullName: str("legalFullName", "legal_full_name") ?? prev.legalFullName,
+    displayName: str("displayName", "display_name") ?? prev.displayName,
+    profilePhotoPreview: photoUrl ?? prev.profilePhotoPreview,
+    languages,
+    baseCity: str("baseCity", "base_city") ?? prev.baseCity,
+    postalCode: str("postalCode", "postal_code") ?? prev.postalCode,
+    travelRadiusKm: num("travelRadiusKm", "travel_radius_km") ?? prev.travelRadiusKm,
+    primarySkillCategoryId: primaryCat,
+    primaryTrade: str("primaryTrade", "primary_trade") ?? prev.primaryTrade,
+    secondarySkillPicks,
+    yearsExperienceHomeCountry:
+      num("yearsExperienceHomeCountry", "years_experience_home_country") ??
+      prev.yearsExperienceHomeCountry,
+    yearsExperienceCurrentCountry:
+      num("yearsExperienceCurrentCountry", "years_experience_current_country") ??
+      prev.yearsExperienceCurrentCountry,
+    certifications,
+    toolsOwned: bool("toolsOwned", "tools_owned") ?? prev.toolsOwned,
+    transportType,
+    taxOrVatId: str("taxOrVatId", "tax_or_vat_id") ?? prev.taxOrVatId,
+    bio: str("bio", "description") ?? prev.bio,
+    countryOfResidence: country
+      ? country.toUpperCase().slice(0, 2)
+      : prev.countryOfResidence,
+    governmentIdType,
+    governmentIdNumber: str("governmentIdNumber", "government_id_number") ?? prev.governmentIdNumber,
+    employmentStatus,
+    uniqueSellingPoint: str("uniqueSellingPoint", "unique_selling_point") ?? prev.uniqueSellingPoint,
+  };
+}
+
+/** Same contract as portfolio: POST JSON { filename, mimetype, fileSize } → { uploadUrl, publicUrl }, then PUT file. */
+function extractSignedUploadFields(data: Record<string, unknown>): {
+  uploadUrl: string | null;
+  publicUrl: string | null;
+} {
+  const d = data as Record<string, unknown> & {
+    uploadUrl?: unknown;
+    signedUrl?: unknown;
+    presignedUrl?: unknown;
+    publicUrl?: unknown;
+    url?: unknown;
+    documentUrl?: unknown;
+    fileUrl?: unknown;
+    portfolioUrl?: unknown;
+    imageUrl?: unknown;
+    urls?: unknown;
+  };
+  const uploadUrl =
+    (typeof d.uploadUrl === "string" ? d.uploadUrl : null) ||
+    (typeof d.signedUrl === "string" ? d.signedUrl : null) ||
+    (typeof d.presignedUrl === "string" ? d.presignedUrl : null);
+  const publicUrl =
+    (Array.isArray(d.urls) && typeof d.urls[0] === "string" ? d.urls[0] : null) ||
+    (typeof d.publicUrl === "string" ? d.publicUrl : null) ||
+    (typeof d.url === "string" ? d.url : null) ||
+    (typeof d.fileUrl === "string" ? d.fileUrl : null) ||
+    (typeof d.documentUrl === "string" ? d.documentUrl : null) ||
+    (typeof d.portfolioUrl === "string" ? d.portfolioUrl : null) ||
+    (typeof d.imageUrl === "string" ? d.imageUrl : null);
+  return { uploadUrl, publicUrl };
+}
+
+async function artisanSignedObjectUpload(
+  initEndpoint: string,
+  file: File,
+  unexpectedResponseError: string,
+): Promise<string> {
+  const mimetype = file.type || "application/octet-stream";
+  const initRes = await api.post<Record<string, unknown>>(initEndpoint, {
+    filename: file.name,
+    mimetype,
+    fileSize: file.size,
+  });
+  const { uploadUrl, publicUrl } = extractSignedUploadFields(
+    (initRes.data ?? {}) as Record<string, unknown>,
+  );
+  if (!uploadUrl || !publicUrl) {
+    throw new Error(unexpectedResponseError);
+  }
+  try {
+    const putRes = await fetch(uploadUrl, {
+      method: "PUT",
+      headers: { "Content-Type": mimetype },
+      body: file,
+    });
+    if (!putRes.ok) {
+      throw new Error(`Failed to upload file (HTTP ${putRes.status})`);
+    }
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (!/failed to fetch/i.test(msg)) throw e;
+  }
+  return publicUrl;
+}
+
+const LANGUAGE_NAME_TO_CODE: Record<string, string> = {
+  English: "en",
+  French: "fr",
+  German: "de",
+  Spanish: "es",
+  Italian: "it",
+  Portuguese: "pt",
+  Dutch: "nl",
+  Swedish: "sv",
+  Norwegian: "no",
+  Danish: "da",
+  Finnish: "fi",
+  Polish: "pl",
+  Greek: "el",
+  Turkish: "tr",
+  Arabic: "ar",
+  Russian: "ru",
+  Ukrainian: "uk",
+  Romanian: "ro",
+  Chinese: "zh",
+  Japanese: "ja",
+  Korean: "ko",
+  Hausa: "ha",
+  Yoruba: "yo",
+  Igbo: "ig",
+};
+
+function buildLanguagesForUrlPayload(
+  names: string[],
+): { code: string; name: string; proficiency: string }[] {
+  return names
+    .map((n) => n.trim())
+    .filter(Boolean)
+    .map((name) => ({
+      code: LANGUAGE_NAME_TO_CODE[name] ?? (name.slice(0, 2).toLowerCase() || "xx"),
+      name,
+      proficiency: "fluent",
+    }));
+}
+
+function isHttpUrl(s: string) {
+  return /^https?:\/\//i.test((s || "").trim());
+}
+
+async function resolveProfilePhotoUrlForSubmit(
+  file: File | null,
+  preview: string,
+): Promise<string | undefined> {
+  if (file) {
+    return artisanSignedObjectUpload(
+      "/api/profile/artisan/upload-portfolio",
+      file,
+      "Unexpected upload-portfolio response from server",
+    );
+  }
+  if (isHttpUrl(preview)) return preview.trim();
+  return undefined;
+}
+
+async function resolveIdCardUrlForSubmit(file: File | null): Promise<string | undefined> {
+  if (!file) return undefined;
+  return artisanSignedObjectUpload(
+    "/api/profile/artisan/upload-certification",
+    file,
+    "Unexpected upload-certification response from server",
+  );
+}
 
 const steps = [
   { id: 1, title: "Introduction" },
-  { id: 2, title: "Complete Profile" },
-  { id: 3, title: "Verification" },
+  { id: 2, title: "Verification" },
+  { id: 3, title: "Complete Profile" },
   { id: 4, title: "Skills & More" },
-  { id: 5, title: "Portfolio" },
-  { id: 6, title: "Review" },
+  { id: 5, title: "Review" },
 ];
+
+const initialFormData: ArtisanVerificationFormData = {
+  legalFullName: "",
+  displayName: "",
+  profilePhoto: null,
+  profilePhotoPreview: "",
+  languages: [],
+  baseCity: "",
+  postalCode: "",
+  travelRadiusKm: 10,
+  primarySkillCategoryId: "",
+  primaryTrade: "",
+  secondarySkillPicks: [],
+  yearsExperienceHomeCountry: 0,
+  yearsExperienceCurrentCountry: 0,
+  certifications: [],
+  toolsOwned: false,
+  transportType: "NONE",
+  taxOrVatId: "",
+  bio: "",
+  countryOfResidence: "NG",
+  governmentIdType: "passport",
+  governmentIdNumber: "",
+  governmentIdDocument: null,
+  idCard: null,
+  employmentStatus: "SELF_EMPLOYED",
+  portfolioPhotos: [],
+  portfolioPreviews: [],
+  uniqueSellingPoint: "",
+};
 
 export default function ArtisanVerificationPage() {
   const router = useRouter();
-  const { submitVerification, isLoading } = useProfileStore();
+  const { submitArtisanProfileUrl, isLoading, artisanProfile, fetchArtisanProfile } =
+    useProfileStore();
   const [currentStep, setCurrentStep] = useState(1);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  const [langInput, setLangInput] = useState("");
-  const [skillInput, setSkillInput] = useState("");
-  
-  const [formData, setFormData] = useState({
-    legalFullName: "",
-    displayName: "",
-    profilePhoto: null as File | null,
-    profilePhotoPreview: "" as string,
-    languages: [] as string[],
-    baseCity: "",
-    postalCode: "",
-    travelRadiusKm: 10,
-    primaryTrade: "",
-    secondarySkills: [] as string[],
-    yearsExperienceHomeCountry: 0,
-    yearsExperienceCurrentCountry: 0,
-    certifications: [] as { name: string; issuer: string; issueDate: string; expiryDate: string }[],
-    toolsOwned: false,
-    transportType: "NONE",
-    taxOrVatId: "",
-    bio: "",
-    countryOfResidence: "NG",
-    governmentIdType: "passport",
-    governmentIdNumber: "",
-    governmentIdDocument: null as File | null,
-    idCard: null as File | null,
-    employmentStatus: "SELF_EMPLOYED",
-    skillsAndExpertise: [] as { skill: string; hourlyRate: number }[],
-    portfolioPhotos: [] as File[],
-    portfolioPreviews: [] as string[],
-    uniqueSellingPoint: ""
-  });
+  const prefillAppliedRef = useRef(false);
+
+  // Identity verification status (internal docs + Didit KYC) used to preload/lock the ID upload step.
+  const [myStatus, setMyStatus] = useState<VerificationMyStatus | null>(null);
+  const [isLoadingMyStatus, setIsLoadingMyStatus] = useState(true);
+  const [uploadingCertificationIndex, setUploadingCertificationIndex] = useState<number | null>(null);
+
+  const [languageToAdd, setLanguageToAdd] = useState("");
+  const [skillGroups, setSkillGroups] = useState<ServiceSkillGroup[]>([]);
+  const [secondaryModalOpen, setSecondaryModalOpen] = useState(false);
+  const secondaryIdsHydratedRef = useRef(false);
+
+  const [formData, setFormData] = useState<ArtisanVerificationFormData>(() => ({ ...initialFormData }));
+
+  const primaryTradeOptions = useMemo(
+    () =>
+      skillGroups
+        .map((g) => ({ value: g.category.id, label: g.category.name }))
+        .filter((o) => o.value && o.label),
+    [skillGroups],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const groups = await getServiceSkillGroups();
+        if (!cancelled) setSkillGroups(groups);
+      } catch {
+        toast.error("Failed to load trades and skills");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    void fetchArtisanProfile();
+  }, [fetchArtisanProfile]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const status = await getVerificationMyStatus();
+        if (cancelled) return;
+        setMyStatus(status);
+      } catch {
+        if (cancelled) return;
+        setMyStatus(null);
+      } finally {
+        if (cancelled) return;
+        setIsLoadingMyStatus(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!artisanProfile || prefillAppliedRef.current) return;
+    prefillAppliedRef.current = true;
+    setFormData((prev) => buildFormPrefill(prev, artisanProfile as ArtisanProfile));
+  }, [artisanProfile]);
+
+  useEffect(() => {
+    if (!skillGroups.length) return;
+    setFormData((prev) => {
+      let next = prev;
+      if (prev.primarySkillCategoryId && !prev.primaryTrade) {
+        const g = skillGroups.find((sg) => sg.category.id === prev.primarySkillCategoryId);
+        if (g) next = { ...next, primaryTrade: g.category.name };
+      }
+      if (!prev.primarySkillCategoryId && prev.primaryTrade?.trim()) {
+        const match = skillGroups.find(
+          (sg) => sg.category.name.toLowerCase() === prev.primaryTrade.trim().toLowerCase(),
+        );
+        if (match) {
+          next = {
+            ...next,
+            primarySkillCategoryId: match.category.id,
+            primaryTrade: match.category.name,
+          };
+        }
+      }
+      return next;
+    });
+  }, [skillGroups]);
+
+  useEffect(() => {
+    if (!artisanProfile || !skillGroups.length || secondaryIdsHydratedRef.current) return;
+    setFormData((prev) => {
+      if (prev.secondarySkillPicks.length > 0) return prev;
+      const a = artisanProfile as unknown as Record<string, unknown>;
+      const idsRaw = a.secondarySkillIds ?? a.secondary_skill_ids;
+      if (!Array.isArray(idsRaw) || idsRaw.length === 0) return prev;
+      const idSet = new Set(idsRaw.map((x) => String(x)));
+      const picks: SecondarySkillPick[] = [];
+      for (const g of skillGroups) {
+        for (const sk of g.skills) {
+          if (idSet.has(sk.id)) {
+            picks.push({ skillId: sk.id, categoryId: g.category.id, name: sk.name });
+          }
+        }
+      }
+      if (!picks.length) return prev;
+      secondaryIdsHydratedRef.current = true;
+      return { ...prev, secondarySkillPicks: picks };
+    });
+  }, [artisanProfile, skillGroups]);
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -84,79 +511,191 @@ export default function ArtisanVerificationPage() {
     }));
   };
 
-  const handleArrayFileChange = (field: string, files: FileList | null) => {
+  const MAX_WORK_PHOTOS = 3;
+
+  const uploadPortfolioAsset = (file: File) =>
+    artisanSignedObjectUpload(
+      "/api/profile/artisan/upload-portfolio",
+      file,
+      "Unexpected upload-portfolio response from server",
+    );
+
+  const [isUploadingPortfolio, setIsUploadingPortfolio] = useState(false);
+
+  const addWorkPhotos = async (files: FileList | null) => {
     if (!files) return;
-    const newFiles = Array.from(files);
-    const previews = newFiles.map(file => URL.createObjectURL(file));
-    
-    setFormData(prev => ({
-      ...prev,
-      [field]: [...(prev[field as keyof typeof prev] as File[]), ...newFiles],
-      [`${field}Previews`]: [...(prev[`${field}Previews` as keyof typeof prev] as string[] || []), ...previews]
-    }));
+    const remaining = MAX_WORK_PHOTOS - formData.portfolioPhotos.length;
+    if (remaining <= 0) {
+      toast.error("You can add up to 3 photos.");
+      return;
+    }
+
+    const incoming = Array.from(files).slice(0, remaining);
+    try {
+      setIsUploadingPortfolio(true);
+      const urls: string[] = [];
+      for (const f of incoming) {
+        urls.push(await uploadPortfolioAsset(f));
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        portfolioPhotos: [...prev.portfolioPhotos, ...urls],
+        portfolioPreviews: [...prev.portfolioPreviews, ...urls],
+      }));
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } }; message?: string };
+      toast.error(err?.response?.data?.message || err?.message || "Failed to upload photos");
+    } finally {
+      setIsUploadingPortfolio(false);
+    }
   };
+
+  const removeWorkPhotoAt = (idx: number) => {
+    setFormData((prev) => {
+      const nextPhotos = [...prev.portfolioPhotos];
+      const nextPreviews = [...prev.portfolioPreviews];
+      const removedPreview = nextPreviews[idx];
+
+      nextPhotos.splice(idx, 1);
+      nextPreviews.splice(idx, 1);
+
+      if (removedPreview?.startsWith("blob:")) {
+        try {
+          URL.revokeObjectURL(removedPreview);
+        } catch {
+          // ignore
+        }
+      }
+
+      return {
+        ...prev,
+        portfolioPhotos: nextPhotos,
+        portfolioPreviews: nextPreviews,
+      };
+    });
+  };
+
+  // Video upload intentionally removed (photos only)
 
   const addCertification = () => {
     setFormData(prev => ({
       ...prev,
-      certifications: [...prev.certifications, { name: "", issuer: "", issueDate: "", expiryDate: "" }]
+      certifications: [
+        ...prev.certifications,
+        { name: "", issuer: "", issueDate: "", expiryDate: "", documentUrl: "" },
+      ],
     }));
   };
 
-  const addSkillExpertise = () => {
-    if (formData.skillsAndExpertise.length >= 5) {
-      toast.error("Maximum 5 skills allowed");
-      return;
+  const uploadCertificationDocument = async (certIndex: number, file: File) => {
+    try {
+      setUploadingCertificationIndex(certIndex);
+
+      const documentUrl = await artisanSignedObjectUpload(
+        "/api/profile/artisan/upload-certification",
+        file,
+        "Unexpected upload-certification response from server",
+      );
+
+      setFormData((prev) => {
+        const nextCerts = [...prev.certifications];
+        if (!nextCerts[certIndex]) return prev;
+        nextCerts[certIndex] = {
+          ...nextCerts[certIndex],
+          documentUrl,
+        };
+        return { ...prev, certifications: nextCerts };
+      });
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } }; message?: string };
+      toast.error(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Failed to upload certification document",
+      );
+    } finally {
+      setUploadingCertificationIndex(null);
     }
-    setFormData(prev => ({
-      ...prev,
-      skillsAndExpertise: [...prev.skillsAndExpertise, { skill: "", hourlyRate: 30 }]
-    }));
   };
 
   const handleSubmit = async () => {
     try {
-      const data = new FormData();
-      
-      // Basic Fields
-      data.append('legalFullName', formData.legalFullName);
-      data.append('displayName', formData.displayName);
-      data.append('baseCity', formData.baseCity);
-      data.append('postalCode', formData.postalCode);
-      data.append('travelRadiusKm', formData.travelRadiusKm.toString());
-      data.append('primaryTrade', formData.primaryTrade);
-      data.append('yearsExperienceHomeCountry', formData.yearsExperienceHomeCountry.toString());
-      data.append('yearsExperienceCurrentCountry', formData.yearsExperienceCurrentCountry.toString());
-      data.append('toolsOwned', formData.toolsOwned.toString());
-      data.append('transportType', formData.transportType);
-      data.append('taxOrVatId', formData.taxOrVatId);
-      data.append('bio', formData.bio);
-      data.append('countryOfResidence', formData.countryOfResidence);
-      data.append('governmentIdType', formData.governmentIdType);
-      data.append('governmentIdNumber', formData.governmentIdNumber);
-      data.append('employmentStatus', formData.employmentStatus);
-      data.append('uniqueSellingPoint', formData.uniqueSellingPoint);
+      if (formData.certifications.length > 0) {
+        const hasDoc = formData.certifications.some(
+          (c) => Boolean(c.documentUrl && c.documentUrl.trim().length > 0),
+        );
+        if (!hasDoc) {
+          toast.error("Please upload at least one certification document.");
+          return;
+        }
+      }
 
-      // JSON Fields
-      data.append('languages', JSON.stringify(formData.languages));
-      data.append('secondarySkills', JSON.stringify(formData.secondarySkills));
-      data.append('certifications', JSON.stringify(formData.certifications));
-      data.append('skillsAndExpertise', JSON.stringify(formData.skillsAndExpertise));
+      // Backend requires `idCardUrl`, so if user didn't upload a new file
+      // we must reuse the value returned from `GET /api/profile/artisan/me`.
+      const idCardUrlFromMe: string | undefined = artisanProfile
+        ? String(
+            (artisanProfile as any).idCardUrl ??
+              (artisanProfile as any).id_card_url ??
+              (artisanProfile as any).idCardURL ??
+              "",
+          ).trim() || undefined
+        : undefined;
 
-      // Files
-      if (formData.profilePhoto) data.append('profilePhoto', formData.profilePhoto);
-      if (formData.governmentIdDocument) data.append('governmentIdDocument', formData.governmentIdDocument);
-      if (formData.idCard) data.append('idCard', formData.idCard);
-      
-      formData.portfolioPhotos.forEach((file) => {
-        data.append('portfolioPhotos', file);
-      });
+      const [profilePhotoUrl, idCardUrl] = await Promise.all([
+        resolveProfilePhotoUrlForSubmit(formData.profilePhoto, formData.profilePhotoPreview),
+        resolveIdCardUrlForSubmit(formData.idCard),
+      ]);
 
-      await submitVerification(data);
-      toast.success("Verification submitted successfully!");
-      router.push("/tasker/dashboard");
-    } catch (error) {
-      toast.error("Failed to submit verification");
+      const finalIdCardUrl = idCardUrl || idCardUrlFromMe;
+      if (!finalIdCardUrl) {
+        toast.error("idCardUrl should not be empty.");
+        return;
+      }
+
+      const certificationsPayload = formData.certifications
+        .filter((c) => c.name.trim() || c.issuer.trim())
+        .map((c) => ({
+          name: c.name,
+          issuer: c.issuer,
+          issueDate: c.issueDate,
+          expiryDate: c.expiryDate,
+          ...(c.documentUrl?.trim() ? { documentUrl: c.documentUrl.trim() } : {}),
+        }));
+
+      const payload: ArtisanProfileUrlSubmitPayload = {
+        legalFullName: formData.legalFullName,
+        displayName: formData.displayName,
+        languages: buildLanguagesForUrlPayload(formData.languages),
+        baseCity: formData.baseCity,
+        postalCode: formData.postalCode,
+        travelRadiusKm: formData.travelRadiusKm,
+        primarySkillCategoryId: formData.primarySkillCategoryId,
+        secondarySkillIds: formData.secondarySkillPicks.map((p) => p.skillId),
+        yearsExperienceHomeCountry: formData.yearsExperienceHomeCountry,
+        yearsExperienceCurrentCountry: formData.yearsExperienceCurrentCountry,
+        certifications: certificationsPayload,
+        portfolioPhotoUrls: [...formData.portfolioPhotos],
+        toolsOwned: formData.toolsOwned,
+        transportType: formData.transportType,
+        taxOrVatId: formData.taxOrVatId,
+        bio: formData.bio,
+        countryOfResidence: formData.countryOfResidence,
+        employmentStatus: formData.employmentStatus,
+      };
+
+      if (profilePhotoUrl) payload.profilePhotoUrl = profilePhotoUrl;
+      payload.idCardUrl = finalIdCardUrl;
+
+      await submitArtisanProfileUrl(payload);
+      toast.success("Profile saved successfully!");
+      setSubmitSuccess(true);
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string | string[] } } };
+      const msg = err?.response?.data?.message;
+      toast.error(
+        Array.isArray(msg) ? msg.join(", ") : msg || "Failed to save profile",
+      );
     }
   };
 
@@ -254,7 +793,16 @@ export default function ArtisanVerificationPage() {
             onClick={() => fileInputRef.current?.click()}
         >
           {formData.profilePhotoPreview ? (
-            <Image src={formData.profilePhotoPreview} alt="Preview" fill className="object-cover rounded-full" />
+            <Image
+              src={formData.profilePhotoPreview}
+              alt="Preview"
+              fill
+              className="object-cover rounded-full"
+              unoptimized={
+                formData.profilePhotoPreview.startsWith("http://") ||
+                formData.profilePhotoPreview.startsWith("https://")
+              }
+            />
           ) : (
             <div className="w-full h-full bg-gray-50 rounded-full flex flex-col items-center justify-center">
               <Camera size={32} className="text-gray-300 group-hover:text-brand-orange transition-colors" />
@@ -290,25 +838,7 @@ export default function ArtisanVerificationPage() {
           onChange={(v) => handleInputChange('displayName', v)}
           required
         />
-        
-        <div>
-           <label className="text-[14px] font-mabry text-gray-800 mb-2 block">Professional Bio</label>
-           <textarea 
-            className="w-full h-32 px-4 py-3 bg-[#F6F6F6] rounded-xl border border-[#0000001A] outline-none text-[14px] font-poppins transition-all focus:ring-1 focus:ring-brand-orange"
-            placeholder="Tell customers why you're the best for the job..."
-            value={formData.bio}
-            onChange={(e) => handleInputChange('bio', e.target.value)}
-           />
-        </div>
 
-        <Input 
-          label="Town/City" 
-          placeholder="Specify your city" 
-          value={formData.baseCity}
-          onChange={(v) => handleInputChange('baseCity', v)}
-          required
-        />
-        
         <Input 
           label="Postal Code" 
           placeholder="e.g. 10115" 
@@ -317,39 +847,118 @@ export default function ArtisanVerificationPage() {
           required
         />
 
-        <div className="space-y-3">
-          <label className="text-[14px] font-mabry text-gray-800">Languages</label>
-          <div className="flex flex-wrap gap-2 mb-2">
-            {formData.languages.map((lang, idx) => (
-              <span key={idx} className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[12px] font-bold flex items-center gap-1 animate-in zoom-in-50">
-                {lang}
-                <X size={14} className="cursor-pointer" onClick={() => {
-                  const newLangs = [...formData.languages];
-                  newLangs.splice(idx, 1);
-                  handleInputChange('languages', newLangs);
-                }} />
-              </span>
-            ))}
+        <div className="bg-white p-4 rounded-3xl border border-[#F2F4F7] space-y-3">
+          <div>
+            <p className="text-[12px] font-poppins font-semibold uppercase tracking-[0.14em] text-[#FF6600]">
+              Other Details (Optional)
+            </p>
+            <p className="mt-1 text-[13px] font-poppins text-[rgba(0,0,0,0.55)]">
+              These improve your chances at getting recurring roles but are not compulsory.
+            </p>
           </div>
-          <div className="flex gap-2">
-            <Input 
-              placeholder="Add a language (e.g. English)" 
-              value={langInput}
-              onChange={(v) => setLangInput(v)}
-              className="flex-1"
+
+          <div className="space-y-2">
+            <label className="text-[14px] font-mabry text-gray-800">What do you do for work?</label>
+            <textarea
+              className="w-full h-24 px-4 py-3 bg-[#F6F6F6] rounded-xl border border-[#0000001A] outline-none text-[14px] font-poppins transition-all focus:ring-1 focus:ring-brand-orange"
+              placeholder="E.g Student or Baker"
+              value={formData.bio}
+              onChange={(e) => handleInputChange('bio', e.target.value)}
             />
-            <Button 
-                variant="primary" 
-                className="w-12 h-12 flex items-center justify-center p-0"
-                onClick={() => {
-                   if (langInput && !formData.languages.includes(langInput)) {
-                       handleInputChange('languages', [...formData.languages, langInput]);
-                       setLangInput("");
-                   }
-                }}
-            >
-                <Plus size={20} />
-            </Button>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <label className="text-[14px] font-mabry text-gray-800">
+                What languages do you speak?
+              </label>
+              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#F9FAFB] text-[#FF6600] border border-[#E4E7EC]">
+                ?
+              </span>
+            </div>
+
+            <div className="flex flex-wrap gap-2 mb-2">
+              {formData.languages.map((lang, idx) => (
+                <span
+                  key={idx}
+                  className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[12px] font-bold flex items-center gap-1 animate-in zoom-in-50"
+                >
+                  {lang}
+                  <X
+                    size={14}
+                    className="cursor-pointer"
+                    onClick={() => {
+                      const newLangs = [...formData.languages];
+                      newLangs.splice(idx, 1);
+                      handleInputChange('languages', newLangs);
+                    }}
+                  />
+                </span>
+              ))}
+            </div>
+
+            <Select
+              label="Add language"
+              value={languageToAdd}
+              placeholder="Select language"
+              onChange={(v) => {
+                const normalized = v.trim();
+                if (!normalized) return;
+                const exists = formData.languages.some(
+                  (x) => x.trim().toLowerCase() === normalized.toLowerCase(),
+                );
+                if (exists) {
+                  setLanguageToAdd("");
+                  return;
+                }
+                handleInputChange("languages", [...formData.languages, normalized]);
+                setLanguageToAdd("");
+              }}
+              options={[
+                { value: "English", label: "English" },
+                { value: "French", label: "French" },
+                { value: "German", label: "German" },
+                { value: "Spanish", label: "Spanish" },
+                { value: "Italian", label: "Italian" },
+                { value: "Portuguese", label: "Portuguese" },
+                { value: "Dutch", label: "Dutch" },
+                { value: "Swedish", label: "Swedish" },
+                { value: "Norwegian", label: "Norwegian" },
+                { value: "Danish", label: "Danish" },
+                { value: "Finnish", label: "Finnish" },
+                { value: "Polish", label: "Polish" },
+                { value: "Greek", label: "Greek" },
+                { value: "Turkish", label: "Turkish" },
+                { value: "Arabic", label: "Arabic" },
+                { value: "Russian", label: "Russian" },
+                { value: "Ukrainian", label: "Ukrainian" },
+                { value: "Romanian", label: "Romanian" },
+                { value: "Chinese", label: "Chinese" },
+                { value: "Japanese", label: "Japanese" },
+                { value: "Korean", label: "Korean" },
+                { value: "Hausa", label: "Hausa" },
+                { value: "Yoruba", label: "Yoruba" },
+                { value: "Igbo", label: "Igbo" },
+              ]}
+            />
+          </div>
+
+          <Input
+            label="Where do you live?"
+            placeholder="E.g Bern, Germany"
+            value={formData.baseCity}
+            onChange={(v) => handleInputChange('baseCity', v)}
+            required
+          />
+
+          <div className="space-y-2">
+            <label className="text-[14px] font-mabry text-gray-800">What makes you unique?</label>
+            <textarea
+              className="w-full h-24 px-4 py-3 bg-[#F6F6F6] rounded-xl border border-[#0000001A] outline-none text-[14px] font-poppins transition-all focus:ring-1 focus:ring-brand-orange"
+              placeholder="E.g I like to make people feel relaxed with relax people"
+              value={formData.uniqueSellingPoint}
+              onChange={(e) => handleInputChange('uniqueSellingPoint', e.target.value)}
+            />
           </div>
         </div>
 
@@ -377,6 +986,27 @@ export default function ArtisanVerificationPage() {
     </div>
   );
 
+  const { verificationState, kycStatus } = getVerificationWire(myStatus);
+  const internalSubmittedAt = myStatus?.verification?.submittedAt ?? null;
+  const internalReviewedAt = myStatus?.verification?.reviewedAt ?? null;
+  const uploadsReadOnly = Boolean(internalSubmittedAt);
+  const internalDocsLabel =
+    verificationState === "PENDING"
+      ? "Submitted to admin (in review)"
+      : verificationState === "APPROVED"
+        ? "Admin approved"
+        : verificationState === "REJECTED"
+          ? "Admin rejected"
+          : "—";
+  const kycVerifiedLabel =
+    kycStatus === "APPROVED"
+      ? "Didit KYC approved"
+      : kycStatus === "PENDING"
+        ? "Didit KYC in review"
+        : kycStatus === "REJECTED"
+          ? "Didit KYC rejected"
+          : "Didit KYC not started";
+
   const renderDocumentsStep = () => (
     <div className="space-y-8 animate-in fade-in slide-in-from-right-5">
       <div className="text-center">
@@ -384,17 +1014,47 @@ export default function ArtisanVerificationPage() {
         <p className="text-[14px] font-poppins text-[#667085]">Upload your documents to unlock trust with customers.</p>
       </div>
 
+      <div className="bg-[#F9FAFB] p-4 rounded-3xl border border-[#F2F4F7] space-y-2">
+        {isLoadingMyStatus ? (
+          <p className="text-center font-poppins text-[13px] text-[rgba(0,0,0,0.55)]">
+            Loading verification status…
+          </p>
+        ) : (
+          <>
+            <div className="flex items-center justify-between gap-3">
+              <p className="font-poppins text-[13px] text-[rgba(0,0,0,0.65)]">Internal docs</p>
+              <p className="font-poppins text-[13px] font-bold text-[#1D2939]">
+                {internalDocsLabel}
+              </p>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <p className="font-poppins text-[13px] text-[rgba(0,0,0,0.65)]">Didit</p>
+              <p className="font-poppins text-[13px] font-bold text-[#1D2939]">
+                {kycVerifiedLabel}
+              </p>
+            </div>
+            {uploadsReadOnly && (
+              <p className="font-poppins text-[13px] leading-relaxed text-[rgba(0,0,0,0.55)]">
+                We already received your identity documents. You can continue completing your
+                Krafter profile without re-uploading.
+              </p>
+            )}
+          </>
+        )}
+      </div>
+
       <div className="bg-white p-6 rounded-3xl border border-[#F2F4F7] space-y-6">
         <Select 
           label="ID Type" 
           value={formData.governmentIdType}
           onChange={(v) => handleInputChange('governmentIdType', v)}
+          disabled={uploadsReadOnly}
+          required={!uploadsReadOnly}
           options={[
             { value: "passport", label: "Passport" },
             { value: "driver_license", label: "Driver's License" },
             { value: "national_id", label: "National ID Card" },
           ]}
-          required
         />
 
         <Input 
@@ -402,59 +1062,92 @@ export default function ArtisanVerificationPage() {
           placeholder="Enter ID document number" 
           value={formData.governmentIdNumber}
           onChange={(v) => handleInputChange('governmentIdNumber', v)}
+          disabled={uploadsReadOnly}
         />
 
         <div className="space-y-2">
             <label className="text-[14px] font-mabry text-gray-800">Government ID Document</label>
-            <div 
-                className="w-full aspect-video bg-[#F6F6F6] rounded-2xl border-2 border-dashed border-[#0000001A] flex flex-col items-center justify-center p-4 cursor-pointer hover:bg-gray-100 transition-colors group"
-                onClick={() => {
-                    const input = document.createElement('input');
-                    input.type = 'file';
-                    input.accept = 'image/*,application/pdf';
-                    input.onchange = (e) => handleFileChange('governmentIdDocument', (e.target as HTMLInputElement).files?.[0] || null);
-                    input.click();
-                }}
+            <div
+              className={`w-full aspect-video bg-[#F6F6F6] rounded-2xl border-2 border-dashed border-[#0000001A] flex flex-col items-center justify-center p-4 transition-colors group ${
+                uploadsReadOnly ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:bg-gray-100"
+              }`}
+              onClick={() => {
+                if (uploadsReadOnly) return;
+                const input = document.createElement("input");
+                input.type = "file";
+                input.accept = "image/*,application/pdf";
+                input.onchange = (e) =>
+                  handleFileChange(
+                    "governmentIdDocument",
+                    (e.target as HTMLInputElement).files?.[0] || null,
+                  );
+                input.click();
+              }}
             >
-                {formData.governmentIdDocument ? (
-                    <div className="flex flex-col items-center">
-                        <CheckCircle2 size={40} className="text-green-500 mb-2" />
-                        <span className="text-[12px] font-poppins text-gray-600 truncate max-w-[200px]">
-                            {formData.governmentIdDocument.name}
-                        </span>
-                    </div>
-                ) : (
-                    <>
-                        <Upload size={32} className="text-gray-300 group-hover:text-brand-orange transition-colors mb-2" />
-                        <span className="text-[14px] font-poppins text-gray-400">Upload Front Page</span>
-                    </>
-                )}
+              {formData.governmentIdDocument ? (
+                <div className="flex flex-col items-center">
+                  <CheckCircle2 size={40} className="text-green-500 mb-2" />
+                  <span className="text-[12px] font-poppins text-gray-600 truncate max-w-[200px]">
+                    {formData.governmentIdDocument.name}
+                  </span>
+                </div>
+              ) : uploadsReadOnly ? (
+                <div className="flex flex-col items-center">
+                  <CheckCircle2 size={40} className="text-green-500 mb-2" />
+                  <span className="text-[14px] font-poppins text-gray-600">
+                    Documents submitted
+                  </span>
+                </div>
+              ) : (
+                <>
+                  <Upload size={32} className="text-gray-300 group-hover:text-brand-orange transition-colors mb-2" />
+                  <span className="text-[14px] font-poppins text-gray-400">Upload Front Page</span>
+                </>
+              )}
             </div>
         </div>
 
         <div className="space-y-2">
             <label className="text-[14px] font-mabry text-gray-800">Secondary ID (Optional)</label>
-            <div 
-                className="w-full aspect-video bg-[#F6F6F6] rounded-2xl border-2 border-dashed border-[#0000001A] flex flex-col items-center justify-center p-4 cursor-pointer hover:bg-gray-100 transition-colors group"
-                onClick={() => {
-                    const input = document.createElement('input');
-                    input.type = 'file';
-                    input.accept = 'image/*,application/pdf';
-                    input.onchange = (e) => handleFileChange('idCard', (e.target as HTMLInputElement).files?.[0] || null);
-                    input.click();
-                }}
+            <div
+              className={`w-full aspect-video bg-[#F6F6F6] rounded-2xl border-2 border-dashed border-[#0000001A] flex flex-col items-center justify-center p-4 transition-colors group ${
+                uploadsReadOnly ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:bg-gray-100"
+              }`}
+              onClick={() => {
+                if (uploadsReadOnly) return;
+                const input = document.createElement("input");
+                input.type = "file";
+                input.accept = "image/*,application/pdf";
+                input.onchange = (e) =>
+                  handleFileChange(
+                    "idCard",
+                    (e.target as HTMLInputElement).files?.[0] || null,
+                  );
+                input.click();
+              }}
             >
-                {formData.idCard ? (
-                    <div className="flex flex-col items-center">
-                        <CheckCircle2 size={40} className="text-green-500 mb-2" />
-                        <span className="text-[12px] font-poppins text-gray-600">Document Uploaded</span>
-                    </div>
-                ) : (
-                    <>
-                        <Upload size={32} className="text-gray-300 group-hover:text-brand-orange transition-colors mb-2" />
-                        <span className="text-[14px] font-poppins text-gray-400">Take a photo of back/other page</span>
-                    </>
-                )}
+              {formData.idCard ? (
+                <div className="flex flex-col items-center">
+                  <CheckCircle2 size={40} className="text-green-500 mb-2" />
+                  <span className="text-[12px] font-poppins text-gray-600">
+                    Document Uploaded
+                  </span>
+                </div>
+              ) : uploadsReadOnly ? (
+                <div className="flex flex-col items-center">
+                  <CheckCircle2 size={40} className="text-green-500 mb-2" />
+                  <span className="text-[14px] font-poppins text-gray-600">
+                    Documents submitted
+                  </span>
+                </div>
+              ) : (
+                <>
+                  <Upload size={32} className="text-gray-300 group-hover:text-brand-orange transition-colors mb-2" />
+                  <span className="text-[14px] font-poppins text-gray-400">
+                    Take a photo of back/other page
+                  </span>
+                </>
+              )}
             </div>
         </div>
       </div>
@@ -469,57 +1162,77 @@ export default function ArtisanVerificationPage() {
       </div>
 
       <div className="bg-white p-6 rounded-3xl border border-[#F2F4F7] space-y-6">
-        <Select 
-          label="Primary Trade" 
-          value={formData.primaryTrade}
-          onChange={(v) => handleInputChange('primaryTrade', v)}
-          options={[
-            { value: "plumbing", label: "Plumbing" },
-            { value: "electrical", label: "Electrical" },
-            { value: "carpentry", label: "Carpentry" },
-            { value: "cleaning", label: "Cleaning" },
-            { value: "moving", label: "Moving" },
-            { value: "painting", label: "Painting" },
-            { value: "landscaping", label: "Landscaping" },
-          ]}
+        <Select
+          label="Primary trade"
+          value={formData.primarySkillCategoryId}
+          onChange={(v) => {
+            const g = skillGroups.find((sg) => sg.category.id === v);
+            setFormData((prev) => ({
+              ...prev,
+              primarySkillCategoryId: v,
+              primaryTrade: g?.category.name ?? "",
+              secondarySkillPicks: prev.secondarySkillPicks.filter((p) => p.categoryId !== v),
+            }));
+          }}
+          options={primaryTradeOptions}
           required
         />
 
         <div className="space-y-3">
-          <label className="text-[14px] font-mabry text-gray-800">Secondary Skills</label>
+          <div className="flex items-start justify-between gap-2">
+            <label className="text-[14px] font-mabry text-gray-800">Secondary skills</label>
+            <span className="text-[11px] font-poppins text-[#667085]">
+              Min. 2 skills
+            </span>
+          </div>
+          <p className="text-[12px] font-poppins text-[#667085]">
+            Choose skills outside your primary trade category. You need at least 2 secondary
+            skills.
+            {!secondarySkillsMeetsRules(formData.secondarySkillPicks) && (
+              <span className="text-amber-700">Add at least two secondary skills.</span>
+            )}
+          </p>
           <div className="flex flex-wrap gap-2 mb-2">
-            {formData.secondarySkills.map((skill, idx) => (
-              <span key={idx} className="px-3 py-1 bg-orange-50 text-orange-600 rounded-full text-[12px] font-bold flex items-center gap-1 animate-in zoom-in-50">
-                {skill}
-                <X size={14} className="cursor-pointer" onClick={() => {
-                  const newSkills = [...formData.secondarySkills];
-                  newSkills.splice(idx, 1);
-                  handleInputChange('secondarySkills', newSkills);
-                }} />
+            {formData.secondarySkillPicks.map((p) => (
+              <span
+                key={p.skillId}
+                className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-3 py-1 text-[12px] font-bold text-orange-600"
+              >
+                {p.name}
+                <button
+                  type="button"
+                  className="rounded p-0.5 hover:bg-orange-100"
+                  onClick={() =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      secondarySkillPicks: prev.secondarySkillPicks.filter((x) => x.skillId !== p.skillId),
+                    }))
+                  }
+                >
+                  <X size={14} />
+                </button>
               </span>
             ))}
           </div>
-          <div className="flex gap-2">
-            <Input 
-              placeholder="Add secondary skill (e.g. Tiling)" 
-              value={skillInput}
-              onChange={(v) => setSkillInput(v)}
-              className="flex-1"
-            />
-            <Button 
-                variant="primary" 
-                className="w-12 h-12 flex items-center justify-center p-0"
-                onClick={() => {
-                   if (skillInput && !formData.secondarySkills.includes(skillInput)) {
-                       handleInputChange('secondarySkills', [...formData.secondarySkills, skillInput]);
-                       setSkillInput("");
-                   }
-                }}
-            >
-                <Plus size={20} />
-            </Button>
-          </div>
+          <Button
+            type="button"
+            variant="outline"
+            fullWidth
+            className="border-[#E4E7EC] font-poppins! font-semibold"
+            onClick={() => setSecondaryModalOpen(true)}
+          >
+            + Add secondary skills
+          </Button>
         </div>
+
+        <SecondarySkillsPickerModal
+          open={secondaryModalOpen}
+          onClose={() => setSecondaryModalOpen(false)}
+          skillGroups={skillGroups}
+          value={formData.secondarySkillPicks}
+          onChange={(next) => setFormData((prev) => ({ ...prev, secondarySkillPicks: next }))}
+          excludeCategoryId={formData.primarySkillCategoryId || undefined}
+        />
 
         <div className="space-y-4">
             <label className="text-[14px] font-mabry text-gray-800">Employment Status</label>
@@ -528,9 +1241,9 @@ export default function ArtisanVerificationPage() {
                     <button
                         key={status}
                         onClick={() => handleInputChange('employmentStatus', status)}
-                        className={`py-4 rounded-xl text-[13px] font-gerat font-bold transition-all border ${
+                        className={`py-3 rounded-xl text-[12px] font-gerat font-bold transition-all border ${
                             formData.employmentStatus === status 
-                            ? 'bg-brand-orange text-white border-brand-orange shadow-md scale-[1.02]' 
+                            ? 'bg-brand-orange text-white border-brand-orange shadow-md' 
                             : 'bg-[#F6F6F6] text-gray-600 border-transparent hover:border-gray-200'
                         }`}
                     >
@@ -542,14 +1255,14 @@ export default function ArtisanVerificationPage() {
 
         <div className="grid grid-cols-2 gap-4">
             <Input 
-                label="Exp (Home)" 
+                label="Experience (before)"
                 type="number"
                 placeholder="Years" 
                 value={formData.yearsExperienceHomeCountry.toString()}
                 onChange={(v) => handleInputChange('yearsExperienceHomeCountry', parseInt(v) || 0)}
             />
             <Input 
-                label="Exp (Current)" 
+                label="Experience (now)"
                 type="number"
                 placeholder="Years" 
                 value={formData.yearsExperienceCurrentCountry.toString()}
@@ -597,6 +1310,69 @@ export default function ArtisanVerificationPage() {
                             handleInputChange('certifications', newCerts);
                         }}
                     />
+                    <div className="space-y-2">
+                      <label className="text-[14px] font-mabry text-gray-800">
+                        Certification document
+                      </label>
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        className={`w-full rounded-2xl border-2 border-dashed border-[#0000001A] flex flex-col items-center justify-center p-4 transition-colors group ${
+                          uploadingCertificationIndex === index
+                            ? "cursor-not-allowed opacity-60"
+                            : "cursor-pointer hover:bg-gray-100"
+                        }`}
+                        onClick={() => {
+                          if (uploadingCertificationIndex === index) return;
+                          const input = document.createElement("input");
+                          input.type = "file";
+                          input.accept = "image/*,application/pdf";
+                          input.onchange = (e) => {
+                            const file = (e.target as HTMLInputElement).files?.[0];
+                            if (file) void uploadCertificationDocument(index, file);
+                          };
+                          input.click();
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key !== "Enter" && e.key !== " ") return;
+                          e.preventDefault();
+                          if (uploadingCertificationIndex === index) return;
+                          const input = document.createElement("input");
+                          input.type = "file";
+                          input.accept = "image/*,application/pdf";
+                          input.onchange = (evt) => {
+                            const file = (evt.target as HTMLInputElement).files?.[0];
+                            if (file) void uploadCertificationDocument(index, file);
+                          };
+                          input.click();
+                        }}
+                      >
+                        {cert.documentUrl ? (
+                          <div className="flex flex-col items-center gap-1">
+                            <CheckCircle2 size={32} className="text-green-500" />
+                            <p className="text-[12px] font-poppins text-gray-600">Uploaded</p>
+                            <a
+                              href={cert.documentUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-[11px] font-poppins text-[#FF6600] underline underline-offset-4 hover:opacity-90"
+                            >
+                              View
+                            </a>
+                          </div>
+                        ) : (
+                          <>
+                            <Upload
+                              size={28}
+                              className="text-gray-300 group-hover:text-brand-orange transition-colors"
+                            />
+                            <p className="text-[12px] font-poppins text-gray-400">
+                              Upload certification document
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    </div>
                 </div>
             ))}
         </div>
@@ -625,116 +1401,71 @@ export default function ArtisanVerificationPage() {
                 { value: "VAN", label: "Van" },
             ]}
         />
-      </div>
-    </div>
-  );
 
-  const renderPortfolioStep = () => (
-    <div className="space-y-8 animate-in fade-in slide-in-from-right-5">
-      <div className="text-center">
-        <h2 className="text-[24px] font-gerat font-bold text-[#1D2939]">Portfolio & Skills</h2>
-        <p className="text-[14px] font-poppins text-[#667085]">Showcase your best work and set your rates.</p>
-      </div>
+        {/* Add Photos Of Your Work (up to 3 images) */}
+        <div className="space-y-3 pt-2">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[16px] font-gerat font-bold text-[#1D2939]">
+                Add Photos Of Your Work
+              </p>
+              <p className="mt-1 text-[13px] font-poppins text-[#667085]">
+                You may add up to 3 images.
+              </p>
+            </div>
+          </div>
 
-      <div className="bg-white p-6 rounded-3xl border border-[#F2F4F7] space-y-6">
-        <div className="space-y-4">
-            <div className="flex items-center justify-between">
-                <label className="text-[14px] font-mabry text-gray-800">Skills & Rates</label>
-                <button 
-                    onClick={addSkillExpertise}
-                    className="text-brand-orange flex items-center gap-1 text-[12px] font-bold hover:underline"
+          <div className="grid grid-cols-3 gap-3">
+            {[0, 1, 2].map((slotIdx) => {
+              const preview = formData.portfolioPreviews[slotIdx];
+              if (preview) {
+                return (
+                  <div
+                    key={slotIdx}
+                    className="relative aspect-square rounded-xl overflow-hidden border border-gray-100 bg-gray-50"
+                  >
+                    <Image
+                      src={preview}
+                      alt="Work"
+                      fill
+                      className="object-cover"
+                      unoptimized
+                    />
+                    <button
+                      type="button"
+                      className="absolute top-1 right-1 w-7 h-7 rounded-full bg-white/90 border border-gray-100 flex items-center justify-center text-red-500 hover:bg-white"
+                      onClick={() => removeWorkPhotoAt(slotIdx)}
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                );
+              }
+
+              return (
+                <button
+                  key={slotIdx}
+                  type="button"
+                  className="aspect-square rounded-xl border-2 border-dashed border-gray-100 bg-gray-50 flex flex-col items-center justify-center gap-1 text-gray-300 hover:border-brand-orange hover:text-brand-orange transition-colors"
+                  onClick={() => {
+                    const input = document.createElement("input");
+                    input.type = "file";
+                    input.accept = "image/*";
+                    input.multiple = true;
+                    input.onchange = (e) => {
+                      void addWorkPhotos((e.target as HTMLInputElement).files);
+                    };
+                    input.click();
+                  }}
                 >
-                    <Plus size={14} /> Add Skill
+                  <Upload size={26} />
+                  <span className="text-[12px] font-poppins text-gray-500">Upload</span>
                 </button>
-            </div>
-            <p className="text-[11px] text-gray-400 font-poppins"><Info size={12} className="inline mr-1" /> Add up to 5 specific skills and your hourly rates.</p>
-            
-            {formData.skillsAndExpertise.map((item, index) => (
-                <div key={index} className="flex gap-3 items-center">
-                    <div className="flex-2">
-                        <Input 
-                            placeholder="e.g. Toilet Repair" 
-                            value={item.skill}
-                            onChange={(v) => {
-                                const newSkills = [...formData.skillsAndExpertise];
-                                newSkills[index].skill = v;
-                                handleInputChange('skillsAndExpertise', newSkills);
-                            }}
-                        />
-                    </div>
-                    <div className="flex-1 relative">
-                        <Input 
-                            type="number"
-                            placeholder="Rate" 
-                            value={item.hourlyRate.toString()}
-                            onChange={(v) => {
-                                const newSkills = [...formData.skillsAndExpertise];
-                                newSkills[index].hourlyRate = parseInt(v) || 0;
-                                handleInputChange('skillsAndExpertise', newSkills);
-                            }}
-                        />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 font-poppins">/hr</span>
-                    </div>
-                    <button 
-                         onClick={() => {
-                            const newSkills = [...formData.skillsAndExpertise];
-                            newSkills.splice(index, 1);
-                            handleInputChange('skillsAndExpertise', newSkills);
-                        }}
-                        className="p-2 text-gray-300 hover:text-red-500"
-                    >
-                        <X size={18} />
-                    </button>
-                </div>
-            ))}
-        </div>
+              );
+            })}
+          </div>
 
-        <div className="space-y-3">
-            <label className="text-[14px] font-mabry text-gray-800">Unique Selling Point</label>
-            <Input 
-                placeholder="What makes you stand out?" 
-                value={formData.uniqueSellingPoint}
-                onChange={(v) => handleInputChange('uniqueSellingPoint', v)}
-            />
-        </div>
-
-        <div className="space-y-4">
-            <label className="text-[14px] font-mabry text-gray-800">Portfolio Photos</label>
-            <div className="grid grid-cols-3 gap-2">
-                {formData.portfolioPreviews.map((src, idx) => (
-                    <div key={idx} className="aspect-square rounded-xl relative group overflow-hidden border border-gray-100">
-                        <Image src={src} alt="Work" fill className="object-cover" />
-                        <button 
-                            onClick={() => {
-                                const newFiles = [...formData.portfolioPhotos];
-                                const newPreviews = [...formData.portfolioPreviews];
-                                newFiles.splice(idx, 1);
-                                newPreviews.splice(idx, 1);
-                                setFormData(prev => ({ ...prev, portfolioPhotos: newFiles, portfolioPreviews: newPreviews }));
-                            }}
-                            className="absolute top-1 right-1 w-5 h-5 bg-white/80 rounded-full flex items-center justify-center text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                            <X size={12} />
-                        </button>
-                    </div>
-                ))}
-                {formData.portfolioPhotos.length < 10 && (
-                    <button 
-                        onClick={() => {
-                            const input = document.createElement('input');
-                            input.type = 'file';
-                            input.multiple = true;
-                            input.accept = 'image/*';
-                            input.onchange = (e) => handleArrayFileChange('portfolioPhotos', (e.target as HTMLInputElement).files);
-                            input.click();
-                        }}
-                        className="aspect-square bg-gray-50 rounded-xl border-2 border-dashed border-gray-100 flex flex-col items-center justify-center text-gray-300 hover:border-brand-orange hover:text-brand-orange transition-all"
-                    >
-                        <Plus size={24} />
-                        <span className="text-[10px] font-bold mt-1">ADD</span>
-                    </button>
-                )}
-            </div>
+          {/* Video removed (photos only) */}
         </div>
       </div>
     </div>
@@ -743,11 +1474,10 @@ export default function ArtisanVerificationPage() {
   const renderContent = () => {
     switch (currentStep) {
       case 1: return renderIntroduction();
-      case 2: return renderProfileStep();
-      case 3: return renderDocumentsStep();
+      case 2: return renderDocumentsStep();
+      case 3: return renderProfileStep();
       case 4: return renderExpertiseStep();
-      case 5: return renderPortfolioStep();
-      case 6: return (
+      case 5: return (
         <div className="text-center space-y-8 animate-in zoom-in-95 duration-300">
             <div className="w-24 h-24 bg-green-50 text-green-500 rounded-full flex items-center justify-center mx-auto shadow-sm">
                 <ShieldCheck size={48} />
@@ -768,9 +1498,13 @@ export default function ArtisanVerificationPage() {
                     <span className="text-gray-400 font-poppins text-[13px]">Primary Trade</span>
                     <span className="font-gerat font-bold text-[14px] capitalize">{formData.primaryTrade}</span>
                 </div>
-                <div className="flex justify-between items-center">
-                    <span className="text-gray-400 font-poppins text-[13px]">Rate Base</span>
-                    <span className="font-gerat font-bold text-[14px]">€{formData.skillsAndExpertise[0]?.hourlyRate || 30}/hr</span>
+                <div className="flex justify-between items-start gap-2 pb-4 border-b border-gray-50">
+                    <span className="text-gray-400 font-poppins text-[13px] shrink-0">Secondary skills</span>
+                    <span className="font-gerat font-bold text-[14px] text-right">
+                      {formData.secondarySkillPicks.length
+                        ? formData.secondarySkillPicks.map((p) => p.name).join(", ")
+                        : "—"}
+                    </span>
                 </div>
             </div>
 
@@ -787,6 +1521,35 @@ export default function ArtisanVerificationPage() {
   };
 
   return (
+    submitSuccess ? (
+      <main className="relative w-full min-h-screen bg-[#F9FAFB] pb-32">
+        <div className="max-w-[500px] mx-auto px-4 py-10">
+          <div className="bg-white p-8 rounded-3xl border border-[#F2F4F7] text-center space-y-4">
+            <div className="w-24 h-24 bg-green-50 text-green-500 rounded-full flex items-center justify-center mx-auto shadow-sm">
+              <ShieldCheck size={48} />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-[28px] font-gerat font-bold text-[#1D2939]">Submitted!</h2>
+              <p className="text-[14px] font-poppins text-[#667085] max-w-[320px] mx-auto">
+                Your profile information has been submitted successfully.
+              </p>
+            </div>
+
+            <div className="pt-4">
+              <Button
+                variant="primary"
+                fullWidth
+                onClick={() => router.push("/")}
+                disabled={isLoading}
+                className="py-4 text-[16px] font-gerat font-bold"
+              >
+                Back to home
+              </Button>
+            </div>
+          </div>
+        </div>
+      </main>
+    ) : (
     <main className="relative w-full min-h-screen bg-[#F9FAFB] pb-32">
       <Header 
         title={currentStep === 1 ? "Become a Crafter" : steps.find(s => s.id === currentStep)?.title || "Verification"} 
@@ -819,21 +1582,32 @@ export default function ArtisanVerificationPage() {
                         fullWidth
                         disabled={isLoading}
                         onClick={() => {
-                            if (currentStep === 6) {
+                            if (currentStep === 5) {
                                 handleSubmit();
+                            } else if (currentStep === 4) {
+                              if (!formData.primarySkillCategoryId) {
+                                toast.error("Select a primary trade");
+                                return;
+                              }
+                              if (!secondarySkillsMeetsRules(formData.secondarySkillPicks)) {
+                                toast.error("Add at least two secondary skills.");
+                                return;
+                              }
+                              setCurrentStep(currentStep + 1);
+                              window.scrollTo(0, 0);
                             } else {
-                                // Validation can be added here
-                                setCurrentStep(currentStep + 1);
-                                window.scrollTo(0, 0);
+                              setCurrentStep(currentStep + 1);
+                              window.scrollTo(0, 0);
                             }
                         }}
                     >
-                        {isLoading ? "Submitting..." : currentStep === 6 ? "Submit Application" : "Continue"}
+                        {isLoading ? "Submitting..." : currentStep === 5 ? "Submit Application" : "Continue"}
                     </Button>
                 </div>
             </div>
         )}
       </div>
     </main>
+    )
   );
 }

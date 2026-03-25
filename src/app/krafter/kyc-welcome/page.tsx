@@ -13,6 +13,7 @@ import {
   getVerificationWire,
   hasOpenDiditKycSession,
   shouldRedirectToDiditKyc,
+  shouldRouteToKrafterProfileOnboarding,
   type VerificationMyStatus,
 } from "@/lib/api/verification";
 
@@ -53,8 +54,8 @@ export default function KrafterKycWelcomePage() {
         if (cancelled) return;
         if (!shouldRedirectToDiditKyc(status)) {
           const { verificationState, kycStatus } = getVerificationWire(status);
-          if (verificationState === "PENDING" && kycStatus === "APPROVED") {
-            router.replace("/user/profile");
+          if (shouldRouteToKrafterProfileOnboarding(status)) {
+            router.replace("/krafter/profile-completion");
           } else if (kycStatus === "REJECTED") {
             router.replace("/krafter/verification");
           } else if (verificationState === "PENDING") {

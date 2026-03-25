@@ -79,6 +79,17 @@ export function hasOpenDiditKycSession(
   return kycStatus === 'PENDING' && !status?.kycVerifiedAt
 }
 
+/**
+ * KYC approved but artisan verification still pending admin — user can complete Krafter profile
+ * onboarding while waiting (e.g. `/krafter/profile-completion`).
+ */
+export function shouldRouteToKrafterProfileOnboarding(
+  status: VerificationMyStatus | null | undefined,
+): boolean {
+  const { verificationState, kycStatus } = getVerificationWire(status)
+  return verificationState === 'PENDING' && kycStatus === 'APPROVED'
+}
+
 /** POST /api/verification/start — `{ verificationUrl }` from backend (Didit session). */
 export async function startDiditKycSession(): Promise<{ verificationUrl: string }> {
   const response = await api.post<Record<string, unknown>>('/api/verification/start', {})
