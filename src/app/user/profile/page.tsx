@@ -20,6 +20,7 @@ import { useProfileStore } from "@/store/useProfileStore";
 import {
   getVerificationWire,
   shouldRedirectToDiditKyc,
+  shouldRouteToKrafterProfileOnboarding,
 } from "@/lib/api/verification";
 import { useEffect } from "react";
 import toast from "react-hot-toast";
@@ -59,7 +60,7 @@ const Page = () => {
   const displayName = customerProfile?.fullName || user?.fullName || "User";
   const email = user?.email || "";
   const avatar = customerProfile?.profilePhotoUrl || user?.avatar;
-  const { verificationState, kycStatus } = getVerificationWire(verificationStatus);
+  const { verificationState } = getVerificationWire(verificationStatus);
 
   const isTasker = useAuthStore.getState().isTasker();
   const taskerBannerTitle = isTasker ? "GO TO KRAFTER DASHBOARD" : "EARN MONEY BY COMPLETING KRAFTS";
@@ -74,8 +75,8 @@ const Page = () => {
       router.push("/krafter/kyc-welcome");
       return;
     }
-    if (verificationState === "PENDING" && kycStatus === "APPROVED") {
-      toast.success("Your application is being reviewed!");
+    if (shouldRouteToKrafterProfileOnboarding(verificationStatus)) {
+      router.push("/krafter/profile-completion");
       return;
     }
     router.push("/krafter/verification");

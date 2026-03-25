@@ -1,5 +1,9 @@
 import { create } from 'zustand'
-import { ArtisanProfile, CustomerProfile } from '@/types'
+import {
+  ArtisanProfile,
+  ArtisanProfileUrlSubmitPayload,
+  CustomerProfile,
+} from '@/types'
 import api from '@/lib/axios'
 import { getVerificationMyStatus, type VerificationMyStatus } from '@/lib/api/verification'
 
@@ -23,6 +27,7 @@ interface ProfileState {
   verificationStatus: VerificationMyStatus | null
   fetchVerificationStatus: () => Promise<void>
   submitVerification: (formData: FormData) => Promise<void>
+  submitArtisanProfileUrl: (payload: ArtisanProfileUrlSubmitPayload) => Promise<void>
 
   clearProfileError: () => void
 }
@@ -143,6 +148,21 @@ export const useProfileStore = create<ProfileState>((set) => ({
     } catch (error: any) {
       set({
         error: error.response?.data?.message || 'Failed to submit verification',
+        isLoading: false,
+      })
+      throw error
+    }
+  },
+
+  submitArtisanProfileUrl: async (payload) => {
+    set({ isLoading: true, error: null })
+    try {
+      await api.post('/api/profile/artisan/url', payload)
+      const me = await api.get<ArtisanProfile>('/api/profile/artisan/me')
+      set({ artisanProfile: me.data, isLoading: false })
+    } catch (error: any) {
+      set({
+        error: error.response?.data?.message || 'Failed to save artisan profile',
         isLoading: false,
       })
       throw error

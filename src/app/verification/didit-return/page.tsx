@@ -8,6 +8,7 @@ import Loader from "@/components/ui/loader";
 import Button from "@/components/ui/button";
 import {
   getVerificationMyStatus,
+  shouldRouteToKrafterProfileOnboarding,
   type KycStatus,
   type VerificationMyStatus,
 } from "@/lib/api/verification";
@@ -200,16 +201,38 @@ function DiditReturnContent() {
                 <div className="mt-6 flex flex-col items-center gap-3">
                   <CheckCircle2 className="text-emerald-600" size={44} strokeWidth={1.75} />
                   <p className="text-center font-poppins text-[14px] leading-relaxed text-[rgba(0,0,0,0.65)]">
-                    Your identity verification is complete. Thank you!
+                    {shouldRouteToKrafterProfileOnboarding(myStatus)
+                      ? "Identity verification is complete. While we review your application, you can finish your Krafter profile."
+                      : "Your identity verification is complete. Thank you!"}
                   </p>
-                  <Button
-                    type="button"
-                    fullWidth
-                    className="font-poppins! font-semibold"
-                    onClick={() => router.push("/user/profile")}
-                  >
-                    Back to profile
-                  </Button>
+                  {shouldRouteToKrafterProfileOnboarding(myStatus) ? (
+                    <>
+                      <Button
+                        type="button"
+                        fullWidth
+                        className="font-poppins! font-semibold"
+                        onClick={() => router.push("/krafter/profile-completion")}
+                      >
+                        Continue Krafter profile
+                      </Button>
+                      <button
+                        type="button"
+                        className="font-poppins text-[13px] text-[rgba(0,0,0,0.55)] underline-offset-4 hover:underline"
+                        onClick={() => router.push("/user/profile")}
+                      >
+                        Back to profile
+                      </button>
+                    </>
+                  ) : (
+                    <Button
+                      type="button"
+                      fullWidth
+                      className="font-poppins! font-semibold"
+                      onClick={() => router.push("/user/profile")}
+                    >
+                      Back to profile
+                    </Button>
+                  )}
                 </div>
               )}
 
