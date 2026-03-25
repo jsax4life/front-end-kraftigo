@@ -162,7 +162,7 @@ const Page = () => {
             <div className="bg-white border border-[#F2F4F7] rounded-3xl overflow-hidden shadow-sm">
               <SettingsRow icon={UserIcon} label="Personal Information" onClick={() => router.push("/tasker/profile/edit")} />
               <SettingsRow icon={Lock} label="Security" onClick={() => router.push("/tasker/profile/security")} />
-              <SettingsRow icon={MessageCircleQuestion} label="Work Eligibility" onClick={() => router.push("/user/profile/artisan-verification")} />
+              <SettingsRow icon={MessageCircleQuestion} label="Work Eligibility" onClick={() => router.push("/krafter/profile-completion")} />
               <SettingsRow icon={Target} label="Work Preferences" onClick={() => {}} />
             </div>
           </div>

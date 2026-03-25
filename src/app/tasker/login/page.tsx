@@ -132,7 +132,7 @@ const Page = () => {
                 Don&apos;t have a tasker account?{" "}
               </span>
               <button
-                onClick={() => router.push("/tasker/createacc")}
+                onClick={() => router.push("/krafter/verification")}
                 className="text-brand-blue font-semibold hover:underline"
               >
                 Sign Up
