@@ -111,7 +111,7 @@ const Page = () => {
             <Button
               className="cursor-pointer hover:scale-105"
               variant="secondary"
-              onClick={() => router.push("/tasker/createacc")}
+              onClick={() => router.push("/krafter/verification")}
               fullWidth
             >
               Create account

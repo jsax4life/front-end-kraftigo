@@ -1,69 +1,289 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Input from "@/components/ui/input";
 import Select from "@/components/ui/select";
 import Button from "@/components/ui/button";
-import PhoneInput from "@/components/ui/PhoneInput";
 import Image from "next/image";
-import { ArrowLeft, Briefcase, CreditCard, Shield, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Briefcase, CreditCard, Shield, CheckCircle2, IdCard } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useProfileStore } from "@/store/useProfileStore";
 import toast from "react-hot-toast";
 import Loader from "@/components/ui/loader";
-import { logger } from "@/utils/logger";
+import { getServiceSkillGroups } from "@/lib/api/services";
+import {
+  getVerificationDraft,
+  getVerificationMyStatus,
+  saveVerificationDraft,
+  patchVerificationDraft,
+  shouldRedirectToDiditKyc,
+} from "@/lib/api/verification";
 import { 
   isValidEmail, 
   isNotEmpty, 
-  isValidPassword,
-  isNumeric,
-  isStrongPassword
+  isNumeric
 } from "@/utils/validation";
+
+const GOVERNMENT_ID_TYPE_TO_API: Record<string, string> = {
+  passport: "passport",
+  "drivers-license": "driver_license",
+  "national-id": "national_id",
+  "residence-permit": "national_id",
+};
+
+const API_TO_DOCUMENT_TYPE: Record<string, string> = {
+  passport: "passport",
+  driver_license: "drivers-license",
+  national_id: "national-id",
+};
+
+function mapWorkingAsToEmploymentStatus(workingAs: string): "SELF_EMPLOYED" | "FREELANCING" {
+  return workingAs === "contractor" || workingAs === "company-employee"
+    ? "FREELANCING"
+    : "SELF_EMPLOYED";
+}
+
+function omitUndefinedRecord(obj: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([, v]) => v !== undefined),
+  ) as Record<string, unknown>;
+}
+
+/** Try to turn a remote or blob URL into a File for multipart submit (may fail on CORS). */
+async function urlToFile(url: string, filename: string): Promise<File | null> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return new File([blob], filename, { type: blob.type || "image/jpeg" });
+  } catch {
+    return null;
+  }
+}
+
+const DRAFT_CONFLICT_MESSAGE =
+  "Saving a draft isn't available while verification is pending or your profile is already verified.";
+
+/** ISO 3166-1 alpha-2 codes only — backend expects max 2 chars */
+const COUNTRY_OF_RESIDENCE_OPTIONS = [
+  { value: "DE", label: "Germany" },
+  { value: "NG", label: "Nigeria" },
+  { value: "US", label: "United States" },
+  { value: "GB", label: "United Kingdom" },
+  { value: "FR", label: "France" },
+  { value: "IT", label: "Italy" },
+  { value: "ES", label: "Spain" },
+  { value: "NL", label: "Netherlands" },
+  { value: "BE", label: "Belgium" },
+  { value: "AT", label: "Austria" },
+  { value: "CH", label: "Switzerland" },
+  { value: "PL", label: "Poland" },
+  { value: "PT", label: "Portugal" },
+  { value: "IE", label: "Ireland" },
+  { value: "SE", label: "Sweden" },
+  { value: "NO", label: "Norway" },
+  { value: "DK", label: "Denmark" },
+  { value: "FI", label: "Finland" },
+];
 
 const Page = () => {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 6;
+  const [skipDocumentUpload, setSkipDocumentUpload] = useState(false);
+  const selfieCameraInputRef = useRef<HTMLInputElement>(null);
+  const selfieGalleryInputRef = useRef<HTMLInputElement>(null);
+  const [showSelfieSourcePicker, setShowSelfieSourcePicker] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [isSubmittingVerification, setIsSubmittingVerification] = useState(false);
+  const [primaryTradeOptions, setPrimaryTradeOptions] = useState<
+    { value: string; label: string }[]
+  >([]);
+  const [verificationDraftId, setVerificationDraftId] = useState<string | null>(null);
+  const [isLoadingDraft, setIsLoadingDraft] = useState(true);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [restoredGovernmentIdDocumentUrl, setRestoredGovernmentIdDocumentUrl] = useState<
+    string | null
+  >(null);
+  const [restoredProfilePhotoUrl, setRestoredProfilePhotoUrl] = useState<string | null>(null);
+  const draftRestoreToastShown = useRef(false);
+  const { submitVerification } = useProfileStore();
   const {
-    registerTasker,
-    verifyEmail,
-    resendVerificationCode,
+    user,
     isLoading,
-    error,
-    clearError,
   } = useAuthStore();
 
-  const [resendTimer, setResendTimer] = useState(0);
+  useEffect(() => {
+    const storedName =
+      typeof window !== "undefined"
+        ? localStorage.getItem("kraftigo_user_fullName") || ""
+        : "";
+
+    setFormData((prev) => ({
+      ...prev,
+      fullName: prev.fullName || user?.fullName || storedName,
+      email: prev.email || user?.email || "",
+    }));
+  }, [user?.fullName, user?.email]);
 
   useEffect(() => {
-    if (resendTimer > 0) {
-      const timer = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [resendTimer]);
+    const fetchSkillGroups = async () => {
+      try {
+        const groups = await getServiceSkillGroups();
+        const mapped = groups
+          .map((group) => ({
+            value: group.category.id,
+            label: group.category.name,
+          }))
+          .filter((option) => option.value && option.label);
+        setPrimaryTradeOptions(mapped);
+      } catch (error) {
+        toast.error("Failed to load primary trade categories");
+      }
+    };
+
+    fetchSkillGroups();
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setIsLoadingDraft(true);
+      try {
+        let myStatus = null as Awaited<ReturnType<typeof getVerificationMyStatus>> | null;
+        try {
+          myStatus = await getVerificationMyStatus();
+        } catch {
+          /* proceed with draft if status unavailable */
+        }
+        if (cancelled) return;
+        if (shouldRedirectToDiditKyc(myStatus)) {
+          router.replace("/krafter/kyc-welcome");
+          return;
+        }
+
+        const res = await getVerificationDraft();
+        if (cancelled) return;
+        setVerificationDraftId(res.draftId);
+
+        const p = res.payload;
+        if (!p || typeof p !== "object" || Object.keys(p).length === 0) {
+          return;
+        }
+
+        const extRaw = p.extensions as Record<string, unknown> | undefined;
+        const ext = extRaw?.krafterVerification as Record<string, unknown> | undefined;
+
+        const apiGovType = p.governmentIdType as string | undefined;
+        const documentTypeFromApi =
+          (apiGovType && API_TO_DOCUMENT_TYPE[apiGovType]) ||
+          (ext?.documentType as string | undefined) ||
+          "";
+
+        const emp = p.employmentStatus as string | undefined;
+        let workingAs = (ext?.workingAs as string) || "";
+        if (!workingAs && emp === "FREELANCING") workingAs = "contractor";
+        if (!workingAs && emp === "SELF_EMPLOYED") workingAs = "self-employed";
+
+        const profileUrl =
+          (p.idCardUrl as string | undefined) ||
+          (p.profilePhotoUrl as string | undefined);
+
+        setFormData((prev) => ({
+          ...prev,
+          fullName: (p.fullName as string) ?? prev.fullName,
+          city: (p.baseCity as string) ?? prev.city,
+          postal: (p.postalCode as string) ?? prev.postal,
+          country: (
+            (p.countryOfResidence as string) ||
+            prev.country ||
+            "DE"
+          )
+            .toUpperCase()
+            .slice(0, 2),
+          documentType: documentTypeFromApi || prev.documentType,
+          trade:
+            (p.primarySkillCategoryId as string) ??
+            (ext?.trade as string) ??
+            prev.trade,
+          workingAs: workingAs || prev.workingAs,
+          businessRegistrationNumber:
+            (ext?.businessRegistrationNumber as string) ??
+            prev.businessRegistrationNumber,
+          vatId: (ext?.vatId as string) ?? prev.vatId,
+          term1Accepted:
+            typeof ext?.term1Accepted === "boolean"
+              ? ext.term1Accepted
+              : prev.term1Accepted,
+          term2Accepted:
+            typeof ext?.term2Accepted === "boolean"
+              ? ext.term2Accepted
+              : prev.term2Accepted,
+          email: (ext?.email as string) ?? prev.email,
+          selfieImage: profileUrl ?? prev.selfieImage,
+        }));
+
+        const gUrl = p.governmentIdDocumentUrl as string | undefined;
+        if (gUrl) setRestoredGovernmentIdDocumentUrl(gUrl);
+        if (profileUrl) setRestoredProfilePhotoUrl(profileUrl);
+
+        const skipped =
+          typeof p.idCardSkipped === "boolean"
+            ? p.idCardSkipped
+            : typeof ext?.skipDocumentUpload === "boolean"
+              ? ext.skipDocumentUpload
+              : undefined;
+        if (typeof skipped === "boolean") setSkipDocumentUpload(skipped);
+
+        const step = ext?.currentStep;
+        if (typeof step === "number" && step >= 1 && step <= 6) {
+          setCurrentStep(step);
+        }
+
+        const hadDraftData =
+          Object.keys(p).filter((k) => k !== "extensions").length > 0 ||
+          (ext && Object.keys(ext).length > 0);
+        if (hadDraftData && !draftRestoreToastShown.current) {
+          draftRestoreToastShown.current = true;
+          toast.success("Restored your saved draft");
+        }
+      } catch (e: unknown) {
+        const err = e as { response?: { status?: number } };
+        if (err.response?.status === 409) {
+          toast.error(DRAFT_CONFLICT_MESSAGE);
+        }
+      } finally {
+        if (!cancelled) setIsLoadingDraft(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, router]);
 
   // Form data state
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
-    phone: "",
-    password: "",
     term1Accepted: false,
     term2Accepted: false,
-    verificationCode: ["", "", "", "", "", ""],
-    country: "",
+    country: "DE",
     city: "",
     postal: "",
+    documentType: "",
+    idDocument: null as File | null,
     trade: "",
     workingAs: "",
     businessRegistrationNumber: "",
     vatId: "",
     selfieImage: null as string | null,
+    selfieFile: null as File | null,
   });
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  const handleInputChange = (field: string, value: string | boolean) => {
+  const handleInputChange = (field: string, value: string | boolean | File | null) => {
     // Numeric-only fields restriction
     const numericFields = ["postal", "businessRegistrationNumber"];
     if (numericFields.includes(field) && typeof value === "string") {
@@ -85,23 +305,6 @@ const Page = () => {
     }
   };
 
-  const handleCodeChange = (index: number, value: string) => {
-    if (value.length <= 1 && /^\d*$/.test(value)) {
-      const newCode = [...formData.verificationCode];
-      newCode[index] = value;
-      setFormData((prev) => ({
-        ...prev,
-        verificationCode: newCode,
-      }));
-
-      // Auto-focus next input
-      if (value && index < 5) {
-        const nextInput = document.getElementById(`code-${index + 1}`);
-        nextInput?.focus();
-      }
-    }
-  };
-
   // Check if current step is valid
   const isStepValid = () => {
     switch (currentStep) {
@@ -112,19 +315,22 @@ const Page = () => {
           isNotEmpty(formData.fullName) &&
           isNotEmpty(formData.email) &&
           isValidEmail(formData.email) &&
-          isNotEmpty(formData.phone) &&
-          isStrongPassword(formData.password) &&
           formData.term1Accepted !== false &&
           formData.term2Accepted !== false
         );
-      case 3:
-        return formData.verificationCode.every((digit) => digit !== "");
       case 4:
-        return (
+        const hasLocationDetails =
           isNotEmpty(formData.country) &&
           isNotEmpty(formData.city) &&
           isNotEmpty(formData.postal) &&
-          isNumeric(formData.postal)
+          isNumeric(formData.postal);
+        const hasIdDoc =
+          !!formData.idDocument || !!restoredGovernmentIdDocumentUrl;
+        if (skipDocumentUpload) return hasLocationDetails;
+        return (
+          hasLocationDetails &&
+          isNotEmpty(formData.documentType) &&
+          hasIdDoc
         );
       case 5:
         const isBasicValid = isNotEmpty(formData.trade) && isNotEmpty(formData.workingAs);
@@ -147,19 +353,17 @@ const Page = () => {
     if (currentStep < totalSteps) {
       if (currentStep === 2) {
         await handleSubmit();
-      } else if (currentStep === 3) {
-        await handleVerifyEmail();
       } else {
         setCurrentStep(currentStep + 1);
       }
     } else {
-      // Submit form on last step or skip
-      router.push("/tasker/login");
+      // Verification onboarding is done; continue into profile completion flow
+      router.push("/krafter/profile-completion");
     }
   };
 
   const handleSkip = () => {
-    router.push("/tasker/login");
+    router.push("/krafter/profile-completion");
   };
 
   // Navigate to previous step
@@ -173,74 +377,213 @@ const Page = () => {
 
   // Submit form
   const handleSubmit = async () => {
-    if (!isValidPassword(formData.password, 8)) {
-      toast.error("Password must be at least 8 characters");
+    if (typeof window !== "undefined") {
+      localStorage.setItem("kraftigo_tasker_fullName", formData.fullName);
+    }
+    setCurrentStep(4);
+  };
+
+  const buildVerificationDraftPayload = (): Record<string, unknown> => {
+    const employmentStatus = mapWorkingAsToEmploymentStatus(
+      formData.workingAs || "self-employed",
+    );
+    const govApi = formData.documentType
+      ? GOVERNMENT_ID_TYPE_TO_API[formData.documentType]
+      : undefined;
+
+    const krafterVerification = omitUndefinedRecord({
+      trade: formData.trade || undefined,
+      workingAs: formData.workingAs || undefined,
+      businessRegistrationNumber:
+        formData.businessRegistrationNumber || undefined,
+      vatId: formData.vatId || undefined,
+      documentType: formData.documentType || undefined,
+      email: formData.email || undefined,
+      currentStep,
+      skipDocumentUpload,
+      term1Accepted: formData.term1Accepted,
+      term2Accepted: formData.term2Accepted,
+    });
+
+    const body: Record<string, unknown> = omitUndefinedRecord({
+      fullName: formData.fullName || undefined,
+      baseCity: formData.city || undefined,
+      postalCode: formData.postal || undefined,
+      countryOfResidence: (formData.country || "DE").toUpperCase().slice(0, 2),
+      employmentStatus,
+      idCardSkipped: skipDocumentUpload,
+      skillDocuments: [],
+      portfolioLinks: [],
+      governmentIdType: govApi,
+      primarySkillCategoryId: formData.trade || undefined,
+      extensions: { krafterVerification },
+    });
+
+    if (restoredGovernmentIdDocumentUrl && !formData.idDocument) {
+      body.governmentIdDocumentUrl = restoredGovernmentIdDocumentUrl;
+    }
+    if (restoredProfilePhotoUrl && !formData.selfieFile) {
+      body.idCardUrl = restoredProfilePhotoUrl;
+    }
+
+    return body;
+  };
+
+  const handleSaveDraft = async () => {
+    try {
+      setIsSavingDraft(true);
+      const body = buildVerificationDraftPayload();
+      const res = verificationDraftId
+        ? await patchVerificationDraft(verificationDraftId, body)
+        : await saveVerificationDraft(body);
+      if (res.draftId) setVerificationDraftId(res.draftId);
+      toast.success("Draft saved");
+    } catch (e: unknown) {
+      const err = e as { response?: { status?: number; data?: { message?: string } } };
+      if (err.response?.status === 409) {
+        toast.error(DRAFT_CONFLICT_MESSAGE);
+      } else {
+        toast.error(
+          err.response?.data?.message || "Could not save draft. Try again.",
+        );
+      }
+    } finally {
+      setIsSavingDraft(false);
+    }
+  };
+
+  const openSelfieSourcePicker = () => {
+    setShowSelfieSourcePicker(true);
+  };
+
+  const handleSelfieChange = (file: File | null) => {
+    if (!file) return;
+    setRestoredProfilePhotoUrl(null);
+    const previewUrl = URL.createObjectURL(file);
+    handleInputChange("selfieImage", previewUrl);
+    handleInputChange("selfieFile", file);
+    setShowSelfieSourcePicker(false);
+  };
+
+  const handleVerificationSubmission = async () => {
+    const blocker = getVerificationSubmitBlocker();
+    if (blocker) {
+      toast.error(blocker);
+      if (
+        !formData.idDocument &&
+        !restoredGovernmentIdDocumentUrl
+      ) {
+        redirectToLegalIdentityForId();
+      } else if (!isNotEmpty(formData.documentType)) {
+        redirectToLegalIdentityForId();
+      }
       return;
     }
 
-    const formattedPhone = formData.phone.startsWith("+")
-      ? formData.phone
-      : `+49${formData.phone.replace(/^0+/, "")}`;
+    let idFile = formData.idDocument;
+    if (!idFile && restoredGovernmentIdDocumentUrl) {
+      idFile = await urlToFile(
+        restoredGovernmentIdDocumentUrl,
+        "government-id.jpg",
+      );
+    }
+    if (!idFile || idFile.size === 0) {
+      toast.error(
+        "Could not load your saved government ID. Please upload it again on Legal Identity.",
+      );
+      redirectToLegalIdentityForId();
+      return;
+    }
 
-    const registrationData = {
-      email: formData.email,
-      password: formData.password,
-      phone: formattedPhone,
-      hasAcceptedTerms: formData.term1Accepted && formData.term2Accepted,
-    };
+    let selfieF = formData.selfieFile;
+    if (!selfieF && restoredProfilePhotoUrl) {
+      selfieF = await urlToFile(restoredProfilePhotoUrl, "profile-photo.jpg");
+    }
+    if (!selfieF || selfieF.size === 0) {
+      openSelfieSourcePicker();
+      toast.error(
+        "Could not load your saved selfie. Please take or choose a photo again.",
+      );
+      return;
+    }
 
-    logger.log("Submitting registration data:", registrationData);
+    const employmentStatus = mapWorkingAsToEmploymentStatus(
+      formData.workingAs || "self-employed",
+    );
+
+    const data = new FormData();
+    data.append(
+      "governmentIdType",
+      GOVERNMENT_ID_TYPE_TO_API[formData.documentType] || "national_id",
+    );
+    data.append("governmentIdNumber", "");
+    data.append("governmentIdDocument", idFile);
+    data.append("skillDocuments", JSON.stringify([]));
+    data.append("baseCity", formData.city);
+    data.append("postalCode", formData.postal);
+    data.append("primarySkillCategoryId", formData.trade);
+    data.append("secondarySkillIds", JSON.stringify([]));
+    const countryCode = (formData.country || "DE").toUpperCase().slice(0, 2);
+    data.append("countryOfResidence", countryCode);
+    data.append("profilePhoto", selfieF);
+    data.append("employmentStatus", employmentStatus);
 
     try {
-      const result = await registerTasker(registrationData);
-      
-      // Save fullName to localStorage since backend doesn't store it during registration
-      if (typeof window !== "undefined") {
-        localStorage.setItem("kraftigo_tasker_fullName", formData.fullName);
-      }
-      logger.log("Registration successful!", result);
-      toast.success(result.message || "Registration successful! Please check your email.");
-      setCurrentStep(3);
-    } catch (err: any) {
-      logger.error("Registration failed:", err);
-      const errorMessage = err.response?.data?.message || "Registration failed. Please try again.";
-      toast.error(errorMessage);
+      setIsSubmittingVerification(true);
+      await submitVerification(data);
+      setVerificationDraftId(null);
+      toast.success("Verification submitted successfully!");
+      router.push("/krafter/kyc-welcome");
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Failed to submit verification");
+    } finally {
+      setIsSubmittingVerification(false);
     }
   };
 
-  // Verify email with OTP
-  const handleVerifyEmail = async () => {
-    const otpCode = formData.verificationCode.join("");
-    logger.log("Verifying email with code:", otpCode);
+  const selectedTradeLabel =
+    primaryTradeOptions.find((option) => option.value === formData.trade)?.label ||
+    "Not selected";
 
-    try {
-      await verifyEmail(formData.email, otpCode);
-      logger.log("Email verified successfully!");
-      toast.success("Email verified successfully! You can now log in to complete your profile.");
-      router.push("/tasker/login");
-    } catch (err: any) {
-      logger.error("Verification failed:", err);
-      const errorMessage = err.response?.data?.message || "Verification failed. Please check your code.";
-      toast.error(errorMessage);
+  const documentTypeLabel =
+    ({
+      passport: "Passport",
+      "national-id": "National Identity Card",
+      "drivers-license": "Driver's License",
+      "residence-permit": "Residence Permit",
+    } as Record<string, string>)[formData.documentType] || "Not selected";
+
+  const countryResidenceLabel =
+    COUNTRY_OF_RESIDENCE_OPTIONS.find((c) => c.value === formData.country)?.label ||
+    formData.country ||
+    "-";
+
+  /** Final submit always hits POST /api/verification/submit (not draft). Require ID + type + selfie. */
+  const getVerificationSubmitBlocker = (): string | null => {
+    const hasGovIdFileOrUrl =
+      !!formData.idDocument || !!restoredGovernmentIdDocumentUrl;
+    if (!hasGovIdFileOrUrl) {
+      return "Add your government ID on the Legal Identity step before submitting.";
     }
+    if (!isNotEmpty(formData.documentType)) {
+      return "Select your government ID document type.";
+    }
+    const hasSelfieFileOrUrl =
+      !!formData.selfieFile || !!restoredProfilePhotoUrl;
+    if (!hasSelfieFileOrUrl) {
+      return "Add a selfie photo before submitting.";
+    }
+    return null;
   };
 
-  // Resend verification code
-  const handleResendCode = async () => {
-    if (resendTimer > 0) return;
-    try {
-      const message = await resendVerificationCode(formData.email);
-      toast.success(message);
-      setResendTimer(60);
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || "Failed to resend code.";
-      toast.error(errorMessage);
-    }
+  const redirectToLegalIdentityForId = () => {
+    setSkipDocumentUpload(false);
+    setCurrentStep(4);
   };
 
   return (
     <main className="relative w-full min-h-screen bg-white flex items-center justify-center px-4 sm:px-6 lg:px-8">
-      {isLoading ? (
+      {isLoading || isLoadingDraft ? (
         <Loader />
       ) : (
         <div className="w-full max-w-2xl mx-auto min-h-screen flex flex-col py-8">
@@ -330,24 +673,9 @@ const Page = () => {
                 type="email"
                 placeholder="Enter your email"
                 value={formData.email}
-                onChange={(value) => handleInputChange("email", value)}
+                onChange={() => {}}
                 error={formData.email && !isValidEmail(formData.email) ? "Please enter a valid email" : ""}
-                required
-              />
-              <PhoneInput
-                label="Phone Number"
-                placeholder="000 000 0000"
-                value={formData.phone}
-                onChange={(value) => handleInputChange("phone", value)}
-                required
-              />
-              <Input
-                label="Password"
-                type="password"
-                placeholder="Enter your password"
-                value={formData.password}
-                onChange={(value) => handleInputChange("password", value)}
-                error={formData.password && !isStrongPassword(formData.password) ? "At least 8 characters, with letters and numbers" : ""}
+                disabled
                 required
               />
               <div>
@@ -383,75 +711,18 @@ const Page = () => {
             </div>
           )}
 
-          {/* Step 3: Email verification */}
-          {currentStep === 3 && (
-            <div className="space-y-6">
-              <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-4">
-                Confirm Your Email
-              </h1>
-              <p className="text-[14px] font-poppins text-gray-600 mb-8">
-                We&apos;ve sent a verification code to your email{" "}
-                <span className="font-semibold text-gray-900">
-                  {formData.email}
-                </span>
-              </p>
-
-              {/* Verification Code Inputs */}
-              <div className="flex gap-2 sm:gap-3 justify-center mb-6">
-                {formData.verificationCode.map((digit, index) => (
-                  <input
-                    key={index}
-                    id={`code-${index}`}
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={1}
-                    value={digit}
-                    onChange={(e) => handleCodeChange(index, e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Backspace" && !digit && index > 0) {
-                        const prevInput = document.getElementById(
-                          `code-${index - 1}`,
-                        );
-                        prevInput?.focus();
-                      }
-                    }}
-                    className="w-12 h-12 sm:w-14 sm:h-14 text-center text-xl font-semibold border-2 border-gray-300 rounded-lg focus:border-brand-orange focus:outline-none focus:ring-2 focus:ring-brand-orange/20"
-                  />
-                ))}
-              </div>
-
-              {/* Resend Code */}
-              <div className="text-center">
-                {resendTimer > 0 ? (
-                  <p className="text-[14px] font-poppins text-gray-600">
-                    Resend code in{" "}
-                    <span className="font-semibold text-gray-900">
-                      00:{resendTimer.toString().padStart(2, "0")}
-                    </span>
-                  </p>
-                ) : (
-                  <button
-                    onClick={handleResendCode}
-                    className="text-[14px] font-poppins text-brand-orange font-semibold hover:underline"
-                  >
-                    Resend code
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
           {/* Step 4: legal identity*/}
           {currentStep === 4 && (
             <div className="space-y-6">
               <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-8">
                 Legal Identity
               </h1>
-              <Input
+              <Select
                 label="Country of residence"
-                placeholder="Germany"
+                placeholder="Select country"
                 value={formData.country}
                 onChange={(value) => handleInputChange("country", value)}
+                options={COUNTRY_OF_RESIDENCE_OPTIONS}
                 required
               />
               <Input
@@ -469,6 +740,61 @@ const Page = () => {
                 error={formData.postal && !isNumeric(formData.postal) ? "Numbers only" : ""}
                 required
               />
+
+              {!skipDocumentUpload && (
+                <>
+                  {restoredGovernmentIdDocumentUrl && !formData.idDocument && (
+                    <p className="text-[13px] font-poppins text-gray-600 -mt-2">
+                      A government ID is already saved on your draft. Upload a new file to replace it.
+                    </p>
+                  )}
+                  <Select
+                    label="Select document type"
+                    placeholder="Select"
+                    value={formData.documentType}
+                    onChange={(value) => handleInputChange("documentType", value)}
+                    options={[
+                      { value: "passport", label: "Passport (International or National)" },
+                      { value: "national-id", label: "National Identity Card (EU/EEA)" },
+                      { value: "drivers-license", label: "Driver's License (Plastic Card, EU)" },
+                      { value: "residence-permit", label: "Residence Permit (EU/EEA/Switzerland)" },
+                    ]}
+                    required
+                  />
+
+                  <div className="space-y-2">
+                    <p className="text-[14px] font-mabry text-gray-700">Upload a valid ID card</p>
+                    <label className="w-full rounded-2xl border border-dashed border-gray-300 bg-[#F6F6F6] p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:border-brand-orange transition-colors">
+                      <IdCard size={22} className="text-gray-500 mb-3" />
+                      <span className="text-[13px] font-poppins text-gray-600">
+                        {formData.idDocument
+                          ? formData.idDocument.name
+                          : "Upload or take a photo of your valid Id Card"}
+                      </span>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*,application/pdf"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] || null;
+                          if (file) setRestoredGovernmentIdDocumentUrl(null);
+                          handleInputChange("idDocument", file);
+                        }}
+                      />
+                    </label>
+                  </div>
+
+                  <div className="text-[13px] font-poppins text-gray-700">
+                    <p className="font-semibold mb-2">Accepted ID Cards:</p>
+                    <ul className="list-disc pl-5 space-y-1">
+                      <li>Passport (International or National)</li>
+                      <li>National Identity Card (EU/EEA)</li>
+                      <li>Driver&apos;s License (Plastic Card, EU)</li>
+                      <li>Residence Permit (EU/EEA/Switzerland)</li>
+                    </ul>
+                  </div>
+                </>
+              )}
             </div>
           )}
 
@@ -483,18 +809,7 @@ const Page = () => {
                 placeholder="Select"
                 value={formData.trade}
                 onChange={(value) => handleInputChange("trade", value)}
-                options={[
-                  { value: "select", label: "select" },
-                  { value: "plumbing", label: "Plumbing" },
-                  { value: "electrical", label: "Electrical" },
-                  { value: "carpentry", label: "Carpentry" },
-                  { value: "painting", label: "Painting" },
-                  { value: "hvac", label: "HVAC" },
-                  { value: "masonry", label: "Masonry" },
-                  { value: "roofing", label: "Roofing" },
-                  { value: "landscaping", label: "Landscaping" },
-                  { value: "other", label: "Other" },
-                ]}
+                options={primaryTradeOptions}
                 required
               />
               <Select
@@ -556,15 +871,40 @@ const Page = () => {
               {/* Selfie Illustration Placeholder */}
               <div className="flex justify-center mb-8">
                 <div className="w-48 h-48 lg:w-64 lg:h-64 bg-gray-100 rounded-3xl flex items-center justify-center border-2 border-dashed border-gray-300 group hover:border-brand-orange transition-colors">
-                  <Image
-                    src="/avatar.svg"
-                    alt="selfie placeholder"
-                    width={200}
-                    height={200}
-                    className="w-32 h-32 lg:w-48 lg:h-48 opacity-50 group-hover:opacity-100 transition-opacity"
-                  />
+                  {formData.selfieImage ? (
+                    <Image
+                      src={formData.selfieImage}
+                      alt="selfie preview"
+                      width={200}
+                      height={200}
+                      className="w-48 h-48 lg:w-64 lg:h-64 object-cover rounded-3xl"
+                    />
+                  ) : (
+                    <Image
+                      src="/avatar.svg"
+                      alt="selfie placeholder"
+                      width={200}
+                      height={200}
+                      className="w-32 h-32 lg:w-48 lg:h-48 opacity-50 group-hover:opacity-100 transition-opacity"
+                    />
+                  )}
                 </div>
               </div>
+              <input
+                ref={selfieCameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="user"
+                className="hidden"
+                onChange={(e) => handleSelfieChange(e.target.files?.[0] || null)}
+              />
+              <input
+                ref={selfieGalleryInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => handleSelfieChange(e.target.files?.[0] || null)}
+              />
 
               {/* Instructions Box */}
               <div className=" p-2 space-y-3">
@@ -626,44 +966,227 @@ const Page = () => {
           )}
 
           <div>
-            <Button
-              variant="primary"
-              onClick={handleNext}
-              fullWidth
-              disabled={!isStepValid()}
-              className="py-4 text-[16px] font-gerat font-bold mt-[2rem]"
-            >
-              {currentStep === 1 
-                ? "Get Started" 
-                : currentStep === 6
-                  ? "Open camera"
-                  : currentStep === 3
-                    ? "Verify Email"
-                    : "Continue"}
-            </Button>
+            {(currentStep === 4 && !skipDocumentUpload) ? (
+              <>
+                <div className="grid grid-cols-2 gap-3 mt-8">
+                  <Button
+                    variant="outline"
+                    onClick={() => void handleSaveDraft()}
+                    disabled={isSavingDraft}
+                    className="py-4 text-[16px] font-gerat font-bold"
+                  >
+                    {isSavingDraft ? "Saving…" : "Save draft"}
+                  </Button>
+                  <Button
+                    variant="primary"
+                    onClick={handleNext}
+                    fullWidth
+                    disabled={!isStepValid()}
+                    className="py-4 text-[16px] font-gerat font-bold"
+                  >
+                    Continue
+                  </Button>
+                </div>
+                <button
+                  onClick={() => {
+                    setSkipDocumentUpload(true);
+                    toast("You can upload your ID later. Continue with location details.");
+                  }}
+                  className="w-full text-center text-[14px] font-mabry text-gray-700 hover:text-brand-orange mt-4 py-2 font-bold transition-colors"
+                >
+                  Skip
+                </button>
+              </>
+            ) : (currentStep === 4 && skipDocumentUpload) || currentStep === 5 ? (
+              <div className="grid grid-cols-2 gap-3 mt-8">
+                <Button
+                  variant="outline"
+                  onClick={() => void handleSaveDraft()}
+                  disabled={isSavingDraft}
+                  className="py-4 text-[16px] font-gerat font-bold"
+                >
+                  {isSavingDraft ? "Saving…" : "Save draft"}
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={handleNext}
+                  fullWidth
+                  disabled={!isStepValid()}
+                  className="py-4 text-[16px] font-gerat font-bold"
+                >
+                  Continue
+                </Button>
+              </div>
+            ) : (
+              <>
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    if (currentStep !== 6) {
+                      handleNext();
+                      return;
+                    }
+                    if (!formData.selfieImage) {
+                      openSelfieSourcePicker();
+                      return;
+                    }
+                    const submitBlocker = getVerificationSubmitBlocker();
+                    if (submitBlocker) {
+                      toast.error(submitBlocker);
+                      if (
+                        !formData.idDocument &&
+                        !restoredGovernmentIdDocumentUrl
+                      ) {
+                        redirectToLegalIdentityForId();
+                      } else if (!isNotEmpty(formData.documentType)) {
+                        redirectToLegalIdentityForId();
+                      }
+                      return;
+                    }
+                    setShowReviewModal(true);
+                  }}
+                  fullWidth
+                  disabled={!isStepValid() || isSubmittingVerification}
+                  className="py-4 text-[16px] font-gerat font-bold mt-8"
+                >
+                  {currentStep === 1
+                    ? "Get Started"
+                    : currentStep === 6
+                      ? isSubmittingVerification
+                        ? "Submitting..."
+                        : formData.selfieImage
+                        ? "Submit Verification"
+                        : "Open camera"
+                      : "Continue"}
+                </Button>
 
-            {currentStep === 6 && (
-               <button
-                 onClick={handleSkip}
-                 className="w-full text-center text-[14px] font-mabry text-gray-700 hover:text-brand-orange mt-4 py-2 font-bold transition-colors"
-               >
-                 Skip
-               </button>
-            )}
-
-            {currentStep >= 4 && (
-               <button
-                 onClick={() => {
-                   console.log("Saving draft:", formData);
-                   // Handle save draft logic here
-                 }}
-                 className="w-full text-center text-[14px] font-mabry text-gray-700 hover:text-gray-900 mt-4 py-2"
-               >
-                 Save draft
-               </button>
+                {currentStep === 6 && (
+                  <button
+                    onClick={handleSkip}
+                    className="w-full text-center text-[14px] font-mabry text-gray-700 hover:text-brand-orange mt-4 py-2 font-bold transition-colors"
+                  >
+                    Skip
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>
+        </div>
+      )}
+      {showSelfieSourcePicker && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-4 space-y-3">
+            <h3 className="text-[16px] font-gerat font-bold text-gray-900">Choose selfie source</h3>
+            <Button
+              variant="primary"
+              fullWidth
+              onClick={() => selfieCameraInputRef.current?.click()}
+            >
+              Use live camera
+            </Button>
+            <Button
+              variant="outline"
+              fullWidth
+              onClick={() => selfieGalleryInputRef.current?.click()}
+            >
+              Pick from device
+            </Button>
+            <button
+              className="w-full text-center text-[14px] font-mabry text-gray-600 py-2"
+              onClick={() => setShowSelfieSourcePicker(false)}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+      {showReviewModal && (
+        <div className="fixed inset-0 z-60 bg-black/50 flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-5 space-y-4 max-h-[85vh] overflow-y-auto">
+            <h3 className="text-[18px] font-gerat font-bold text-gray-900">Review your details</h3>
+
+            <div className="rounded-xl bg-[#F9FAFB] p-4 space-y-3 text-[13px] font-poppins text-gray-700">
+              <div className="flex justify-between gap-3">
+                <span className="text-gray-500">Full name</span>
+                <span className="font-semibold text-right">{formData.fullName || "-"}</span>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span className="text-gray-500">Email</span>
+                <span className="font-semibold text-right">{formData.email || "-"}</span>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span className="text-gray-500">Country</span>
+                <span className="font-semibold text-right">{countryResidenceLabel}</span>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span className="text-gray-500">City</span>
+                <span className="font-semibold text-right">{formData.city || "-"}</span>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span className="text-gray-500">Postal code</span>
+                <span className="font-semibold text-right">{formData.postal || "-"}</span>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span className="text-gray-500">Document type</span>
+                <span className="font-semibold text-right">{documentTypeLabel}</span>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span className="text-gray-500">Document uploaded</span>
+                <span className="font-semibold text-right">
+                  {formData.idDocument ? formData.idDocument.name : "No"}
+                </span>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span className="text-gray-500">Primary trade</span>
+                <span className="font-semibold text-right">{selectedTradeLabel}</span>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span className="text-gray-500">Work mode</span>
+                <span className="font-semibold text-right">{formData.workingAs || "-"}</span>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span className="text-gray-500">VAT ID</span>
+                <span className="font-semibold text-right">{formData.vatId || "-"}</span>
+              </div>
+            </div>
+
+            {formData.selfieImage && (
+              <div className="space-y-2">
+                <p className="text-[13px] font-poppins text-gray-500">Selfie preview</p>
+                <div className="w-28 h-28 rounded-xl overflow-hidden border border-gray-200">
+                  <Image
+                    src={formData.selfieImage}
+                    alt="selfie review"
+                    width={112}
+                    height={112}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <Button
+                variant="outline"
+                fullWidth
+                onClick={() => setShowReviewModal(false)}
+              >
+                Edit
+              </Button>
+              <Button
+                variant="primary"
+                fullWidth
+                disabled={isSubmittingVerification}
+                onClick={async () => {
+                  await handleVerificationSubmission();
+                  setShowReviewModal(false);
+                }}
+              >
+                {isSubmittingVerification ? "Submitting..." : "Submit verification"}
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </main>

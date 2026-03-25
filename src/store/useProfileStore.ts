@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { ArtisanProfile, CustomerProfile } from '@/types'
 import api from '@/lib/axios'
+import { getVerificationMyStatus, type VerificationMyStatus } from '@/lib/api/verification'
 
 interface ProfileState {
   artisanProfile: ArtisanProfile | null
@@ -19,7 +20,7 @@ interface ProfileState {
   updateCustomerProfile: (profile: Partial<CustomerProfile>) => Promise<void>
 
   // Verification Actions
-  verificationStatus: any | null
+  verificationStatus: VerificationMyStatus | null
   fetchVerificationStatus: () => Promise<void>
   submitVerification: (formData: FormData) => Promise<void>
 
@@ -119,8 +120,8 @@ export const useProfileStore = create<ProfileState>((set) => ({
   fetchVerificationStatus: async () => {
     set({ isLoading: true, error: null })
     try {
-      const response = await api.get('/api/verification/my-status')
-      set({ verificationStatus: response.data, isLoading: false })
+      const data = await getVerificationMyStatus()
+      set({ verificationStatus: data, isLoading: false })
     } catch (error: any) {
       set({
         error: error.response?.data?.message || 'Failed to fetch verification status',
@@ -132,12 +133,13 @@ export const useProfileStore = create<ProfileState>((set) => ({
   submitVerification: async (formData) => {
     set({ isLoading: true, error: null })
     try {
-      const response = await api.post('/api/verification/submit', formData, {
+      await api.post('/api/verification/submit', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       })
-      set({ verificationStatus: response.data, isLoading: false })
+      const data = await getVerificationMyStatus()
+      set({ verificationStatus: data, isLoading: false })
     } catch (error: any) {
       set({
         error: error.response?.data?.message || 'Failed to submit verification',

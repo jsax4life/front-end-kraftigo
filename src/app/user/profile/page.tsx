@@ -17,6 +17,10 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useProfileStore } from "@/store/useProfileStore";
+import {
+  getVerificationWire,
+  shouldRedirectToDiditKyc,
+} from "@/lib/api/verification";
 import { useEffect } from "react";
 import toast from "react-hot-toast";
 import { ProfileInfoSkeleton } from "@/components/shared/Skeletons";
@@ -55,20 +59,26 @@ const Page = () => {
   const displayName = customerProfile?.fullName || user?.fullName || "User";
   const email = user?.email || "";
   const avatar = customerProfile?.profilePhotoUrl || user?.avatar;
-  const status = verificationStatus?.status; // PENDING, APPROVED, REJECTED
-  
+  const { verificationState, kycStatus } = getVerificationWire(verificationStatus);
+
   const isTasker = useAuthStore.getState().isTasker();
   const taskerBannerTitle = isTasker ? "GO TO KRAFTER DASHBOARD" : "EARN MONEY BY COMPLETING KRAFTS";
   const taskerButtonLabel = isTasker ? "Switch to Krafter" : "Become a Krafter";
   
   const handleTaskerAction = () => {
-     if (isTasker) {
-         router.push("/tasker/dashboard");
-     } else if (status === 'PENDING') {
-         toast.success("Your application is being reviewed!");
-     } else {
-         router.push("/user/profile/artisan-verification");
-     }
+    if (isTasker) {
+      router.push("/tasker/dashboard");
+      return;
+    }
+    if (shouldRedirectToDiditKyc(verificationStatus)) {
+      router.push("/krafter/kyc-welcome");
+      return;
+    }
+    if (verificationState === "PENDING" && kycStatus === "APPROVED") {
+      toast.success("Your application is being reviewed!");
+      return;
+    }
+    router.push("/krafter/verification");
   };
 
   return (

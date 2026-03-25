@@ -10,22 +10,67 @@ const api = axios.create({
 // Cache for access token to avoid repeated localStorage parsing
 let cachedAccessToken: string | null = null
 
+type PersistedAuthState = {
+    state?: {
+        accessToken?: string | null
+        refreshToken?: string | null
+        isAuthenticated?: boolean
+        [key: string]: any
+    }
+    [key: string]: any
+}
+
+const readAuthStorage = (): PersistedAuthState | null => {
+    const authStorage = localStorage.getItem('auth-storage')
+    if (!authStorage) return null
+    try {
+        return JSON.parse(authStorage)
+    } catch (error) {
+        console.error('Error parsing auth storage:', error)
+        return null
+    }
+}
+
+const writeAuthTokensToStorage = (accessToken: string, refreshToken: string | null) => {
+    const parsed = readAuthStorage() || {}
+    const previousState = parsed.state || {}
+    const next: PersistedAuthState = {
+        ...parsed,
+        state: {
+            ...previousState,
+            accessToken,
+            refreshToken: refreshToken ?? previousState.refreshToken ?? null,
+            isAuthenticated: true,
+        },
+    }
+    localStorage.setItem('auth-storage', JSON.stringify(next))
+}
+
+const extractTokensFromRefreshResponse = (payload: any): { accessToken: string; refreshToken: string | null } => {
+    // Supports shapes like:
+    // { accessToken, refreshToken }
+    // { data: { accessToken, refreshToken } }
+    // { access_token, refresh_token }
+    // { data: { access_token, refresh_token } }
+    const source = payload?.data ?? payload ?? {}
+    const accessToken = source?.accessToken ?? source?.access_token ?? source?.token ?? null
+    const refreshToken = source?.refreshToken ?? source?.refresh_token ?? null
+
+    if (!accessToken || typeof accessToken !== 'string') {
+        throw new Error('Refresh response missing access token')
+    }
+
+    return { accessToken, refreshToken }
+}
+
 // Helper to get token from cache or localStorage
 const getAccessToken = (): string | null => {
     if (cachedAccessToken) {
         return cachedAccessToken
     }
-
-    const authStorage = localStorage.getItem('auth-storage')
-    if (authStorage) {
-        try {
-            const { state } = JSON.parse(authStorage)
-            cachedAccessToken = state?.accessToken || null
-            return cachedAccessToken
-        } catch (error) {
-            console.error('Error parsing auth storage:', error)
-        }
-    }
+    const parsed = readAuthStorage()
+    cachedAccessToken = parsed?.state?.accessToken || null
+    if (cachedAccessToken) return cachedAccessToken
     
     return null
 }
@@ -71,9 +116,14 @@ api.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config
+        const requestUrl = originalRequest?.url || ''
 
         // Handle 401 errors
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        if (
+            error.response?.status === 401 &&
+            !originalRequest?._retry &&
+            !requestUrl.includes('/api/auth/refresh')
+        ) {
             
             if (isRefreshing) {
                 return new Promise(function(resolve, reject) {
@@ -91,11 +141,10 @@ api.interceptors.response.use(
 
             try {
                 // Get refresh token from localStorage
-                const authStorage = localStorage.getItem('auth-storage')
+                const authState = readAuthStorage()
                 
-                if (authStorage) {
-                    const { state } = JSON.parse(authStorage)
-                    const refreshToken = state?.refreshToken
+                if (authState) {
+                    const refreshToken = authState?.state?.refreshToken
 
                     if (refreshToken) {
                         // Call refresh endpoint
@@ -107,12 +156,11 @@ api.interceptors.response.use(
                             }
                         )
 
-                        const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data
+                        const { accessToken: newAccessToken, refreshToken: newRefreshToken } =
+                            extractTokensFromRefreshResponse(response.data)
 
                         // Update tokens in localStorage
-                        state.accessToken = newAccessToken
-                        state.refreshToken = newRefreshToken
-                        localStorage.setItem('auth-storage', JSON.stringify({ state }))
+                        writeAuthTokensToStorage(newAccessToken, newRefreshToken)
 
                         // Update cached token
                         updateCachedToken(newAccessToken)

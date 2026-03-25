@@ -19,6 +19,21 @@ export interface ServicesResponse {
   limit: number
 }
 
+export interface ServiceSkillGroup {
+  category: {
+    id: string
+    name: string
+    description?: string
+    iconUrl?: string | null
+  }
+  skills: {
+    id: string
+    name: string
+    description?: string
+    iconUrl?: string | null
+  }[]
+}
+
 /** GET /api/services — all active service listings */
 export const getServices = async (params?: ServiceSearchParams): Promise<ServicesResponse> => {
   const response = await api.get('/api/services', { params })
@@ -28,6 +43,12 @@ export const getServices = async (params?: ServiceSearchParams): Promise<Service
 /** GET /api/services/categories — all service categories */
 export const getServiceCategories = async (): Promise<ServiceCategory[]> => {
   const response = await api.get('/api/services/categories')
+  return response.data
+}
+
+/** GET /api/services/skills/groups — grouped skills by category */
+export const getServiceSkillGroups = async (): Promise<ServiceSkillGroup[]> => {
+  const response = await api.get('/api/services/skills/groups')
   return response.data
 }
 
