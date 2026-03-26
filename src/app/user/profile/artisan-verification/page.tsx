@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { 
   ArrowLeft, 
   Camera, 
@@ -50,6 +50,7 @@ type ArtisanVerificationFormData = {
   /** Display label for primary trade (category name). */
   primaryTrade: string;
   secondarySkillPicks: SecondarySkillPick[];
+  rateCardBySkillId: Record<string, number>;
   yearsExperienceHomeCountry: number;
   yearsExperienceCurrentCountry: number;
   certifications: {
@@ -131,6 +132,21 @@ function buildFormPrefill(
     }
   }
 
+  const rateRaw = a.rateCard ?? a.rate_card;
+  let rateCardBySkillId = prev.rateCardBySkillId;
+  if (Array.isArray(rateRaw) && rateRaw.length > 0) {
+    const nextRates: Record<string, number> = {};
+    for (const item of rateRaw) {
+      if (!item || typeof item !== "object") continue;
+      const o = item as Record<string, unknown>;
+      const skillId = String(o.skillId ?? o.skill_id ?? "").trim();
+      if (!skillId) continue;
+      const hourly = Number(o.hourlyRate ?? o.hourly_rate ?? DEFAULT_RATE_CARD_HOURLY_RATE);
+      nextRates[skillId] = Number.isFinite(hourly) ? Math.max(0, hourly) : DEFAULT_RATE_CARD_HOURLY_RATE;
+    }
+    if (Object.keys(nextRates).length > 0) rateCardBySkillId = nextRates;
+  }
+
   const primaryCat =
     str("primarySkillCategoryId", "primary_skill_category_id") ?? prev.primarySkillCategoryId;
 
@@ -160,9 +176,20 @@ function buildFormPrefill(
       : prev.transportType;
 
   const govRaw = str("governmentIdType", "government_id_type") ?? "";
+  // Some environments return governmentIdType nested under `verification` from `/api/profile/artisan/me`.
+  const verificationObj = a.verification;
+  const nestedGovRaw =
+    verificationObj && typeof verificationObj === "object" && verificationObj !== null
+      ? String(
+          (verificationObj as any).governmentIdType ??
+            (verificationObj as any).government_id_type ??
+            "",
+        )
+      : "";
   let governmentIdType = prev.governmentIdType;
-  if (govRaw) {
-    const g = govRaw.toLowerCase().replace(/-/g, "_");
+  const govCandidate = (nestedGovRaw && nestedGovRaw.trim()) || govRaw;
+  if (govCandidate) {
+    const g = govCandidate.toLowerCase().replace(/-/g, "_");
     if (g.includes("passport")) governmentIdType = "passport";
     else if (g.includes("driver") || g.includes("license")) governmentIdType = "driver_license";
     else if (g.includes("national")) governmentIdType = "national_id";
@@ -185,6 +212,7 @@ function buildFormPrefill(
     primarySkillCategoryId: primaryCat,
     primaryTrade: str("primaryTrade", "primary_trade") ?? prev.primaryTrade,
     secondarySkillPicks,
+    rateCardBySkillId,
     yearsExperienceHomeCountry:
       num("yearsExperienceHomeCountry", "years_experience_home_country") ??
       prev.yearsExperienceHomeCountry,
@@ -196,9 +224,8 @@ function buildFormPrefill(
     transportType,
     taxOrVatId: str("taxOrVatId", "tax_or_vat_id") ?? prev.taxOrVatId,
     bio: str("bio", "description") ?? prev.bio,
-    countryOfResidence: country
-      ? country.toUpperCase().slice(0, 2)
-      : prev.countryOfResidence,
+    // Country of residence is fixed to Germany (DE) in the current onboarding flow.
+    countryOfResidence: "DE",
     governmentIdType,
     governmentIdNumber: str("governmentIdNumber", "government_id_number") ?? prev.governmentIdNumber,
     employmentStatus,
@@ -210,6 +237,7 @@ function buildFormPrefill(
 function extractSignedUploadFields(data: Record<string, unknown>): {
   uploadUrl: string | null;
   publicUrl: string | null;
+  requiredUploadHeaders: Record<string, string> | null;
 } {
   const d = data as Record<string, unknown> & {
     uploadUrl?: unknown;
@@ -222,6 +250,7 @@ function extractSignedUploadFields(data: Record<string, unknown>): {
     portfolioUrl?: unknown;
     imageUrl?: unknown;
     urls?: unknown;
+    requiredUploadHeaders?: unknown;
   };
   const uploadUrl =
     (typeof d.uploadUrl === "string" ? d.uploadUrl : null) ||
@@ -235,7 +264,18 @@ function extractSignedUploadFields(data: Record<string, unknown>): {
     (typeof d.documentUrl === "string" ? d.documentUrl : null) ||
     (typeof d.portfolioUrl === "string" ? d.portfolioUrl : null) ||
     (typeof d.imageUrl === "string" ? d.imageUrl : null);
-  return { uploadUrl, publicUrl };
+
+  let requiredUploadHeaders: Record<string, string> | null = null;
+  if (d.requiredUploadHeaders && typeof d.requiredUploadHeaders === "object") {
+    const src = d.requiredUploadHeaders as Record<string, unknown>;
+    const next: Record<string, string> = {};
+    for (const [k, v] of Object.entries(src)) {
+      if (typeof v === "string" && v.trim()) next[k] = v;
+    }
+    requiredUploadHeaders = Object.keys(next).length ? next : null;
+  }
+
+  return { uploadUrl, publicUrl, requiredUploadHeaders };
 }
 
 async function artisanSignedObjectUpload(
@@ -249,16 +289,25 @@ async function artisanSignedObjectUpload(
     mimetype,
     fileSize: file.size,
   });
-  const { uploadUrl, publicUrl } = extractSignedUploadFields(
+  const { uploadUrl, publicUrl, requiredUploadHeaders } = extractSignedUploadFields(
     (initRes.data ?? {}) as Record<string, unknown>,
   );
   if (!uploadUrl || !publicUrl) {
     throw new Error(unexpectedResponseError);
   }
   try {
+    const putHeaders: Record<string, string> = {
+      "Content-Type": mimetype,
+      ...(requiredUploadHeaders ?? {}),
+    };
+    // If backend provided Content-Type, prefer it (signature usually depends on it).
+    if (requiredUploadHeaders?.["Content-Type"]) {
+      putHeaders["Content-Type"] = requiredUploadHeaders["Content-Type"];
+    }
+
     const putRes = await fetch(uploadUrl, {
       method: "PUT",
-      headers: { "Content-Type": mimetype },
+      headers: putHeaders,
       body: file,
     });
     if (!putRes.ok) {
@@ -297,6 +346,7 @@ const LANGUAGE_NAME_TO_CODE: Record<string, string> = {
   Yoruba: "yo",
   Igbo: "ig",
 };
+const DEFAULT_RATE_CARD_HOURLY_RATE = 30;
 
 function buildLanguagesForUrlPayload(
   names: string[],
@@ -359,6 +409,7 @@ const initialFormData: ArtisanVerificationFormData = {
   primarySkillCategoryId: "",
   primaryTrade: "",
   secondarySkillPicks: [],
+  rateCardBySkillId: {},
   yearsExperienceHomeCountry: 0,
   yearsExperienceCurrentCountry: 0,
   certifications: [],
@@ -366,7 +417,8 @@ const initialFormData: ArtisanVerificationFormData = {
   transportType: "NONE",
   taxOrVatId: "",
   bio: "",
-  countryOfResidence: "NG",
+  // Krafter flow is currently restricted to Germany-based artisans.
+  countryOfResidence: "DE",
   governmentIdType: "passport",
   governmentIdNumber: "",
   governmentIdDocument: null,
@@ -378,10 +430,20 @@ const initialFormData: ArtisanVerificationFormData = {
 };
 
 export default function ArtisanVerificationPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-sm text-slate-600">Loading profile…</div>}>
+      <ArtisanVerificationPageInner />
+    </Suspense>
+  );
+}
+
+function ArtisanVerificationPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { submitArtisanProfileUrl, isLoading, artisanProfile, fetchArtisanProfile } =
     useProfileStore();
-  const [currentStep, setCurrentStep] = useState(1);
+  const skipIntro = searchParams?.get("skipIntro") === "1";
+  const [currentStep, setCurrentStep] = useState(() => (skipIntro ? 2 : 1));
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const prefillAppliedRef = useRef(false);
@@ -395,6 +457,9 @@ export default function ArtisanVerificationPage() {
   const [skillGroups, setSkillGroups] = useState<ServiceSkillGroup[]>([]);
   const [secondaryModalOpen, setSecondaryModalOpen] = useState(false);
   const secondaryIdsHydratedRef = useRef(false);
+  const legalFullNameLocked = Boolean(artisanProfile?.legalFullName?.trim());
+
+  // Note: intro skip is handled at initial render to avoid flashing Step 1.
 
   const [formData, setFormData] = useState<ArtisanVerificationFormData>(() => ({ ...initialFormData }));
 
@@ -496,6 +561,22 @@ export default function ArtisanVerificationPage() {
       return { ...prev, secondarySkillPicks: picks };
     });
   }, [artisanProfile, skillGroups]);
+
+  // Keep rateCard entries aligned with currently selected secondary skills.
+  useEffect(() => {
+    setFormData((prev) => {
+      const selected = new Set(prev.secondarySkillPicks.map((p) => p.skillId));
+      const nextRates: Record<string, number> = {};
+      for (const skillId of selected) {
+        const existing = prev.rateCardBySkillId?.[skillId];
+        nextRates[skillId] =
+          typeof existing === "number" && Number.isFinite(existing) && existing >= 0
+            ? existing
+            : DEFAULT_RATE_CARD_HOURLY_RATE;
+      }
+      return { ...prev, rateCardBySkillId: nextRates };
+    });
+  }, [formData.secondarySkillPicks]);
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -653,6 +734,11 @@ export default function ArtisanVerificationPage() {
         return;
       }
 
+      if (formData.yearsExperienceHomeCountry < 0 || formData.yearsExperienceCurrentCountry < 0) {
+        toast.error("Years of experience cannot be less than 0.");
+        return;
+      }
+
       const certificationsPayload = formData.certifications
         .filter((c) => c.name.trim() || c.issuer.trim())
         .map((c) => ({
@@ -663,6 +749,33 @@ export default function ArtisanVerificationPage() {
           ...(c.documentUrl?.trim() ? { documentUrl: c.documentUrl.trim() } : {}),
         }));
 
+      const secondarySkillIds = Array.from(
+        new Set(formData.secondarySkillPicks.map((p) => p.skillId).filter(Boolean)),
+      );
+      const rateCard = secondarySkillIds.map((skillId) => {
+        const raw = formData.rateCardBySkillId?.[skillId];
+        const hourly = Number(raw ?? DEFAULT_RATE_CARD_HOURLY_RATE);
+        return {
+          skillId,
+          hourlyRate: Number.isFinite(hourly) ? Math.max(1, hourly) : DEFAULT_RATE_CARD_HOURLY_RATE,
+        };
+      });
+      if (rateCard.length < 1) {
+        toast.error("Add at least one rate card item.");
+        return;
+      }
+      const secondarySet = new Set(secondarySkillIds);
+      const invalidRateCard = rateCard.some((r) => !secondarySet.has(r.skillId));
+      if (invalidRateCard) {
+        toast.error("Each rate card item must use a selected secondary skill.");
+        return;
+      }
+      const hasInvalidHourly = rateCard.some((r) => !Number.isFinite(r.hourlyRate) || r.hourlyRate < 1);
+      if (hasInvalidHourly) {
+        toast.error("Enter an hourly rate of at least 1 for each selected skill.");
+        return;
+      }
+
       const payload: ArtisanProfileUrlSubmitPayload = {
         legalFullName: formData.legalFullName,
         displayName: formData.displayName,
@@ -671,7 +784,8 @@ export default function ArtisanVerificationPage() {
         postalCode: formData.postalCode,
         travelRadiusKm: formData.travelRadiusKm,
         primarySkillCategoryId: formData.primarySkillCategoryId,
-        secondarySkillIds: formData.secondarySkillPicks.map((p) => p.skillId),
+        secondarySkillIds,
+        rateCard,
         yearsExperienceHomeCountry: formData.yearsExperienceHomeCountry,
         yearsExperienceCurrentCountry: formData.yearsExperienceCurrentCountry,
         certifications: certificationsPayload,
@@ -680,6 +794,7 @@ export default function ArtisanVerificationPage() {
         transportType: formData.transportType,
         taxOrVatId: formData.taxOrVatId,
         bio: formData.bio,
+        uniqueSellingPoint: formData.uniqueSellingPoint,
         countryOfResidence: formData.countryOfResidence,
         employmentStatus: formData.employmentStatus,
       };
@@ -829,6 +944,7 @@ export default function ArtisanVerificationPage() {
           placeholder="As shown on your ID" 
           value={formData.legalFullName}
           onChange={(v) => handleInputChange('legalFullName', v)}
+          disabled={legalFullNameLocked}
           required
         />
         <Input 
@@ -839,11 +955,22 @@ export default function ArtisanVerificationPage() {
           required
         />
 
-        <Input 
-          label="Postal Code" 
-          placeholder="e.g. 10115" 
+        <Select
+          label="Country of residence"
+          value={formData.countryOfResidence}
+          onChange={() => {
+            // Country is fixed to Germany in this flow.
+            handleInputChange("countryOfResidence", "DE");
+          }}
+          disabled
+          options={[{ value: "DE", label: "Germany" }]}
+        />
+
+        <Input
+          label="Postal Code"
+          placeholder="e.g. 10115"
           value={formData.postalCode}
-          onChange={(v) => handleInputChange('postalCode', v)}
+          onChange={(v) => handleInputChange("postalCode", v)}
           required
         />
 
@@ -943,11 +1070,99 @@ export default function ArtisanVerificationPage() {
             />
           </div>
 
-          <Input
+          <Select
             label="Where do you live?"
-            placeholder="E.g Bern, Germany"
             value={formData.baseCity}
-            onChange={(v) => handleInputChange('baseCity', v)}
+            onChange={(v) => handleInputChange("baseCity", v)}
+            placeholder="Select your city"
+            options={[
+              { value: "Berlin", label: "Berlin" },
+              { value: "Hamburg", label: "Hamburg" },
+              { value: "München", label: "München" },
+              { value: "Köln", label: "Köln" },
+              { value: "Frankfurt am Main", label: "Frankfurt am Main" },
+              { value: "Stuttgart", label: "Stuttgart" },
+              { value: "Düsseldorf", label: "Düsseldorf" },
+              { value: "Dortmund", label: "Dortmund" },
+              { value: "Essen", label: "Essen" },
+              { value: "Leipzig", label: "Leipzig" },
+              { value: "Bremen", label: "Bremen" },
+              { value: "Dresden", label: "Dresden" },
+              { value: "Hannover", label: "Hannover" },
+              { value: "Nürnberg", label: "Nürnberg" },
+              { value: "Duisburg", label: "Duisburg" },
+              { value: "Bochum", label: "Bochum" },
+              { value: "Wuppertal", label: "Wuppertal" },
+              { value: "Bielefeld", label: "Bielefeld" },
+              { value: "Bonn", label: "Bonn" },
+              { value: "Münster", label: "Münster" },
+              { value: "Karlsruhe", label: "Karlsruhe" },
+              { value: "Mannheim", label: "Mannheim" },
+              { value: "Augsburg", label: "Augsburg" },
+              { value: "Wiesbaden", label: "Wiesbaden" },
+              { value: "Gelsenkirchen", label: "Gelsenkirchen" },
+              { value: "Mönchengladbach", label: "Mönchengladbach" },
+              { value: "Braunschweig", label: "Braunschweig" },
+              { value: "Chemnitz", label: "Chemnitz" },
+              { value: "Kiel", label: "Kiel" },
+              { value: "Aachen", label: "Aachen" },
+              { value: "Magdeburg", label: "Magdeburg" },
+              { value: "Freiburg im Breisgau", label: "Freiburg im Breisgau" },
+              { value: "Krefeld", label: "Krefeld" },
+              { value: "Lübeck", label: "Lübeck" },
+              { value: "Oberhausen", label: "Oberhausen" },
+              { value: "Erfurt", label: "Erfurt" },
+              { value: "Mainz", label: "Mainz" },
+              { value: "Rostock", label: "Rostock" },
+              { value: "Kassel", label: "Kassel" },
+              { value: "Hagen", label: "Hagen" },
+              { value: "Saarbrücken", label: "Saarbrücken" },
+              { value: "Hamm", label: "Hamm" },
+              { value: "Mülheim an der Ruhr", label: "Mülheim an der Ruhr" },
+              { value: "Ludwigshafen am Rhein", label: "Ludwigshafen am Rhein" },
+              { value: "Oldenburg", label: "Oldenburg" },
+              { value: "Osnabrück", label: "Osnabrück" },
+              { value: "Leverkusen", label: "Leverkusen" },
+              { value: "Heidelberg", label: "Heidelberg" },
+              { value: "Darmstadt", label: "Darmstadt" },
+              { value: "Solingen", label: "Solingen" },
+              { value: "Herne", label: "Herne" },
+              { value: "Neuss", label: "Neuss" },
+              { value: "Regensburg", label: "Regensburg" },
+              { value: "Paderborn", label: "Paderborn" },
+              { value: "Ingolstadt", label: "Ingolstadt" },
+              { value: "Offenbach am Main", label: "Offenbach am Main" },
+              { value: "Würzburg", label: "Würzburg" },
+              { value: "Ulm", label: "Ulm" },
+              { value: "Heilbronn", label: "Heilbronn" },
+              { value: "Pforzheim", label: "Pforzheim" },
+              { value: "Wolfsburg", label: "Wolfsburg" },
+              { value: "Göttingen", label: "Göttingen" },
+              { value: "Bottrop", label: "Bottrop" },
+              { value: "Reutlingen", label: "Reutlingen" },
+              { value: "Koblenz", label: "Koblenz" },
+              { value: "Bremerhaven", label: "Bremerhaven" },
+              { value: "Bergisch Gladbach", label: "Bergisch Gladbach" },
+              { value: "Jena", label: "Jena" },
+              { value: "Remscheid", label: "Remscheid" },
+              { value: "Erlangen", label: "Erlangen" },
+              { value: "Moers", label: "Moers" },
+              { value: "Siegen", label: "Siegen" },
+              { value: "Hildesheim", label: "Hildesheim" },
+              { value: "Salzgitter", label: "Salzgitter" },
+              { value: "Cottbus", label: "Cottbus" },
+              { value: "Kaiserslautern", label: "Kaiserslautern" },
+              { value: "Trier", label: "Trier" },
+              { value: "Lünen", label: "Lünen" },
+              { value: "Gera", label: "Gera" },
+              { value: "Marl", label: "Marl" },
+              { value: "Iserlohn", label: "Iserlohn" },
+              { value: "Flensburg", label: "Flensburg" },
+              { value: "Zwickau", label: "Zwickau" },
+              { value: "Konstanz", label: "Konstanz" },
+              { value: "Gütersloh", label: "Gütersloh" },
+              { value: "Gliwice", label: "Gladbeck" },
+            ]}
             required
           />
 
@@ -990,6 +1205,7 @@ export default function ArtisanVerificationPage() {
   const internalSubmittedAt = myStatus?.verification?.submittedAt ?? null;
   const internalReviewedAt = myStatus?.verification?.reviewedAt ?? null;
   const uploadsReadOnly = Boolean(internalSubmittedAt);
+  const idTypeLocked = Boolean((artisanProfile as any)?.verification?.governmentIdType);
   const internalDocsLabel =
     verificationState === "PENDING"
       ? "Submitted to admin (in review)"
@@ -1048,7 +1264,7 @@ export default function ArtisanVerificationPage() {
           label="ID Type" 
           value={formData.governmentIdType}
           onChange={(v) => handleInputChange('governmentIdType', v)}
-          disabled={uploadsReadOnly}
+          disabled={uploadsReadOnly || idTypeLocked}
           required={!uploadsReadOnly}
           options={[
             { value: "passport", label: "Passport" },
@@ -1234,6 +1450,67 @@ export default function ArtisanVerificationPage() {
           excludeCategoryId={formData.primarySkillCategoryId || undefined}
         />
 
+        <div className="space-y-3">
+          <div className="flex items-start justify-between gap-2">
+            <label className="text-[14px] font-mabry text-gray-800">Rate card</label>
+            <span className="text-[11px] font-poppins text-[#667085]">Per selected skill</span>
+          </div>
+          {formData.secondarySkillPicks.length > 0 ? (
+            <div className="space-y-4">
+              {formData.secondarySkillPicks.map((p) => (
+                <div
+                  key={`rate-${p.skillId}`}
+                  className="rounded-2xl border border-[#EAECF0] bg-white p-3 space-y-3"
+                >
+                  <p className="text-[13px] font-poppins font-semibold text-[#1D2939]">{p.name}</p>
+
+                  <div className="rounded-xl bg-[#F2F4F7] p-1 grid grid-cols-2 gap-1">
+                    <button
+                      type="button"
+                      className="h-10 rounded-lg bg-[#2A00FF] text-white text-[16px] font-poppins font-medium"
+                    >
+                      Hourly Rate
+                    </button>
+                    <button
+                      type="button"
+                      className="h-10 rounded-lg text-[#1D2939] text-[16px] font-poppins font-medium opacity-70"
+                    >
+                      Flat Rate
+                    </button>
+                  </div>
+
+                  <div className="relative h-16 rounded-2xl border border-[#D0D5DD] bg-[#F2F4F7] flex items-center">
+                    <span className="pl-5 text-[32px] leading-none text-[#98A2B3]">$</span>
+                    <input
+                      type="number"
+                      min={1}
+                      value={String(formData.rateCardBySkillId[p.skillId] ?? DEFAULT_RATE_CARD_HOURLY_RATE)}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          rateCardBySkillId: {
+                            ...prev.rateCardBySkillId,
+                            [p.skillId]: Math.max(1, parseInt(e.target.value, 10) || 1),
+                          },
+                        }))
+                      }
+                      className="flex-1 bg-transparent outline-none px-2 text-[42px] leading-none font-poppins text-[#98A2B3] placeholder:text-[#98A2B3]"
+                      placeholder="0.00"
+                    />
+                    <span className="pr-5 text-[14px] leading-none text-[#98A2B3] font-poppins">
+                      Per Hour
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-[12px] font-poppins text-[#667085]">
+              Select secondary skills to set hourly rates.
+            </p>
+          )}
+        </div>
+
         <div className="space-y-4">
             <label className="text-[14px] font-mabry text-gray-800">Employment Status</label>
             <div className="grid grid-cols-2 gap-3">
@@ -1259,14 +1536,24 @@ export default function ArtisanVerificationPage() {
                 type="number"
                 placeholder="Years" 
                 value={formData.yearsExperienceHomeCountry.toString()}
-                onChange={(v) => handleInputChange('yearsExperienceHomeCountry', parseInt(v) || 0)}
+                onChange={(v) =>
+                  handleInputChange(
+                    'yearsExperienceHomeCountry',
+                    Math.max(0, parseInt(v, 10) || 0),
+                  )
+                }
             />
             <Input 
                 label="Experience (now)"
                 type="number"
                 placeholder="Years" 
                 value={formData.yearsExperienceCurrentCountry.toString()}
-                onChange={(v) => handleInputChange('yearsExperienceCurrentCountry', parseInt(v) || 0)}
+                onChange={(v) =>
+                  handleInputChange(
+                    'yearsExperienceCurrentCountry',
+                    Math.max(0, parseInt(v, 10) || 0),
+                  )
+                }
             />
         </div>
 
@@ -1539,11 +1826,11 @@ export default function ArtisanVerificationPage() {
               <Button
                 variant="primary"
                 fullWidth
-                onClick={() => router.push("/")}
+                onClick={() => router.push("/tasker/dashboard")}
                 disabled={isLoading}
                 className="py-4 text-[16px] font-gerat font-bold"
               >
-                Back to home
+                Back to dashboard
               </Button>
             </div>
           </div>
@@ -1554,7 +1841,15 @@ export default function ArtisanVerificationPage() {
       <Header 
         title={currentStep === 1 ? "Become a Crafter" : steps.find(s => s.id === currentStep)?.title || "Verification"} 
         showBack={currentStep > 1}
-        onBack={() => currentStep > 1 && setCurrentStep(currentStep - 1)}
+        onBack={() => {
+          // If we intentionally skipped the intro (e.g. from Krafter profile prompt),
+          // going "back" from Step 2 should return to the previous page, not show Step 1.
+          if (skipIntro && currentStep === 2) {
+            router.replace("/tasker/profile");
+            return;
+          }
+          if (currentStep > 1) setCurrentStep(currentStep - 1);
+        }}
       />
 
       <div className="max-w-[500px] mx-auto px-4 py-8">

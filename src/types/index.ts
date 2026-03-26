@@ -171,6 +171,7 @@ export interface Application {
 
 /** JSON body for `POST /api/profile/artisan/url` (URL-based media, no multipart). */
 export type ArtisanProfileUrlSubmitPayload = {
+  rateCard?: { skillId: string; hourlyRate: number }[];
   legalFullName: string;
   displayName: string;
   profilePhotoUrl?: string;
@@ -194,6 +195,7 @@ export type ArtisanProfileUrlSubmitPayload = {
   transportType: "CAR" | "VAN" | "BIKE" | "NONE";
   taxOrVatId: string;
   bio: string;
+  uniqueSellingPoint?: string;
   countryOfResidence: string;
   idCardUrl?: string;
   employmentStatus: "SELF_EMPLOYED" | "FREELANCING";

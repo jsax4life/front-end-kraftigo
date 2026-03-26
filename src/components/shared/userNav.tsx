@@ -1,15 +1,24 @@
 "use client";
 
+import React from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useAuthPromptStore } from "@/store/useAuthPromptStore";
+import { useProfileStore } from "@/store/useProfileStore";
+import { getVerificationWire } from "@/lib/api/verification";
 
 const UserNav = () => {
   const router = useRouter();
   const pathname = usePathname();
   const { isAuthenticated } = useAuthStore();
   const { openPrompt } = useAuthPromptStore();
+  const { verificationStatus, fetchVerificationStatus } = useProfileStore();
+
+  // Keep status fresh so Profile tab can route correctly.
+  React.useEffect(() => {
+    if (isAuthenticated) fetchVerificationStatus();
+  }, [isAuthenticated, fetchVerificationStatus]);
 
   const navItems = [
     {
@@ -49,6 +58,18 @@ const UserNav = () => {
     if (!isAuthenticated && path !== "/user/home" && path !== "/") {
       openPrompt();
     } else {
+      if (path === "/user/profile") {
+        const forceCustomer =
+          typeof window !== "undefined" &&
+          window.localStorage.getItem("kraftigo_profile_mode") === "customer";
+        const { verificationState, kycStatus } = getVerificationWire(verificationStatus);
+        // If internal docs are submitted (pending admin) AND KYC is approved,
+        // the user's primary profile becomes the krafter profile.
+        if (!forceCustomer && verificationState === "PENDING" && kycStatus === "APPROVED") {
+          router.push("/tasker/profile");
+          return;
+        }
+      }
       router.push(path);
     }
   };

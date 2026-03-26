@@ -60,15 +60,27 @@ const Page = () => {
   const displayName = customerProfile?.fullName || user?.fullName || "User";
   const email = user?.email || "";
   const avatar = customerProfile?.profilePhotoUrl || user?.avatar;
-  const { verificationState } = getVerificationWire(verificationStatus);
+  const { verificationState, kycStatus } = getVerificationWire(verificationStatus);
 
-  const isTasker = useAuthStore.getState().isTasker();
-  const taskerBannerTitle = isTasker ? "GO TO KRAFTER DASHBOARD" : "EARN MONEY BY COMPLETING KRAFTS";
-  const taskerButtonLabel = isTasker ? "Switch to Krafter" : "Become a Krafter";
+  // Treat user as an existing Krafter when internal docs are submitted (pending/approved) and KYC is approved.
+  const isKrafterEligible =
+    kycStatus === "APPROVED" &&
+    (verificationState === "PENDING" || verificationState === "APPROVED");
+
+  const taskerBannerTitle = isKrafterEligible
+    ? "GO TO KRAFTER DASHBOARD"
+    : "EARN MONEY BY COMPLETING KRAFTS";
+  const taskerButtonLabel = isKrafterEligible ? "Switch to Krafter" : "Become a Krafter";
   
   const handleTaskerAction = () => {
-    if (isTasker) {
-      router.push("/tasker/dashboard");
+    if (isKrafterEligible) {
+      // User is already a Krafter – switch back to Krafter screens.
+      try {
+        window.localStorage.removeItem("kraftigo_profile_mode");
+      } catch {
+        // ignore
+      }
+      router.push("/tasker/profile");
       return;
     }
     if (shouldRedirectToDiditKyc(verificationStatus)) {
@@ -124,7 +136,9 @@ const Page = () => {
                <div className="relative z-10 w-full flex flex-col justify-between h-full">
                   <div className="flex flex-col items-start gap-[20px]">
                       <div className="flex justify-center items-center px-[10px] py-[4px] bg-[#FF6600] rounded-[8px]">
-                        <span className="text-[10px] font-poppins text-white leading-[15px]">{isTasker ? "Active Krafter" : "Become a Krafter"}</span>
+                        <span className="text-[10px] font-poppins text-white leading-[15px]">
+                          {isKrafterEligible ? "Active Krafter" : "Become a Krafter"}
+                        </span>
                       </div>
                       <h4 className="text-[20px] font-poppins font-bold uppercase text-[#FFFFE4] leading-[30px] w-[203px]">
                          {taskerBannerTitle}

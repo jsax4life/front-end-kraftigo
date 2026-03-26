@@ -7,6 +7,7 @@ import { Camera, X, User as UserIcon, HelpCircle, ChevronLeft } from "lucide-rea
 import Input from "@/components/ui/input";
 import Select from "@/components/ui/select";
 import Button from "@/components/ui/button";
+import api from "@/lib/axios";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useProfileStore } from "@/store/useProfileStore";
 import toast from "react-hot-toast";
@@ -39,6 +40,16 @@ const Page = () => {
   const [uniquePoint, setUniquePoint] = useState("");
   const [languages, setLanguages] = useState<string[]>([]);
   const [workPhotos, setWorkPhotos] = useState<string[]>([]);
+  type CertificationRow = {
+    name: string;
+    issuer: string;
+    issueDate?: string;
+    expiryDate?: string;
+    documentUrl?: string;
+  };
+  const [certifications, setCertifications] = useState<CertificationRow[]>([]);
+  const [isUploadingPhotos, setIsUploadingPhotos] = useState(false);
+  const MAX_WORK_PHOTOS = 3;
 
   useEffect(() => {
     if (!artisanProfile) {
@@ -52,8 +63,85 @@ const Page = () => {
       setBio(artisanProfile.bio || "");
       setTrade(artisanProfile.primaryTrade || "");
       setLocation(artisanProfile.baseCity || "");
-      setUniquePoint(artisanProfile.bio || ""); // Reusing bio for now
+      const p = artisanProfile as any;
+      const nestedProfile = (p.profile && typeof p.profile === "object" ? p.profile : null) as
+        | Record<string, unknown>
+        | null;
+      const nestedVerification =
+        (p.verification && typeof p.verification === "object" ? p.verification : null) as
+          | Record<string, unknown>
+          | null;
+      setUniquePoint(
+        p.uniqueSellingPoint ||
+          p.unique_selling_point ||
+          p.uniquePoint ||
+          p.unique_point ||
+          (nestedProfile?.uniqueSellingPoint as string) ||
+          (nestedProfile?.unique_selling_point as string) ||
+          (nestedVerification?.uniqueSellingPoint as string) ||
+          "",
+      );
       setLanguages((artisanProfile.languages || []).map(l => l.name));
+      const portfolioRaw =
+        p.portfolioPhotoUrls ??
+        p.portfolio_photo_urls ??
+        p.portfolioPhotos ??
+        p.portfolio_photos ??
+        p.portfolio_images ??
+        p.portfolio ??
+        nestedProfile?.portfolioPhotoUrls ??
+        nestedProfile?.portfolio_photo_urls ??
+        nestedVerification?.portfolioPhotoUrls ??
+        nestedVerification?.portfolio_photo_urls;
+      const portfolio = Array.isArray(portfolioRaw)
+        ? portfolioRaw
+        : typeof portfolioRaw === "string"
+          ? portfolioRaw.split(",")
+          : [];
+      setWorkPhotos(
+        portfolio
+          .map((item: unknown) => {
+            if (typeof item === "string") return item.trim();
+            if (item && typeof item === "object") {
+              const obj = item as {
+                url?: unknown;
+                publicUrl?: unknown;
+                public_url?: unknown;
+                fileUrl?: unknown;
+                imageUrl?: unknown;
+                image_url?: unknown;
+              };
+              const value =
+                obj.url ??
+                obj.publicUrl ??
+                obj.public_url ??
+                obj.fileUrl ??
+                obj.imageUrl ??
+                obj.image_url;
+              return typeof value === "string" ? value.trim() : "";
+            }
+            return "";
+          })
+          .filter((src): src is string => src.length > 0),
+      );
+
+      const certRaw = p.certifications ?? p.certs ?? p.licenses ?? [];
+      const certList: CertificationRow[] = Array.isArray(certRaw)
+        ? certRaw
+            .map((item: unknown): CertificationRow | null => {
+              if (!item || typeof item !== "object") return null;
+              const o = item as Record<string, unknown>;
+              const name = String(o.name ?? o.title ?? "").trim();
+              const issuer = String(o.issuer ?? o.organization ?? "").trim();
+              const issueDate = String(o.issueDate ?? o.issue_date ?? "").trim();
+              const expiryDate = String(o.expiryDate ?? o.expiry_date ?? "").trim();
+              const documentUrl = String(o.documentUrl ?? o.document_url ?? o.url ?? "").trim();
+              if (!name && !issuer && !issueDate && !expiryDate && !documentUrl) return null;
+              return { name, issuer, issueDate, expiryDate, documentUrl };
+            })
+            .filter((c): c is CertificationRow => c !== null)
+        : [];
+      setCertifications(certList);
     }
   }, [artisanProfile]);
 
@@ -64,6 +152,9 @@ const Page = () => {
         displayName,
         bio,
         primaryTrade: trade,
+        baseCity: location,
+        uniqueSellingPoint: uniquePoint,
+        portfolioPhotoUrls: workPhotos,
         languages: languages.map(l => ({ name: l, code: l.toLowerCase().slice(0, 2), proficiency: 'fluent' })),
         // Add more mapping here as backend schema expansion allows
       };
@@ -83,6 +174,56 @@ const Page = () => {
   const addLanguage = (lang: string) => {
     if (lang !== "select" && !languages.includes(lang)) {
       setLanguages(prev => [...prev, lang]);
+    }
+  };
+
+  const uploadPortfolioPhoto = async (file: File): Promise<string> => {
+    const mimetype = file.type || "application/octet-stream";
+    const initRes = await api.post<Record<string, unknown>>(
+      "/api/profile/artisan/upload-portfolio",
+      { filename: file.name, mimetype, fileSize: file.size },
+    );
+    const d = (initRes.data ?? {}) as Record<string, unknown> & {
+      uploadUrl?: unknown;
+      publicUrl?: unknown;
+      requiredUploadHeaders?: unknown;
+      url?: unknown;
+      fileUrl?: unknown;
+    };
+    const uploadUrl = typeof d.uploadUrl === "string" ? d.uploadUrl : null;
+    const publicUrl =
+      (typeof d.publicUrl === "string" ? d.publicUrl : null) ||
+      (typeof d.url === "string" ? d.url : null) ||
+      (typeof d.fileUrl === "string" ? d.fileUrl : null);
+    if (!uploadUrl || !publicUrl) throw new Error("Unexpected upload response");
+
+    const putHeaders: Record<string, string> = { "Content-Type": mimetype };
+    if (d.requiredUploadHeaders && typeof d.requiredUploadHeaders === "object") {
+      for (const [k, v] of Object.entries(d.requiredUploadHeaders as Record<string, unknown>)) {
+        if (typeof v === "string" && v.trim()) putHeaders[k] = v;
+      }
+    }
+    const putRes = await fetch(uploadUrl, {
+      method: "PUT",
+      headers: putHeaders,
+      body: file,
+    });
+    if (!putRes.ok) throw new Error(`Failed upload (HTTP ${putRes.status})`);
+    return publicUrl;
+  };
+
+  const replacePortfolioPhotoAt = async (index: number, file: File | null) => {
+    if (!file) return;
+    try {
+      setIsUploadingPhotos(true);
+      const url = await uploadPortfolioPhoto(file);
+      setWorkPhotos((prev) => prev.map((x, i) => (i === index ? url : x)));
+      toast.success("Portfolio photo replaced.");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Failed to replace portfolio photo";
+      toast.error(msg);
+    } finally {
+      setIsUploadingPhotos(false);
     }
   };
 
@@ -150,30 +291,89 @@ const Page = () => {
           </div>
         </section>
 
-        {/* Work Photos */}
+        {/* Portfolio Photos */}
         <section>
-          <SectionTitle label="Add Photos Of Your Work" />
-          <div className="flex flex-wrap gap-4">
-             <button className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-[#F6F6F6] border-2 border-dashed border-[#0000001A] flex flex-col items-center justify-center gap-2 group hover:border-brand-orange transition-colors">
-                <div className="bg-[#1D2939]/5 p-2 rounded-full group-hover:bg-brand-orange group-hover:text-white transition-colors">
-                  <Camera size={20} />
-                </div>
-                <span className="text-[12px] font-poppins font-medium text-gray-500">Upload</span>
-             </button>
-             {/* Example thumbnails */}
-             <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden group">
-                <Image src="/images/home2.jpg" alt="work" fill className="object-cover" />
-                <button className="absolute top-1 right-1 bg-white/80 p-0.5 rounded-md hover:bg-white text-[#1D2939]">
-                   <X size={14} />
-                </button>
-             </div>
-             <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden group">
-                <Image src="/images/home3.jpg" alt="work" fill className="object-cover" />
-                <button className="absolute top-1 right-1 bg-white/80 p-0.5 rounded-md hover:bg-white text-[#1D2939]">
-                   <X size={14} />
-                </button>
-             </div>
+          <SectionTitle label="Portfolio photos" />
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[12px] font-poppins text-[#667085]">
+              Up to {MAX_WORK_PHOTOS} photos
+            </p>
           </div>
+          <div className="flex flex-wrap gap-4">
+             {workPhotos.map((src, idx) => (
+               <div key={`${src}-${idx}`} className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden group border border-[#EAECF0]">
+                  <Image src={src} alt="work" fill className="object-cover" unoptimized />
+                  <div className="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                    <button
+                      type="button"
+                      className="px-2 py-1 text-[10px] rounded-md bg-white text-[#1D2939] font-poppins font-semibold"
+                      onClick={() => {
+                        const input = document.createElement("input");
+                        input.type = "file";
+                        input.accept = "image/*";
+                        input.onchange = (e) => {
+                          const file = (e.target as HTMLInputElement).files?.[0] || null;
+                          void replacePortfolioPhotoAt(idx, file);
+                        };
+                        input.click();
+                      }}
+                    >
+                      Replace
+                    </button>
+                  </div>
+               </div>
+             ))}
+              {workPhotos.length === 0 && (
+                <div className="w-full rounded-xl border border-dashed border-[#0000001A] bg-[#F9FAFB] p-4 text-center text-[12px] font-poppins text-[#667085]">
+                  No portfolio photos yet.
+                </div>
+              )}
+          </div>
+        </section>
+
+        {/* Certifications */}
+        <section>
+          <SectionTitle label="Certifications" />
+          {certifications.length > 0 ? (
+            <div className="space-y-3">
+              {certifications.map((cert, idx) => (
+                <div
+                  key={`${cert.name}-${cert.issuer}-${idx}`}
+                  className="rounded-2xl border border-[#EAECF0] bg-[#F9FAFB] p-4"
+                >
+                  <p className="text-[14px] font-poppins font-semibold text-[#1D2939]">
+                    {cert.name || "Certification"}
+                  </p>
+                  {cert.issuer && (
+                    <p className="text-[12px] font-poppins text-[#667085] mt-1">
+                      Issuer: {cert.issuer}
+                    </p>
+                  )}
+                  {(cert.issueDate || cert.expiryDate) && (
+                    <p className="text-[12px] font-poppins text-[#667085] mt-1">
+                      {cert.issueDate ? `Issued: ${cert.issueDate}` : ""}
+                      {cert.issueDate && cert.expiryDate ? " • " : ""}
+                      {cert.expiryDate ? `Expires: ${cert.expiryDate}` : ""}
+                    </p>
+                  )}
+                  {cert.documentUrl && (
+                    <a
+                      href={cert.documentUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-block mt-2 text-[12px] font-poppins font-semibold text-brand-orange hover:underline"
+                    >
+                      View document
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-[#0000001A] bg-[#F9FAFB] p-4 text-center text-[12px] font-poppins text-[#667085]">
+              No certifications added yet.
+            </div>
+          )}
         </section>
 
         {/* Other Details */}

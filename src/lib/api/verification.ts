@@ -23,6 +23,7 @@ export interface VerificationMyStatus {
     rejectionReason?: string | null
     submittedAt?: string | null
     reviewedAt?: string | null
+    governmentIdType?: string | null
   } | null
   verificationStatus?: string
   kycStatus?: KycStatus | string
@@ -30,6 +31,8 @@ export interface VerificationMyStatus {
   kycSessionCreatedAt?: string | null
   /** Set when KYC is completed (approved) on our side. */
   kycVerifiedAt?: string | null
+  /** True when artisan profile has all required fields completed (backend computed). */
+  isProfileCompleted?: boolean
   hasStartedArtisanOnboarding?: boolean
   verificationDraft?: { draftId?: string; updatedAt?: string } | null
 }

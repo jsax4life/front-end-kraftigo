@@ -1,3 +1,3 @@
 "use client";
 
-export { default } from "@/app/user/profile/artisan-verification/page";
+export { default } from "@/app/user/profile/profile-completion/page";

@@ -21,6 +21,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { useProfileStore } from "@/store/useProfileStore";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { getVerificationWire } from "@/lib/api/verification";
 
 const SimpleLineChart = () => {
   return (
@@ -92,17 +93,25 @@ const SettingsRow = ({ icon: Icon, label, onClick }: { icon: any, label: string,
 const Page = () => {
   const router = useRouter();
   const { user, logout } = useAuthStore();
-  const { artisanProfile, fetchArtisanProfile } = useProfileStore();
+  const { artisanProfile, fetchArtisanProfile, verificationStatus, fetchVerificationStatus } =
+    useProfileStore();
 
   useEffect(() => {
     if (!artisanProfile) {
       fetchArtisanProfile();
     }
-  }, [artisanProfile, fetchArtisanProfile]);
+    fetchVerificationStatus();
+  }, [artisanProfile, fetchArtisanProfile, fetchVerificationStatus]);
 
   const fallbackName = typeof window !== "undefined" ? localStorage.getItem("kraftigo_tasker_fullName") : null;
   const displayName = artisanProfile?.displayName || artisanProfile?.legalFullName || fallbackName || user?.fullName || "User";
   const avatar = artisanProfile?.profilePhotoUrl || user?.avatar;
+  const { verificationState, kycStatus } = getVerificationWire(verificationStatus);
+  const isProfileCompleted = Boolean((verificationStatus as any)?.isProfileCompleted);
+  const showCompleteProfilePrompt =
+    kycStatus === "APPROVED" &&
+    (verificationState === "PENDING" || verificationState === "APPROVED") &&
+    !isProfileCompleted;
 
   const handleLogout = async () => {
     try {
@@ -117,11 +126,49 @@ const Page = () => {
   return (
     <main className="relative w-full min-h-screen bg-white pb-32">
       {/* Header */}
-      <div className="pt-8 px-6 mb-6">
+      <div className="pt-8 px-6 mb-6 flex items-center justify-between gap-3">
         <h1 className="text-[28px] font-gerat font-bold text-[#1D2939]">Profile</h1>
+        <button
+          type="button"
+          onClick={() => {
+            try {
+              window.localStorage.setItem("kraftigo_profile_mode", "customer");
+            } catch {
+              // ignore
+            }
+            // Hard switch to customer home screen
+            window.location.assign("/user/home");
+          }}
+          className="px-3 py-1.5 rounded-full border border-[#EAECF0] text-[12px] font-poppins font-semibold text-[#344054] hover:bg-gray-50"
+        >
+          Switch to customer
+        </button>
       </div>
 
       <div className="px-4 space-y-8">
+        {showCompleteProfilePrompt && (
+          <div className="bg-orange-50 border border-orange-100 rounded-3xl p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                <p className="text-[14px] font-gerat font-bold text-[#1D2939]">
+                  Complete your profile
+                </p>
+                <p className="text-[12px] font-poppins text-[#667085]">
+                  Add the remaining details so customers can see your full Krafter profile while
+                  we finish admin review.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => router.push("/krafter/profile-completion?skipIntro=1")}
+                className="shrink-0 px-4 py-2 rounded-2xl bg-brand-orange text-white text-[12px] font-poppins font-semibold"
+              >
+                Finish now
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* User Info Section */}
         <div className="flex items-center gap-4 px-2">
           <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-dashed border-brand-blue shrink-0 flex items-center justify-center">
@@ -152,6 +199,37 @@ const Page = () => {
           <SimpleLineChart />
         </div>
 
+        {/* Switch to customer CTA banner */}
+        <div className="pt-2">
+          <button
+            type="button"
+            className="w-full"
+            onClick={() => {
+              try {
+                localStorage.setItem("kraftigo_profile_mode", "customer");
+              } catch {
+                // ignore
+              }
+              // Use a full-page navigation to ensure the customer route + localStorage mode takes effect.
+              if (typeof window !== "undefined") {
+                window.location.assign("/user/book-service");
+              } else {
+                router.push("/user/book-service");
+              }
+            }}
+          >
+            <div className="relative w-full overflow-hidden rounded-3xl border border-[#EAECF0] bg-white">
+              <Image
+                src="/switch-to-kraftigo-user.png"
+                alt="Switch to Kraftigo User"
+                width={600}
+                height={180}
+                className="w-full h-auto object-cover"
+              />
+            </div>
+          </button>
+        </div>
+
 
         {/* Setting Groups */}
         <div className="space-y-8 pb-4">
@@ -162,7 +240,11 @@ const Page = () => {
             <div className="bg-white border border-[#F2F4F7] rounded-3xl overflow-hidden shadow-sm">
               <SettingsRow icon={UserIcon} label="Personal Information" onClick={() => router.push("/tasker/profile/edit")} />
               <SettingsRow icon={Lock} label="Security" onClick={() => router.push("/tasker/profile/security")} />
-              <SettingsRow icon={MessageCircleQuestion} label="Work Eligibility" onClick={() => router.push("/krafter/profile-completion")} />
+              <SettingsRow
+                icon={MessageCircleQuestion}
+                label="Work Eligibility"
+                onClick={() => router.push("/krafter/profile-completion?skipIntro=1")}
+              />
               <SettingsRow icon={Target} label="Work Preferences" onClick={() => {}} />
             </div>
           </div>
