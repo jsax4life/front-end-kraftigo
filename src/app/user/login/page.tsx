@@ -7,6 +7,8 @@ import Input from "@/components/ui/input";
 import Button from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useProfileStore } from "@/store/useProfileStore";
+import { getVerificationWire } from "@/lib/api/verification";
 import Loader from "@/components/ui/loader";
 import { useOTPInput } from "@/hooks/useOTPInput";
 import { isValidEmail, isNotEmpty } from "@/utils/validation";
@@ -17,6 +19,7 @@ import GoogleLoginButton from "@/components/auth/GoogleLoginButton";
 const Page = () => {
   const router = useRouter();
   const { loginUser, isAuthenticated, isLoading, error, clearError } = useAuthStore();
+  const { fetchVerificationStatus } = useProfileStore();
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = AUTH_CONFIG.LOGIN_STEPS;
   const showGoogleLogin = !!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
@@ -36,9 +39,22 @@ const Page = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      router.push("/user/home");
+      (async () => {
+        await fetchVerificationStatus();
+        const { verificationState, kycStatus } = getVerificationWire(
+          useProfileStore.getState().verificationStatus,
+        );
+        if (
+          kycStatus === "APPROVED" &&
+          (verificationState === "PENDING" || verificationState === "APPROVED")
+        ) {
+          router.replace("/tasker/dashboard");
+          return;
+        }
+        router.replace("/user/home");
+      })();
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, router, fetchVerificationStatus]);
 
   const handleInputChange = (field: string, value: string | boolean) => {
     if (error) clearError();
@@ -84,7 +100,18 @@ const Page = () => {
     try {
       await loginUser(formData.email, formData.password);
       toast.success("Login successful! Welcome back.");
-      router.push("/user/home");
+      await fetchVerificationStatus();
+      const { verificationState, kycStatus } = getVerificationWire(
+        useProfileStore.getState().verificationStatus,
+      );
+      if (
+        kycStatus === "APPROVED" &&
+        (verificationState === "PENDING" || verificationState === "APPROVED")
+      ) {
+        router.replace("/tasker/dashboard");
+        return;
+      }
+      router.replace("/user/home");
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || error || "Login failed.";
       toast.error(errorMessage);

@@ -66,26 +66,86 @@ async function urlToFile(url: string, filename: string): Promise<File | null> {
 const DRAFT_CONFLICT_MESSAGE =
   "Saving a draft isn't available while verification is pending or your profile is already verified.";
 
-/** ISO 3166-1 alpha-2 codes only — backend expects max 2 chars */
-const COUNTRY_OF_RESIDENCE_OPTIONS = [
-  { value: "DE", label: "Germany" },
-  { value: "NG", label: "Nigeria" },
-  { value: "US", label: "United States" },
-  { value: "GB", label: "United Kingdom" },
-  { value: "FR", label: "France" },
-  { value: "IT", label: "Italy" },
-  { value: "ES", label: "Spain" },
-  { value: "NL", label: "Netherlands" },
-  { value: "BE", label: "Belgium" },
-  { value: "AT", label: "Austria" },
-  { value: "CH", label: "Switzerland" },
-  { value: "PL", label: "Poland" },
-  { value: "PT", label: "Portugal" },
-  { value: "IE", label: "Ireland" },
-  { value: "SE", label: "Sweden" },
-  { value: "NO", label: "Norway" },
-  { value: "DK", label: "Denmark" },
-  { value: "FI", label: "Finland" },
+/** ISO 3166-1 alpha-2 codes only — backend expects max 2 chars.
+ * Krafter verification is currently restricted to Germany.
+ */
+const COUNTRY_OF_RESIDENCE_OPTIONS = [{ value: "DE", label: "Germany" }];
+
+const GERMAN_CITY_OPTIONS = [
+  { value: "Berlin", label: "Berlin" },
+  { value: "Hamburg", label: "Hamburg" },
+  { value: "München", label: "München" },
+  { value: "Köln", label: "Köln" },
+  { value: "Frankfurt am Main", label: "Frankfurt am Main" },
+  { value: "Stuttgart", label: "Stuttgart" },
+  { value: "Düsseldorf", label: "Düsseldorf" },
+  { value: "Dortmund", label: "Dortmund" },
+  { value: "Essen", label: "Essen" },
+  { value: "Leipzig", label: "Leipzig" },
+  { value: "Bremen", label: "Bremen" },
+  { value: "Dresden", label: "Dresden" },
+  { value: "Hannover", label: "Hannover" },
+  { value: "Nürnberg", label: "Nürnberg" },
+  { value: "Duisburg", label: "Duisburg" },
+  { value: "Bochum", label: "Bochum" },
+  { value: "Wuppertal", label: "Wuppertal" },
+  { value: "Bielefeld", label: "Bielefeld" },
+  { value: "Bonn", label: "Bonn" },
+  { value: "Münster", label: "Münster" },
+  { value: "Karlsruhe", label: "Karlsruhe" },
+  { value: "Mannheim", label: "Mannheim" },
+  { value: "Augsburg", label: "Augsburg" },
+  { value: "Wiesbaden", label: "Wiesbaden" },
+  { value: "Gelsenkirchen", label: "Gelsenkirchen" },
+  { value: "Mönchengladbach", label: "Mönchengladbach" },
+  { value: "Braunschweig", label: "Braunschweig" },
+  { value: "Chemnitz", label: "Chemnitz" },
+  { value: "Kiel", label: "Kiel" },
+  { value: "Aachen", label: "Aachen" },
+  { value: "Magdeburg", label: "Magdeburg" },
+  { value: "Freiburg im Breisgau", label: "Freiburg im Breisgau" },
+  { value: "Krefeld", label: "Krefeld" },
+  { value: "Lübeck", label: "Lübeck" },
+  { value: "Oberhausen", label: "Oberhausen" },
+  { value: "Erfurt", label: "Erfurt" },
+  { value: "Mainz", label: "Mainz" },
+  { value: "Rostock", label: "Rostock" },
+  { value: "Kassel", label: "Kassel" },
+  { value: "Hagen", label: "Hagen" },
+  { value: "Saarbrücken", label: "Saarbrücken" },
+  { value: "Hamm", label: "Hamm" },
+  { value: "Mülheim an der Ruhr", label: "Mülheim an der Ruhr" },
+  { value: "Ludwigshafen am Rhein", label: "Ludwigshafen am Rhein" },
+  { value: "Oldenburg", label: "Oldenburg" },
+  { value: "Osnabrück", label: "Osnabrück" },
+  { value: "Leverkusen", label: "Leverkusen" },
+  { value: "Heidelberg", label: "Heidelberg" },
+  { value: "Darmstadt", label: "Darmstadt" },
+  { value: "Solingen", label: "Solingen" },
+  { value: "Herne", label: "Herne" },
+  { value: "Neuss", label: "Neuss" },
+  { value: "Regensburg", label: "Regensburg" },
+  { value: "Paderborn", label: "Paderborn" },
+  { value: "Ingolstadt", label: "Ingolstadt" },
+  { value: "Offenbach am Main", label: "Offenbach am Main" },
+  { value: "Würzburg", label: "Würzburg" },
+  { value: "Ulm", label: "Ulm" },
+  { value: "Heilbronn", label: "Heilbronn" },
+  { value: "Pforzheim", label: "Pforzheim" },
+  { value: "Wolfsburg", label: "Wolfsburg" },
+  { value: "Göttingen", label: "Göttingen" },
+  { value: "Bottrop", label: "Bottrop" },
+  { value: "Reutlingen", label: "Reutlingen" },
+  { value: "Koblenz", label: "Koblenz" },
+  { value: "Bremerhaven", label: "Bremerhaven" },
+  { value: "Bergisch Gladbach", label: "Bergisch Gladbach" },
+  { value: "Jena", label: "Jena" },
+  { value: "Remscheid", label: "Remscheid" },
+  { value: "Erlangen", label: "Erlangen" },
+  { value: "Moers", label: "Moers" },
+  { value: "Siegen", label: "Siegen" },
+  { value: "Hildesheim", label: "Hildesheim" },
+  { value: "Salzgitter", label: "Salzgitter" },
 ];
 
 const Page = () => {
@@ -287,6 +347,7 @@ const Page = () => {
   });
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [citySearch, setCitySearch] = useState("");
 
   const handleInputChange = (field: string, value: string | boolean | File | null) => {
     // Numeric-only fields restriction
@@ -527,7 +588,10 @@ const Page = () => {
     data.append("baseCity", formData.city);
     data.append("postalCode", formData.postal);
     data.append("primarySkillCategoryId", formData.trade);
-    data.append("secondarySkillIds", JSON.stringify([]));
+    if (!formData.trade) {
+      toast.error("Please select your primary trade before submitting.");
+      return;
+    }
     const countryCode = (formData.country || "DE").toUpperCase().slice(0, 2);
     data.append("countryOfResidence", countryCode);
     data.append("profilePhoto", selfieF);
@@ -726,17 +790,48 @@ const Page = () => {
                 label="Country of residence"
                 placeholder="Select country"
                 value={formData.country}
-                onChange={(value) => handleInputChange("country", value)}
+                onChange={() => {
+                  // Country is fixed to Germany in this flow.
+                  handleInputChange("country", "DE");
+                }}
+                disabled
                 options={COUNTRY_OF_RESIDENCE_OPTIONS}
                 required
               />
               <Input
                 label="City"
-                placeholder="Berlin"
-                value={formData.city}
-                onChange={(value) => handleInputChange("city", value)}
+                placeholder="Start typing to search cities in Germany"
+                value={citySearch || formData.city}
+                onChange={(value) => {
+                  setCitySearch(value);
+                  // Clear selected city if user starts a new search
+                  if (value && value !== formData.city) {
+                    handleInputChange("city", "");
+                  }
+                }}
                 required
               />
+              {(citySearch || "").trim() && (
+                <div className="max-h-40 overflow-y-auto bg-[#F6F6F6] rounded-xl border border-[#0000001A] px-3 py-2 space-y-1">
+                  {GERMAN_CITY_OPTIONS.filter((c) =>
+                    c.label.toLowerCase().includes((citySearch || "").toLowerCase()),
+                  ).map((city) => (
+                    <button
+                      key={city.value}
+                      type="button"
+                      onClick={() => {
+                        handleInputChange("city", city.value);
+                        setCitySearch("");
+                      }}
+                      className={`w-full text-left text-[14px] font-poppins px-2 py-1 rounded-lg hover:bg-white ${
+                        formData.city === city.value ? "bg-white font-semibold" : ""
+                      }`}
+                    >
+                      {city.label}
+                    </button>
+                  ))}
+                </div>
+              )}
               <Input
                 label="Postal Code"
                 placeholder="88019"

@@ -211,7 +211,7 @@ function DiditReturnContent() {
                         type="button"
                         fullWidth
                         className="font-poppins! font-semibold"
-                        onClick={() => router.push("/krafter/profile-completion")}
+                        onClick={() => router.push("/tasker/profile")}
                       >
                         Continue Krafter profile
                       </Button>
