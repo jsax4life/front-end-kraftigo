@@ -1,15 +1,14 @@
 "use client";
 
 import Image from "next/image";
-import UserNav from "@/components/shared/userNav";
-import { Search, ChevronRight, Home, User, MapPin,Clock } from "lucide-react";
+import { Search, ChevronRight, Home, User} from "lucide-react";
 import Userabt from "@/components/shared/userabt";
 import ProCard from "@/components/ui/proCard";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useAuthPromptStore } from "@/store/useAuthPromptStore";
-import { useHomeStore, normSrc } from "@/store/useHomeStore";
+
 
 // ─── Static fallbacks (shown when unauthenticated or API not yet resolved) ────
 
@@ -78,6 +77,12 @@ const Page = () => {
       router.push(path);
     }
   };
+
+  useEffect(() => {
+  if (isAuthenticated) {
+    router.push("/user/home");
+  }
+}, [isAuthenticated, router]);
 
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
