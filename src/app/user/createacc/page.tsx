@@ -14,6 +14,7 @@ import {
   isValidPassword,
   passwordsMatch,
   isNotEmpty,
+  isValidPhoneLength,
 } from "@/utils/validation";
 import { logger } from "@/utils/logger";
 import { Checkbox } from "@/components/ui/Checkbox";
@@ -85,7 +86,8 @@ const Page = () => {
           isNotEmpty(formData.fullName) &&
           isNotEmpty(formData.email) &&
           isNotEmpty(formData.phone) &&
-          isValidEmail(formData.email)
+          isValidEmail(formData.email) &&
+          isValidPhoneLength(formData.phone)
         );
       case 2:
         // For password step, only check if fields are not empty
@@ -462,7 +464,10 @@ const Page = () => {
 
             {currentStep === 2 && (
               <div className="text-center text-[14px] font-poppins">
-                <span className="text-gray-600" onClick={() => setShowWhyModal(true)}>
+                <span
+                  className="text-gray-600"
+                  onClick={() => setShowWhyModal(true)}
+                >
                   Why do we collect this information?
                 </span>
               </div>
