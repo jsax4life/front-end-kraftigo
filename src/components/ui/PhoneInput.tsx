@@ -11,6 +11,7 @@ interface PhoneInputProps {
   required?: boolean;
   disabled?: boolean;
   className?: string;
+  maxLength?: number;
 }
 
 const PhoneInput = ({
@@ -22,6 +23,7 @@ const PhoneInput = ({
   required = false,
   disabled = false,
   className = "",
+  maxLength = 10,
 }: PhoneInputProps) => {
   return (
     <div className={`flex flex-col gap-2 ${className}`}>
@@ -51,6 +53,7 @@ const PhoneInput = ({
           }}
           disabled={disabled}
           className="flex-1 h-full px-4 py-2 bg-transparent outline-none text-[14px] font-poppins placeholder:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+          maxLength={maxLength}
         />
       </div>
       {error && <span className="text-red-500 text-[12px]">{error}</span>}
