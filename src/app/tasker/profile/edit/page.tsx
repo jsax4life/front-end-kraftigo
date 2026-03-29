@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Camera, X, User as UserIcon, HelpCircle, ChevronLeft } from "lucide-react";
+import { Camera, X, User as UserIcon, HelpCircle, ChevronLeft, Loader2, Plus } from "lucide-react";
 import Input from "@/components/ui/input";
 import Select from "@/components/ui/select";
 import Button from "@/components/ui/button";
@@ -11,11 +11,25 @@ import api from "@/lib/axios";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useProfileStore } from "@/store/useProfileStore";
 import toast from "react-hot-toast";
+import { getServiceSkillGroups } from "@/lib/api/services";
+
+/** Helper to turn a URL into a File object for multipart submission (handling existing photos) */
+async function urlToFile(url: string, filename: string): Promise<File | null> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return new File([blob], filename, { type: blob.type || "image/jpeg" });
+  } catch (error) {
+    console.error("Failed to convert URL to file:", error);
+    return null;
+  }
+}
 
 const Tag = ({ label, onRemove }: { label: string, onRemove: () => void }) => (
   <div className="flex items-center gap-1.5 bg-[#F6F6F6] text-[#667085] px-3 py-1.5 rounded-lg border border-[#0000001A] group">
     <span className="text-[13px] font-poppins font-medium">{label}</span>
-    <button onClick={onRemove} className="hover:text-red-500">
+    <button onClick={onRemove} className="hover:text-red-500 transition-colors">
       <X size={14} />
     </button>
   </div>
@@ -31,144 +45,162 @@ const SectionTitle = ({ label, desc }: { label: string, desc?: string }) => (
 const Page = () => {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { artisanProfile, fetchArtisanProfile, createOrUpdateArtisanProfile, isLoading } = useProfileStore();
+  const { 
+    artisanProfile, 
+    fetchArtisanProfile, 
+    updateArtisanProfile, 
+    isLoading 
+  } = useProfileStore();
   
+  // Basic Info
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
-  const [trade, setTrade] = useState("");
-  const [location, setLocation] = useState("");
-  const [uniquePoint, setUniquePoint] = useState("");
+  const [primarySkillCategoryId, setPrimarySkillCategoryId] = useState("");
+  const [baseCity, setBaseCity] = useState("");
+  const [postalCode, setPostalCode] = useState("");
+  const [travelRadiusKm, setTravelRadiusKm] = useState(25);
+  const [uniqueSellingPoint, setUniqueSellingPoint] = useState("");
   const [languages, setLanguages] = useState<string[]>([]);
-  const [workPhotos, setWorkPhotos] = useState<string[]>([]);
-  type CertificationRow = {
-    name: string;
-    issuer: string;
-    issueDate?: string;
-    expiryDate?: string;
-    documentUrl?: string;
-  };
-  const [certifications, setCertifications] = useState<CertificationRow[]>([]);
-  const [isUploadingPhotos, setIsUploadingPhotos] = useState(false);
-  const MAX_WORK_PHOTOS = 3;
+  
+  // Files
+  const [profilePhotoFile, setProfilePhotoFile] = useState<File | null>(null);
+  const [profilePhotoPreview, setProfilePhotoPreview] = useState("");
+  const [portfolioFiles, setPortfolioFiles] = useState<{file: File | null, preview: string, id: string}[]>([]);
+  
+  const [skillOptions, setSkillOptions] = useState<{value: string, label: string}[]>([]);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const portfolioInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    fetchSkillGroups();
     if (!artisanProfile) {
       fetchArtisanProfile();
     }
   }, [artisanProfile, fetchArtisanProfile]);
 
-  useEffect(() => {
-    if (artisanProfile) {
-      setDisplayName(artisanProfile.displayName || artisanProfile.legalFullName || "");
-      setBio(artisanProfile.bio || "");
-      setTrade(artisanProfile.primaryTrade || "");
-      setLocation(artisanProfile.baseCity || "");
-      const p = artisanProfile as any;
-      const nestedProfile = (p.profile && typeof p.profile === "object" ? p.profile : null) as
-        | Record<string, unknown>
-        | null;
-      const nestedVerification =
-        (p.verification && typeof p.verification === "object" ? p.verification : null) as
-          | Record<string, unknown>
-          | null;
-      setUniquePoint(
-        p.uniqueSellingPoint ||
-          p.unique_selling_point ||
-          p.uniquePoint ||
-          p.unique_point ||
-          (nestedProfile?.uniqueSellingPoint as string) ||
-          (nestedProfile?.unique_selling_point as string) ||
-          (nestedVerification?.uniqueSellingPoint as string) ||
-          "",
-      );
-      setLanguages((artisanProfile.languages || []).map(l => l.name));
-      const portfolioRaw =
-        p.portfolioPhotoUrls ??
-        p.portfolio_photo_urls ??
-        p.portfolioPhotos ??
-        p.portfolio_photos ??
-        p.portfolio_images ??
-        p.portfolio ??
-        nestedProfile?.portfolioPhotoUrls ??
-        nestedProfile?.portfolio_photo_urls ??
-        nestedVerification?.portfolioPhotoUrls ??
-        nestedVerification?.portfolio_photo_urls;
-      const portfolio = Array.isArray(portfolioRaw)
-        ? portfolioRaw
-        : typeof portfolioRaw === "string"
-          ? portfolioRaw.split(",")
-          : [];
-      setWorkPhotos(
-        portfolio
-          .map((item: unknown) => {
-            if (typeof item === "string") return item.trim();
-            if (item && typeof item === "object") {
-              const obj = item as {
-                url?: unknown;
-                publicUrl?: unknown;
-                public_url?: unknown;
-                fileUrl?: unknown;
-                imageUrl?: unknown;
-                image_url?: unknown;
-              };
-              const value =
-                obj.url ??
-                obj.publicUrl ??
-                obj.public_url ??
-                obj.fileUrl ??
-                obj.imageUrl ??
-                obj.image_url;
-              return typeof value === "string" ? value.trim() : "";
-            }
-            return "";
-          })
-          .filter((src): src is string => src.length > 0),
-      );
-
-      const certRaw = p.certifications ?? p.certs ?? p.licenses ?? [];
-      const certList: CertificationRow[] = Array.isArray(certRaw)
-        ? certRaw
-            .map((item: unknown): CertificationRow | null => {
-              if (!item || typeof item !== "object") return null;
-              const o = item as Record<string, unknown>;
-              const name = String(o.name ?? o.title ?? "").trim();
-              const issuer = String(o.issuer ?? o.organization ?? "").trim();
-              const issueDate = String(o.issueDate ?? o.issue_date ?? "").trim();
-              const expiryDate = String(o.expiryDate ?? o.expiry_date ?? "").trim();
-              const documentUrl = String(o.documentUrl ?? o.document_url ?? o.url ?? "").trim();
-              if (!name && !issuer && !issueDate && !expiryDate && !documentUrl) return null;
-              return { name, issuer, issueDate, expiryDate, documentUrl };
-            })
-            .filter((c): c is CertificationRow => c !== null)
-        : [];
-      setCertifications(certList);
-    }
-  }, [artisanProfile]);
-
-  const handleSave = async () => {
+  const fetchSkillGroups = async () => {
     try {
-      const profileData = {
-        ...artisanProfile,
-        displayName,
-        bio,
-        primaryTrade: trade,
-        baseCity: location,
-        uniqueSellingPoint: uniquePoint,
-        portfolioPhotoUrls: workPhotos,
-        languages: languages.map(l => ({ name: l, code: l.toLowerCase().slice(0, 2), proficiency: 'fluent' })),
-        // Add more mapping here as backend schema expansion allows
-      };
-      
-      await createOrUpdateArtisanProfile(profileData as any);
-      toast.success("Profile updated successfully!");
-      router.push("/tasker/profile");
+      const groups = await getServiceSkillGroups();
+      const mapped = groups.map(g => ({ value: g.category.id, label: g.category.name }));
+      setSkillOptions(mapped);
     } catch (error) {
-      toast.error("Failed to update profile");
+      console.error("Failed to fetch skills:", error);
     }
   };
 
-  const removeLanguage = (lang: string) => {
-    setLanguages(prev => prev.filter(l => l !== lang));
+  useEffect(() => {
+    if (artisanProfile && !isDataLoaded) {
+      setDisplayName(artisanProfile.displayName || "");
+      setBio(artisanProfile.bio || "");
+      setPrimarySkillCategoryId(artisanProfile.primarySkillCategoryId || "");
+      setBaseCity(artisanProfile.baseCity || "");
+      setPostalCode(artisanProfile.postalCode || "");
+      setTravelRadiusKm(artisanProfile.travelRadiusKm || 25);
+      setUniqueSellingPoint(artisanProfile.uniqueSellingPoint || "");
+      setLanguages((artisanProfile.languages || []).map(l => l.name));
+      setProfilePhotoPreview(artisanProfile.profilePhotoUrl || "");
+      
+      if (artisanProfile.portfolioPhotoUrls?.length) {
+          const existingPortfolio = artisanProfile.portfolioPhotoUrls.map((url, i) => ({
+              file: null,
+              preview: url,
+              id: `existing-${i}`
+          }));
+          setPortfolioFiles(existingPortfolio);
+      }
+      
+      setIsDataLoaded(true);
+    }
+  }, [artisanProfile, isDataLoaded]);
+
+  const handleProfilePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setProfilePhotoFile(file);
+      setProfilePhotoPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handlePortfolioFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length) {
+      const newFiles = files.map(file => ({
+          file,
+          preview: URL.createObjectURL(file),
+          id: Math.random().toString(36).substr(2, 9)
+      }));
+      setPortfolioFiles(prev => [...prev, ...newFiles]);
+    }
+  };
+
+  const removePortfolioFile = (id: string) => {
+    setPortfolioFiles(prev => prev.filter(f => f.id !== id));
+  };
+
+  const handleSave = async () => {
+    // Validation
+    if (!displayName || displayName.length < 2) return toast.error("Display Name is required (min 2 chars)");
+    if (!baseCity) return toast.error("Base City is required");
+    if (languages.length === 0) return toast.error("Add at least one language");
+    if (!primarySkillCategoryId) return toast.error("Select your primary skill category");
+
+    try {
+      const data = new FormData();
+      
+      // JSON Strings
+      data.append("displayName", displayName);
+      data.append("bio", bio);
+      data.append("baseCity", baseCity);
+      data.append("postalCode", postalCode || "0000");
+      data.append("travelRadiusKm", travelRadiusKm.toString());
+      data.append("primarySkillCategoryId", primarySkillCategoryId);
+      data.append("uniqueSellingPoint", uniqueSellingPoint);
+      data.append("languages", JSON.stringify(languages.map(l => ({ name: l, code: 'en' }))));
+      
+      // Carry over other required fields from existing profile if not in form
+      data.append("legalFullName", artisanProfile?.legalFullName || user?.fullName || "N/A");
+      data.append("countryOfResidence", "DE"); // Default or from profile
+      data.append("yearsExperienceHomeCountry", (artisanProfile?.yearsExperienceHomeCountry || 0).toString());
+      data.append("yearsExperienceCurrentCountry", (artisanProfile?.yearsExperienceCurrentCountry || 0).toString());
+      data.append("employmentStatus", artisanProfile?.employmentStatus || "SELF_EMPLOYED");
+      data.append("transportType", artisanProfile?.transportType || "NONE");
+      data.append("toolsOwned", (artisanProfile?.toolsOwned || false).toString());
+      data.append("certifications", JSON.stringify(artisanProfile?.certifications || []));
+      data.append("skillsAndExpertise", JSON.stringify(artisanProfile?.skillsAndExpertise || []));
+      data.append("secondarySkillIds", JSON.stringify(artisanProfile?.secondarySkills || []));
+
+      // Handle Profile Photo
+      if (profilePhotoFile) {
+        data.append("profilePhoto", profilePhotoFile);
+      } else if (artisanProfile?.profilePhotoUrl) {
+         const file = await urlToFile(artisanProfile.profilePhotoUrl, "profile-photo.jpg");
+         if (file) data.append("profilePhoto", file);
+      }
+
+      // Handle ID Card (Mandatory for validation if never uploaded, but for PUT we might skip if not changing)
+      if (artisanProfile?.idCardUrl) {
+          const file = await urlToFile(artisanProfile.idCardUrl, "id-card.jpg");
+          if (file) data.append("idCard", file);
+      }
+
+      // Handle Portfolio
+      for (const item of portfolioFiles) {
+          if (item.file) {
+              data.append("portfolioPhotos", item.file);
+          } else {
+              const file = await urlToFile(item.preview, "portfolio.jpg");
+              if (file) data.append("portfolioPhotos", file);
+          }
+      }
+
+      await updateArtisanProfile(data);
+      toast.success("Profile updated successfully!");
+      router.push("/tasker/profile");
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Failed to update profile");
+    }
   };
 
   const addLanguage = (lang: string) => {
@@ -177,60 +209,10 @@ const Page = () => {
     }
   };
 
-  const uploadPortfolioPhoto = async (file: File): Promise<string> => {
-    const mimetype = file.type || "application/octet-stream";
-    const initRes = await api.post<Record<string, unknown>>(
-      "/api/profile/artisan/upload-portfolio",
-      { filename: file.name, mimetype, fileSize: file.size },
-    );
-    const d = (initRes.data ?? {}) as Record<string, unknown> & {
-      uploadUrl?: unknown;
-      publicUrl?: unknown;
-      requiredUploadHeaders?: unknown;
-      url?: unknown;
-      fileUrl?: unknown;
-    };
-    const uploadUrl = typeof d.uploadUrl === "string" ? d.uploadUrl : null;
-    const publicUrl =
-      (typeof d.publicUrl === "string" ? d.publicUrl : null) ||
-      (typeof d.url === "string" ? d.url : null) ||
-      (typeof d.fileUrl === "string" ? d.fileUrl : null);
-    if (!uploadUrl || !publicUrl) throw new Error("Unexpected upload response");
-
-    const putHeaders: Record<string, string> = { "Content-Type": mimetype };
-    if (d.requiredUploadHeaders && typeof d.requiredUploadHeaders === "object") {
-      for (const [k, v] of Object.entries(d.requiredUploadHeaders as Record<string, unknown>)) {
-        if (typeof v === "string" && v.trim()) putHeaders[k] = v;
-      }
-    }
-    const putRes = await fetch(uploadUrl, {
-      method: "PUT",
-      headers: putHeaders,
-      body: file,
-    });
-    if (!putRes.ok) throw new Error(`Failed upload (HTTP ${putRes.status})`);
-    return publicUrl;
-  };
-
-  const replacePortfolioPhotoAt = async (index: number, file: File | null) => {
-    if (!file) return;
-    try {
-      setIsUploadingPhotos(true);
-      const url = await uploadPortfolioPhoto(file);
-      setWorkPhotos((prev) => prev.map((x, i) => (i === index ? url : x)));
-      toast.success("Portfolio photo replaced.");
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Failed to replace portfolio photo";
-      toast.error(msg);
-    } finally {
-      setIsUploadingPhotos(false);
-    }
-  };
-
   return (
     <main className="min-h-screen bg-white">
       {/* Header */}
-      <div className="w-full flex items-center justify-between py-6 px-4 bg-white border-b border-[#F2F4F7]">
+      <div className="w-full flex items-center justify-between py-6 px-4 bg-white border-b border-[#F2F4F7] sticky top-0 z-50">
         <button onClick={() => router.back()} className="p-1 hover:opacity-70 transition-opacity">
           <ChevronLeft className="w-8 h-8 text-[#1D2939]" strokeWidth={1.5} />
         </button>
@@ -238,52 +220,60 @@ const Page = () => {
            <h1 className="text-[20px] font-gerat font-bold text-[#1D2939]">Personal Information</h1>
            <p className="text-[12px] font-poppins text-[#667085]">Manage information about yourself</p>
         </div>
-        <div className="w-10"></div> {/* Spacer for balance */}
+        <div className="w-10"></div>
       </div>
 
       <div className="px-4 py-8 space-y-12 max-w-2xl mx-auto pb-32">
-        
         {/* Avatar Section */}
         <div className="flex flex-col items-center">
-            <div className="relative w-32 h-32 rounded-full border-2 border-[#EAECF0] p-1 shadow-sm bg-white shrink-0 group">
-              <div className="relative w-full h-full rounded-full overflow-hidden">
-                {artisanProfile?.profilePhotoUrl || user?.avatar ? (
+            <div 
+              className="relative w-32 h-32 rounded-full border-2 border-[#EAECF0] p-1 shadow-sm bg-white shrink-0 group cursor-pointer"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <div className="relative w-full h-full rounded-full overflow-hidden bg-gray-50">
+                {profilePhotoPreview ? (
                   <Image 
-                    src={artisanProfile?.profilePhotoUrl || user?.avatar || ""} 
+                    src={profilePhotoPreview} 
                     alt="Profile" 
                     fill 
                     className="object-cover"
+                    unoptimized
                   />
                 ) : (
-                  <div className="w-full h-full bg-gray-50 flex items-center justify-center text-gray-400">
+                  <div className="w-full h-full flex items-center justify-center text-gray-400">
                     <UserIcon size={40} />
                   </div>
                 )}
               </div>
-              <div className="absolute inset-0 bg-black/30 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+              <div className="absolute inset-0 bg-black/30 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                  <Camera className="text-white" size={24} />
               </div>
-              <div className="absolute -bottom-1 -right-1 bg-white p-2 rounded-full shadow-md border border-gray-100">
-                 <Camera size={16} className="text-[#1D2939]" />
-              </div>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleProfilePhotoChange} 
+                className="hidden" 
+                accept="image/*" 
+              />
             </div>
+            <p className="text-[12px] font-poppins text-gray-400 mt-2">Click to change profile photo</p>
         </div>
 
         {/* Profile Information */}
-        <section>
+        <section className="space-y-6">
           <SectionTitle label="Profile Information" />
           <div className="space-y-4">
             <Input 
               label="Display Name"
-              placeholder="Edith R"
+              placeholder="e.g John D"
               value={displayName}
               onChange={setDisplayName}
             />
             <div className="space-y-2">
-              <label className="text-[14px] font-poppins text-gray-800">Bio</label>
+              <label className="text-[14px] font-poppins text-gray-800 font-medium">Professional Bio</label>
               <textarea 
-                className="w-full p-4 rounded-xl bg-[#F6F6F6] border border-[#0000001A] outline-none min-h-[100px] font-poppins text-[14px] placeholder:text-gray-400"
-                placeholder="Tell us about yourself..."
+                className="w-full p-4 rounded-xl bg-[#F6F6F6] border border-[#0000001A] outline-none min-h-[120px] font-poppins text-[14px] placeholder:text-gray-400 focus:border-brand-orange transition-colors"
+                placeholder="Describe your expertise and what you offer to customers..."
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
               />
@@ -291,109 +281,110 @@ const Page = () => {
           </div>
         </section>
 
-        {/* Portfolio Photos */}
-        <section>
-          <SectionTitle label="Portfolio photos" />
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-[12px] font-poppins text-[#667085]">
-              Up to {MAX_WORK_PHOTOS} photos
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-4">
-             {workPhotos.map((src, idx) => (
-               <div key={`${src}-${idx}`} className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden group border border-[#EAECF0]">
-                  <Image src={src} alt="work" fill className="object-cover" unoptimized />
-                  <div className="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                    <button
-                      type="button"
-                      className="px-2 py-1 text-[10px] rounded-md bg-white text-[#1D2939] font-poppins font-semibold"
-                      onClick={() => {
-                        const input = document.createElement("input");
-                        input.type = "file";
-                        input.accept = "image/*";
-                        input.onchange = (e) => {
-                          const file = (e.target as HTMLInputElement).files?.[0] || null;
-                          void replacePortfolioPhotoAt(idx, file);
-                        };
-                        input.click();
-                      }}
-                    >
-                      Replace
-                    </button>
-                  </div>
-               </div>
-             ))}
-              {workPhotos.length === 0 && (
-                <div className="w-full rounded-xl border border-dashed border-[#0000001A] bg-[#F9FAFB] p-4 text-center text-[12px] font-poppins text-[#667085]">
-                  No portfolio photos yet.
-                </div>
-              )}
-          </div>
-        </section>
-
-        {/* Certifications */}
-        <section>
-          <SectionTitle label="Certifications" />
-          {certifications.length > 0 ? (
-            <div className="space-y-3">
-              {certifications.map((cert, idx) => (
-                <div
-                  key={`${cert.name}-${cert.issuer}-${idx}`}
-                  className="rounded-2xl border border-[#EAECF0] bg-[#F9FAFB] p-4"
-                >
-                  <p className="text-[14px] font-poppins font-semibold text-[#1D2939]">
-                    {cert.name || "Certification"}
-                  </p>
-                  {cert.issuer && (
-                    <p className="text-[12px] font-poppins text-[#667085] mt-1">
-                      Issuer: {cert.issuer}
-                    </p>
-                  )}
-                  {(cert.issueDate || cert.expiryDate) && (
-                    <p className="text-[12px] font-poppins text-[#667085] mt-1">
-                      {cert.issueDate ? `Issued: ${cert.issueDate}` : ""}
-                      {cert.issueDate && cert.expiryDate ? " • " : ""}
-                      {cert.expiryDate ? `Expires: ${cert.expiryDate}` : ""}
-                    </p>
-                  )}
-                  {cert.documentUrl && (
-                    <a
-                      href={cert.documentUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-block mt-2 text-[12px] font-poppins font-semibold text-brand-orange hover:underline"
-                    >
-                      View document
-                    </a>
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-xl border border-dashed border-[#0000001A] bg-[#F9FAFB] p-4 text-center text-[12px] font-poppins text-[#667085]">
-              No certifications added yet.
-            </div>
-          )}
-        </section>
-
-        {/* Other Details */}
-        <section>
-          <SectionTitle 
-            label="Other Details (Optional)" 
-            desc="These improve your chances at getting recurring roles but are not compulsory" 
-          />
-          <div className="space-y-6">
-            <Input 
-              label="What do you do for work?"
-              placeholder="e.g Student or Baker"
-              value={trade}
-              onChange={setTrade}
+        {/* Trade & Expertise */}
+        <section className="space-y-6">
+          <SectionTitle label="Trade & Expertise" desc="Tell us what you specialize in" />
+          <div className="space-y-5">
+            <Select 
+              label="Primary Work Category"
+              placeholder="Select your trade"
+              value={primarySkillCategoryId}
+              onChange={setPrimarySkillCategoryId}
+              options={skillOptions}
             />
             
-            <div className="space-y-3">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-[14px] font-poppins text-gray-800 font-medium">Unique Selling Point</label>
+                <HelpCircle size={14} className="text-gray-400" />
+              </div>
+              <textarea 
+                className="w-full p-4 rounded-xl bg-[#F6F6F6] border border-[#0000001A] outline-none min-h-[100px] font-poppins text-[14px] placeholder:text-gray-400 focus:border-brand-orange transition-colors"
+                placeholder="What sets you apart? e.g '5 years of professional experience in Berlin'"
+                value={uniqueSellingPoint}
+                onChange={(e) => setUniqueSellingPoint(e.target.value)}
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* Location & Coverage */}
+        <section className="space-y-6">
+            <SectionTitle label="Location & Coverage" desc="Where do you provide your services?" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Input 
+                    label="Base City"
+                    placeholder="Berlin"
+                    value={baseCity}
+                    onChange={setBaseCity}
+                />
+                <Input 
+                    label="Postal Code"
+                    placeholder="10115"
+                    value={postalCode}
+                    onChange={setPostalCode}
+                />
+            </div>
+            <div className="space-y-2">
+                <label className="text-[14px] font-poppins text-gray-800 font-medium">Travel Radius (km)</label>
+                <div className="flex items-center gap-4">
+                    <input 
+                        type="range" 
+                        min="0" 
+                        max="100" 
+                        step="5"
+                        value={travelRadiusKm}
+                        onChange={(e) => setTravelRadiusKm(parseInt(e.target.value))}
+                        className="flex-1 accent-brand-orange"
+                    />
+                    <span className="w-12 text-center font-gerat font-bold text-brand-orange">{travelRadiusKm}km</span>
+                </div>
+            </div>
+        </section>
+
+        {/* Portfolio Section */}
+        <section className="space-y-6">
+          <SectionTitle label="Portfolio" desc="Add photos of your best work" />
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+             <button 
+               onClick={() => portfolioInputRef.current?.click()}
+               className="aspect-square rounded-2xl bg-[#F6F6F6] border-2 border-dashed border-[#0000001A] flex flex-col items-center justify-center gap-1 group hover:border-brand-orange transition-colors"
+             >
+                <div className="bg-[#1D2939]/5 p-2 rounded-full group-hover:bg-brand-orange group-hover:text-white transition-colors">
+                  <Plus size={20} />
+                </div>
+                <span className="text-[11px] font-poppins font-medium text-gray-500">Add Photo</span>
+             </button>
+             <input 
+                type="file" 
+                ref={portfolioInputRef} 
+                onChange={handlePortfolioFilesChange} 
+                className="hidden" 
+                accept="image/*" 
+                multiple
+             />
+             
+             {portfolioFiles.map((item) => (
+                <div key={item.id} className="relative aspect-square rounded-2xl overflow-hidden group border border-[#EAECF0]">
+                   <Image src={item.preview} alt="portfolio" fill className="object-cover" unoptimized />
+                   <button 
+                     onClick={() => removePortfolioFile(item.id)}
+                     className="absolute top-1 right-1 bg-black/50 p-1 rounded-md text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
+                   >
+                      <X size={14} />
+                   </button>
+                </div>
+             ))}
+          </div>
+        </section>
+
+        {/* Languages */}
+        <section className="space-y-6">
+          <SectionTitle label="Languages" desc="Manage languages you speak" />
+          <div className="space-y-4">
               <Select 
-                label="What languages do you speak?"
-                placeholder="Select"
+                label="Add a Language"
+                placeholder="Select Language"
                 value="select"
                 onChange={addLanguage}
                 options={[
@@ -402,34 +393,14 @@ const Page = () => {
                   { value: 'English', label: 'English' },
                   { value: 'German', label: 'German' },
                   { value: 'Spanish', label: 'Spanish' },
+                  { value: 'Italian', label: 'Italian' },
                 ]}
               />
               <div className="flex flex-wrap gap-2">
                 {languages.map(lang => (
-                  <Tag key={lang} label={lang} onRemove={() => removeLanguage(lang)} />
+                  <Tag key={lang} label={lang} onRemove={() => setLanguages(languages.filter(l => l !== lang))} />
                 ))}
               </div>
-            </div>
-
-            <Input 
-              label="Where do you Live?"
-              placeholder="e.g Bern, Germany"
-              value={location}
-              onChange={setLocation}
-            />
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-[14px] font-poppins text-gray-800">What makes you unique?</label>
-                <HelpCircle size={14} className="text-gray-400" />
-              </div>
-              <textarea 
-                className="w-full p-4 rounded-xl bg-[#F6F6F6] border border-[#0000001A] outline-none min-h-[100px] font-poppins text-[14px] placeholder:text-gray-400"
-                placeholder="Eg. I like to make people feel relaxed with Relax people"
-                value={uniquePoint}
-                onChange={(e) => setUniquePoint(e.target.value)}
-              />
-            </div>
           </div>
         </section>
 
@@ -439,19 +410,18 @@ const Page = () => {
             fullWidth 
             onClick={handleSave} 
             disabled={isLoading}
-            className="py-4 text-[16px] font-gerat rounded-2xl"
+            className="py-4 text-[16px] font-gerat rounded-2xl shadow-lg ring-offset-2 focus:ring-2 focus:ring-brand-orange"
            >
-              {isLoading ? "Saving..." : "Save"}
+              {isLoading ? (
+                  <div className="flex items-center gap-2">
+                      <Loader2 size={20} className="animate-spin" />
+                      <span>Applying Changes...</span>
+                  </div>
+              ) : "Update Professional Profile"}
            </Button>
         </section>
 
       </div>
-      
-      {/* Absolute Question Mark Fab if needed */}
-      <button className="fixed bottom-32 right-6 w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center text-xl font-bold border border-gray-100 hover:shadow-xl transition-shadow z-50">
-        ?
-      </button>
-
     </main>
   );
 };

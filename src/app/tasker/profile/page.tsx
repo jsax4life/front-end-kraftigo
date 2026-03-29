@@ -14,12 +14,11 @@ import {
   MessageCircleQuestion,
   Globe,
   Wallet,
-  LogOut,
   Target
 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useProfileStore } from "@/store/useProfileStore";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import toast from "react-hot-toast";
 import { getVerificationWire } from "@/lib/api/verification";
 
@@ -77,17 +76,23 @@ const SimpleLineChart = () => {
   );
 };
 
-const SettingsRow = ({ icon: Icon, label, onClick }: { icon: any, label: string, onClick: () => void }) => (
+const SettingsItem = ({ icon: Icon, label, onClick, showBorder = true }: { icon: any, label: string, onClick: () => void, showBorder?: boolean }) => (
   <button 
     onClick={onClick}
-    className="w-full flex items-center justify-between py-4 bg-white border-b border-[#F2F4F7] last:border-0 hover:bg-gray-50 transition-colors px-4 group"
+    className={`w-full flex items-center justify-between p-[12px] bg-transparent hover:bg-gray-100/50 transition-all ${showBorder ? 'border-b border-[rgba(0,0,0,0.1)]' : ''}`}
   >
-    <div className="flex items-center gap-3">
-      <Icon size={22} className="text-[#1D2939]" strokeWidth={1.5} />
-      <span className="text-[16px] font-poppins font-medium text-[#1D2939]">{label}</span>
+    <div className="flex items-center gap-[8px]">
+      <Icon size={18} className="text-gray-800" />
+      <span className="text-[14px] font-poppins text-[rgba(0,0,0,0.8)]">{label}</span>
     </div>
-    <ChevronRight size={20} className="text-[#98A2B3] group-hover:translate-x-1 transition-transform" />
+    <ChevronRight size={18} className="text-gray-800" />
   </button>
+);
+
+const SectionHeader = ({ label }: { label: string }) => (
+  <h2 className="text-[12px] font-poppins font-bold text-[rgba(0,0,0,0.8)] mb-[8px] mt-[20px] ml-1">
+    {label}
+  </h2>
 );
 
 const Page = () => {
@@ -125,157 +130,148 @@ const Page = () => {
 
   return (
     <main className="relative w-full min-h-screen bg-white pb-32">
-      {/* Header */}
-      <div className="pt-8 px-6 mb-6 flex items-center justify-between gap-3">
-        <h1 className="text-[28px] font-gerat font-bold text-[#1D2939]">Profile</h1>
-        <button
-          type="button"
-          onClick={() => {
-            try {
-              window.localStorage.setItem("kraftigo_profile_mode", "customer");
-            } catch {
-              // ignore
-            }
-            // Hard switch to customer home screen
-            window.location.assign("/user/home");
-          }}
-          className="px-3 py-1.5 rounded-full border border-[#EAECF0] text-[12px] font-poppins font-semibold text-[#344054] hover:bg-gray-50"
-        >
-          Switch to customer
-        </button>
-      </div>
+      <div className="px-[20px] pt-[60px] pb-8 w-full max-w-[430px] mx-auto">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-[20px] font-gerat font-[850] text-[rgba(0,0,0,0.8)] tracking-[-0.03em]">
+            Profile
+          </h1>
+          <button
+            type="button"
+            onClick={() => {
+              try {
+                localStorage.setItem("kraftigo_profile_mode", "customer");
+                window.location.assign("/user/home");
+              } catch {
+                // ignore
+              }
+            }}
+            className="px-3 py-1.5 rounded-full border border-[rgba(0,0,0,0.1)] text-[11px] font-poppins font-bold text-[rgba(0,0,0,0.6)] hover:bg-gray-50 uppercase tracking-wider"
+          >
+            Switch to customer
+          </button>
+        </div>
 
-      <div className="px-4 space-y-8">
         {showCompleteProfilePrompt && (
-          <div className="bg-orange-50 border border-orange-100 rounded-3xl p-5">
+          <div className="mb-6 bg-brand-orange/[0.03] border border-brand-orange/10 rounded-[19px] p-5">
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-1">
-                <p className="text-[14px] font-gerat font-bold text-[#1D2939]">
+                <p className="text-[14px] font-poppins font-bold text-[rgba(0,0,0,0.8)]">
                   Complete your profile
                 </p>
-                <p className="text-[12px] font-poppins text-[#667085]">
-                  Add the remaining details so customers can see your full Krafter profile while
-                  we finish admin review.
+                <p className="text-[12px] font-poppins text-[#667085] leading-relaxed">
+                  Add the remaining details so customers can see your full Krafter profile.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => router.push("/krafter/profile-completion?skipIntro=1")}
-                className="shrink-0 px-4 py-2 rounded-2xl bg-brand-orange text-white text-[12px] font-poppins font-semibold"
+                className="shrink-0 px-4 py-2 rounded-xl bg-brand-orange text-white text-[11px] font-poppins font-bold uppercase tracking-wider shadow-sm active:scale-95 transition-all"
               >
-                Finish now
+                Finish
               </button>
             </div>
           </div>
         )}
 
         {/* User Info Section */}
-        <div className="flex items-center gap-4 px-2">
-          <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-dashed border-brand-blue shrink-0 flex items-center justify-center">
-            {avatar ? (
-              <Image src={avatar} alt="Profile" fill className="object-cover rounded-full p-1" />
-            ) : (
-              <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-gray-400">
-                <UserIcon size={24} />
+        <div className="flex flex-col p-[12px_10px] gap-[10px] bg-[#F6F6F6] border border-[rgba(0,0,0,0.1)] rounded-[19px] w-full mb-6 relative overflow-hidden">
+          <div className="flex items-center gap-[20px] px-2 py-1">
+            <div className="flex items-center justify-center p-1 w-[52px] h-[52px] border-2 border-dashed border-[#FF6600] rounded-[28px] shrink-0">
+               <div className="relative w-[44px] h-[44px] rounded-full overflow-hidden bg-gray-200">
+                  {avatar ? (
+                     <Image src={avatar} alt="Profile" fill className="object-cover" unoptimized />
+                  ) : (
+                     <UserIcon size={24} className="text-gray-400 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
+                  )}
+               </div>
+            </div>
+            <div className="flex flex-col gap-0.5">
+               <h3 className="text-[14px] font-poppins font-bold text-[rgba(0,0,0,0.8)] leading-[21px]">{displayName}</h3>
+               <div className="flex items-center gap-1.5 bg-white/60 text-brand-orange px-2 py-0.5 rounded-full w-fit">
+                 <Star size={10} className="fill-brand-orange" />
+                 <span className="text-[10px] font-bold font-poppins uppercase tracking-wider">Lvl 12</span>
+               </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-[12px] p-4 border border-[rgba(0,0,0,0.05)]">
+            <div className="flex justify-between items-end mb-2">
+              <div>
+                <p className="text-[12px] font-poppins text-[#667085] leading-none mb-1">Weekly Earnings</p>
+                <h3 className="text-[24px] font-gerat font-bold text-[#1D2939] leading-tight">$840.00</h3>
               </div>
-            )}
-          </div>
-          <div>
-            <h2 className="text-[20px] font-gerat font-bold text-[#1D2939]">{displayName}</h2>
-            <div className="flex items-center gap-1.5 bg-orange-50 text-brand-orange px-2 py-0.5 rounded-full w-fit mt-1">
-              <Star size={12} className="fill-brand-orange" />
-              <span className="text-[12px] font-bold font-poppins uppercase tracking-wider">Lvl 12</span>
+              <p className="text-[10px] font-poppins text-[#98A2B3]">Oct 18 - Oct 24, 2026</p>
             </div>
+            <SimpleLineChart />
           </div>
         </div>
 
-        {/* Weekly Earnings Card */}
-        <div className="bg-[#F9FAFB] rounded-3xl p-6 border border-[#EAECF0]">
-          <div className="space-y-1">
-            <p className="text-[14px] font-poppins text-[#667085]">Weekly Earnings</p>
-            <h3 className="text-[32px] font-gerat font-bold text-[#1D2939] leading-tight">$840.00</h3>
-            <p className="text-[12px] font-poppins text-[#98A2B3]">Oct 18 - Oct 24, 2026</p>
-          </div>
-          <SimpleLineChart />
+        <SectionHeader label="Account & Verification" />
+        <div className="flex flex-col py-[8px] bg-[#F6F6F6] rounded-[20px] border border-[rgba(0,0,0,0.05)]">
+           <SettingsItem 
+             icon={UserIcon} 
+             label="Personal Information" 
+             onClick={() => router.push("/tasker/profile/edit")}
+           />
+           <SettingsItem 
+             icon={Lock} 
+             label="Security" 
+             onClick={() => router.push("/tasker/profile/security")}
+           />
+           <SettingsItem 
+             icon={MessageCircleQuestion} 
+             label="Work Eligibility" 
+             onClick={() => router.push("/krafter/profile-completion?skipIntro=1")}
+           />
+           <SettingsItem 
+             icon={Target} 
+             label="Work Preferences" 
+             onClick={() => {}}
+             showBorder={false}
+           />
         </div>
 
-        {/* Switch to customer CTA banner */}
-        <div className="pt-2">
-          <button
-            type="button"
-            className="w-full"
-            onClick={() => {
-              try {
-                localStorage.setItem("kraftigo_profile_mode", "customer");
-              } catch {
-                // ignore
-              }
-              // Use a full-page navigation to ensure the customer route + localStorage mode takes effect.
-              if (typeof window !== "undefined") {
-                window.location.assign("/user/book-service");
-              } else {
-                router.push("/user/book-service");
-              }
-            }}
-          >
-            <div className="relative w-full overflow-hidden rounded-3xl border border-[#EAECF0] bg-white">
-              <Image
-                src="/switch-to-kraftigo-user.png"
-                alt="Switch to Kraftigo User"
-                width={600}
-                height={180}
-                className="w-full h-auto object-cover"
-              />
-            </div>
-          </button>
+        <SectionHeader label="Earnings & Billing" />
+        <div className="flex flex-col py-[8px] bg-[#F6F6F6] rounded-[20px] border border-[rgba(0,0,0,0.05)]">
+           <SettingsItem 
+             icon={Wallet} 
+             label="Earnings & Activity" 
+             onClick={() => router.push("/tasker/profile/earnings")}
+           />
+           <SettingsItem 
+             icon={Globe} 
+             label="Currency" 
+             onClick={() => {}}
+             showBorder={false}
+           />
         </div>
 
-
-        {/* Setting Groups */}
-        <div className="space-y-8 pb-4">
-          
-          {/* Section 1: Account & Verification */}
-          <div>
-            <h5 className="text-[14px] font-gerat font-bold text-[#1D2939] px-2 mb-4">Account & Verification</h5>
-            <div className="bg-white border border-[#F2F4F7] rounded-3xl overflow-hidden shadow-sm">
-              <SettingsRow icon={UserIcon} label="Personal Information" onClick={() => router.push("/tasker/profile/edit")} />
-              <SettingsRow icon={Lock} label="Security" onClick={() => router.push("/tasker/profile/security")} />
-              <SettingsRow
-                icon={MessageCircleQuestion}
-                label="Work Eligibility"
-                onClick={() => router.push("/krafter/profile-completion?skipIntro=1")}
-              />
-              <SettingsRow icon={Target} label="Work Preferences" onClick={() => {}} />
-            </div>
-          </div>
-
-          {/* Section 2: Earnings & Billing */}
-          <div>
-            <h5 className="text-[14px] font-gerat font-bold text-[#1D2939] px-2 mb-4">Earnings & Billing</h5>
-            <div className="bg-white border border-[#F2F4F7] rounded-3xl overflow-hidden shadow-sm">
-              <SettingsRow icon={Wallet} label="Earnings & Activity" onClick={() => router.push("/tasker/profile/earnings")} />
-              <SettingsRow icon={Globe} label="Currency" onClick={() => {}} />
-            </div>
-          </div>
-
-          {/* Section 3: Account & Support */}
-          <div>
-            <h5 className="text-[14px] font-gerat font-bold text-[#1D2939] px-2 mb-4">Account & Support</h5>
-            <div className="bg-white border border-[#F2F4F7] rounded-3xl overflow-hidden shadow-sm">
-              <SettingsRow icon={Bell} label="Notifications" onClick={() => {}} />
-              <SettingsRow icon={Languages} label="Language" onClick={() => {}} />
-              <SettingsRow icon={HelpCircle} label="Help Center" onClick={() => {}} />
-            </div>
-          </div>
-          
-          {/* Logout Button */}
-          <button 
-            onClick={handleLogout}
-            className="w-full bg-[#FEF3F2] py-5 rounded-3xl text-[#F04438] font-gerat font-bold text-[16px] hover:bg-red-100 transition-colors flex items-center justify-center gap-2"
-          >
-            Log out
-          </button>
+        <SectionHeader label="App Preferences" />
+        <div className="flex flex-col py-[8px] bg-[#F6F6F6] rounded-[20px] border border-[rgba(0,0,0,0.05)]">
+           <SettingsItem 
+             icon={Bell} 
+             label="Notifications" 
+             onClick={() => {}}
+           />
+           <SettingsItem 
+             icon={Languages} 
+             label="Language" 
+             onClick={() => {}}
+           />
+           <SettingsItem 
+             icon={HelpCircle} 
+             label="Help Center" 
+             onClick={() => {}}
+             showBorder={false}
+           />
         </div>
+
+        <button 
+           onClick={handleLogout}
+           className="w-full mt-[30px] flex justify-center items-center py-[16px] bg-[rgba(254,41,41,0.05)] border border-[rgba(254,41,41,0.1)] rounded-[19px] active:scale-[0.98] transition-all"
+        >
+           <span className="text-[14px] font-poppins font-bold text-[#FE2929]">Log out</span>
+        </button>
       </div>
 
       <TaskerNav />

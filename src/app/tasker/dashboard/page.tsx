@@ -7,6 +7,7 @@ import Card from "@/components/ui/card";
 import { MapPin, Dot } from "lucide-react";
 import Button from "@/components/ui/button";
 import Notify from "@/components/ui/notify";
+import toast from "react-hot-toast";
 import { useBookingsStore } from "@/store/useBookingsStore";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -20,8 +21,16 @@ import { useProfileStore } from "@/store/useProfileStore";
 const Page = () => {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { artisanProfile, fetchArtisanProfile } = useProfileStore();
-  const { bookings, isLoading, fetchArtisanBookings } = useBookingsStore();
+  const { 
+    artisanProfile, 
+    fetchArtisanProfile, 
+    verificationStatus, 
+    fetchVerificationStatus,
+    payoutInfo,
+    fetchPayouts,
+    error: profileError
+  } = useProfileStore();
+  const { bookings, isLoading, fetchArtisanBookings, error: bookingsError } = useBookingsStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
@@ -29,27 +38,36 @@ const Page = () => {
     if (!artisanProfile) {
       fetchArtisanProfile();
     }
-  }, [fetchArtisanBookings, fetchArtisanProfile, artisanProfile]);
+    fetchVerificationStatus();
+    fetchPayouts();
+  }, [fetchArtisanBookings, fetchArtisanProfile, fetchVerificationStatus, fetchPayouts, artisanProfile]);
+
+  useEffect(() => {
+      const error = profileError || bookingsError;
+      if (error) {
+          toast.error(error);
+      }
+  }, [profileError, bookingsError]);
 
   const upcomingTasks = bookings.filter(b => b.status === 'CONFIRMED' || b.status === 'ACCEPTED' || b.status === 'IN_PROGRESS' || b.status === 'REQUESTED');
-  const nextTask = upcomingTasks[0]; // Get the most recent one
+  const nextTask = upcomingTasks[0]; 
 
   // Determination logic for profile status
   const isPendingApproval = user?.status === 'PENDING_VERIFICATION' && artisanProfile?.legalFullName; 
-  const isProfileIncomplete = user?.status !== 'ACTIVE' || !artisanProfile?.legalFullName || !artisanProfile?.primaryTrade;
   
-  const completedStepIds = ["verify"];
-  if (artisanProfile?.legalFullName) completedStepIds.push("identity");
-  if (artisanProfile?.primaryTrade) completedStepIds.push("skills");
+  // Real checklist logic
+  const completedStepIds = [];
+  if (artisanProfile?.legalFullName && artisanProfile?.displayName) completedStepIds.push("details");
+  if ((artisanProfile?.skillsAndExpertise?.length || 0) > 0) completedStepIds.push("skills");
+  if (artisanProfile?.baseCity && artisanProfile?.employmentStatus) completedStepIds.push("eligibility");
+  if (artisanProfile?.idCardUrl || verificationStatus?.kycStatus === 'APPROVED') completedStepIds.push("identity");
+  if (payoutInfo) completedStepIds.push("payout");
   if (artisanProfile?.profilePhotoUrl) completedStepIds.push("personal");
-  // Assume eligibility and payout are pending if not fully active
-  if (user?.status === 'ACTIVE') {
-    completedStepIds.push("eligibility", "payout");
-  }
 
   const completedSteps = completedStepIds.length;
   const totalSteps = 6;
   const completedPercentage = Math.round((completedSteps / totalSteps) * 100);
+  const isProfileIncomplete = completedSteps < totalSteps;
 
   return (
     <main className="relative w-full min-h-screen bg-white pb-24">
@@ -82,10 +100,18 @@ const Page = () => {
                 <Card
                   img="/meun.svg"
                   title="Tasks"
-                  val={bookings.length.toString()}
+                  val={(artisanProfile?.tasksCount ?? bookings.length).toString()}
                 />
-                <Card img="/star.svg" title="Rating" val="5.0" />
-                <Card img="/check.svg" title="Rate" val="100%" />
+                <Card 
+                  img="/star.svg" 
+                  title="Rating" 
+                  val={artisanProfile?.rating ? artisanProfile.rating.toFixed(1) : "—"} 
+                />
+                <Card 
+                  img="/check.svg" 
+                  title="Rate" 
+                  val={artisanProfile?.completionRate ? `${artisanProfile.completionRate}%` : "—"} 
+                />
               </div>
             )}
           </div>
@@ -99,7 +125,7 @@ const Page = () => {
             <ProfileCompletionWidget 
               totalSteps={totalSteps} 
               completedSteps={completedSteps} 
-              onClick={() => setIsModalOpen(true)}
+              onClick={() => router.push("/tasker/profile/complete")}
             />
           )}
 
@@ -136,12 +162,10 @@ const Page = () => {
                 </div>
                 <div className="space-y-2">
                   <p className="font-semibold text-[16px] sm:text-[18px] lg:text-[20px] font-gerat">
-                    {/* nextTask doesn't have customerName natively yet unless expanded, so mock mapping for UI for now */}
-                    {"Customer"}
+                    {nextTask.customerName || "Project"}
                   </p>
                   <p className="flex items-center text-[14px] sm:text-[16px] font-poppins text-gray-700">
-                    {nextTask.service?.title || "Craft"} <Dot size={20} className="text-gray-400" /> 1.2
-                    miles away
+                    {nextTask.service?.title || "Craft"} 
                   </p>
                   <span className="flex items-center gap-2 text-[14px] sm:text-[16px] font-poppins text-gray-600">
                     <MapPin size={18} className="shrink-0" />
@@ -178,22 +202,6 @@ const Page = () => {
                 </Button>
               </div>
             )}
-          </div>
-        </div>
-      </div>
-
-      <div className="w-full px-4 sm:px-6 lg:px-8 pt-7 pb-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex justify-between items-center mb-4">
-            <p className="font-[850] text-[18px] sm:text-[20px] lg:text-[24px] font-gerat">
-              Notification
-            </p>
-            <p className="text-brand-orange font-poppins text-[14px] sm:text-[16px] cursor-pointer hover:underline">
-              View all
-            </p>
-          </div>
-          <div className="space-y-3">
-            {isLoading ? <NotificationSkeleton /> : <Notify />}
           </div>
         </div>
       </div>

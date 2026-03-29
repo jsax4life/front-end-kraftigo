@@ -10,13 +10,14 @@ class ChatSocketManager {
     
     this.token = token;
     
-    // Using the same base URL as API, but for websocket
+    // According to the backend team, we must connect to the '/chat' namespace explicitly.
+    // Standard socket.io-client 'io' call treats the path suffix as a namespace.
     const baseURL = process.env.NEXT_PUBLIC_API_URL || 'https://api.xn--kraftig-g1a.com';
-    const socketURL = baseURL.replace('https://', 'wss://').replace('http://', 'ws://');
     
-    this.socket = io(`${socketURL}/chat`, {
+    this.socket = io(`${baseURL}/chat`, {
       auth: { token },
-      transports: ['websocket', 'polling']
+      transports: ['websocket'],
+      // Standard path is /socket.io, which matches the gateway
     });
 
     this.socket.on('connect', () => {

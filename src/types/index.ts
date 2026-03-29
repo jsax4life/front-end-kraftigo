@@ -202,6 +202,7 @@ export type ArtisanProfileUrlSubmitPayload = {
 };
 
 export interface ArtisanProfile {
+  id: string;
   legalFullName: string;
   displayName: string;
   profilePhotoUrl?: string;
@@ -210,12 +211,12 @@ export interface ArtisanProfile {
   languages: {
     code: string;
     name: string;
-    proficiency: string;
+    proficiency?: string;
   }[];
   baseCity: string;
   postalCode: string;
   travelRadiusKm: number;
-  primaryTrade: string;
+  primarySkillCategoryId: string;
   secondarySkills: string[];
   /** Skill UUIDs from services catalog */
   secondarySkillIds?: string[];
@@ -232,6 +233,27 @@ export interface ArtisanProfile {
   transportType: 'CAR' | 'VAN' | 'BIKE' | 'NONE';
   taxOrVatId?: string;
   bio: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  kycStatus: "NOT_STARTED" | "PENDING" | "APPROVED" | "REJECTED";
+  employmentStatus?: 'SELF_EMPLOYED' | 'FREELANCING';
+  skillsAndExpertise?: { name: string; hourlyRate: number }[];
+  portfolioPhotoUrls?: string[];
+  uniqueSellingPoint?: string;
+  idCardUrl?: string;
+  rating?: number;
+  tasksCount?: number;
+  completionRate?: number;
+}
+
+export interface PayoutInfo {
+  id: string;
+  artisanId: string;
+  accountHolderName: string;
+  iban: string;
+  bic: string;
+  bankName?: string;
+  isDefault: boolean;
+  createdAt: string;
 }
 
 export interface CustomerProfile {
