@@ -84,7 +84,6 @@ export default function KrafterKycWelcomePage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#faf8f5]">
         <Loader />
-        <p className="text-sm font-poppins text-[rgba(0,0,0,0.55)]">Loading…</p>
       </div>
     );
   }

@@ -246,12 +246,9 @@ const CompleteProfileForm = () => {
 
         await submitPersonalDetails(payload);
         toast.success(isDraft ? "Draft saved!" : "Personal details saved!");
-        
-        if (!isDraft) {
-          setStep(5);
-        } else {
-          router.push("/tasker/dashboard?modal=open");
-        }
+    
+        router.push("/tasker/dashboard?modal=open");
+       
       } catch (error: any) {
         toast.error(error.response?.data?.message || "Failed to complete profile");
       } finally {
