@@ -44,7 +44,7 @@ export default function KrafterKycWelcomePage() {
   }, [customerProfile, fetchCustomerProfile]);
 
   const firstName =
-    (customerProfile?.fullName || user?.fullName || "there").trim().split(/\s+/)[0] || "there";
+    (customerProfile?.fullName || user?.firstName || "there").trim().split(/\s+/)[0] || "there";
 
   useEffect(() => {
     let cancelled = false;
@@ -84,7 +84,6 @@ export default function KrafterKycWelcomePage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#faf8f5]">
         <Loader />
-        <p className="text-sm font-poppins text-[rgba(0,0,0,0.55)]">Loading…</p>
       </div>
     );
   }
@@ -213,7 +212,7 @@ export default function KrafterKycWelcomePage() {
           </Button>
           <button
             type="button"
-            onClick={() => router.push("/user/profile")}
+            onClick={() => router.push("/tasker/dashboard")}
             className="py-2 text-center font-poppins text-[13px] text-[rgba(0,0,0,0.45)] underline-offset-4 hover:text-[rgba(0,0,0,0.7)] hover:underline"
           >
             I&apos;ll do this later

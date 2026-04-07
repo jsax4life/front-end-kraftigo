@@ -104,7 +104,7 @@ const Page = () => {
   }, [artisanProfile, fetchArtisanProfile, fetchVerificationStatus]);
 
   const fallbackName = typeof window !== "undefined" ? localStorage.getItem("kraftigo_tasker_fullName") : null;
-  const displayName = artisanProfile?.displayName || artisanProfile?.legalFullName || fallbackName || user?.fullName || "User";
+  const displayName = artisanProfile?.displayName || artisanProfile?.legalFullName || fallbackName || user?.firstName + " " + user?.lastName || "User";
   const avatar = artisanProfile?.profilePhotoUrl || user?.avatar;
   const { verificationState, kycStatus } = getVerificationWire(verificationStatus);
   const isProfileCompleted = Boolean((verificationStatus as any)?.isProfileCompleted);

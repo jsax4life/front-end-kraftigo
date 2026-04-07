@@ -57,7 +57,7 @@ const Page = () => {
     fetchVerificationStatus();
   }, [customerProfile, fetchCustomerProfile, fetchVerificationStatus]);
 
-  const displayName = customerProfile?.fullName || user?.fullName || "User";
+  const displayName = customerProfile?.fullName || user?.firstName + " " + user?.lastName || "User";
   const email = user?.email || "";
   const avatar = customerProfile?.profilePhotoUrl || user?.avatar;
   const { verificationState, kycStatus } = getVerificationWire(verificationStatus);

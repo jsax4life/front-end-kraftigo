@@ -8,6 +8,7 @@ export interface Photo {
   id: string;
   src: string;
   file?: File;
+  mediaType?: 'image' | 'video';
 }
 
 interface PhotoUploaderProps {
@@ -21,7 +22,7 @@ export default function PhotoUploader({
   photos,
   onChange,
   maxPhotos = 10,
-  title = "Add Photos",
+  title,
 }: PhotoUploaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -33,9 +34,10 @@ export default function PhotoUploader({
     const newPhotos: Photo[] = Array.from(files)
       .slice(0, remaining)
       .map((file) => ({
-        id: `photo-${Date.now()}-${Math.random()}`,
+        id: `media-${Date.now()}-${Math.random()}`,
         src: URL.createObjectURL(file),
         file,
+        mediaType: file.type.startsWith("video/") ? "video" : "image",
       }));
     onChange([...photos, ...newPhotos]);
     setShowOptions(false);
@@ -62,8 +64,8 @@ export default function PhotoUploader({
               className="w-full h-full bg-[#F6F6F6] border border-dashed border-[#0000001A] rounded-xl flex flex-col items-center justify-center gap-2 hover:bg-gray-200 transition-colors"
             >
               <Camera size={24} className="text-gray-600" />
-              <span className="text-[11px] sm:text-[12px] font-poppins text-gray-600">
-                Add Photo
+              <span className="text-[11px] sm:text-[12px] font-poppins text-gray-600 text-center px-1">
+                Add Media
               </span>
             </button>
 
@@ -88,7 +90,7 @@ export default function PhotoUploader({
                 >
                   <Camera size={18} className="text-gray-600" />
                   <span className="text-[13px] font-poppins text-gray-700">
-                    Take a photo
+                    Take photo/video
                   </span>
                 </button>
               </div>
@@ -100,7 +102,7 @@ export default function PhotoUploader({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
+          accept="image/*,video/*"
           multiple
           className="hidden"
           onChange={(e) => handleFiles(e.target.files)}
@@ -108,25 +110,33 @@ export default function PhotoUploader({
         <input
           ref={cameraInputRef}
           type="file"
-          accept="image/*"
+          accept="image/*,video/*"
           capture="environment"
           className="hidden"
           onChange={(e) => handleFiles(e.target.files)}
         />
 
-        {/* Uploaded Photos */}
+        {/* Uploaded Media */}
         {photos.map((photo) => (
           <div
             key={photo.id}
             className="aspect-square bg-gray-200 rounded-xl overflow-hidden relative group"
           >
-            <Image
-              src={photo.src}
-              alt="Uploaded"
-              width={200}
-              height={200}
-              className="w-full h-full object-cover"
-            />
+            {photo.mediaType === "video" ? (
+              <video
+                src={photo.src}
+                className="w-full h-full object-cover"
+                controls
+              />
+            ) : (
+              <Image
+                src={photo.src}
+                alt="Uploaded"
+                width={200}
+                height={200}
+                className="w-full h-full object-cover"
+              />
+            )}
             <button
               onClick={() => handleRemove(photo.id)}
               className="absolute top-2 right-2 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-md hover:bg-red-500 hover:text-white transition-colors opacity-0 group-hover:opacity-100"
@@ -136,13 +146,6 @@ export default function PhotoUploader({
           </div>
         ))}
       </div>
-
-      {/* Photo count */}
-      {maxPhotos && (
-        <p className="text-[11px] text-gray-400 font-poppins mt-2">
-          {photos.length}/{maxPhotos} photos
-        </p>
-      )}
     </div>
   );
 }

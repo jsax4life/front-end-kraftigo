@@ -45,7 +45,7 @@ const PersonalInfoPage = () => {
       setPostalCode(customerProfile.serviceAddress?.postalCode || "");
       setCountry(customerProfile.serviceAddress?.country || "");
     } else if (user) {
-      setFullName(user.fullName || "");
+      setFullName(user.firstName + " " + user.lastName || "");
       setPhone(user.phone || "");
       
       // Try to parse address from store if it's not a generic message
