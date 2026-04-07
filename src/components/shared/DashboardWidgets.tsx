@@ -1,18 +1,18 @@
 "use client";
 
 import React from "react";
-import { AlertCircle } from "lucide-react";
+import Image from 'next/image'
 
 export const PendingApprovalBanner = () => {
     return (
-        <div className="w-full bg-[#FFB900] px-4 py-3 flex items-center justify-between">
+        <div className="w-full bg-[#FFBF36] px-4 pt-9 pb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
-                <AlertCircle size={20} className="text-[#1D2939]" />
-                <p className="text-[14px] font-gerat font-bold text-[#1D2939]">
+                <Image src="/warn2.svg" alt="warning" width={20} height={20} />
+                <p className="text-[14px] font-poppins text-[#7D4900]">
                     Your profile is pending approval
                 </p>
             </div>
-            <p className="text-[12px] font-poppins font-medium text-[#1D2939] opacity-80">
+            <p className="text-[13px] font-poppins font-medium text-[#7D4900] opacity-80">
                 Est 24-48h
             </p>
         </div>

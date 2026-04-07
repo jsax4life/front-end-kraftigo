@@ -46,7 +46,8 @@ const Page = () => {
 
   // Form data state
   const [formData, setFormData] = useState({
-    fullName: "",
+    firstName: "",
+    lastName: "",
     email: "",
     phone: "",
     password: "",
@@ -83,7 +84,8 @@ const Page = () => {
     switch (currentStep) {
       case 1:
         return (
-          isNotEmpty(formData.fullName) &&
+          isNotEmpty(formData.firstName) &&
+          isNotEmpty(formData.lastName) &&
           isNotEmpty(formData.email) &&
           isNotEmpty(formData.phone) &&
           isValidEmail(formData.email) &&
@@ -142,7 +144,8 @@ const Page = () => {
   const handleSubmit = async () => {
     // Basic validation (should already be validated by step progression)
     if (
-      !isNotEmpty(formData.fullName) ||
+      !isNotEmpty(formData.firstName) ||
+      !isNotEmpty(formData.lastName) ||
       !isNotEmpty(formData.email) ||
       !isNotEmpty(formData.phone) ||
       !isNotEmpty(formData.password)
@@ -157,6 +160,8 @@ const Page = () => {
       : `+49${formData.phone.replace(/^0+/, "")}`;
 
     const registrationData = {
+      firstName: formData.firstName,
+      lastName: formData.lastName,
       email: formData.email,
       password: formData.password,
       phone: formattedPhone,
@@ -171,7 +176,10 @@ const Page = () => {
 
       // Save fullName to localStorage since backend doesn't store it
       if (typeof window !== "undefined") {
-        localStorage.setItem("kraftigo_user_fullName", formData.fullName);
+        localStorage.setItem(
+          "kraftigo_user_fullName",
+          formData.firstName + " " + formData.lastName,
+        );
       }
 
       toast.success(
@@ -269,10 +277,17 @@ const Page = () => {
                 </h1>
 
                 <Input
-                  label="Enter Your Full Name"
-                  placeholder="Enter Full Name"
-                  value={formData.fullName}
-                  onChange={(value) => handleInputChange("fullName", value)}
+                  label="Enter Your First Name"
+                  placeholder="Enter First Name"
+                  value={formData.firstName}
+                  onChange={(value) => handleInputChange("firstName", value)}
+                  required
+                />
+                <Input
+                  label="Enter Your Last Name"
+                  placeholder="Enter Last Name"
+                  value={formData.lastName}
+                  onChange={(value) => handleInputChange("lastName", value)}
                   required
                 />
                 <Input

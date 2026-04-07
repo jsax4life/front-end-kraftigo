@@ -8,48 +8,138 @@ import { MapPin, Dot } from "lucide-react";
 import Button from "@/components/ui/button";
 import Notify from "@/components/ui/notify";
 import { useBookingsStore } from "@/store/useBookingsStore";
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
-import { DashboardOverviewSkeleton, ScheduleSkeleton, NotificationSkeleton } from "@/components/shared/Skeletons";
-import { PendingApprovalBanner, ProfileCompletionWidget } from "@/components/shared/DashboardWidgets";
+import {
+  DashboardOverviewSkeleton,
+  ScheduleSkeleton,
+  NotificationSkeleton,
+} from "@/components/shared/Skeletons";
+import {
+  PendingApprovalBanner,
+  ProfileCompletionWidget,
+} from "@/components/shared/DashboardWidgets";
 import FinishProfileModal from "@/components/shared/FinishProfileModal";
-import { useState } from "react";
 import { useProfileStore } from "@/store/useProfileStore";
+import { startDiditKycSession, getVerificationMyStatus, hasOpenDiditKycSession } from "@/lib/api/verification";
 
-const Page = () => {
+const DashboardContent = () => {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { artisanProfile, fetchArtisanProfile } = useProfileStore();
+  const {
+    artisanProfile,
+    fetchArtisanProfile,
+    profileCompletionSummary,
+    fetchKrafterProfileCompletionSummary,
+  } = useProfileStore();
   const { bookings, isLoading, fetchArtisanBookings } = useBookingsStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isStartingKyc, setIsStartingKyc] = useState(false);
+  const searchParams = useSearchParams();
+
+  // Auto-open modal when returning from a completion page
+  useEffect(() => {
+    if (searchParams.get("modal") === "open") {
+      setIsModalOpen(true);
+      // Remove the param from the URL without triggering a navigation
+      const url = new URL(window.location.href);
+      url.searchParams.delete("modal");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     fetchArtisanBookings();
     if (!artisanProfile) {
       fetchArtisanProfile();
     }
-  }, [fetchArtisanBookings, fetchArtisanProfile, artisanProfile]);
+    // Fetch checklist summary silently on mount
+    fetchKrafterProfileCompletionSummary();
+  }, [fetchArtisanBookings, fetchArtisanProfile, artisanProfile, fetchKrafterProfileCompletionSummary]);
 
-  const upcomingTasks = bookings.filter(b => b.status === 'CONFIRMED' || b.status === 'ACCEPTED' || b.status === 'IN_PROGRESS' || b.status === 'REQUESTED');
+  const upcomingTasks = bookings.filter(
+    (b) =>
+      b.status === "CONFIRMED" ||
+      b.status === "ACCEPTED" ||
+      b.status === "IN_PROGRESS" ||
+      b.status === "REQUESTED",
+  );
   const nextTask = upcomingTasks[0]; // Get the most recent one
 
   // Determination logic for profile status
-  const isPendingApproval = user?.status === 'PENDING_VERIFICATION' && artisanProfile?.legalFullName; 
-  const isProfileIncomplete = user?.status !== 'ACTIVE' || !artisanProfile?.legalFullName || !artisanProfile?.primaryTrade;
-  
-  const completedStepIds = ["verify"];
-  if (artisanProfile?.legalFullName) completedStepIds.push("identity");
-  if (artisanProfile?.primaryTrade) completedStepIds.push("skills");
-  if (artisanProfile?.profilePhotoUrl) completedStepIds.push("personal");
-  // Assume eligibility and payout are pending if not fully active
-  if (user?.status === 'ACTIVE') {
-    completedStepIds.push("eligibility", "payout");
-  }
+  const isPendingApproval =
+    profileCompletionSummary?.workEligibility?.hasSubmittedAwaitingReview;
+  const isProfileIncomplete =
+    profileCompletionSummary ? !profileCompletionSummary.allComplete : true;
+
+  // Dynamically build completed steps from the backend summary payload
+  const completedStepIds: string[] = [];
+  if (profileCompletionSummary?.initialOnboarding?.isComplete) completedStepIds.push("register");
+  if (profileCompletionSummary?.personalDetails?.isComplete) completedStepIds.push("personal");
+  if (profileCompletionSummary?.skills?.isComplete) completedStepIds.push("skills");
+  if (profileCompletionSummary?.workEligibility?.isComplete) completedStepIds.push("eligibility");
+  if (profileCompletionSummary?.legalIdentity?.kycStatus === "APPROVED") completedStepIds.push("identity");
+  if (profileCompletionSummary?.payout?.isComplete) completedStepIds.push("payout");
+
+  // Fallback visual logic until the API handles everything for all users smoothly
+  // e.g., if we still want to force register to be checked on this dashboard:
+  if (!completedStepIds.includes("register")) completedStepIds.push("register");
 
   const completedSteps = completedStepIds.length;
   const totalSteps = 6;
   const completedPercentage = Math.round((completedSteps / totalSteps) * 100);
+
+  const handleStepClick = async (stepId: string) => {
+    // Don't navigate if step is already done
+    if (completedStepIds.includes(stepId)) return;
+
+    // Legal identity goes straight to Didit — no intermediate page needed
+    if (stepId === "identity") {
+      setIsStartingKyc(true);
+      try {
+        // Check current KYC status first
+        const status = await getVerificationMyStatus();
+        const kycStatus = status?.kycStatus;
+
+        // Already approved — nothing to do
+        if (kycStatus === "APPROVED") {
+          const { toast } = await import("react-hot-toast");
+          toast.success("Your identity is already verified!");
+          setIsStartingKyc(false);
+          return;
+        }
+
+        // PENDING = there's already an open session — call start again to resume it
+        const isResuming = hasOpenDiditKycSession(status);
+        const { verificationUrl } = await startDiditKycSession();
+
+        const { toast } = await import("react-hot-toast");
+        toast.success(isResuming ? "Resuming your verification session..." : "Starting identity verification...");
+
+        window.location.href = verificationUrl;
+      } catch (err: any) {
+        const { toast } = await import("react-hot-toast");
+        toast.error(err?.response?.data?.message || "Failed to start identity verification. Please try again.");
+      } finally {
+        setIsStartingKyc(false);
+      }
+      return;
+    }
+
+    setIsModalOpen(false);
+
+    const routeMap: Record<string, string> = {
+      register: "/tasker/switch-acct",
+      personal: "/tasker/profile/complete",
+      skills: "/tasker/profile/complete?step=5",
+      eligibility: "/tasker/dashboard/work-eligible",
+      payout: "/tasker/dashboard/paymentMethod",
+    };
+
+    const route = routeMap[stepId];
+    if (route) router.push(route);
+  };
 
   return (
     <main className="relative w-full min-h-screen bg-white pb-24">
@@ -84,8 +174,8 @@ const Page = () => {
                   title="Tasks"
                   val={bookings.length.toString()}
                 />
-                <Card img="/star.svg" title="Rating" val="5.0" />
-                <Card img="/check.svg" title="Rate" val="100%" />
+                <Card img="/star.svg" title="Rating" val="0.0" />
+                <Card img="/check.svg" title="Rate" val="0%" />
               </div>
             )}
           </div>
@@ -96,9 +186,9 @@ const Page = () => {
         <div className="max-w-4xl mx-auto space-y-8">
           {/* Completion Widget */}
           {isProfileIncomplete && (
-            <ProfileCompletionWidget 
-              totalSteps={totalSteps} 
-              completedSteps={completedSteps} 
+            <ProfileCompletionWidget
+              totalSteps={totalSteps}
+              completedSteps={completedSteps}
               onClick={() => setIsModalOpen(true)}
             />
           )}
@@ -130,7 +220,8 @@ const Page = () => {
                   />
                   <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4">
                     <p className="bg-brand-orange text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-full text-[12px] sm:text-[14px] font-poppins flex items-center gap-1 shadow-lg">
-                      Next Task <Dot size={20} /> {nextTask.scheduled_time || 'TBD'}
+                      Next Task <Dot size={20} />{" "}
+                      {nextTask.scheduled_time || "TBD"}
                     </p>
                   </div>
                 </div>
@@ -140,8 +231,8 @@ const Page = () => {
                     {"Customer"}
                   </p>
                   <p className="flex items-center text-[14px] sm:text-[16px] font-poppins text-gray-700">
-                    {nextTask.service?.title || "Craft"} <Dot size={20} className="text-gray-400" /> 1.2
-                    miles away
+                    {nextTask.service?.title || "Craft"}{" "}
+                    <Dot size={20} className="text-gray-400" /> 1.2 miles away
                   </p>
                   <span className="flex items-center gap-2 text-[14px] sm:text-[16px] font-poppins text-gray-600">
                     <MapPin size={18} className="shrink-0" />
@@ -151,7 +242,9 @@ const Page = () => {
                     variant="primary"
                     fullWidth
                     className="font-mabry flex justify-center items-center gap-2"
-                    onClick={() => router.push(`/tasker/schedule?openJob=${nextTask.id}`)}
+                    onClick={() =>
+                      router.push(`/tasker/schedule?openJob=${nextTask.id}`)
+                    }
                   >
                     <Image
                       src="/up.svg"
@@ -165,18 +258,13 @@ const Page = () => {
                 </div>
               </>
             ) : (
-              <div className="bg-gray-50 rounded-2xl p-8 text-center border border-dashed border-gray-200">
-                <p className="text-gray-500 font-poppins">
-                  No tasks scheduled for today.
-                </p>
-                <Button
-                  variant="primary"
-                  className="mt-4"
-                  onClick={() => router.push("/tasker/schedule")}
-                >
-                  View Schedule
-                </Button>
-              </div>
+              <Image
+                src="/noschd.svg"
+                alt="noschedule"
+                width={350}
+                height={350}
+                className="mx-auto"
+              />
             )}
           </div>
         </div>
@@ -201,18 +289,26 @@ const Page = () => {
       {/* Bottom Navigation */}
       <TaskerNav />
 
-      <FinishProfileModal 
+      <FinishProfileModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onComplete={() => {
-            setIsModalOpen(false);
-            router.push("/tasker/profile/complete");
+          setIsModalOpen(false);
+          router.push("/tasker/profile/complete");
         }}
-        onMaybeLater={() => setIsModalOpen(false)}
         completedPercentage={completedPercentage}
         completedStepIds={completedStepIds}
+        onStepClick={handleStepClick}
       />
     </main>
+  );
+};
+
+const Page = () => {
+  return (
+    <Suspense fallback={null}>
+      <DashboardContent />
+    </Suspense>
   );
 };
 

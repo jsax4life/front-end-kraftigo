@@ -21,7 +21,9 @@ type Props = {
   maxSkills?: number;
 };
 
-export function secondarySkillsMeetsRules(picks: SecondarySkillPick[]): boolean {
+export function secondarySkillsMeetsRules(
+  picks: SecondarySkillPick[],
+): boolean {
   // At least 2 distinct skills. They can come from the same or different categories.
   return picks.length >= 2;
 }
@@ -72,21 +74,31 @@ export function SecondarySkillsPickerModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4">
+    <div className="fixed inset-0 z-100 flex items-end justify-center sm:items-center sm:p-4">
       <button
         type="button"
         className="absolute inset-0 bg-black/50"
         aria-label="Close"
         onClick={onClose}
       />
-      <div className="relative flex max-h-[92vh] w-full max-w-[500px] flex-col rounded-t-3xl bg-white shadow-2xl sm:max-h-[85vh] sm:rounded-3xl">
+      <div className="relative flex max-h-[92vh] w-full max-w-125 flex-col rounded-t-3xl bg-white shadow-2xl sm:max-h-[85vh] sm:rounded-3xl">
         <div className="flex shrink-0 items-center justify-between border-b border-[#F2F4F7] px-4 py-3">
-          <button type="button" onClick={onClose} className="p-2 text-[#667085] hover:text-[#1D2939]">
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 text-[#667085] hover:text-[#1D2939]"
+          >
             <span className="sr-only">Back</span>
             <ChevronLeft size={22} />
           </button>
-          <h2 className="font-gerat text-[17px] font-bold text-[#1D2939]">Add a new skill</h2>
-          <button type="button" onClick={onClose} className="p-2 text-[#667085] hover:text-[#1D2939]">
+          <h2 className="font-gerat text-[17px] font-bold text-[#1D2939]">
+            Add a new skill
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 text-[#667085] hover:text-[#1D2939]"
+          >
             <X size={22} />
           </button>
         </div>
@@ -129,15 +141,17 @@ export function SecondarySkillsPickerModal({
         <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-6">
           {filteredGroups.map((group) => (
             <div key={group.category.id} className="mb-4">
-              <h3 className="sticky top-0 z-[1] bg-white px-2 py-2 font-gerat text-[13px] font-bold text-[#1D2939]">
+              <h3 className="sticky top-0 z-1 bg-white px-2 py-2 font-gerat text-[13px] font-bold text-[#1D2939]">
                 {group.category.name}
               </h3>
               <ul className="space-y-1">
                 {group.skills.map((skill) => {
                   const selected = value.some((p) => p.skillId === skill.id);
                   const blocked =
-                    Boolean(excludeCategoryId && group.category.id === excludeCategoryId) &&
-                    !selected;
+                    Boolean(
+                      excludeCategoryId &&
+                      group.category.id === excludeCategoryId,
+                    ) && !selected;
                   return (
                     <li key={skill.id}>
                       <button
@@ -152,7 +166,9 @@ export function SecondarySkillsPickerModal({
                       >
                         <div className="h-10 w-10 shrink-0 rounded-lg bg-[#FFF4ED]" />
                         <div className="min-w-0 flex-1">
-                          <p className="font-gerat text-[14px] font-bold text-[#1D2939]">{skill.name}</p>
+                          <p className="font-gerat text-[14px] font-bold text-[#1D2939]">
+                            {skill.name}
+                          </p>
                           {skill.description ? (
                             <p className="line-clamp-2 font-poppins text-[12px] text-[#667085]">
                               {skill.description}
@@ -163,7 +179,10 @@ export function SecondarySkillsPickerModal({
                             </p>
                           )}
                         </div>
-                        <ChevronRight size={18} className="shrink-0 text-[#98A2B3]" />
+                        <ChevronRight
+                          size={18}
+                          className="shrink-0 text-[#98A2B3]"
+                        />
                       </button>
                     </li>
                   );
