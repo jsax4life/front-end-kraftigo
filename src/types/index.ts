@@ -236,7 +236,8 @@ export interface ArtisanProfile {
 }
 
 export interface CustomerProfile {
-  fullName: string;
+  firstName: string;
+  lastName: string;
   phone: string;
   serviceAddress: {
     street: string;

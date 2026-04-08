@@ -31,9 +31,20 @@ const Page = () => {
   }, [fetchKrafterPayoutStatus]);
 
   const handleInputChange = (field: string, value: string | File | null) => {
+    let finalValue = value;
+    if (typeof value === "string") {
+      if (field === "ibanAcctNumber") {
+        // Remove existing spaces, capitalize, then inject space every 4 characters
+        finalValue = value.replace(/\s+/g, "").toUpperCase().replace(/(.{4})/g, "$1 ").trim();
+      } else if (field === "bicSwiftCode") {
+        // Typical BIC should just be uppercase
+        finalValue = value.replace(/\s+/g, "").toUpperCase();
+      }
+    }
+
     setFormData((prev) => ({
       ...prev,
-      [field]: value,
+      [field]: finalValue,
     }));
   };
 

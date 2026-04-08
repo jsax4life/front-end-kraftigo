@@ -174,14 +174,6 @@ const Page = () => {
       const result = await registerUser(registrationData);
       logger.log("Registration successful!", result);
 
-      // Save fullName to localStorage since backend doesn't store it
-      if (typeof window !== "undefined") {
-        localStorage.setItem(
-          "kraftigo_user_fullName",
-          formData.firstName + " " + formData.lastName,
-        );
-      }
-
       toast.success(
         result.message || "Registration successful! Please check your email.",
       );

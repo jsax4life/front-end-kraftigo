@@ -22,6 +22,7 @@ import toast from "react-hot-toast";
 import PhotoUploader, { Photo } from "@/components/shared/PhotoUploader";
 import ServiceRadius from "@/components/ui/serviceRadius";
 import { getServiceSkillGroups, type ServiceSkillGroup } from "@/lib/api/services";
+import { SearchCombobox } from "@/components/ui/SearchCombobox";
 
 const Tag = ({ label, onRemove }: { label: string; onRemove: () => void }) => (
   <div className="flex items-center gap-1.5 bg-[#F6F6F6] text-[#667085] px-3 py-1.5 rounded-lg border border-[#0000001A]">
@@ -84,6 +85,23 @@ const CompleteProfileForm = () => {
   const [skillGroups, setSkillGroups] = useState<ServiceSkillGroup[]>([]);
   const [isLoadingSkills, setIsLoadingSkills] = useState(false);
 
+  const [apiLanguageList, setApiLanguageList] = useState<string[]>([]);
+
+  useEffect(() => {
+    fetch("https://restcountries.com/v3.1/all?fields=languages")
+      .then((res) => res.json())
+      .then((data) => {
+        const langs = new Set<string>();
+        data.forEach((country: any) => {
+          if (country.languages) {
+            Object.values(country.languages).forEach((l: any) => langs.add(l));
+          }
+        });
+        setApiLanguageList(Array.from(langs).sort());
+      })
+      .catch((err) => console.error("Failed to load languages:", err));
+  }, []);
+
   useEffect(() => {
     fetchKrafterPersonalDetailsStatus();
   }, [fetchKrafterPersonalDetailsStatus]);
@@ -110,7 +128,11 @@ const CompleteProfileForm = () => {
   useEffect(() => {
     if (personalDetailsStatus && personalDetailsStatus.personal) {
       const data = personalDetailsStatus.personal;
-      setDisplayName(data.displayName || "");
+      
+      const fallbackName = personalDetailsStatus.suggestedDisplayName || (user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : "User");
+      setDisplayName(data.displayName || fallbackName);
+      
+      
       setBio(data.bio || "");
       setTrade(data.occupationDescription || "");
       setLocation(data.whereYouLive || "");
@@ -402,18 +424,17 @@ const CompleteProfileForm = () => {
                 onChange={setTrade}
               />
               <div className="space-y-2">
-                <Select
+                <SearchCombobox
                   label="What languages do you speak?"
-                  placeholder="Select"
+                  placeholder="Select or type to search..."
                   value=""
-                  options={[
-                    { label: "English", value: "English" },
-                    { label: "German", value: "German" },
-                  ]}
-                  onChange={(val) =>
-                    !languages.includes(val) &&
-                    setLanguages([...languages, val])
-                  }
+                  options={apiLanguageList}
+                  onChange={(val) => {
+                    if (val && !languages.includes(val)) {
+                      setLanguages([...languages, val]);
+                    }
+                  }}
+                  emptyMessage="No languages found..."
                 />
                 <div className="flex flex-wrap gap-2 mt-2">
                   {languages.map((l) => (
@@ -507,7 +528,7 @@ const CompleteProfileForm = () => {
                 <PhotoUploader
                   photos={photos}
                   onChange={(newPhotos) => setPhotos(newPhotos)}
-                  maxPhotos={10}
+                  maxPhotos={3}
                 />
               </div>
             </section>

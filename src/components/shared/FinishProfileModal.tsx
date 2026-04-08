@@ -10,6 +10,7 @@ interface FinishProfileModalProps {
   onComplete: () => void;
   completedPercentage: number;
   completedStepIds: string[];
+  pendingStepIds?: string[];
   onStepClick?: (stepId: string) => void;
 }
 
@@ -48,6 +49,7 @@ const FinishProfileModal: React.FC<FinishProfileModalProps> = ({
   onComplete,
   completedPercentage,
   completedStepIds = [],
+  pendingStepIds = [],
   onStepClick,
 }) => {
   if (!isOpen) return null;
@@ -89,27 +91,33 @@ const FinishProfileModal: React.FC<FinishProfileModalProps> = ({
           <div className="space-y-0 text-left mb-10">
             {steps.map((step) => {
               const isCompleted = completedStepIds.includes(step.id);
+              const isPending = pendingStepIds.includes(step.id);
+              const isChecked = isCompleted || isPending;
+
               return (
                 <div
                   key={step.id}
                   onClick={() => {
+                    // Do not allow clicking if it says pending to avoid overriding uploads
+                    if (isPending) return;
+                    
                     if (onStepClick) {
                       onStepClick(step.id);
                     } else {
                       onComplete();
                     }
                   }}
-                  className="flex items-center justify-between py-4 border-b border-[#0000001A] last:border-0 cursor-pointer hover:bg-gray-50 transition-colors px-2 -mx-2 rounded-lg"
+                  className={`flex items-center justify-between py-4 border-b border-[#0000001A] last:border-0 hover:bg-gray-50 transition-colors px-2 -mx-2 rounded-lg ${isPending ? 'cursor-default opacity-80' : 'cursor-pointer'}`}
                 >
                   <div className="flex items-center gap-4" >
                     <div
                       className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                        isCompleted
+                        isChecked
                           ? "bg-brand-orange border-brand-orange text-white"
                           : "border-gray-300"
                       }`}
                     >
-                      {isCompleted ? (
+                      {isChecked ? (
                         <Check size={12} strokeWidth={4} />
                       ) : (
                         <div className="w-1.5 h-1.5 bg-transparent" />
@@ -123,7 +131,7 @@ const FinishProfileModal: React.FC<FinishProfileModalProps> = ({
                       >
                         {step.label}
                       </h4>
-                      {!isCompleted && step.sublabel && (
+                      {!isChecked && step.sublabel && (
                         <p className="text-[13px] font-poppins text-[#667085]">
                           {step.sublabel}
                         </p>
@@ -131,6 +139,11 @@ const FinishProfileModal: React.FC<FinishProfileModalProps> = ({
                       {isCompleted && (
                         <p className="text-[13px] font-poppins text-[#98A2B3]">
                           Completed
+                        </p>
+                      )}
+                      {isPending && (
+                        <p className="text-[13px] font-poppins text-brand-orange mt-0.5">
+                          Waiting for approval
                         </p>
                       )}
                     </div>
