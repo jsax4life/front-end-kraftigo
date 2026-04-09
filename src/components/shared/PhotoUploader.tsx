@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import Image from "next/image";
-import { Camera, Upload, X } from "lucide-react";
+import { AlertCircle, Camera, Upload, X } from "lucide-react";
 
 export interface Photo {
   id: string;
@@ -21,17 +21,36 @@ interface PhotoUploaderProps {
 export default function PhotoUploader({
   photos,
   onChange,
-  maxPhotos = 10,
+  maxPhotos = 3,
   title,
 }: PhotoUploaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [showOptions, setShowOptions] = useState(false);
+  const [limitError, setLimitError] = useState(false);
+
+  const showLimitError = () => {
+    setLimitError(true);
+    setTimeout(() => setLimitError(false), 3000);
+  };
 
   const handleFiles = (files: FileList | null) => {
     if (!files) return;
+
+    if (photos.length >= maxPhotos) {
+      showLimitError();
+      setShowOptions(false);
+      return;
+    }
+
     const remaining = maxPhotos - photos.length;
-    const newPhotos: Photo[] = Array.from(files)
+    const allFiles = Array.from(files);
+
+    if (allFiles.length > remaining) {
+      showLimitError();
+    }
+
+    const newPhotos: Photo[] = allFiles
       .slice(0, remaining)
       .map((file) => ({
         id: `media-${Date.now()}-${Math.random()}`,
@@ -45,15 +64,33 @@ export default function PhotoUploader({
 
   const handleRemove = (id: string) => {
     onChange(photos.filter((p) => p.id !== id));
+    setLimitError(false);
   };
 
   const canAddMore = photos.length < maxPhotos;
 
   return (
     <div className="p-4 sm:p-5 border-b border-[#0000001A]">
-      <h2 className="text-[20px] sm:text-[22px] font-poppins font-medium mb-3">
-        {title}
-      </h2>
+      <div className="flex items-center justify-between mb-3">
+        {title && (
+          <h2 className="text-[20px] sm:text-[22px] font-poppins font-medium">
+            {title}
+          </h2>
+        )}
+        <span className="text-[12px] font-poppins text-gray-400 ml-auto">
+          {photos.length}/{maxPhotos}
+        </span>
+      </div>
+
+      {/* Limit Error Banner */}
+      {limitError && (
+        <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-600 rounded-xl px-4 py-3 mb-3 animate-in fade-in slide-in-from-top-2 duration-300">
+          <AlertCircle size={16} className="shrink-0" />
+          <span className="text-[13px] font-poppins">
+            You can only upload up to {maxPhotos} photo{maxPhotos !== 1 ? "s" : ""}.
+          </span>
+        </div>
+      )}
 
       <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3">
         {/* Upload Button */}

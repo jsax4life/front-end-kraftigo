@@ -72,6 +72,8 @@ export interface KrafterWorkEligibilitySubmitPayload {
 
 /** GET /api/profile/krafter/complete-profile/personal-details */
 export interface KrafterPersonalDetailsStatus {
+  suggestedDisplayName?: string | null
+  completedAt?: string | null
   personal: {
     displayName?: string | null
     profilePhotoUrl?: string | null

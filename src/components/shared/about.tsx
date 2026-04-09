@@ -41,17 +41,11 @@ const About = () => {
   const fullName = isTasker()
     ? artisanProfile?.displayName || artisanProfile?.legalFullName
     : customerProfile && typeof customerProfile === "object"
-      ? customerProfile.fullName
-      : null;
-
-  // Check localStorage for a name if we just registered but profile hasn't updated yet
-  const localName =
-    typeof window !== "undefined"
-      ? localStorage.getItem("kraftigo_tasker_fullName")
+      ? user?.firstName + " " + user?.lastName
       : null;
 
   const displayName =
-    (fullName || localName || user?.firstName + " " + user?.lastName)?.split(" ")[0] || "User";
+    (fullName || user?.firstName + " " + user?.lastName)?.split(" ")[0] || "User";
   const avatar =
     (isTasker()
       ? artisanProfile?.profilePhotoUrl

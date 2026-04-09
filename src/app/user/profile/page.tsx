@@ -57,9 +57,9 @@ const Page = () => {
     fetchVerificationStatus();
   }, [customerProfile, fetchCustomerProfile, fetchVerificationStatus]);
 
-  const displayName = customerProfile?.fullName || user?.firstName + " " + user?.lastName || "User";
+  const displayName = user?.firstName + " " + user?.lastName || "User";
   const email = user?.email || "";
-  const avatar = customerProfile?.profilePhotoUrl || user?.avatar;
+  const avatar = user?.avatar;
   const { verificationState, kycStatus } = getVerificationWire(verificationStatus);
 
   // Treat user as an existing Krafter when internal docs are submitted (pending/approved) and KYC is approved.

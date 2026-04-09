@@ -75,10 +75,18 @@ const DashboardContent = () => {
 
   // Dynamically build completed steps from the backend summary payload
   const completedStepIds: string[] = [];
+  const pendingStepIds: string[] = [];
+  
   if (profileCompletionSummary?.initialOnboarding?.isComplete) completedStepIds.push("register");
   if (profileCompletionSummary?.personalDetails?.isComplete) completedStepIds.push("personal");
   if (profileCompletionSummary?.skills?.isComplete) completedStepIds.push("skills");
-  if (profileCompletionSummary?.workEligibility?.isComplete) completedStepIds.push("eligibility");
+  
+  if (profileCompletionSummary?.workEligibility?.hasSubmittedAwaitingReview) {
+    pendingStepIds.push("eligibility");
+  } else if (profileCompletionSummary?.workEligibility?.isComplete) {
+    completedStepIds.push("eligibility");
+  }
+  
   if (profileCompletionSummary?.legalIdentity?.kycStatus === "APPROVED") completedStepIds.push("identity");
   if (profileCompletionSummary?.payout?.isComplete) completedStepIds.push("payout");
 
@@ -298,6 +306,7 @@ const DashboardContent = () => {
         }}
         completedPercentage={completedPercentage}
         completedStepIds={completedStepIds}
+        pendingStepIds={pendingStepIds}
         onStepClick={handleStepClick}
       />
     </main>

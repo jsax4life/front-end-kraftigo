@@ -87,7 +87,6 @@ const Page = () => {
 
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [localName, setLocalName] = useState("");
 
   // ── Fetch profile & home data on mount ─────────────────────────────────────
   useEffect(() => {
@@ -95,18 +94,13 @@ const Page = () => {
       if (!customerProfile) fetchCustomerProfile();
       if (!hasFetched) fetchHomeData();
     }
-    if (typeof window !== "undefined") {
-      const storedName = localStorage.getItem("kraftigo_user_fullName");
-      if (storedName) setLocalName(storedName);
-    }
   }, [isAuthenticated, customerProfile, fetchCustomerProfile, hasFetched, fetchHomeData]);
 
   // ── Derived display values ──────────────────────────────────────────────────
   const displayName =
-    customerProfile?.fullName?.split(" ")[0] ||
-    localName.split(" ")[0] ||
+    user?.firstName ||
     "User";
-  const avatar = customerProfile?.profilePhotoUrl || user?.avatar;
+  const avatar = user?.avatar;
 
   // Categories: prefer API data, fall back to static ONLY on confirmed API failure
   const displayCategories =

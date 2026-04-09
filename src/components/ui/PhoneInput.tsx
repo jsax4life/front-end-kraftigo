@@ -24,8 +24,8 @@ const PhoneInput = ({
   required = false,
   disabled = false,
   className = "",
-  minLength = 10,
-  maxLength = 10,
+  minLength = 11,
+  maxLength = 11,
 }: PhoneInputProps) => {
   return (
     <div className={`flex flex-col gap-2 ${className}`}>
