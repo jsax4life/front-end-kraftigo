@@ -244,7 +244,7 @@ const BookServicePage = () => {
         <PhotoUploader
           photos={formData.photos}
           onChange={(photos: Photo[]) => setFormData((prev) => ({ ...prev, photos }))}
-          maxPhotos={10}
+          maxPhotos={3}
           title="Add Photos"
         />
 

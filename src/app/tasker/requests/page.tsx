@@ -4,7 +4,7 @@ import TaskerNav from "@/components/shared/taskerNav";
 import Select from "@/components/ui/select";
 import JobCard from "@/components/ui/JobCard";
 import RequestCard from "@/components/ui/RequestCard";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useJobStore } from "@/store/useJobStore";
 import { dummyJobs } from "@/data/dummyJobs";
@@ -14,6 +14,7 @@ import Input from "@/components/ui/input";
 import Button from "@/components/ui/button";
 import Image from "next/image";
 import { useBookingsStore } from "@/store/useBookingsStore";
+import { useCustomKraftsStore } from "@/store/useCustomKraftsStore";
 import toast from "react-hot-toast";
 
 const RequestsPage = () => {
@@ -39,9 +40,15 @@ const RequestsPage = () => {
   });
 
   const { jobs } = useJobStore();
+  const {fetchCustomKrafts, krafts} = useCustomKraftsStore()
+
+  useEffect(() => {
+  fetchCustomKrafts(); // no userId = published only (krafter view)
+}, []);
   const marketplaceJobs =
     jobs.length > 0 ? jobs.filter((job) => job.status === "open") : dummyJobs;
 
+    
   const openModal = (mode: "offer" | "counter", requestId?: string) => {
     setModalMode(mode);
     setSelectedRequestId(requestId ?? null);

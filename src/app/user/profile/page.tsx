@@ -80,7 +80,7 @@ const Page = () => {
       } catch {
         // ignore
       }
-      router.push("/tasker/profile");
+      router.push("/tasker/dashboard");
       return;
     }
     if (shouldRedirectToDiditKyc(verificationStatus)) {

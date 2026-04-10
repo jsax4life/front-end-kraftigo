@@ -19,9 +19,8 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useProfileStore } from "@/store/useProfileStore";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import toast from "react-hot-toast";
-import { getVerificationWire } from "@/lib/api/verification";
 
 const SimpleLineChart = () => {
   return (
@@ -106,12 +105,7 @@ const Page = () => {
   const fallbackName = typeof window !== "undefined" ? localStorage.getItem("kraftigo_tasker_fullName") : null;
   const displayName = artisanProfile?.displayName || artisanProfile?.legalFullName || fallbackName || user?.firstName + " " + user?.lastName || "User";
   const avatar = artisanProfile?.profilePhotoUrl || user?.avatar;
-  const { verificationState, kycStatus } = getVerificationWire(verificationStatus);
-  const isProfileCompleted = Boolean((verificationStatus as any)?.isProfileCompleted);
-  const showCompleteProfilePrompt =
-    kycStatus === "APPROVED" &&
-    (verificationState === "PENDING" || verificationState === "APPROVED") &&
-    !isProfileCompleted;
+ 
 
   const handleLogout = async () => {
     try {
@@ -146,29 +140,6 @@ const Page = () => {
       </div>
 
       <div className="px-4 space-y-8">
-        {showCompleteProfilePrompt && (
-          <div className="bg-orange-50 border border-orange-100 rounded-3xl p-5">
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-1">
-                <p className="text-[14px] font-gerat font-bold text-[#1D2939]">
-                  Complete your profile
-                </p>
-                <p className="text-[12px] font-poppins text-[#667085]">
-                  Add the remaining details so customers can see your full Krafter profile while
-                  we finish admin review.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => router.push("/krafter/profile-completion?skipIntro=1")}
-                className="shrink-0 px-4 py-2 rounded-2xl bg-brand-orange text-white text-[12px] font-poppins font-semibold"
-              >
-                Finish now
-              </button>
-            </div>
-          </div>
-        )}
-
         {/* User Info Section */}
         <div className="flex items-center gap-4 px-2">
           <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-dashed border-brand-blue shrink-0 flex items-center justify-center">
@@ -184,7 +155,7 @@ const Page = () => {
             <h2 className="text-[20px] font-gerat font-bold text-[#1D2939]">{displayName}</h2>
             <div className="flex items-center gap-1.5 bg-orange-50 text-brand-orange px-2 py-0.5 rounded-full w-fit mt-1">
               <Star size={12} className="fill-brand-orange" />
-              <span className="text-[12px] font-bold font-poppins uppercase tracking-wider">Lvl 12</span>
+              <span className="text-[12px] font-bold font-poppins uppercase tracking-wider">Lvl 1</span>
             </div>
           </div>
         </div>
