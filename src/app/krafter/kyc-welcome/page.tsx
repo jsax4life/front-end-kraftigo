@@ -44,7 +44,7 @@ export default function KrafterKycWelcomePage() {
   }, [customerProfile, fetchCustomerProfile]);
 
   const firstName =
-    (customerProfile?.fullName || user?.firstName || "there").trim().split(/\s+/)[0] || "there";
+    ( user?.firstName || "there").trim().split(/\s+/)[0] || "there";
 
   useEffect(() => {
     let cancelled = false;

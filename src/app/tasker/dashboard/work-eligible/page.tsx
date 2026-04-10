@@ -84,7 +84,7 @@ const Page = () => {
       // 3. Mark the step as complete with the document string and type
       await submitWorkEligibilityDocument({
         documentType: formData.documentType,
-        documentUrl: uploadCreds.fileKey, // or uploadCreds.publicUrl depending on backend expectations
+        documentUrl: uploadCreds.publicUrl, // or uploadCreds.publicUrl depending on backend expectations
         otherDescription: formData.documentType === "OTHER" ? formData.otherDescription : undefined,
       });
 
