@@ -20,6 +20,7 @@ const PersonalInfoPage = () => {
   const { user } = useAuthStore();
   const { customerProfile, fetchCustomerProfile, createOrUpdateCustomerProfile, isLoading } = useProfileStore();
   
+
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -38,7 +39,7 @@ const PersonalInfoPage = () => {
 
   useEffect(() => {
     if (customerProfile) {
-      setFullName(customerProfile.fullName);
+      setFullName(customerProfile.firstName + " " + customerProfile.lastName);
       setPhone(customerProfile.phone);
       setStreet(customerProfile.serviceAddress?.street || "");
       setCity(customerProfile.serviceAddress?.city || "");
@@ -64,8 +65,12 @@ const PersonalInfoPage = () => {
 
   const handleSave = async () => {
     try {
+      const [firstName, ...rest] = fullName.trim().split(" ");
+      const lastName = rest.join(" ");
+
       const profileData = {
-        fullName,
+        firstName,
+        lastName,
         phone,
         serviceAddress: {
           street: street || "N/A",
