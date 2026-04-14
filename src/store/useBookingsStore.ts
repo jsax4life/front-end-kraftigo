@@ -19,6 +19,7 @@ import {
   getArtisanBookings,
   getDirectArtisanBookings,
   getMarketplaceApplications,
+  getOpenMarketplaceTasks,
   startBooking as startBookingApi,
   completeBooking as completeBookingApi,
   applyToBooking as applyToBookingApi,
@@ -26,6 +27,7 @@ import {
   type CreateBookingForRecommendationPayload,
   type PublishToMarketplacePayload,
   type GetRecommendationsPayload,
+  type GetOpenMarketplaceTasksParams,
   type UpdateBookingPayload,
   type ArtisanRespondPayload,
   type ArtisanApplyPayload,
@@ -63,6 +65,7 @@ interface BookingsState {
   fetchArtisanBookings: () => Promise<void>
   fetchDirectArtisanBookings: () => Promise<void>
   fetchMarketplaceApplications: () => Promise<void>
+  fetchOpenMarketplaceTasks: (params?: GetOpenMarketplaceTasksParams) => Promise<{ data: Booking[]; total: number; offset: number; limit: number }>
   respondToBooking: (id: string, payload: ArtisanRespondPayload) => Promise<Booking>
   applyToBooking: (id: string, payload: ArtisanApplyPayload) => Promise<Booking>
   startBooking: (id: string) => Promise<Booking>
@@ -347,6 +350,26 @@ export const useBookingsStore = create<BookingsState>()((set, get) => ({
         isLoading: false,
         lastFetchStatus: 'error',
       })
+    }
+  },
+
+  fetchOpenMarketplaceTasks: async (params) => {
+    set({ isLoading: true, error: null })
+    try {
+      const response = await getOpenMarketplaceTasks(params)
+      set({
+        bookings: response.data,
+        isLoading: false,
+        lastFetchStatus: response.data.length > 0 ? 'success' : 'empty',
+      })
+      return response
+    } catch (err: any) {
+      set({
+        error: err.response?.data?.message || 'Failed to load open marketplace tasks',
+        isLoading: false,
+        lastFetchStatus: 'error',
+      })
+      throw err
     }
   },
 

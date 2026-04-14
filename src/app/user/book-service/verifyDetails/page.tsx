@@ -11,14 +11,19 @@ const Page = () => {
   const searchParams = useSearchParams();
   const categoryId = searchParams.get("categoryId") || "";
   const categoryName = searchParams.get("category") || "Service";
-  const address = searchParams.get("address") || "Hauptstraße 123 - 10115, Berlin";
+  const address = searchParams.get("address") || "";
   const date = searchParams.get("date") || new Date().toISOString();
   const taskDetails = searchParams.get("taskDetails") || "";
   const isPublic = searchParams.get("isPublic") === "true";
 
+  // Artisan details passed from selection step
+  const artisanName = searchParams.get("artisanName") || "";
+  const artisanImage = searchParams.get("artisanImage") || "";
+  const artisanBadge = searchParams.get("artisanBadge") || "";
+  const pricePerHour = parseFloat(searchParams.get("pricePerHour") || "0") || 0;
+
   const [bookingHours, setBookingHours] = useState(1);
   const [selectedFrequency, setSelectedFrequency] = useState("just-once");
-  const hourlyRate = 41.29;
 
   const handleIncrement = () => {
     setBookingHours((prev) => prev + 1);
@@ -99,14 +104,16 @@ const Page = () => {
             <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-2">
               {categoryName}
             </h1>
-            {!isPublic && (
+            {!isPublic && artisanName && (
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-[13px] sm:text-[14px] font-poppins font-semibold text-gray-900">
-                  Edit Ropalanum.
+                  {artisanName}
                 </span>
-                <span className="bg-[#E8F5E9] text-[#2E7D32] text-[10px] sm:text-[11px] font-poppins font-semibold px-2 py-0.5 rounded">
-                  TOP PRO
-                </span>
+                {artisanBadge && (
+                  <span className="bg-[#E8F5E9] text-[#2E7D32] text-[10px] sm:text-[11px] font-poppins font-semibold px-2 py-0.5 rounded">
+                    {artisanBadge}
+                  </span>
+                )}
               </div>
             )}
             <p className="text-[13px] sm:text-[14px] text-gray-700 font-poppins">
@@ -117,19 +124,19 @@ const Page = () => {
             </p>
           </div>
           <div className="flex flex-col items-end gap-2">
-            {!isPublic && (
-              <>
-                <span className="text-brand-orange text-[16px] sm:text-[18px] font-poppins font-bold">
-                  ${hourlyRate.toFixed(2)}/hr
-                </span>
-                <Image
-                  src="/images/pro.jpg"
-                  alt="artisan profile"
-                  width={70}
-                  height={70}
-                  className="w-20 h-20 rounded-lg object-cover"
-                />
-              </>
+            {!isPublic && pricePerHour > 0 && (
+              <span className="text-brand-orange text-[16px] sm:text-[18px] font-poppins font-bold">
+                €{pricePerHour.toFixed(2)}/hr
+              </span>
+            )}
+            {!isPublic && artisanImage && (
+              <Image
+                src={artisanImage}
+                alt="artisan profile"
+                width={70}
+                height={70}
+                className="w-20 h-20 rounded-lg object-cover"
+              />
             )}
           </div>
         </div>
@@ -173,14 +180,14 @@ const Page = () => {
             <Plus size={20} className="text-brand-orange" />
           </button>
         </div>
-        {!isPublic && (
+        {!isPublic && pricePerHour > 0 && (
           <div className="text-center">
             <p className="text-[13px] sm:text-[14px] text-gray-600 font-poppins mb-1">
               You will be charged
             </p>
             <div className="inline-block bg-[#FF66001A] px-6 py-2 rounded-full">
               <span className="text-brand-orange text-[18px] sm:text-[20px] font-poppins font-bold">
-                ${(hourlyRate * bookingHours).toFixed(2)}
+                €{(pricePerHour * bookingHours).toFixed(2)}
               </span>
             </div>
           </div>

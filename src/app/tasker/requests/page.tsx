@@ -6,9 +6,6 @@ import JobCard from "@/components/ui/JobCard";
 import RequestCard from "@/components/ui/RequestCard";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useJobStore } from "@/store/useJobStore";
-import { dummyJobs } from "@/data/dummyJobs";
-import { dummyRequests } from "@/data/dummyRequests";
 import { X } from "lucide-react";
 import Input from "@/components/ui/input";
 import Button from "@/components/ui/button";
@@ -19,7 +16,13 @@ import toast from "react-hot-toast";
 
 const RequestsPage = () => {
   const router = useRouter();
-  const { respondToBooking } = useBookingsStore();
+  const { 
+    bookings, 
+    isLoading, 
+    fetchDirectArtisanBookings, 
+    fetchOpenMarketplaceTasks, 
+    respondToBooking 
+  } = useBookingsStore();
 
   const [activeTab, setActiveTab] = useState<"marketplace" | "requests">("marketplace");
   const [selectedDistance, setSelectedDistance] = useState<string>("all");
@@ -39,14 +42,19 @@ const RequestsPage = () => {
     message: "",
   });
 
-  const { jobs } = useJobStore();
   const {fetchCustomKrafts, krafts} = useCustomKraftsStore()
 
   useEffect(() => {
-  fetchCustomKrafts(); // no userId = published only (krafter view)
-}, []);
-  const marketplaceJobs =
-    jobs.length > 0 ? jobs.filter((job) => job.status === "open") : dummyJobs;
+    fetchCustomKrafts(); // no userId = published only (krafter view)
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === "marketplace") {
+      fetchOpenMarketplaceTasks();
+    } else {
+      fetchDirectArtisanBookings();
+    }
+  }, [activeTab]);
 
     
   const openModal = (mode: "offer" | "counter", requestId?: string) => {
@@ -68,17 +76,6 @@ const RequestsPage = () => {
       toast.success("Booking accepted!");
     } catch {
       toast.error("Could not accept booking. Try again.");
-      // API not connected yet — fall back to old flow
-      const request = dummyRequests.find((r) => r.id === requestId);
-      if (request) {
-        const params = new URLSearchParams({
-          requestId: request.id,
-          customerName: request.customerName,
-          offerAmount: request.offerAmount.toString(),
-          description: request.description,
-        });
-        // router.push(`/tasker/requests/accept-request?${params.toString()}`);
-      }
     }
   };
 
@@ -124,7 +121,7 @@ const RequestsPage = () => {
     <main className="relative w-full min-h-screen bg-white pb-24">
       {/* Header */}
       <div className="px-4 pt-4 pb-2">
-        <button className="mb-4">
+        <button className="mb-4" onClick={() => router.back()}>
           <svg
             width="24"
             height="24"
@@ -228,46 +225,62 @@ const RequestsPage = () => {
       {/* Content - Marketplace Jobs */}
       {activeTab === "marketplace" && (
         <div className="px-4 space-y-4 mt-4">
-          {marketplaceJobs.map((job) => (
-            <JobCard
-              key={job.id}
-              id={job.id}
-              title={job.job_title}
-              location={job.location}
-              bidsCount={12}
-              description={job.description}
-              category={job.category}
-              priceRange={{
-                min: job.budget_optional ? job.budget_optional - 50 : 150,
-                max: job.budget_optional || 200,
-              }}
-              image="/images/home1.jpg"
-              onSendOffer={handleSendOffer}
-              onBookmark={handleBookmark}
-            />
-          ))}
+          {isLoading ? (
+            <div className="flex justify-center p-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-orange"></div>
+            </div>
+          ) : bookings.length === 0 ? (
+            <p className="text-center text-gray-500 py-8">No open marketplace tasks found.</p>
+          ) : (
+            bookings.map((booking) => (
+              <JobCard
+                key={booking.id}
+                id={booking.id}
+                title={booking.title || booking.service?.title || "Marketplace Task"}
+                location={booking.location || "Location not specified"}
+                bidsCount={0}
+                description={booking.notes || booking.service?.description || "No description provided."}
+                category={booking.service?.category?.name || "General"}
+                priceRange={{
+                  min: booking.price ? booking.price * 0.8 : 50,
+                  max: booking.price || 150,
+                }}
+                image={booking.image || "/images/home1.jpg"}
+                onSendOffer={handleSendOffer}
+                onBookmark={handleBookmark}
+              />
+            ))
+          )}
         </div>
       )}
 
       {/* Content - Requests */}
       {activeTab === "requests" && (
         <div className="px-4 space-y-4 mt-4">
-          {dummyRequests.map((request) => (
-            <RequestCard
-              key={request.id}
-              id={request.id}
-              customerName={request.customerName}
-              customerAvatar={request.customerAvatar}
-              rating={request.rating}
-              reviewsCount={request.reviewsCount}
-              offerAmount={request.offerAmount}
-              description={request.description}
-              showRenegotiate={request.showRenegotiate}
-              onAccept={handleAcceptRequest}
-              onDecline={handleDeclineRequest}
-              onRenegotiate={handleRenegotiate}
-            />
-          ))}
+          {isLoading ? (
+            <div className="flex justify-center p-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-orange"></div>
+            </div>
+          ) : bookings.length === 0 ? (
+            <p className="text-center text-gray-500 py-8">No direct requests found.</p>
+          ) : (
+            bookings.map((request) => (
+              <RequestCard
+                key={request.id}
+                id={request.id}
+                customerName={request.customerName || "Customer"}
+                customerAvatar={request.image || "/images/avatar.jpg"}
+                rating={5.0} // Fallback since it's not directly in Booking yet
+                reviewsCount={0}
+                offerAmount={request.price || 0}
+                description={request.notes || request.service?.description || "Direct request for your services."}
+                showRenegotiate={request.status === "REQUESTED"}
+                onAccept={handleAcceptRequest}
+                onDecline={handleDeclineRequest}
+                onRenegotiate={handleRenegotiate}
+              />
+            ))
+          )}
         </div>
       )}
 

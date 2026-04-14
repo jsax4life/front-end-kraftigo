@@ -44,65 +44,7 @@ function mapRecommendationToArtisan(item: any, index: number): Artisan {
   };
 }
 
-/** Dummy Krafters used when API returns none or fails */
-const DUMMY_ARTISANS: Artisan[] = [
-    {
-      id: 1,
-      name: "Edith R.",
-      profileImage: "/images/pro.jpg",
-      badge: "TOP PRO",
-      rating: 5,
-      reviewCount: 25,
-      taskCount: 72,
-      location: "New Tasker",
-      description:
-        "I have 18 years of experience cleaning houses. My priority is to bring a good service and leave everything very clean. I am a reliable person, I will ensure that...",
-      pricePerHour: 41.29,
-      isNewTasker: true,
-    },
-    {
-      id: 2,
-      name: "Edith R.",
-      profileImage: "/images/pro.jpg",
-      badge: null,
-      rating: 4,
-      reviewCount: 18,
-      taskCount: 72,
-      location: "New Tasker",
-      description:
-        "I have 18 years of experience cleaning houses. My priority is to bring a good service and leave everything very clean. I am a reliable person, I will ensure that...",
-      pricePerHour: 41.29,
-      isNewTasker: true,
-    },
-    {
-      id: 3,
-      name: "Edith R.",
-      profileImage: "/images/pro.jpg",
-      badge: null,
-      rating: 5,
-      reviewCount: 25,
-      taskCount: 72,
-      location: "New Tasker",
-      description:
-        "I have 18 years of experience cleaning houses. My priority is to bring a good service and leave everything very clean. I am a reliable person, I will ensure that...",
-      pricePerHour: 41.29,
-      isNewTasker: false,
-    },
-    {
-      id: 4,
-      name: "Edith R.",
-      profileImage: "/images/pro.jpg",
-      badge: null,
-      rating: 5,
-      reviewCount: 25,
-      taskCount: 72,
-      location: "New Tasker",
-      description:
-        "I have 18 years of experience cleaning houses. My priority is to bring a good service and leave everything very clean. I am a reliable person, I will ensure that...",
-      pricePerHour: 41.29,
-      isNewTasker: false,
-    },
-  ];
+
 
 const SelectArtisanPage = () => {
   const router = useRouter();
@@ -117,16 +59,16 @@ const SelectArtisanPage = () => {
   const { getRecommendations, isLoading } = useBookingsStore();
   const { currentLatitude, currentLongitude } = useAddressStore();
 
-  const [artisans, setArtisans] = useState<Artisan[]>(DUMMY_ARTISANS);
+  const [artisans, setArtisans] = useState<Artisan[]>([]);
   const [artisansFromApi, setArtisansFromApi] = useState(false);
+  const [fetchDone, setFetchDone] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [showCompare, setShowCompare] = useState(false);
 
-  // Fetch recommendations from API; fall back to dummy data when empty or on error
+  // Fetch recommendations from API
   useEffect(() => {
     if (!categoryId || !taskDetails.trim()) {
-      setArtisans(DUMMY_ARTISANS);
-      setArtisansFromApi(false);
+      setFetchDone(true);
       return;
     }
 
@@ -148,19 +90,18 @@ const SelectArtisanPage = () => {
     })
       .then((list) => {
         if (Array.isArray(list) && list.length > 0) {
-          setArtisans(
-            list.map((item, i) => mapRecommendationToArtisan(item, i)),
-          );
+          setArtisans(list.map((item, i) => mapRecommendationToArtisan(item, i)));
           setArtisansFromApi(true);
         } else {
-          setArtisans(DUMMY_ARTISANS);
+          setArtisans([]);
           setArtisansFromApi(false);
         }
       })
       .catch(() => {
-        setArtisans(DUMMY_ARTISANS);
+        setArtisans([]);
         setArtisansFromApi(false);
-      });
+      })
+      .finally(() => setFetchDone(true));
   }, [
     categoryId,
     categoryName,
@@ -173,22 +114,25 @@ const SelectArtisanPage = () => {
   ]);
 
   const handleSelectArtisan = (artisanId: number) => {
+    const selected = artisans.find((a) => a.id === artisanId);
     const params = new URLSearchParams(searchParams.toString());
     params.set("artisanId", artisanId.toString());
-    // For simulation, we'll use a mock serviceId if not present
-    if (!params.get("serviceId")) {
-      params.set("serviceId", "mock-service-id");
+    if (selected) {
+      params.set("artisanName", selected.name);
+      params.set("artisanImage", selected.profileImage);
+      params.set("artisanBadge", selected.badge ?? "");
+      params.set("pricePerHour", selected.pricePerHour.toString());
     }
     router.push(`/user/book-service/verifyDetails?${params.toString()}`);
   };
 
   const mappedArtisans: Application[] = artisans.map((artisan) => ({
     id: artisan.id.toString(),
-    job_id: "mock-job-id",
+    job_id: categoryId || "",
     artisan_id: artisan.id.toString(),
     artisan_name: artisan.name,
     proposal_message: "",
-    price: `$${artisan.pricePerHour}/hr`,
+    price: `€${artisan.pricePerHour}/hr`,
     status: "pending",
     rating: artisan.rating,
     reviews_count: artisan.reviewCount,
@@ -308,24 +252,41 @@ const SelectArtisanPage = () => {
         {/* Taskers Available */}
         <div className="mb-4 mx-4 flex justify-between items-center">
           <h2 className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-600">
-            {isLoading ? "Loading Krafters…" : `${artisans.length} Krafters Available`}
+            {isLoading ? "Loading Krafters…" : `${artisans.length} Krafter${artisans.length !== 1 ? "s" : ""} Available`}
           </h2>
-          <button
-            onClick={() => setViewMode(viewMode === "list" ? "grid" : "list")}
-            className="bg-[#FF66001A] w-fit p-2 hover:bg-[#FF66002A] transition-colors rounded"
-          >
-            <Image
-              src={viewMode === "list" ? "/group.svg" : "/grid.svg"}
-              alt="toggle view"
-              width={18}
-              height={18}
-              className=""
-            />
-          </button>
+          {artisans.length > 0 && (
+            <button
+              onClick={() => setViewMode(viewMode === "list" ? "grid" : "list")}
+              className="bg-[#FF66001A] w-fit p-2 hover:bg-[#FF66002A] transition-colors rounded"
+            >
+              <Image
+                src={viewMode === "list" ? "/group.svg" : "/grid.svg"}
+                alt="toggle view"
+                width={18}
+                height={18}
+              />
+            </button>
+          )}
         </div>
 
+        {/* Empty / Loading states */}
+        {isLoading && (
+          <div className="flex justify-center py-16">
+            <div className="w-8 h-8 border-4 border-brand-orange border-t-transparent rounded-full animate-spin" />
+          </div>
+        )}
+
+        {!isLoading && fetchDone && artisans.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-16 text-center px-4">
+            <p className="text-[16px] font-poppins font-semibold text-gray-400">No Krafters found</p>
+            <p className="text-[13px] font-poppins text-gray-300 mt-1">
+              Try posting a public task so Krafters can come to you
+            </p>
+          </div>
+        )}
+
         {/* Artisan Cards - List View */}
-        {viewMode === "list" && (
+        {!isLoading && viewMode === "list" && artisans.length > 0 && (
           <div className="space-y-4">
             {artisans.map((artisan, index) => (
               <ArtisanCard
@@ -340,7 +301,7 @@ const SelectArtisanPage = () => {
         )}
 
         {/* Artisan Cards - Grid View */}
-        {viewMode === "grid" && (
+        {!isLoading && viewMode === "grid" && artisans.length > 0 && (
           <div className="grid grid-cols-2 gap-3 sm:gap-4 px-2 relative">
             {artisans.map((artisan) => (
               <ArtisanGridCard
@@ -358,7 +319,6 @@ const SelectArtisanPage = () => {
                 alt="toggle view"
                 width={15}
                 height={15}
-                className=""
               />
               <span className="text-xs font-poppins text-white">
                 Compare Krafter ({artisans.length})
