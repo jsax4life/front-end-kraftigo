@@ -68,7 +68,7 @@ export interface GetCustomKraftsParams {
 /** GET /api/custom-krafts - Get Custom Kraft requests. */
 export const getCustomKrafts = async (
   params?: GetCustomKraftsParams,
-): Promise<CustomKraft[]> => {
+): Promise<CustomKraft[]> => { 
   const response = await api.get("/api/custom-krafts", { params });
   return response.data;
 };

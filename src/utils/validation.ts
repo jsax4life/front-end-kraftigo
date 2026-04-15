@@ -30,5 +30,5 @@ export const isStrongPassword = (password: string): boolean => {
 };
 
 export const isValidPhoneLength = (phone: string): boolean => {
-  return /^\d{10}$/.test(phone);
+  return /^\d{11}$/.test(phone);
 };

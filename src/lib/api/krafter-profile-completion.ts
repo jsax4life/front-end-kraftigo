@@ -117,25 +117,18 @@ export interface KrafterPersonalDetailsSubmitPayload {
 
 // ─── Skills specific types ────────────────────────────────────────────────────
 
+export interface ServiceCategoryOffering {
+  serviceCategoryId: string
+  pricingType: 'HOURLY' | 'FLAT'
+  hourlyRate?: number
+  flatRate?: number
+  experienceYears?: number
+  photoUrl?: string
+}
+
 /** PATCH /api/profile/krafter/complete-profile/skills */
 export interface KrafterSkillsSubmitPayload {
-  primarySkillCategoryId: string
-  primarySkillDetail: {
-    skillId: string
-    pricingType: 'HOURLY' | 'FLAT'
-    hourlyRate?: number
-    flatRate?: number
-    experienceYears?: number
-    photoUrl?: string
-  }
-  secondarySkillDetails?: Array<{
-    skillId: string
-    pricingType: 'HOURLY' | 'FLAT'
-    hourlyRate?: number
-    flatRate?: number
-    experienceYears?: number
-    photoUrl?: string
-  }>
+  serviceCategoryOfferings: ServiceCategoryOffering[]
   submitAsDraft?: boolean
 }
 

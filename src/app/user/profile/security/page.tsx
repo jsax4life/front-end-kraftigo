@@ -76,35 +76,14 @@ const SecurityPage = () => {
         {/* Device Information */}
         <div className="bg-white p-6 rounded-2xl border border-[#F2F4F7] shadow-sm">
             <h3 className="text-[12px] font-poppins font-bold text-[#98A2B3] uppercase tracking-widest mb-6">Device History</h3>
-            <div className="space-y-6">
-               <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                     <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shrink-0">
-                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                        </svg>
-                     </div>
-                     <div>
-                        <p className="text-[15px] font-poppins font-bold text-[#1D2939]">iPhone 15 Pro</p>
-                        <p className="text-[12px] font-poppins text-[#667085]">Berlin, Germany · Active Now</p>
-                     </div>
-                  </div>
-                  <span className="text-[12px] font-poppins text-brand-orange font-bold bg-orange-50 px-3 py-1 rounded-full shrink-0">Current</span>
-               </div>
-               
-               <div className="flex items-center justify-between opacity-70">
-                  <div className="flex items-center gap-4">
-                     <div className="w-12 h-12 bg-gray-50 text-gray-500 rounded-xl flex items-center justify-center shrink-0">
-                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 21h6l-.75-4M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                        </svg>
-                     </div>
-                     <div>
-                        <p className="text-[15px] font-poppins font-bold text-[#1D2939]">MacBook Air</p>
-                        <p className="text-[12px] font-poppins text-[#667085]">Berlin, Germany · 2 days ago</p>
-                     </div>
-                  </div>
-               </div>
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <div className="w-12 h-12 bg-gray-50 text-gray-300 rounded-xl flex items-center justify-center mb-3">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <p className="text-[14px] font-poppins font-semibold text-[#98A2B3]">No device history available</p>
+              <p className="text-[12px] font-poppins text-[#D0D5DD] mt-1">Devices that access your account will appear here</p>
             </div>
         </div>
 

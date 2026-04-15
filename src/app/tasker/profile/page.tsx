@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useProfileStore } from "@/store/useProfileStore";
+import { useBookingsStore } from "@/store/useBookingsStore";
 import { useEffect } from "react";
 import toast from "react-hot-toast";
 
@@ -92,20 +93,22 @@ const SettingsRow = ({ icon: Icon, label, onClick }: { icon: any, label: string,
 const Page = () => {
   const router = useRouter();
   const { user, logout } = useAuthStore();
-  const { artisanProfile, fetchArtisanProfile, verificationStatus, fetchVerificationStatus } =
-    useProfileStore();
+  const { artisanProfile, fetchArtisanProfile, verificationStatus, fetchVerificationStatus } = useProfileStore();
+  const { fetchArtisanBookings, getCompletedBookings } = useBookingsStore();
 
   useEffect(() => {
     if (!artisanProfile) {
       fetchArtisanProfile();
     }
     fetchVerificationStatus();
-  }, [artisanProfile, fetchArtisanProfile, fetchVerificationStatus]);
+    fetchArtisanBookings();
+  }, [artisanProfile, fetchArtisanProfile, fetchVerificationStatus, fetchArtisanBookings]);
 
-  const fallbackName = typeof window !== "undefined" ? localStorage.getItem("kraftigo_tasker_fullName") : null;
-  const displayName = artisanProfile?.displayName || artisanProfile?.legalFullName || fallbackName || user?.firstName + " " + user?.lastName || "User";
+  const displayName = artisanProfile?.displayName || artisanProfile?.legalFullName || (user?.firstName ? `${user.firstName} ${user.lastName}` : "User");
   const avatar = artisanProfile?.profilePhotoUrl || user?.avatar;
  
+  const completedBookings = getCompletedBookings();
+  const totalEarnings = completedBookings.reduce((sum, b) => sum + (b.price || 0), 0);
 
   const handleLogout = async () => {
     try {
@@ -163,9 +166,9 @@ const Page = () => {
         {/* Weekly Earnings Card */}
         <div className="bg-[#F9FAFB] rounded-3xl p-6 border border-[#EAECF0]">
           <div className="space-y-1">
-            <p className="text-[14px] font-poppins text-[#667085]">Weekly Earnings</p>
-            <h3 className="text-[32px] font-gerat font-bold text-[#1D2939] leading-tight">$840.00</h3>
-            <p className="text-[12px] font-poppins text-[#98A2B3]">Oct 18 - Oct 24, 2026</p>
+            <p className="text-[14px] font-poppins text-[#667085]">Total Earnings</p>
+            <h3 className="text-[32px] font-gerat font-bold text-[#1D2939] leading-tight">£{totalEarnings.toFixed(2)}</h3>
+            <p className="text-[12px] font-poppins text-[#98A2B3]">Lifetime earnings from {completedBookings.length} completed jobs</p>
           </div>
           <SimpleLineChart />
         </div>

@@ -96,6 +96,13 @@ export interface GetRecommendationsPayload {
   limit?: number
 }
 
+export interface GetOpenMarketplaceTasksParams {
+  serviceCategoryId?: string
+  search?: string
+  limit?: number
+  offset?: number
+}
+
 /** POST /api/bookings — create a new booking request */
 export const createBooking = async (payload: CreateBookingPayload): Promise<Booking> => {
   const formData = new FormData()
@@ -278,6 +285,14 @@ export const getDirectArtisanBookings = async (): Promise<Booking[]> => {
 /** GET /api/artisan/bookings/marketplace-applications — all marketplace applications for the current artisan */
 export const getMarketplaceApplications = async (): Promise<Booking[]> => {
   const response = await api.get('/api/artisan/bookings/marketplace-applications')
+  return response.data
+}
+
+/** GET /api/artisan/bookings/marketplace/open — Browse OPEN_FOR_APPLICATIONS marketplace tasks */
+export const getOpenMarketplaceTasks = async (
+  params?: GetOpenMarketplaceTasksParams
+): Promise<{ data: Booking[]; total: number; offset: number; limit: number }> => {
+  const response = await api.get('/api/artisan/bookings/marketplace/open', { params })
   return response.data
 }
 

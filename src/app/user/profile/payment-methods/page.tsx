@@ -5,52 +5,40 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { ArrowLeft, Plus, CreditCard, ChevronRight, X, Lock, Info, Trash2, Camera, MapPin } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
+import { usePaymentStore } from "@/store/usePaymentStore";
+import { useAddressStore } from "@/store/useAddressStore";
+import type { SavedPaymentMethod } from "@/lib/api/payments";
+import type { Address } from "@/types";
 
 type Screen = 'list' | 'choice' | 'card-form' | 'sepa-form' | 'paypal' | 'edit-card' | 'address-form';
-
-interface PaymentMethod {
-  id: string;
-  type: 'card' | 'sepa' | 'paypal' | 'google';
-  name: string;
-  details: string;
-  address?: string;
-  isDefault?: boolean;
-}
-
-interface ShippingAddress {
-  id: string;
-  name: string;
-  details: string;
-  isDefault?: boolean;
-  zipCode?: string;
-  country?: string;
-}
 
 const PaymentMethodsPage = () => {
   const router = useRouter();
   const [currentScreen, setCurrentScreen] = useState<Screen>("list");
-  const [methods, setMethods] = useState<PaymentMethod[]>([
-    {
-      id: "1",
-      type: "card",
-      name: "John Doe",
-      details: "1234 **** **** **** **** 9898",
-      address: "34th Str, Applebees, Berlin",
-      isDefault: true,
-    },
-  ]);
-  const [addresses, setAddresses] = useState<ShippingAddress[]>([
-    {
-      id: "1",
-      name: "John Doe",
-      details: "34th Str, Applebees, Berlin.",
-      isDefault: true,
-      zipCode: "10115",
-      country: "Germany",
-    },
-  ]);
-  const [editingMethod, setEditingMethod] = useState<PaymentMethod | null>(null);
-  const [editingAddress, setEditingAddress] = useState<ShippingAddress | null>(null);
+
+  const {
+    savedMethods: methods,
+    fetchSavedMethods,
+    removeSavedMethod,
+    setDefaultSavedMethod,
+    isLoading: methodsLoading,
+  } = usePaymentStore();
+
+  const {
+    addresses,
+    loadAddresses,
+    removeAddress,
+    addAddress,
+    isLoadingAddresses,
+  } = useAddressStore();
+
+  useEffect(() => {
+    fetchSavedMethods();
+    loadAddresses();
+  }, []);
+
+  const [editingMethod, setEditingMethod] = useState<SavedPaymentMethod | null>(null);
+  const [editingAddress, setEditingAddress] = useState<Address | null>(null);
 
   // Form states
   const [cardData, setCardData] = useState({ number: "", expires: "", cv: "", name: "", zip: "", country: "Germany" });
@@ -59,10 +47,10 @@ const PaymentMethodsPage = () => {
   useEffect(() => {
     if (editingAddress) {
       setAddressData({
-        name: editingAddress.name,
-        details: editingAddress.details,
-        zip: editingAddress.zipCode || "",
-        city: "Berlin",
+        name: editingAddress.label,
+        details: editingAddress.address,
+        zip: editingAddress.postalCode || "",
+        city: editingAddress.city || "Berlin",
         country: editingAddress.country || "Germany"
       });
     } else {
@@ -80,49 +68,45 @@ const PaymentMethodsPage = () => {
     }
   };
 
-  const addMethod = (method: PaymentMethod) => {
-    setMethods([...methods, method]);
-    setCurrentScreen("list");
-    toast.success("Payment method added successfully");
+  const handleRemoveMethod = async (id: string) => {
+    const ok = await removeSavedMethod(id);
+    if (ok) {
+      setCurrentScreen("list");
+      toast.success("Payment method removed");
+    } else {
+      toast.error("Failed to remove payment method");
+    }
   };
 
-  const removeMethod = (id: string) => {
-    setMethods(methods.filter((m) => m.id !== id));
-    setCurrentScreen("list");
-    toast.success("Payment method removed");
+  const handleSetDefault = async (id: string) => {
+    const ok = await setDefaultSavedMethod(id);
+    if (ok) {
+      toast.success("Set as default");
+    } else {
+      toast.error("Failed to update default");
+    }
   };
 
-  const saveAddress = (e: React.FormEvent) => {
+  const saveAddress = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!addressData.name || !addressData.details) {
-      toast.error("Please fill in all required fields");
+    if (!addressData.details) {
+      toast.error("Please enter an address");
       return;
     }
-
-    const newAddress: ShippingAddress = {
-      id: editingAddress?.id || Date.now().toString(),
-      name: addressData.name,
-      details: addressData.details,
-      isDefault: editingAddress?.isDefault || addresses.length === 0,
-      zipCode: addressData.zip,
+    await addAddress({
+      label: addressData.name || "Home",
+      address: addressData.details,
+      city: addressData.city,
+      postalCode: addressData.zip,
       country: addressData.country,
-    };
-
-    if (editingAddress) {
-      setAddresses(addresses.map(a => a.id === editingAddress.id ? newAddress : a));
-      toast.success("Address updated");
-    } else {
-      setAddresses([...addresses, newAddress]);
-      toast.success("Address added");
-    }
+    });
     setCurrentScreen("list");
     setEditingAddress(null);
   };
 
-  const removeAddress = (id: string) => {
-    setAddresses(addresses.filter((a) => a.id !== id));
+  const handleRemoveAddress = (id: string) => {
+    removeAddress(id);
     setCurrentScreen("list");
-    toast.success("Address removed");
     setEditingAddress(null);
   };
 
@@ -191,13 +175,13 @@ const PaymentMethodsPage = () => {
                       </div>
                       <div className="space-y-1">
                         <p className="text-[14px] font-bold text-black/90 leading-tight">
-                          {method.name}
+                          {method.card?.holder ?? method.card?.name ?? method.name ?? "Card"}
                         </p>
                         <p className="text-[14px] text-black/90 leading-tight">
-                          {method.details}
+                          {method.card ? `${method.card.brand?.toUpperCase()} •••• ${method.card.last4}` : method.details ?? ""}
                         </p>
                         <p className="text-[12px] text-black/60 leading-tight">
-                          {method.address}
+                          {method.card ? `Exp ${method.card.expMonth}/${method.card.expYear}` : ""}
                         </p>
                       </div>
                     </div>
@@ -249,17 +233,13 @@ const PaymentMethodsPage = () => {
                       </div>
                       <div className="flex-1 space-y-1">
                         <p className="text-[14px] font-bold text-black/90 leading-tight">
-                          {address.name}
+                          {address.label}
                         </p>
                         <p className="text-[12px] text-black/60 leading-tight">
-                          {address.details}
+                          {address.address}
                         </p>
                       </div>
-                      <div className="w-[18px] h-[18px] rounded-full border border-black/10 flex items-center justify-center bg-white">
-                        {address.isDefault && (
-                          <div className="w-[10px] h-[10px] rounded-full bg-[#0B0B0B]" />
-                        )}
-                      </div>
+                      <div className="w-[18px] h-[18px] rounded-full border border-black/10 flex items-center justify-center bg-white" />
                     </div>
                   ))}
                   <button
@@ -351,16 +331,11 @@ const PaymentMethodsPage = () => {
 
             <form
               className="space-y-8"
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault();
-                addMethod({
-                  id: Date.now().toString(),
-                  type: "card",
-                  name: cardData.name || "John Doe",
-                  details: `**** **** **** ${cardData.number.slice(-4) || "9898"}`,
-                  address: `${cardData.zip}, ${cardData.country}`,
-                  isDefault: methods.length === 0,
-                });
+                setCurrentScreen("list");
+                toast.success("Card added");
+                await fetchSavedMethods();
               }}
             >
               <div className="space-y-4">
@@ -728,11 +703,6 @@ const PaymentMethodsPage = () => {
                 <button
                   onClick={(e) => {
                     e.preventDefault();
-                    // In a real app, this would call an API
-                    setMethods(methods.map(m => ({
-                      ...m,
-                      isDefault: m.id === editingMethod.id
-                    })));
                     setCurrentScreen("list");
                     toast.success("Changes saved");
                   }}
@@ -744,11 +714,7 @@ const PaymentMethodsPage = () => {
                   <button
                     onClick={(e) => {
                       e.preventDefault();
-                      setMethods(methods.map(m => ({
-                        ...m,
-                        isDefault: m.id === editingMethod.id
-                      })));
-                      toast.success("Set as default");
+                      handleSetDefault(editingMethod.id);
                     }}
                     className="w-full h-[52px] border border-black/10 rounded-[12px] font-bold text-[14px] active:scale-[0.98] transition-all"
                   >
@@ -758,7 +724,7 @@ const PaymentMethodsPage = () => {
                 <button
                   onClick={(e) => {
                     e.preventDefault();
-                    removeMethod(editingMethod.id);
+                    handleRemoveMethod(editingMethod.id);
                   }}
                   className="w-full h-[52px] bg-[#FF6666]/10 text-[#FE2929] rounded-[12px] font-bold text-[14px] active:scale-[0.98] transition-all"
                 >
@@ -856,21 +822,7 @@ const PaymentMethodsPage = () => {
                 >
                   {editingAddress ? "Save Changes" : "Save Address"}
                 </button>
-                {editingAddress && !editingAddress.isDefault && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAddresses(addresses.map(a => ({
-                        ...a,
-                        isDefault: a.id === editingAddress.id
-                      })));
-                      toast.success("Set as default address");
-                    }}
-                    className="w-full h-[52px] border border-black/10 rounded-[12px] font-bold text-[14px] active:scale-[0.98] transition-all"
-                  >
-                    Set as Default
-                  </button>
-                )}
+
                 {editingAddress && (
                   <button
                     type="button"

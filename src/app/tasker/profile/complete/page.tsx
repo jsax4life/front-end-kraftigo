@@ -8,13 +8,11 @@ import {
   Plus,
   Search,
   HelpCircle,
-  Home,
   Hammer,
   ShieldCheck,
   ArrowLeft,
 } from "lucide-react";
 import Input from "@/components/ui/input";
-import Select from "@/components/ui/select";
 import Button from "@/components/ui/button";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useProfileStore } from "@/store/useProfileStore";
@@ -80,8 +78,17 @@ const CompleteProfileForm = () => {
   const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
   const [certifications, setCertifications] = useState<any[]>([]);
 
-  // Step 2 Data (Skills)
-  const [selectedSkills, setSelectedSkills] = useState<any[]>([]);
+  // Step 2 Data (Skills) — each entry is one service category offering
+  interface SkillOffering {
+    categoryId: string
+    categoryName: string
+    rateType: 'HOURLY' | 'FLAT'
+    price: string        // raw string from input, converted to number on submit
+    experienceYears: string  // raw string from input
+    iconUrl?: string | null
+    photoUrl?: string
+  }
+  const [selectedSkills, setSelectedSkills] = useState<SkillOffering[]>([]);
   const [skillGroups, setSkillGroups] = useState<ServiceSkillGroup[]>([]);
   const [isLoadingSkills, setIsLoadingSkills] = useState(false);
 
@@ -278,27 +285,23 @@ const CompleteProfileForm = () => {
       }
     } else if (step === 5) {
       if (!isDraft && selectedSkills.length === 0) {
-        toast.error("Please add at least one skill.");
+        toast.error("Please add at least one skill category.");
         return;
       }
       if (selectedSkills.length > 0) {
         setIsUploading(true);
         try {
-          const primary = selectedSkills[0];
-          const secondary = selectedSkills.slice(1);
-
-          const buildDetail = (s: any) => ({
-             skillId: s.id,
-             pricingType: s.rateType as 'HOURLY' | 'FLAT',
-             experienceYears: 0,
-             ...(s.rateType === "HOURLY" ? { hourlyRate: Number(s.price) || 0 } : { flatRate: Number(s.price) || 0 })
-          });
-
           const payload = {
-             primarySkillCategoryId: primary.categoryId,
-             primarySkillDetail: buildDetail(primary),
-             secondarySkillDetails: secondary.length > 0 ? secondary.map(buildDetail) : undefined,
-             submitAsDraft: isDraft
+            serviceCategoryOfferings: selectedSkills.map((s) => ({
+              serviceCategoryId: s.categoryId,
+              pricingType: s.rateType as 'HOURLY' | 'FLAT',
+              ...(s.rateType === 'HOURLY'
+                ? { hourlyRate: Number(s.price) || 0 }
+                : { flatRate: Number(s.price) || 0 }),
+              experienceYears: Number(s.experienceYears) || 0,
+              ...(s.photoUrl ? { photoUrl: s.photoUrl } : {}),
+            })),
+            submitAsDraft: isDraft,
           };
 
           await submitSkills(payload);
@@ -317,21 +320,20 @@ const CompleteProfileForm = () => {
     }
   };
 
-  const addSkill = (skill: any, categoryName: string, categoryId: string) => {
+  const addSkill = (categoryId: string, categoryName: string, iconUrl?: string | null) => {
     if (
       selectedSkills.length < 5 &&
-      !selectedSkills.find((s) => s.id === skill.id)
+      !selectedSkills.find((s) => s.categoryId === categoryId)
     ) {
       setSelectedSkills([
         ...selectedSkills,
-        { ...skill, category: categoryName, categoryId, rateType: "HOURLY", price: 0 },
+        { categoryId, categoryName, iconUrl, rateType: "HOURLY", price: "", experienceYears: "", photoUrl: undefined },
       ]);
     }
-    // modal stays open so the user can keep adding
   };
 
-  const removeSkill = (id: string) => {
-    setSelectedSkills(selectedSkills.filter((s) => s.id !== id));
+  const removeSkill = (categoryId: string) => {
+    setSelectedSkills(selectedSkills.filter((s) => s.categoryId !== categoryId));
   };
 
   const toggleRateType = (index: number, type: "HOURLY" | "FLAT") => {
@@ -343,7 +345,7 @@ const CompleteProfileForm = () => {
   return (
     <main className="min-h-screen bg-white pb-32">
       {/* Header */}
-      <div className="w-full flex items-center justify-between py-6 px-4 bg-white sticky top-0 z-40 ">
+      <div className="w-full flex items-center justify-between pt-6 px-4 bg-white sticky top-0 z-40 ">
         <button onClick={handleBack} className="p-1 hover:opacity-70">
           <ArrowLeft className="w-8 h-8 text-[#1D2939]" strokeWidth={1.5} />
         </button>
@@ -352,7 +354,7 @@ const CompleteProfileForm = () => {
         </span>
       </div>
 
-      <div className="px-5 py-8 max-w-2xl mx-auto space-y-10">
+      <div className="px-5 py-3 max-w-2xl mx-auto space-y-10">
         {step === 4 && (
           <div className="space-y-10 animate-in fade-in slide-in-from-right-4 duration-300">
             <div>
@@ -394,7 +396,7 @@ const CompleteProfileForm = () => {
               <SectionTitle label="Profile Information" />
               <Input
                 label="Display Name"
-                placeholder="Edith R"
+                placeholder={displayName}
                 value={displayName}
                 onChange={setDisplayName}
                 disabled={true}
@@ -592,43 +594,59 @@ const CompleteProfileForm = () => {
               <div className="space-y-4">
                 {selectedSkills.map((skill, idx) => (
                   <div
-                    key={skill.id}
-                    className="p-2 space-y-6 border-b border-[#0000001A] pb-6"
+                    key={skill.categoryId}
+                    className="p-2 space-y-5 border-b border-[#EAECF0]"
                   >
-                    <Image src='/images/home4.jpg' alt="pics" width={400} height={400} className="rounded-xl h-45 object-cover " />
-                    <div className="gap-3">
-                      <h3 className="text-[20px] font-poppins font-bold text-[#1D2939]">
-                        {skill.name}
+                    {/* Header row */}
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-[18px] font-poppins font-bold text-[#1D2939]">
+                        {skill.categoryName}
                       </h3>
-                      <p className="text-[16px] font-poppins">
-                       {skill.description}
-                      </p>
+                      <button
+                        onClick={() => removeSkill(skill.categoryId)}
+                        className="p-1 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                      >
+                        <X size={18} />
+                      </button>
                     </div>
-
-                    <div className="flex gap-2 p-1.5 bg-[#F6F6F6] rounded-2xl border border-gray-100">
+                    {skill.iconUrl && (
+                      <Image src={skill.iconUrl} alt="pics" width={400} height={400} className="rounded-xl h-45 object-cover " /> 
+                    )}
+                    
+                    {/* Rate type toggle */}
+                    <div className="flex gap-2 p-1 bg-[#F6F6F6] rounded-2xl border border-gray-100">
                       <button
                         onClick={() => toggleRateType(idx, "HOURLY")}
-                        className={`flex-1 py-2.5 rounded-xl text-[14px] font-poppins font-bold transition-all ${skill.rateType === "HOURLY" ? "bg-brand-blue text-white shadow-md" : "text-gray-500 hover:text-gray-800"}`}
+                        className={`flex-1 py-1.5 rounded-xl text-[14px] font-poppins font-bold transition-all ${
+                          skill.rateType === "HOURLY"
+                            ? "bg-brand-blue text-white shadow-md"
+                            : "text-gray-500 hover:text-gray-800"
+                        }`}
                       >
                         Hourly Rate
                       </button>
                       <button
                         onClick={() => toggleRateType(idx, "FLAT")}
-                        className={`flex-1 py-2.5 rounded-xl text-[14px] font-poppins font-bold transition-all ${skill.rateType === "FLAT" ? "bg-brand-blue text-white shadow-md" : "text-gray-500 hover:text-gray-800"}`}
+                        className={`flex-1 py-1.5 rounded-xl text-[14px] font-poppins font-bold transition-all ${
+                          skill.rateType === "FLAT"
+                            ? "bg-brand-blue text-white shadow-md"
+                            : "text-gray-500 hover:text-gray-800"
+                        }`}
                       >
                         Flat Rate
                       </button>
                     </div>
 
+                    {/* Rate input */}
                     <div className="relative">
                       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[20px] font-poppins text-gray-400">
-                        $
+                        £
                       </span>
                       <input
                         type="number"
                         placeholder="0.00"
-                        className="w-full p-4 pl-10 rounded-2xl bg-[#F6F6F6] border border-[#EAECF0] outline-none font-poppins text-[20px] font-bold text-[#1D2939]"
-                        value={skill.price || ""}
+                        className="w-full p-3 pl-10 rounded-2xl bg-[#F6F6F6] border border-[#EAECF0] outline-none font-poppins text-[20px] font-bold text-[#1D2939]"
+                        value={skill.price}
                         onChange={(e) => {
                           const updated = [...selectedSkills];
                           updated[idx].price = e.target.value;
@@ -637,6 +655,25 @@ const CompleteProfileForm = () => {
                       />
                       <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[14px] font-poppins text-gray-400">
                         Per {skill.rateType === "HOURLY" ? "Hour" : "Job"}
+                      </span>
+                    </div>
+
+                    {/* Experience years */}
+                    <div className="relative">
+                      <input
+                        type="number"
+                        placeholder="Years of experience"
+                        min="0"
+                        className="w-full p-2 rounded-2xl bg-[#F6F6F6] border border-[#EAECF0] outline-none font-poppins text-[15px] text-[#1D2939]"
+                        value={skill.experienceYears}
+                        onChange={(e) => {
+                          const updated = [...selectedSkills];
+                          updated[idx].experienceYears = e.target.value;
+                          setSelectedSkills(updated);
+                        }}
+                      />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[13px] font-poppins text-gray-400">
+                        yrs exp
                       </span>
                     </div>
                   </div>
@@ -711,14 +748,14 @@ const CompleteProfileForm = () => {
               <div className="px-6 pb-3 flex flex-wrap gap-2">
                 {selectedSkills.map((skill) => (
                   <div
-                    key={skill.id}
+                    key={skill.categoryId}
                     className="flex items-center gap-1.5 bg-[#F6F6F6] border border-[#0000001A] px-3 py-1.5 rounded-lg"
                   >
                     <span className="text-[13px] font-poppins font-medium text-[#1D2939]">
-                      {skill.name}
+                      {skill.categoryName}
                     </span>
                     <button
-                      onClick={() => removeSkill(skill.id)}
+                      onClick={() => removeSkill(skill.categoryId)}
                       className="hover:text-red-500 text-gray-400 transition-colors"
                     >
                       <X size={13} />
@@ -727,66 +764,66 @@ const CompleteProfileForm = () => {
                 ))}
               </div>
             )}
-            <div className="flex-1 overflow-y-auto p-6 space-y-8">
+            <div className="flex-1 overflow-y-auto p-4 space-y-1">
               {isLoadingSkills ? (
                 <div className="flex justify-center p-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-orange"></div>
                 </div>
               ) : (
                 <>
-                  {skillGroups.map((group) => (
-                    <div key={group.category.id}>
-                      <h3 className="text-[14px] font-poppins font-bold text-[#1D2939] mb-4 uppercase tracking-wider">
-                        {group.category.name}
-                      </h3>
-                      <div className="space-y-4">
-                        {group.skills.map((skill) => (
-                          <button
-                            key={skill.id}
-                            onClick={() => addSkill(skill, group.category.name, group.category.id)}
-                            disabled={
-                              !!selectedSkills.find((s) => s.id === skill.id) ||
-                              selectedSkills.length >= 5
-                            }
-                            className={`w-full flex items-center justify-between group text-left transition-opacity ${
-                              selectedSkills.find((s) => s.id === skill.id)
-                                ? "opacity-40"
-                                : ""
-                            }`}
-                          >
-                            <div className="flex items-center gap-4">
-                              <div
-                                className={`w-14 h-14 rounded-xl flex items-center justify-center transition-colors ${
-                                  selectedSkills.find((s) => s.id === skill.id)
-                                    ? "bg-green-100 text-green-600"
-                                    : "bg-orange-100/50 text-brand-orange group-hover:bg-brand-orange group-hover:text-white"
-                                }`}
-                              >
-                                {selectedSkills.find((s) => s.id === skill.id) ? (
-                                  <X size={20} />
-                                ) : (
-                                  <Hammer size={28} strokeWidth={1.5} />
-                                )}
-                              </div>
-                              <div>
-                                <p className="text-[15px] font-gerat font-bold text-[#1D2939]">
-                                  {skill.name}
-                                </p>
-                                {skill.description && (
-                                  <p className="text-[12px] font-poppins text-[#667085] line-clamp-1">
-                                    {skill.description}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
+                  {skillGroups.map((group) => {
+                    const isSelected = !!selectedSkills.find((s) => s.categoryId === group.category.id);
+                    const isDisabled = isSelected || selectedSkills.length >= 5;
+                    return (
+                      <button
+                        key={group.category.id}
+                        onClick={() => addSkill(group.category.id, group.category.name, group.category.iconUrl)}
+                        disabled={isDisabled}
+                        className={`w-full flex items-center gap-4 px-2 py-3 border-b border-[#F2F4F7] last:border-0 text-left transition-all ${
+                          isSelected ? "opacity-50 cursor-default" : "hover:bg-orange-50/40 active:bg-orange-50"
+                        }`}
+                      >
+                        {/* Thumbnail */}
+                        <div className="w-[60px] h-[60px] rounded-xl overflow-hidden shrink-0 bg-orange-50 flex items-center justify-center border border-[#F2F4F7]">
+                          {group.category.iconUrl ? (
+                            <Image
+                              src={group.category.iconUrl}
+                              alt={group.category.name}
+                              width={60}
+                              height={60}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <Hammer size={26} className="text-brand-orange" strokeWidth={1.5} />
+                          )}
+                        </div>
+
+                        {/* Text */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[15px] font-gerat font-bold text-[#1D2939] leading-snug">
+                            {group.category.name}
+                          </p>
+                          {group.category.description && (
+                            <p className="text-[12px] font-poppins text-[#667085] line-clamp-1 mt-0.5">
+                              {group.category.description}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Selected indicator */}
+                        {isSelected && (
+                          <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center shrink-0">
+                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                              <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
                   {skillGroups.length === 0 && (
                     <p className="text-center text-gray-500 font-poppins text-sm py-8">
-                      No skills found.
+                      No skill categories found.
                     </p>
                   )}
                 </>

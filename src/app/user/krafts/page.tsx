@@ -57,6 +57,20 @@ const KraftsPage = () => {
     }
   };
 
+  // Group bookings by month label (e.g. "January 2025")
+  const groupByMonth = (items: Booking[]) => {
+    const groups: Record<string, Booking[]> = {};
+    for (const item of items) {
+      const dateKey = item.scheduled_date ?? item.created_at;
+      const label = dateKey
+        ? new Date(dateKey).toLocaleDateString("en-GB", { month: "long", year: "numeric" })
+        : "Upcoming";
+      if (!groups[label]) groups[label] = [];
+      groups[label].push(item);
+    }
+    return groups;
+  };
+
   const statusBadge = (status: Booking["status"]) => {
     if (status === "COMPLETED")
       return <span className="text-[11px] font-poppins font-semibold text-green-600 bg-green-50 px-2.5 py-1 rounded-full">Completed</span>;
@@ -71,26 +85,7 @@ const KraftsPage = () => {
     return <span className="text-[11px] font-poppins font-semibold text-gray-500 bg-gray-50 px-2.5 py-1 rounded-full">{status}</span>;
   };
 
-  // Fallback mock data
-  const mockUpcoming = [
-    { id: "mock-1", title: "House Cleaning with Sarah M.", location: "Hauptstraße 123 - 10115, Berlin", time: "15th Jan, 2025 (In 15 Minutes)", image: "/images/pro.jpg" },
-    { id: "mock-2", title: "House Cleaning with Sarah M.", location: "Hauptstraße 123 - 10115, Berlin", time: "15th Jan, 2025 (In 15 Minutes)", image: "/images/pro.jpg" },
-  ];
-  const mockCompleted = [
-    { id: "c1", title: "House Cleaning with Sarah M.", location: "Hauptstraße 123 - 10115, Berlin", time: "15th Jan, 2025", image: "/images/pro.jpg", status: "COMPLETED" as const },
-    { id: "c2", title: "House Cleaning", location: "Hauptstraße 123 - 10115, Berlin", time: "15th Jan, 2025 4:00am", image: "/images/pro.jpg", status: "CANCELLED" as const },
-    { id: "c3", title: "House Cleaning", location: "Hauptstraße 123 - 10115, Berlin", time: "15th Jan, 2025 4:00am", image: "/images/pro.jpg", status: "DISPUTED" as const },
-  ];
-  const mockRequests = [
-    { id: "r1", title: "Garden Cleanup & Debris Cleanup", posted_date: "Oct 12", offers_count: 2 },
-  ];
-
-  // Logic to determine what list to show
-  const showFallback = lastFetchStatus === 'error' || lastFetchStatus === 'empty' || (lastFetchStatus === 'success' && bookings.length === 0);
-  
-  const upcomingList = showFallback && filteredUpcoming.length === 0 ? mockUpcoming : filteredUpcoming;
-  const completedList = showFallback && filteredCompleted.length === 0 ? mockCompleted : filteredCompleted;
-  const requestsList = showFallback && filteredRequests.length === 0 ? mockRequests : filteredRequests;
+  const upcomingGroups = groupByMonth(filteredUpcoming);
 
   return (
     <main className="relative w-full min-h-screen bg-white pb-24">
@@ -102,13 +97,6 @@ const KraftsPage = () => {
           </button>
           <h1 className="text-[28px] font-gerat font-bold">Krafts</h1>
         </div>
-
-        {showFallback && (
-          <div className="flex items-center gap-2 mb-6 px-3 py-1.5 bg-[#FFF9F5] border border-[#FF660020] rounded-lg w-fit">
-            <div className="w-2 h-2 bg-brand-orange rounded-full animate-pulse"></div>
-            <span className="text-[12px] font-semibold text-[#1D2939] font-poppins">Technical Issue: Showing preview data</span>
-          </div>
-        )}
 
         {/* Tabs */}
         <div className="flex bg-gray-100 p-1 rounded-xl mb-5">
@@ -142,12 +130,12 @@ const KraftsPage = () => {
           />
         </div>
 
-        {/* Error Banner - Non-blocking warning */}
+        {/* Error Banner */}
         {error && lastFetchStatus === 'error' && (
-          <ErrorBanner 
-            message={`Offline Mode: ${error}. Showing cached data.`} 
-            onDismiss={clearError} 
-            className="mb-4" 
+          <ErrorBanner
+            message={error}
+            onDismiss={clearError}
+            className="mb-4"
           />
         )}
 
@@ -161,16 +149,13 @@ const KraftsPage = () => {
         {!isLoading && activeTab === "upcoming" && (
           <div className="space-y-6">
             {/* Kraft Requests */}
-            {requestsList.length > 0 && (
+            {filteredRequests.length > 0 && (
               <div>
                 <h2 className="text-[16px] font-poppins font-bold mb-3 text-black">Kraft Requests</h2>
-                {requestsList.map((job: any) => {
-                  const isReal = !!job.status;
-                  const title = isReal 
-                    ? `${job.service?.title ?? "Request"} with ${job.service?.artisan?.fullName ?? "Pro"}`
-                    : job.title;
-                  const date = isReal ? formatDate(job.created_at) : job.posted_date;
-                  
+                {filteredRequests.map((job: any) => {
+                  const title = `${job.service?.title ?? "Request"} with ${job.service?.artisan?.fullName ?? "Pro"}`;
+                  const date = formatDate(job.created_at);
+
                   return (
                     <div key={job.id} className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm mb-3">
                       <h3 className="text-[15px] font-poppins font-bold text-black mb-2">{title}</h3>
@@ -181,7 +166,7 @@ const KraftsPage = () => {
                         </div>
                         <div className="flex items-center gap-1.5 text-[12px] text-brand-orange font-poppins font-semibold">
                           <MapPin size={14} />
-                          <span>{isReal ? "Request Pending" : `${job.offers_count} Offers Received`}</span>
+                          <span>Request Pending</span>
                         </div>
                       </div>
                       <div className="flex gap-2">
@@ -201,97 +186,107 @@ const KraftsPage = () => {
               </div>
             )}
 
-            {/* Upcoming Bookings */}
-            <div>
-              <h2 className="text-[16px] font-poppins font-bold mb-3 text-black">January</h2>
-              <div className="space-y-3">
-                {upcomingList.map((task: any) => {
-                  const isReal = !!task.status; // real bookings have status
-                  const title = isReal
-                    ? `${task.service?.title ?? "Service"} with ${task.service?.artisan?.fullName ?? "Artisan"}`
-                    : task.title;
-                  const location = isReal ? task.location : task.location;
-                  const time = isReal ? formatDate(task.scheduled_date) : task.time;
-                  const image = isReal ? (task.service?.artisan?.avatar ?? "/images/pro.jpg") : task.image;
-
-                  return (
-                    <div
-                      key={task.id}
-                      onClick={() =>
-                        router.push(
-                          `/user/book-service/active-job?status=accepted${isReal ? `&id=${task.id}` : ""}`
-                        )
-                      }
-                      className="bg-white border border-gray-100 rounded-2xl p-4 flex gap-3 shadow-sm cursor-pointer hover:border-brand-orange transition-colors"
-                    >
-                      <div className="flex-1 space-y-1.5">
-                        <h3 className="text-[14px] font-poppins font-bold text-black">{title}</h3>
-                        <div className="flex items-center gap-1.5 text-[12px] text-gray-500 font-poppins">
-                          <MapPin size={13} className="text-gray-400 shrink-0" />
-                          <span>{location}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-[12px] text-gray-500 font-poppins">
-                          <Image src="/taskerCal.svg" alt="calendar" width={13} height={13} className="shrink-0" />
-                          <span>{time}</span>
-                        </div>
-                        {isReal && <div className="pt-1">{statusBadge(task.status)}</div>}
-                      </div>
-                      <div className="shrink-0">
-                        <Image src={image} alt="artisan" width={80} height={80} className="rounded-xl object-cover w-20 h-20" />
-                      </div>
-                    </div>
-                  );
-                })}
+            {/* Upcoming Bookings grouped by month */}
+            {filteredUpcoming.length === 0 && filteredRequests.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <p className="text-[16px] font-poppins font-semibold text-gray-400">No upcoming krafts</p>
+                <p className="text-[13px] font-poppins text-gray-300 mt-1">Your accepted bookings will appear here</p>
               </div>
-            </div>
+            ) : (
+              Object.entries(upcomingGroups).map(([month, tasks]) => (
+                <div key={month}>
+                  <h2 className="text-[16px] font-poppins font-bold mb-3 text-black">{month}</h2>
+                  <div className="space-y-3">
+                    {tasks.map((task: any) => {
+                      const title = `${task.service?.title ?? "Service"} with ${task.service?.artisan?.fullName ?? "Artisan"}`;
+                      const location = task.location;
+                      const time = formatDate(task.scheduled_date);
+                      const image = task.service?.artisan?.avatar ?? "/images/pro.jpg";
+
+                      return (
+                        <div
+                          key={task.id}
+                          onClick={() =>
+                            router.push(`/user/book-service/active-job?status=accepted&id=${task.id}`)
+                          }
+                          className="bg-white border border-gray-100 rounded-2xl p-4 flex gap-3 shadow-sm cursor-pointer hover:border-brand-orange transition-colors"
+                        >
+                          <div className="flex-1 space-y-1.5">
+                            <h3 className="text-[14px] font-poppins font-bold text-black">{title}</h3>
+                            <div className="flex items-center gap-1.5 text-[12px] text-gray-500 font-poppins">
+                              <MapPin size={13} className="text-gray-400 shrink-0" />
+                              <span>{location}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-[12px] text-gray-500 font-poppins">
+                              <Image src="/taskerCal.svg" alt="calendar" width={13} height={13} className="shrink-0" />
+                              <span>{time}</span>
+                            </div>
+                            <div className="pt-1">{statusBadge(task.status)}</div>
+                          </div>
+                          <div className="shrink-0">
+                            <Image src={image} alt="artisan" width={80} height={80} className="rounded-xl object-cover w-20 h-20" />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         )}
 
         {!isLoading && activeTab === "completed" && (
-          <div>
-            <h2 className="text-[16px] font-poppins font-bold mb-3 text-black">December</h2>
-            <div className="space-y-3">
-              {completedList.map((task: any) => {
-                const isReal = !!task.scheduled_date;
-                const title = isReal
-                  ? `${task.service?.title ?? "Service"} with ${task.service?.artisan?.fullName ?? "Artisan"}`
-                  : task.title;
-                const location = isReal ? task.location : task.location;
-                const time = isReal ? formatDate(task.scheduled_date) : task.time;
-                const image = isReal ? (task.service?.artisan?.avatar ?? "/images/pro.jpg") : task.image;
-                const taskStatus = task.status;
-
-                return (
-                  <div
-                    key={task.id}
-                    onClick={() =>
-                      taskStatus === "COMPLETED" &&
-                      router.push(`/user/book-service/completed-job${isReal ? `?id=${task.id}` : ""}`)
-                    }
-                    className={`bg-white border border-gray-100 rounded-2xl p-4 flex gap-3 shadow-sm ${
-                      taskStatus === "COMPLETED" ? "cursor-pointer hover:border-brand-orange transition-colors" : ""
-                    }`}
-                  >
-                    <div className="flex-1 space-y-1.5">
-                      <h3 className="text-[14px] font-poppins font-bold text-black">{title}</h3>
-                      <div className="flex items-center gap-1.5 text-[12px] text-gray-500 font-poppins">
-                        <MapPin size={13} className="text-gray-400 shrink-0" />
-                        <span>{location}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-[12px] text-gray-500 font-poppins">
-                        <Image src="/taskerCal.svg" alt="calendar" width={13} height={13} className="shrink-0" />
-                        <span>{time}</span>
-                      </div>
-                      <div className="pt-1">{statusBadge(taskStatus)}</div>
-                    </div>
-                    <div className="shrink-0">
-                      <Image src={image} alt="artisan" width={80} height={80} className="rounded-xl object-cover w-20 h-20" />
-                    </div>
-                  </div>
-                );
-              })}
+          filteredCompleted.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <p className="text-[16px] font-poppins font-semibold text-gray-400">No completed krafts yet</p>
+              <p className="text-[13px] font-poppins text-gray-300 mt-1">Finished bookings will appear here</p>
             </div>
-          </div>
+          ) : (
+            Object.entries(groupByMonth(filteredCompleted)).map(([month, tasks]) => (
+              <div key={month} className="mb-6">
+                <h2 className="text-[16px] font-poppins font-bold mb-3 text-black">{month}</h2>
+                <div className="space-y-3">
+                  {tasks.map((task: any) => {
+                    const title = `${task.service?.title ?? "Service"} with ${task.service?.artisan?.fullName ?? "Artisan"}`;
+                    const location = task.location;
+                    const time = formatDate(task.scheduled_date);
+                    const image = task.service?.artisan?.avatar ?? "/images/pro.jpg";
+                    const taskStatus = task.status;
+
+                    return (
+                      <div
+                        key={task.id}
+                        onClick={() =>
+                          taskStatus === "COMPLETED" &&
+                          router.push(`/user/book-service/completed-job?id=${task.id}`)
+                        }
+                        className={`bg-white border border-gray-100 rounded-2xl p-4 flex gap-3 shadow-sm ${
+                          taskStatus === "COMPLETED" ? "cursor-pointer hover:border-brand-orange transition-colors" : ""
+                        }`}
+                      >
+                        <div className="flex-1 space-y-1.5">
+                          <h3 className="text-[14px] font-poppins font-bold text-black">{title}</h3>
+                          <div className="flex items-center gap-1.5 text-[12px] text-gray-500 font-poppins">
+                            <MapPin size={13} className="text-gray-400 shrink-0" />
+                            <span>{location}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-[12px] text-gray-500 font-poppins">
+                            <Image src="/taskerCal.svg" alt="calendar" width={13} height={13} className="shrink-0" />
+                            <span>{time}</span>
+                          </div>
+                          <div className="pt-1">{statusBadge(taskStatus)}</div>
+                        </div>
+                        <div className="shrink-0">
+                          <Image src={image} alt="artisan" width={80} height={80} className="rounded-xl object-cover w-20 h-20" />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))
+          )
         )}
       </div>
 
