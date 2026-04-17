@@ -23,6 +23,8 @@ const BookServicePage = () => {
     addresses,
     selectedAddressId,
     currentAddress,
+    currentLatitude,
+    currentLongitude,
     selectAddress,
     addAddress,
     removeAddress,
@@ -77,6 +79,10 @@ const BookServicePage = () => {
       taskDetails: formData.taskDetails,
       specialInstructions: formData.specialInstructions,
     });
+    if (currentLatitude != null && currentLongitude != null) {
+      params.set("latitude", String(currentLatitude));
+      params.set("longitude", String(currentLongitude));
+    }
     router.push(`/user/book-service/select-artisan?${params.toString()}`);
   };
 

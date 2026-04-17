@@ -4,10 +4,10 @@ import Button from "@/components/ui/button";
 
 interface ArtisanCardProps {
   artisan: {
-    id: number;
+    id: string;
     name: string;
     profileImage: string;
-    badge?: "TOP PRO" | "ELITE" | null;
+    badge?: string | null;
     rating: number;
     reviewCount: number;
     taskCount: number;
@@ -15,10 +15,11 @@ interface ArtisanCardProps {
     description: string;
     pricePerHour: number;
     isNewTasker?: boolean;
+    isAvailable?: boolean;
   };
   index: number;
-  onSelect: (id: number) => void;
-  onChat?: (id: number) => void;
+  onSelect: (id: string) => void;
+  onChat?: (id: string) => void;
 }
 
 const ArtisanCard = ({ artisan, index, onSelect, onChat }: ArtisanCardProps) => {
@@ -31,7 +32,7 @@ const ArtisanCard = ({ artisan, index, onSelect, onChat }: ArtisanCardProps) => 
         {/* Profile Image */}
         <div className="relative shrink-0">
           <Image
-            src={artisan.profileImage}
+            src={artisan.profileImage || "/images/pro.jpg"}
             alt={artisan.name}
             width={80}
             height={80}
@@ -54,7 +55,7 @@ const ArtisanCard = ({ artisan, index, onSelect, onChat }: ArtisanCardProps) => 
                 )}
               </div>
               <div className="flex items-center gap-2 mt-1">
-                <div className="flex items-center">
+                {/* <div className="flex items-center">
                   {[...Array(5)].map((_, i) => (
                     <Star
                       key={i}
@@ -66,13 +67,13 @@ const ArtisanCard = ({ artisan, index, onSelect, onChat }: ArtisanCardProps) => 
                       }
                     />
                   ))}
-                </div>
+                </div> */}
                 <span className="text-[12px] text-gray-600 font-poppins">
-                  ({artisan.reviewCount}) · {artisan.taskCount} tasks
+                  {artisan.taskCount} tasks
                 </span>
               </div>
               <span className="inline-block text-[#FF6600] text-xs bg-[#FF66001A] px-2 py-1 rounded-full">
-                Available Now
+                {artisan.isAvailable ? "Available Now" : "Not Available"}
               </span>
             </div>
           </div>

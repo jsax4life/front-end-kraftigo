@@ -94,6 +94,11 @@ export interface KrafterPersonalDetailsStatus {
   }
 }
 
+/** PATCH /api/profile/krafter/profile-photo — URL only, after presigned upload (same rules as personal-details profilePhotoUrl) */
+export interface KrafterProfilePhotoUpdatePayload {
+  profilePhotoUrl: string
+}
+
 /** PATCH /api/profile/krafter/complete-profile/personal-details */
 export interface KrafterPersonalDetailsSubmitPayload {
   displayName?: string
@@ -235,6 +240,16 @@ export const submitKrafterPersonalDetails = async (
 ): Promise<KrafterProfileCompletionSummary> => {
   const response = await api.patch<KrafterProfileCompletionSummary>(
     '/api/profile/krafter/complete-profile/personal-details',
+    payload,
+  )
+  return response.data
+}
+
+export const updateKrafterProfilePhoto = async (
+  payload: KrafterProfilePhotoUpdatePayload,
+): Promise<KrafterProfileCompletionSummary> => {
+  const response = await api.patch<KrafterProfileCompletionSummary>(
+    '/api/profile/krafter/profile-photo',
     payload,
   )
   return response.data

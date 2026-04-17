@@ -92,7 +92,7 @@ const KraftsPage = () => {
       <div className="px-4 py-6">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
-          <button onClick={() => router.back()} className="p-1">
+          <button onClick={() => router.push("/user/home")} className="p-1">
             <ArrowLeft size={24} />
           </button>
           <h1 className="text-[28px] font-gerat font-bold">Krafts</h1>
@@ -198,10 +198,10 @@ const KraftsPage = () => {
                   <h2 className="text-[16px] font-poppins font-bold mb-3 text-black">{month}</h2>
                   <div className="space-y-3">
                     {tasks.map((task: any) => {
-                      const title = `${task.service?.title ?? "Service"} with ${task.service?.artisan?.fullName ?? "Artisan"}`;
+                      const title = task.jobTitle ?? "Service";
                       const location = task.location;
-                      const time = formatDate(task.scheduled_date);
-                      const image = task.service?.artisan?.avatar ?? "/images/pro.jpg";
+                      const time = formatDate(task.preferredDate);
+                      const image = task.artisan?.avatar ?? "/images/pro.jpg";
 
                       return (
                         <div

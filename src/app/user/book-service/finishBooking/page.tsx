@@ -7,9 +7,35 @@ import { useState, useEffect } from "react";
 import Input from "@/components/ui/input";
 import { useBookingsStore } from "@/store/useBookingsStore";
 import { usePaymentStore } from "@/store/usePaymentStore";
+import { useAddressStore } from "@/store/useAddressStore";
 import toast from "react-hot-toast";
 import { logger } from "@/utils/logger";
 import PaymentFlowModal from "@/components/shared/PaymentFlowModal";
+
+/** Last resort when no coordinates from the booking URL chain or address store */
+const FALLBACK_LAT = 52.52;
+const FALLBACK_LNG = 13.4;
+
+function resolveBookingCoordinates(
+  searchParams: URLSearchParams,
+  storeLat: number | null,
+  storeLng: number | null,
+): { latitude: number; longitude: number } {
+  const qLat = parseFloat(searchParams.get("latitude") || "");
+  const qLng = parseFloat(searchParams.get("longitude") || "");
+  if (Number.isFinite(qLat) && Number.isFinite(qLng)) {
+    return { latitude: qLat, longitude: qLng };
+  }
+  if (
+    storeLat != null &&
+    storeLng != null &&
+    Number.isFinite(storeLat) &&
+    Number.isFinite(storeLng)
+  ) {
+    return { latitude: storeLat, longitude: storeLng };
+  }
+  return { latitude: FALLBACK_LAT, longitude: FALLBACK_LNG };
+}
 
 const Page = () => {
   const router = useRouter();
@@ -45,6 +71,8 @@ const Page = () => {
     selectPayment,
     hasPaymentMethods,
   } = usePaymentStore();
+  const currentLatitude = useAddressStore((s) => s.currentLatitude);
+  const currentLongitude = useAddressStore((s) => s.currentLongitude);
 
   // Set initial selected payment to default or first method
   useEffect(() => {
@@ -55,7 +83,12 @@ const Page = () => {
     }
   }, [paymentMethods, selectedPaymentId, selectPayment]);
 
-  const hourlyRate = 41.29;
+  const artisanId = searchParams.get("artisanId");
+  const pricePerHourParam = parseFloat(searchParams.get("pricePerHour") || "");
+  const hourlyRate =
+    Number.isFinite(pricePerHourParam) && pricePerHourParam > 0
+      ? pricePerHourParam
+      : 41.29;
   const hours = Number(searchParams.get("hours") || "1");
   const serviceFee = 5.0;
   const discount = 10.0;
@@ -72,10 +105,12 @@ const Page = () => {
     });
 
     try {
-      // Get address coordinates (you'll need to implement geocoding or get from address store)
-      // For now, using default Berlin coordinates
-      const latitude = 52.52;
-      const longitude = 13.4;
+      const { latitude, longitude } = resolveBookingCoordinates(
+        searchParams,
+        currentLatitude,
+        currentLongitude,
+      );
+      logger.log("Booking coordinates", { latitude, longitude });
 
       // Convert time to HH:mm format (remove AM/PM if present)
       const rawTime = searchParams.get("time") || "09:00";
@@ -110,6 +145,8 @@ const Page = () => {
         longitude: longitude,
         preferredDate: new Date(date).toISOString().split("T")[0], // YYYY-MM-DD format
         preferredTime: formattedTime, // HH:mm format
+        ...(artisanId && !isPublic ? { artisanId } : {}),
+        ...(!isPublic ? { proposedPrice: hourlyRate * hours } : {}),
       };
 
       if (isPublic) {
@@ -129,9 +166,9 @@ const Page = () => {
           ? "Public task posted successfully!"
           : "Booking confirmed successfully!",
       );
-      router.push(
-        `/user/book-service/confirmation?isPublic=${isPublic}&category=${encodeURIComponent(categoryName)}&address=${encodeURIComponent(address)}&date=${encodeURIComponent(date)}&time=${encodeURIComponent(rawTime)}`,
-      );
+      const nextParams = new URLSearchParams(searchParams.toString());
+      nextParams.set("isPublic", String(isPublic));
+      router.push(`/user/book-service/confirmation?${nextParams.toString()}`);
     } catch (err: any) {
       logger.error("Booking creation failed:", err);
 
@@ -203,10 +240,10 @@ const Page = () => {
             ) : (
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-[13px] sm:text-[14px] font-poppins font-semibold text-gray-900">
-                  Edit Ropalanum.
+                  {searchParams.get("artisanName")}
                 </span>
                 <span className="bg-[#E8F5E9] text-[#2E7D32] text-[10px] sm:text-[11px] font-poppins font-semibold px-2 py-0.5 rounded">
-                  TOP PRO
+                  {searchParams.get("artisanBadge")}
                 </span>
               </div>
             )}
@@ -265,14 +302,14 @@ const Page = () => {
               ${serviceFee.toFixed(2)}
             </span>
           </div>
-          <div className="flex items-center justify-between">
+          {/* <div className="flex items-center justify-between">
             <span className="text-[13px] sm:text-[14px] font-poppins text-[#4CAF50]">
               Discount (Welcome 10)
             </span>
             <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-[#4CAF50]">
               -${discount.toFixed(2)}
             </span>
-          </div>
+          </div> */}
           <div className="pt-3 border-t border-[#0000001A] flex items-center justify-between">
             <span className="text-[15px] sm:text-[16px] font-poppins font-bold text-gray-900">
               Total Amount
@@ -336,12 +373,12 @@ const Page = () => {
                 cardData?.number?.slice(-4) ||
                 (method as any).cardLast4 ||
                 "****";
-              const holderName =
-                cardData?.holder ||
-                cardData?.name ||
-                (method as any).name ||
-                (method as any).billingDetails?.name ||
-                "John Doe";
+              // const holderName =
+              //   cardData?.holder ||
+              //   cardData?.name ||
+              //   (method as any).name ||
+              //   (method as any).billingDetails?.name ||
+              //   "John Doe";
 
               // 2. Determine the Title based on the payment type
               let methodTitle = "Debit/Credit Card";
@@ -387,9 +424,9 @@ const Page = () => {
                     <div className="mt-4 flex justify-between items-end">
                       {/* Left Side: Name and Number */}
                       <div className="flex flex-col gap-1.5">
-                        <h4 className="font-poppins font-bold text-[15px] text-gray-900 leading-none">
+                        {/* <h4 className="font-poppins font-bold text-[15px] text-gray-900 leading-none">
                           {holderName}
-                        </h4>
+                        </h4> */}
                         <p className="font-poppins text-[14px] text-gray-800 tracking-widest leading-none mt-1">
                           **** **** **** {last4}
                         </p>

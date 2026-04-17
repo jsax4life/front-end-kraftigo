@@ -4,10 +4,10 @@ import Button from "@/components/ui/button";
 
 interface ArtisanGridCardProps {
   artisan: {
-    id: number;
+    id: string;
     name: string;
     profileImage: string;
-    badge?: "TOP PRO" | "ELITE" | null;
+    badge?: string | null;
     rating: number;
     reviewCount: number;
     taskCount: number;
@@ -15,8 +15,9 @@ interface ArtisanGridCardProps {
     description: string;
     pricePerHour: number;
     isNewTasker?: boolean;
+    isAvailable?: boolean;
   };
-  onSelect: (id: number) => void;
+  onSelect: (id: string) => void;
 }
 
 const ArtisanGridCard = ({ artisan, onSelect }: ArtisanGridCardProps) => {
@@ -25,20 +26,20 @@ const ArtisanGridCard = ({ artisan, onSelect }: ArtisanGridCardProps) => {
       {/* Profile Image with Badge */}
       <div className="relative">
         <Image
-          src={artisan.profileImage}
+          src={artisan.profileImage || "/images/pro.jpg"}
           alt={artisan.name}
           width={400}
           height={400}
           className="w-full h-48 object-cover rounded-xl"
         />
         {/* Availability Badge */}
-        {artisan.isNewTasker ? (
+        {artisan.isAvailable ? (
           <span className="absolute top-3 left-2 text-[#FF6600] text-[10px] bg-white px-2 py-1 rounded-full font-poppins font-medium flex items-center gap-1">
             Available Now ⚡
           </span>
         ) : (
           <span className="absolute top-3 left-2 text-purple-600 text-[10px] bg-white px-2 py-1 rounded-full font-poppins font-medium">
-            Unavailable Until 24th January
+            Unavailable
           </span>
         )}
       </div>
@@ -46,24 +47,23 @@ const ArtisanGridCard = ({ artisan, onSelect }: ArtisanGridCardProps) => {
       {/* Card Content */}
       <div className="p-3">
         {/* Name and Badge */}
-        <div className="flex items-center gap-3 mb-2">
-          <h3 className="text-[16px] font-poppins font-bold">{artisan.name}</h3>
-          {artisan.badge && (
-            <span className="text-xs font-poppins bg-[#014F2A1A] text-[#014F2A] px-2 py-0.5">
-              {artisan.badge}
-            </span>
-          )}
-        </div>
+        {artisan.badge && (
+          <span className="text-xs font-poppins bg-[#014F2A1A] text-[#014F2A] px-2 py-0.5">
+            {artisan.badge}
+          </span>
+        )}
+        <h3 className="text-[16px] font-poppins font-bold">{artisan.name}</h3>
+
 
         {/* Rating and Reviews */}
         <div className="flex items-center gap-1 mb-2">
-          <span className="text-[14px] font-poppins font-semibold">
+          {/* <span className="text-[14px] font-poppins font-semibold">
             {artisan.rating}
-          </span>
-          <Star size={14} className="fill-black text-black -mt-1" />
+          </span> */}
+          {/* <Star size={14} className="fill-black text-black -mt-1" />
           <span className="text-[12px] text-gray-600 font-poppins">
             ({artisan.reviewCount})
-          </span>
+          </span> */}
           <span className="text-[12px] text-gray-600 font-poppins">
             {artisan.taskCount} tasks
           </span>

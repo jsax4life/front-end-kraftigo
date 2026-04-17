@@ -304,12 +304,12 @@ const PaymentFlowModal = ({ onClose }: PaymentFlowModalProps) => {
                 "****";
 
               // Get name and address
-              const holderName =
-                cardData?.holder ||
-                cardData?.name ||
-                (method as any).name ||
-                (method as any).billingDetails?.name ||
-                "John Doe";
+              // const holderName =
+              //   cardData?.holder ||
+              //   cardData?.name ||
+              //   (method as any).name ||
+              //   (method as any).billingDetails?.name ||
+              //   "John Doe";
 
               return (
                 <div
@@ -358,9 +358,9 @@ const PaymentFlowModal = ({ onClose }: PaymentFlowModalProps) => {
                   {/* Bottom Details Row */}
                   <div className="flex flex-col gap-1.5">
                     {/* Name */}
-                    <h4 className="font-poppins font-bold text-[16px] text-gray-900 leading-none">
+                    {/* <h4 className="font-poppins font-bold text-[16px] text-gray-900 leading-none">
                       {holderName}
-                    </h4>
+                    </h4> */}
 
                     {/* Card Number */}
                     <p className="font-poppins text-[15px] text-gray-800 tracking-widest mt-1 leading-none">
