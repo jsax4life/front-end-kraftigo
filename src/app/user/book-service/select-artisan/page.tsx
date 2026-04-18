@@ -13,10 +13,10 @@ import { useBookingsStore } from "@/store/useBookingsStore";
 import { useAddressStore } from "@/store/useAddressStore";
 
 interface Artisan {
-  id: number;
+  id: string;
   name: string;
   profileImage: string;
-  badge?: "TOP PRO" | "ELITE" | null;
+  badge?: string | null;
   rating: number;
   reviewCount: number;
   taskCount: number;
@@ -24,23 +24,25 @@ interface Artisan {
   description: string;
   pricePerHour: number;
   isNewTasker?: boolean;
+  isAvailable?: boolean;
 }
 
-/** Map API recommendation item to UI Artisan shape (flexible for backend fields) */
-function mapRecommendationToArtisan(item: any, index: number): Artisan {
-  const id = Number(item?.id ?? item?.artisanId ?? item?.artisan_id ?? index + 1);
+function mapRecommendationToArtisan(rawItem: any, index: number): Artisan {
+  const item = rawItem?.artisan ?? rawItem?.data ?? rawItem; // Extract if wrapped
+  const id = String(item?.krafterId ?? item?.id ?? item?.artisanId ?? item?.artisan_id ?? index + 1);
   return {
     id,
-    name: item?.fullName ?? item?.name ?? item?.artisanName ?? "Krafter",
-    profileImage: item?.avatar ?? item?.profileImage ?? item?.profilePhotoUrl ?? "/images/pro.jpg",
-    badge: item?.badge === "TOP PRO" || item?.isTopPro ? "TOP PRO" : item?.badge ?? null,
+    name: item?.displayName ?? item?.fullName ?? item?.name ?? item?.artisanName ?? "Krafter",
+    profileImage: item?.profilePhotoUrl ?? item?.avatar ?? item?.profileImage ?? "/images/pro.jpg",
+    badge: item?.badges?.[0] ?? (item?.badge === "TOP PRO" || item?.isTopPro ? "TOP PRO" : item?.badge ?? null),
     rating: Number(item?.rating ?? item?.reviewsRating ?? 0) || 0,
-    reviewCount: Number(item?.reviewsCount ?? item?.reviewCount ?? item?.reviews_count ?? 0) || 0,
-    taskCount: Number(item?.completedJobs ?? item?.taskCount ?? item?.tasks_count ?? 0) || 0,
+    reviewCount: Number(item?.reviewCount ?? item?.reviewsCount ?? item?.reviews_count ?? 0) || 0,
+    taskCount: Number(item?.completedKrafts ?? item?.completedJobs ?? item?.taskCount ?? item?.tasks_count ?? 0) || 0,
     location: item?.location ?? item?.city ?? item?.baseCity ?? "New Tasker",
-    description: item?.bio ?? item?.description ?? item?.proposal_message ?? "",
-    pricePerHour: Number(item?.pricePerHour ?? item?.price_per_hour ?? item?.proposedPrice ?? 0) || 0,
+    description: item?.description ?? item?.bio ?? item?.proposal_message ?? "",
+    pricePerHour: Number(item?.hourlyRate ?? item?.pricePerHour ?? item?.price_per_hour ?? item?.proposedPrice ?? 0) || 0,
     isNewTasker: item?.isNewTasker ?? item?.is_new ?? false,
+    isAvailable: item?.isAvailable ?? false,
   };
 }
 
@@ -64,6 +66,14 @@ const SelectArtisanPage = () => {
   const [fetchDone, setFetchDone] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [showCompare, setShowCompare] = useState(false);
+
+  const canCompare = artisans.length > 1;
+
+  useEffect(() => {
+    if (!canCompare || viewMode !== "grid") {
+      setShowCompare(false);
+    }
+  }, [canCompare, viewMode]);
 
   // Fetch recommendations from API
   useEffect(() => {
@@ -113,15 +123,16 @@ const SelectArtisanPage = () => {
     getRecommendations,
   ]);
 
-  const handleSelectArtisan = (artisanId: number) => {
+  const handleSelectArtisan = (artisanId: string) => {
     const selected = artisans.find((a) => a.id === artisanId);
     const params = new URLSearchParams(searchParams.toString());
-    params.set("artisanId", artisanId.toString());
+    params.set("artisanId", artisanId);
     if (selected) {
       params.set("artisanName", selected.name);
       params.set("artisanImage", selected.profileImage);
       params.set("artisanBadge", selected.badge ?? "");
       params.set("pricePerHour", selected.pricePerHour.toString());
+      params.set("artisanKrafts", selected.taskCount.toString());
     }
     router.push(`/user/book-service/verifyDetails?${params.toString()}`);
   };
@@ -142,7 +153,7 @@ const SelectArtisanPage = () => {
     is_top_pro: artisan.badge === "TOP PRO",
   }));
 
-  const handleChat = (artisanId: number) => {
+  const handleChat = (artisanId: string) => {
     // Navigate to chat page
     const artisan = artisans.find((a) => a.id === artisanId);
     router.push(
@@ -310,32 +321,42 @@ const SelectArtisanPage = () => {
                 onSelect={handleSelectArtisan}
               />
             ))}
-            <div
-              onClick={() => setShowCompare(true)}
-              className="flex items-center justify-center gap-2 bg-brand-orange w-66 h-10 rounded-full cursor-pointer hover:bg-orange-600 transition-colors absolute top-70 left-1/2 transform -translate-x-1/2"
-            >
-              <Image
-                src="/double.svg"
-                alt="toggle view"
-                width={15}
-                height={15}
-              />
-              <span className="text-xs font-poppins text-white">
-                Compare Krafter ({artisans.length})
-              </span>
-            </div>
+            {canCompare && (
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => setShowCompare(true)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setShowCompare(true);
+                  }
+                }}
+                className="flex items-center justify-center gap-2 bg-brand-orange w-66 h-10 rounded-full cursor-pointer hover:bg-orange-600 transition-colors absolute top-70 left-1/2 transform -translate-x-1/2"
+              >
+                <Image
+                  src="/double.svg"
+                  alt=""
+                  width={15}
+                  height={15}
+                />
+                <span className="text-xs font-poppins text-white">
+                  Compare Krafter ({artisans.length})
+                </span>
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      {/* Compare Modal */}
-      {showCompare && (
+      {/* Compare Modal — grid view only; hidden when a single Krafter is returned */}
+      {canCompare && showCompare && (
         <CompareSheet
           allArtisans={mappedArtisans}
           onClose={() => setShowCompare(false)}
           onSelect={(app) => {
             setShowCompare(false);
-            handleSelectArtisan(parseInt(app.id));
+            handleSelectArtisan(app.id);
           }}
           fromRecommendations={artisansFromApi}
           serviceCategoryId={categoryId || undefined}

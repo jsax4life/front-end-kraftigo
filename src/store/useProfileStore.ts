@@ -23,6 +23,7 @@ import {
   submitKrafterPayout,
   getKrafterPersonalDetailsStatus,
   submitKrafterPersonalDetails,
+  updateKrafterProfilePhoto,
   submitKrafterSkills,
   getUploadUrlForProfilePhoto,
   getUploadUrlForCertification,
@@ -36,6 +37,7 @@ import {
   type KrafterPayoutSubmitPayload,
   type KrafterPersonalDetailsStatus,
   type KrafterPersonalDetailsSubmitPayload,
+  type KrafterProfilePhotoUpdatePayload,
   type KrafterSkillsSubmitPayload,
   type KrafterGenericUploadPayload,
   type KrafterGenericUploadResponse,
@@ -98,7 +100,10 @@ interface ProfileState {
   submitPersonalDetails: (
     payload: KrafterPersonalDetailsSubmitPayload,
   ) => Promise<KrafterProfileCompletionSummary>
-  
+  updateKrafterProfilePhotoUrl: (
+    payload: KrafterProfilePhotoUpdatePayload,
+  ) => Promise<KrafterProfileCompletionSummary>
+
   // Krafter skills
   submitSkills: (
     payload: KrafterSkillsSubmitPayload,
@@ -426,6 +431,24 @@ export const useProfileStore = create<ProfileState>((set) => ({
       set({
         error: error.response?.data?.message || 'Failed to save personal details',
         isLoading: false,
+      })
+      throw error
+    }
+  },
+
+  updateKrafterProfilePhotoUrl: async (payload) => {
+    set({ error: null })
+    try {
+      const newSummary = await updateKrafterProfilePhoto(payload)
+      const newPersonalStatus = await getKrafterPersonalDetailsStatus()
+      set({
+        profileCompletionSummary: newSummary,
+        personalDetailsStatus: newPersonalStatus,
+      })
+      return newSummary
+    } catch (error: any) {
+      set({
+        error: error.response?.data?.message || 'Failed to update profile photo',
       })
       throw error
     }

@@ -98,7 +98,7 @@ const ConfirmationContent = () => {
           <p className="text-[14px] sm:text-[15px] font-poppins text-gray-600">
             {isPublic 
               ? `You've successfully posted your ${categoryName} task to the marketplace.` 
-              : `You've successfully booked Edith for your ${categoryName} service.`}
+              : `You've successfully booked ${searchParams.get("artisanName")} for your ${categoryName} service.`}
           </p>
         </div>
 
@@ -108,7 +108,7 @@ const ConfirmationContent = () => {
             <div className="flex items-start gap-4">
               <div className="relative">
                 <Image
-                  src="/images/pro.jpg"
+                  src={searchParams.get("artisanImage") || "/images/pro.jpg"}
                   alt="Edith Ropalanum"
                   width={60}
                   height={60}
@@ -118,14 +118,14 @@ const ConfirmationContent = () => {
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
                   <h3 className="text-[16px] sm:text-[17px] font-poppins font-bold text-gray-900">
-                    Edith Ropalanum.
+                   {searchParams.get("artisanName")}
                   </h3>
                   <span className="bg-[#E8F5E9] text-[#2E7D32] text-[10px] font-poppins font-semibold px-2 py-0.5 rounded">
-                    TOP PRO
+                    {searchParams.get("artisanBadge")}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="flex items-center gap-1">
+                  {/* <div className="flex items-center gap-1">
                     {[1, 2, 3, 4].map((star) => (
                       <svg
                         key={star}
@@ -141,17 +141,17 @@ const ConfirmationContent = () => {
                     >
                       <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
                     </svg>
-                  </div>
-                  <span className="text-[13px] font-poppins text-gray-600">
+                  </div> */}
+                  {/* <span className="text-[13px] font-poppins text-gray-600">
                     (23 reviews)
-                  </span>
+                  </span> */}
                   <span className="text-[13px] font-poppins text-gray-600">
-                    72 Krafts
+                    {searchParams.get("artisanKrafts")} Krafts
                   </span>
                 </div>
-                <span className="inline-block bg-[#FFF9C4] text-[#F57F17] text-[10px] font-poppins font-semibold px-2 py-1 rounded">
+                {/* <span className="inline-block bg-[#FFF9C4] text-[#F57F17] text-[10px] font-poppins font-semibold px-2 py-1 rounded">
                   NEW KRAFTER
-                </span>
+                </span> */}
               </div>
             </div>
           </div>

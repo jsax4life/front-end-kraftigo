@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Camera, X, User as UserIcon, HelpCircle, ChevronLeft } from "lucide-react";
@@ -31,7 +31,14 @@ const SectionTitle = ({ label, desc }: { label: string, desc?: string }) => (
 const Page = () => {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { artisanProfile, fetchArtisanProfile, createOrUpdateArtisanProfile, isLoading } = useProfileStore();
+  const {
+    artisanProfile,
+    fetchArtisanProfile,
+    createOrUpdateArtisanProfile,
+    getUploadUrlForProfilePic,
+    updateKrafterProfilePhotoUrl,
+    isLoading,
+  } = useProfileStore();
   
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
@@ -49,7 +56,11 @@ const Page = () => {
   };
   const [certifications, setCertifications] = useState<CertificationRow[]>([]);
   const [isUploadingPhotos, setIsUploadingPhotos] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const profilePhotoInputRef = useRef<HTMLInputElement>(null);
   const MAX_WORK_PHOTOS = 3;
+
+  const hasProfilePhoto = Boolean(artisanProfile?.profilePhotoUrl || user?.avatar);
 
   useEffect(() => {
     if (!artisanProfile) {
@@ -212,6 +223,45 @@ const Page = () => {
     return publicUrl;
   };
 
+  const uploadProfilePhoto = async (file: File): Promise<string> => {
+    const { uploadUrl, publicUrl, requiredUploadHeaders } = await getUploadUrlForProfilePic({
+      filename: file.name,
+      mimetype: file.type || "image/jpeg",
+      fileSize: file.size,
+    });
+    const response = await fetch(uploadUrl, {
+      method: "PUT",
+      body: file,
+      headers: requiredUploadHeaders,
+    });
+    if (!response.ok) throw new Error("Profile photo upload failed");
+    return publicUrl;
+  };
+
+  const handleProfilePhotoSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    try {
+      setIsUploadingAvatar(true);
+      const publicUrl = await uploadProfilePhoto(file);
+      await updateKrafterProfilePhotoUrl({ profilePhotoUrl: publicUrl });
+      const me = await api.get("/api/profile/artisan/me");
+      useProfileStore.setState({ artisanProfile: me.data });
+      toast.success("Profile photo updated!");
+    } catch (err: unknown) {
+      const msg =
+        err && typeof err === "object" && "response" in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : err instanceof Error
+            ? err.message
+            : "Failed to upload profile photo";
+      toast.error(msg || "Failed to upload profile photo");
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
   const replacePortfolioPhotoAt = async (index: number, file: File | null) => {
     if (!file) return;
     try {
@@ -243,30 +293,59 @@ const Page = () => {
 
       <div className="px-4 py-8 space-y-12 max-w-2xl mx-auto pb-32">
         
-        {/* Avatar Section */}
+        {/* Avatar Section — presigned upload + PATCH /api/profile/krafter/profile-photo */}
         <div className="flex flex-col items-center">
-            <div className="relative w-32 h-32 rounded-full border-2 border-[#EAECF0] p-1 shadow-sm bg-white shrink-0 group">
-              <div className="relative w-full h-full rounded-full overflow-hidden">
-                {artisanProfile?.profilePhotoUrl || user?.avatar ? (
-                  <Image 
-                    src={artisanProfile?.profilePhotoUrl || user?.avatar || ""} 
-                    alt="Profile" 
-                    fill 
-                    className="object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gray-50 flex items-center justify-center text-gray-400">
+          <input
+            ref={profilePhotoInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleProfilePhotoSelected}
+          />
+          <button
+            type="button"
+            disabled={isUploadingAvatar}
+            onClick={() => {
+              if (!isUploadingAvatar) profilePhotoInputRef.current?.click();
+            }}
+            className="relative w-32 h-32 rounded-full border-2 border-[#EAECF0] p-1 shadow-sm bg-white shrink-0 group cursor-pointer disabled:opacity-70 disabled:cursor-wait"
+            aria-label={hasProfilePhoto ? "Change profile photo" : "Add profile photo"}
+          >
+            <div className="relative w-full h-full rounded-full overflow-hidden">
+              {artisanProfile?.profilePhotoUrl || user?.avatar ? (
+                <Image
+                  src={artisanProfile?.profilePhotoUrl || user?.avatar || ""}
+                  alt="Profile"
+                  fill
+                  className="object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-50 flex items-center justify-center text-gray-400">
+                  {isUploadingAvatar ? (
+                    <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-orange border-t-transparent" />
+                  ) : (
                     <UserIcon size={40} />
-                  </div>
-                )}
-              </div>
-              <div className="absolute inset-0 bg-black/30 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                 <Camera className="text-white" size={24} />
-              </div>
-              <div className="absolute -bottom-1 -right-1 bg-white p-2 rounded-full shadow-md border border-gray-100">
-                 <Camera size={16} className="text-[#1D2939]" />
-              </div>
+                  )}
+                </div>
+              )}
             </div>
+            {isUploadingAvatar && (artisanProfile?.profilePhotoUrl || user?.avatar) && (
+              <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center">
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              </div>
+            )}
+            <div className="absolute inset-0 bg-black/30 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              <Camera className="text-white" size={24} />
+            </div>
+            <div className="absolute -bottom-1 -right-1 bg-white p-2 rounded-full shadow-md border border-gray-100 pointer-events-none">
+              <Camera size={16} className="text-[#1D2939]" />
+            </div>
+          </button>
+          <p className="mt-3 text-[12px] font-poppins text-[#667085] text-center max-w-xs">
+            {hasProfilePhoto
+              ? "Tap your photo to change it"
+              : "Tap your photo to add a profile picture"}
+          </p>
         </div>
 
         {/* Profile Information */}
@@ -438,7 +517,7 @@ const Page = () => {
             variant="primary" 
             fullWidth 
             onClick={handleSave} 
-            disabled={isLoading}
+            disabled={isLoading || isUploadingAvatar}
             className="py-4 text-[16px] font-gerat rounded-2xl"
            >
               {isLoading ? "Saving..." : "Save"}

@@ -25,11 +25,11 @@ export default function KrafterKycPage() {
         if (!shouldRedirectToDiditKyc(status)) {
           const { verificationState, kycStatus } = getVerificationWire(status);
           if (shouldRouteToKrafterProfileOnboarding(status)) {
-            router.replace("/krafter/profile-completion");
+            router.replace("/krafter/dashboard");
           } else if (kycStatus === "REJECTED") {
             router.replace("/krafter/verification");
           } else if (verificationState === "PENDING") {
-            router.replace("/user/profile");
+            router.replace("/krafter/dashboard");
             toast.success("Your verification is in progress.");
           } else {
             router.replace("/krafter/verification");
