@@ -73,7 +73,8 @@ export interface HomeUpcomingBooking {
   status: string;
   scheduledAt: string;
   addressSummary: string;
-  krafter: HomeUpcomingKrafter;
+  /** Absent for listings without an assigned Krafter yet (e.g. open marketplace). */
+  krafter: HomeUpcomingKrafter | null;
 }
 
 export interface HomePageResponse {

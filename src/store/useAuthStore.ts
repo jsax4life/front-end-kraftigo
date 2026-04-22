@@ -16,6 +16,7 @@ import {
   logoutUser,
   logoutAllDevices,
 } from '@/lib/api/auth'
+import { useDomainNotificationHistoryStore } from '@/store/useDomainNotificationHistoryStore'
 
 interface AuthState {
   // State
@@ -275,6 +276,7 @@ export const useAuthStore = create<AuthState>()(
             // Even if logout fails, clear local state
             console.error('Logout API error:', error)
           } finally {
+            useDomainNotificationHistoryStore.getState().clearAll()
             clearAuthState()
           }
         },
@@ -287,6 +289,7 @@ export const useAuthStore = create<AuthState>()(
           } catch (error) {
             console.error('Logout all devices API error:', error)
           } finally {
+            useDomainNotificationHistoryStore.getState().clearAll()
             clearAuthState()
           }
         },

@@ -119,6 +119,7 @@ const Page = () => {
               alt="kraftigö logo"
               width={173}
               height={58}
+              priority
               className="w-32 sm:w-40 h-auto object-contain"
             />
           </div>

@@ -3,12 +3,14 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { Check, MapPin, Plus, Camera, X } from "lucide-react";
+import { Check, MapPin, Plus } from "lucide-react";
 import Button from "@/components/ui/button";
 import AddressModal from "@/components/shared/AddressModal";
 import DatePickerModal from "@/components/shared/DatePickerModal";
 import PhotoUploader, { Photo } from "@/components/shared/PhotoUploader";
 import { useAddressStore } from "@/store/useAddressStore";
+import { useBookingsStore } from "@/store/useBookingsStore";
+import toast from "react-hot-toast";
 
 const BookServicePage = () => {
   const router = useRouter();
@@ -31,6 +33,13 @@ const BookServicePage = () => {
     getCurrentLocation,
     loadAddresses,
   } = useAddressStore();
+
+  const {
+    createBookingForRecommendation,
+    clearRecommendationDraftBooking,
+    setPendingPublishMediaFiles,
+    isSubmitting,
+  } = useBookingsStore();
 
   interface BookServiceForm {
     selectedDate: Date | undefined;
@@ -62,28 +71,77 @@ const BookServicePage = () => {
     { display: "Custom", value: "Custom" },
   ];
 
-  const handleNext = () => {
-    // Validate required fields
+  const handleNext = async () => {
     if (!formData.selectedDate || !formData.selectedTime || !formData.taskDetails) {
-      alert("Please fill in all required fields");
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    if (!categoryId.trim()) {
+      toast.error("Missing service category. Go back and pick a category.");
       return;
     }
 
-    // Navigate to artisan selection with booking details
-    const params = new URLSearchParams({
-      categoryId: categoryId,
-      category: categoryName,
-      address: currentAddress,
-      date: formData.selectedDate.toISOString(),
-      time: formData.selectedTime,
-      taskDetails: formData.taskDetails,
-      specialInstructions: formData.specialInstructions,
-    });
-    if (currentLatitude != null && currentLongitude != null) {
-      params.set("latitude", String(currentLatitude));
-      params.set("longitude", String(currentLongitude));
+    const preferredDate = formData.selectedDate.toISOString().split("T")[0];
+    const lat =
+      currentLatitude != null && Number.isFinite(currentLatitude)
+        ? currentLatitude
+        : 52.52;
+    const lng =
+      currentLongitude != null && Number.isFinite(currentLongitude)
+        ? currentLongitude
+        : 13.4;
+
+    const mediaFiles = formData.photos
+      .map((p) => p.file)
+      .filter((f): f is File => f instanceof File);
+
+    const jobDescription = [
+      formData.taskDetails,
+      formData.specialInstructions?.trim()
+        ? `Special instructions: ${formData.specialInstructions.trim()}`
+        : "",
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+
+    try {
+      const booking = await createBookingForRecommendation({
+        serviceCategoryId: categoryId,
+        jobTitle: categoryName,
+        jobDescription,
+        media: mediaFiles.length > 0 ? mediaFiles : undefined,
+        consentAcknowledged: formData.consentAcknowledged,
+        address: currentAddress,
+        latitude: lat,
+        longitude: lng,
+        preferredDate,
+        preferredTime: formData.selectedTime,
+      });
+
+      setPendingPublishMediaFiles(mediaFiles);
+
+      const params = new URLSearchParams({
+        categoryId,
+        category: categoryName,
+        address: currentAddress,
+        date: formData.selectedDate.toISOString(),
+        time: formData.selectedTime,
+        taskDetails: formData.taskDetails,
+        specialInstructions: formData.specialInstructions,
+        bookingId: booking.id,
+      });
+      // Same coordinates as create-for-recommendation so /recommendations does not fall back to
+      // a different source (e.g. address store geocoded later) and diverge from the booking.
+      params.set("latitude", String(lat));
+      params.set("longitude", String(lng));
+      router.push(`/user/book-service/select-artisan?${params.toString()}`);
+    } catch (err: unknown) {
+      const ax = err as { response?: { data?: { message?: string } } };
+      toast.error(
+        ax.response?.data?.message ||
+          "Could not start your booking. Please try again.",
+      );
     }
-    router.push(`/user/book-service/select-artisan?${params.toString()}`);
   };
 
   const formatDate = (date: Date) => {
@@ -129,7 +187,11 @@ const BookServicePage = () => {
             </span>
           </div>
           <button
-            onClick={() => router.push("/user/home")}
+            type="button"
+            onClick={() => {
+              clearRecommendationDraftBooking();
+              router.push("/user/home");
+            }}
             className="text-brand-orange text-[12px] sm:text-[14px] font-poppins font-semibold rounded-full hover:underline"
           >
             Cancel
@@ -296,11 +358,17 @@ const BookServicePage = () => {
           <Button
             variant="primary"
             fullWidth
-            onClick={handleNext}
-            disabled={!formData.consentAcknowledged || !formData.taskDetails || !formData.selectedDate || !formData.selectedTime}
+            onClick={() => void handleNext()}
+            disabled={
+              !formData.consentAcknowledged ||
+              !formData.taskDetails ||
+              !formData.selectedDate ||
+              !formData.selectedTime ||
+              isSubmitting
+            }
             className="py-4 text-[16px] sm:text-[17px] max-w-md mx-auto disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Next
+            {isSubmitting ? "Saving…" : "Next"}
           </Button>
         </div>
       </div>

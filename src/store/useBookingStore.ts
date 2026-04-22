@@ -77,7 +77,9 @@ export const useBookingStore = create<BookingState>((set) => ({
   cancelBooking: async (bookingId) => {
     set({ isLoading: true, error: null })
     try {
-      await api.post(`/api/bookings/${bookingId}/cancel`)
+      await api.post(`/api/bookings/${bookingId}/cancel`, {
+        reason: 'NO_LONGER_NEED_SERVICE',
+      })
       set((state) => ({
         bookings: state.bookings.map(b => b.id === bookingId ? { ...b, status: 'CANCELLED' } : b),
         isLoading: false

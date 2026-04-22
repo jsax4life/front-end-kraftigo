@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import type { FocusEventHandler } from "react";
 import { Eye, EyeOff } from "lucide-react";
 
 interface InputProps {
@@ -9,6 +10,7 @@ interface InputProps {
   placeholder?: string;
   value: string;
   onChange: (value: string) => void;
+  onBlur?: FocusEventHandler<HTMLInputElement>;
   error?: string;
   required?: boolean;
   disabled?: boolean;
@@ -21,6 +23,7 @@ const Input = ({
   placeholder,
   value,
   onChange,
+  onBlur,
   error,
   required = false,
   disabled = false,
@@ -43,6 +46,7 @@ const Input = ({
           placeholder={placeholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onBlur={onBlur}
           disabled={disabled}
           className="w-full h-13 px-4 py-2 bg-[#F6F6F6] rounded-xl border border-[#0000001A] outline-none text-[14px] font-poppins placeholder:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed pr-11"
         />

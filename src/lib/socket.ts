@@ -1,67 +1,121 @@
-import { io, Socket } from 'socket.io-client';
-import { useChatStore } from '@/store/useChatStore';
+import { io, Socket } from "socket.io-client";
+import { useChatStore } from "@/store/useChatStore";
+import { isEngineIoSessionUnknownError } from "@/lib/engineIoErrors";
+import {
+  getOrderedEnginePaths,
+  getSocketConnectionBaseUrl,
+  getSocketIoTransports,
+  logSocketIoRoutingOnce,
+  persistWorkingEnginePath,
+} from "@/lib/socketIoPath";
+import { probeEngineIoPathWithFetch, probeSocketHandshake } from "@/lib/socketIoProbe";
 
 class ChatSocketManager {
   private socket: Socket | null = null;
   private token: string | null = null;
+  private connectGeneration = 0;
+  private chatSessionUnknownRetries = 0;
 
-  connect(token: string) {
-    if (this.socket?.connected && this.token === token) return;
-    
-    this.token = token;
-    
-    // Using the same base URL as API, but for websocket
-    const baseURL = process.env.NEXT_PUBLIC_API_URL || 'https://api.xn--kraftig-g1a.com';
-    const socketURL = baseURL.replace('https://', 'wss://').replace('http://', 'ws://');
-    
-    this.socket = io(`${socketURL}/chat`, {
-      auth: { token },
-      transports: ['websocket', 'polling']
+  private wireHandlers(s: Socket, authToken: string) {
+    s.on("connect", () => {
+      this.chatSessionUnknownRetries = 0;
+      console.log("Connected to chat server");
     });
-
-    this.socket.on('connect', () => {
-      console.log('Connected to chat server');
+    s.on("connect_error", (err) => {
+      if (s !== this.socket) return;
+      if (!isEngineIoSessionUnknownError(err) || this.chatSessionUnknownRetries >= 6) return;
+      this.chatSessionUnknownRetries += 1;
+      if (process.env.NODE_ENV === "development") {
+        console.info("[chat] Session ID unknown — retrying connect (sticky sessions recommended).");
+      }
+      setTimeout(() => {
+        if (s !== this.socket) return;
+        this.connect(authToken);
+      }, 400 + Math.random() * 500);
     });
-
-    this.socket.on('new_message', (data) => {
-      console.log('New message received:', data);
+    s.on("new_message", (data) => {
+      console.log("New message received:", data);
       const { addMessage } = useChatStore.getState();
       addMessage(data.message);
     });
-
-    this.socket.on('message_read', (data) => {
-      console.log('Message read:', data);
+    s.on("message_read", (data) => {
+      console.log("Message read:", data);
       const { updateReadStatus } = useChatStore.getState();
       updateReadStatus(data.conversationId, data.userId, data.messageIds);
     });
-
-    this.socket.on('error', (error) => {
-      console.error('Socket error:', error);
+    s.on("error", (error: unknown) => {
+      console.error("Socket error:", error);
     });
-
-    this.socket.on('disconnect', () => {
-      console.log('Disconnected from chat server');
+    s.on("disconnect", () => {
+      console.log("Disconnected from chat server");
     });
+  }
+
+  connect(token: string) {
+    if (this.socket?.connected && this.token === token) return;
+
+    this.token = token;
+    this.disconnect();
+    const gen = this.connectGeneration;
+    const base = getSocketConnectionBaseUrl();
+
+    void (async () => {
+      logSocketIoRoutingOnce("chat");
+      const paths = getOrderedEnginePaths();
+      const transports = getSocketIoTransports();
+      for (const path of paths) {
+        if (gen !== this.connectGeneration) return;
+
+        const fetchOk = await probeEngineIoPathWithFetch(base, path, token);
+        if (gen !== this.connectGeneration) return;
+
+        const ok =
+          fetchOk || (await probeSocketHandshake(base, "chat", path, token, transports));
+        if (gen !== this.connectGeneration) return;
+
+        if (ok) {
+          persistWorkingEnginePath(path);
+          if (gen !== this.connectGeneration) return;
+
+          this.socket = io(`${base}/chat`, {
+            path,
+            auth: { token },
+            transports,
+            reconnection: true,
+            reconnectionAttempts: 12,
+            reconnectionDelay: 2000,
+            timeout: 20000,
+          });
+          this.wireHandlers(this.socket, token);
+          return;
+        }
+      }
+      console.warn(
+        "[chat] No Engine.IO path worked. Set NEXT_PUBLIC_SOCKET_IO_PATH (see socketIoPath.ts).",
+      );
+    })();
   }
 
   joinConversation(conversationId: string) {
     if (this.socket) {
-      this.socket.emit('join_conversation', { conversationId });
+      this.socket.emit("join_conversation", { conversationId });
     }
   }
 
   leaveConversation(conversationId: string) {
     if (this.socket) {
-      this.socket.emit('leave_conversation', { conversationId });
+      this.socket.emit("leave_conversation", { conversationId });
     }
   }
 
   disconnect() {
+    this.connectGeneration += 1;
     if (this.socket) {
+      this.socket.removeAllListeners();
       this.socket.disconnect();
       this.socket = null;
-      this.token = null;
     }
+    this.token = null;
   }
 }
 

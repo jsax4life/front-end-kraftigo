@@ -8,29 +8,35 @@ import { X, MessageCircle, AlertCircle, Pause } from "lucide-react";
 import PhotoUploader, { Photo } from "@/components/shared/PhotoUploader";
 import Button from "@/components/ui/button";
 import RateCustomerModal from "@/components/shared/RateCustomerModal";
-import { Booking } from "@/store/useBookingStore";
+import type { Booking } from "@/types";
 import { useBookingsStore } from "@/store/useBookingsStore";
 
-type JobStatus = "not-started" | "in-transit" | "in-progress" | "completed";
+type JobPhase = "not-started" | "in-progress" | "completed";
 
 const STATUS_STEPS = [
-  { key: "not-started", label: "Not started", step: 1 },
-  { key: "in-transit",  label: "In Transit",  step: 2 },
-  { key: "in-progress", label: "In Progress", step: 3 },
-  { key: "completed",   label: "Completed",   step: 4 },
+  { key: "not-started", label: "Confirmed", step: 1 },
+  { key: "in-progress", label: "In progress", step: 2 },
+  { key: "completed", label: "Completed", step: 3 },
 ] as const;
+
+function normStatus(status: string | undefined): string {
+  return String(status ?? "")
+    .replace(/-/g, "_")
+    .toUpperCase();
+}
 
 interface ActiveJobModalProps {
   booking: Booking | null;
   onClose: () => void;
+  /** After POST start / complete succeeds; parent can refresh list and keep selection in sync. */
+  onBookingUpdated?: (booking: Booking) => void;
 }
 
-export default function ActiveJobModal({ booking, onClose }: ActiveJobModalProps) {
+export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: ActiveJobModalProps) {
   const router = useRouter();
-
   const { startBooking, completeBooking } = useBookingsStore();
 
-  const [currentStatus, setCurrentStatus] = useState<JobStatus>("not-started");
+  const [phase, setPhase] = useState<JobPhase>("not-started");
   const [showReportIssue, setShowReportIssue] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [timer, setTimer] = useState({ hours: 0, minutes: 0, seconds: 0 });
@@ -41,70 +47,84 @@ export default function ActiveJobModal({ booking, onClose }: ActiveJobModalProps
   const [isActionLoading, setIsActionLoading] = useState(false);
   const estimatedHours = 2;
 
-  // Reset state when a new booking is opened
   useEffect(() => {
-    if (booking) {
-      if (booking.status === "IN_PROGRESS") setCurrentStatus("in-progress");
-      else if (booking.status === "COMPLETED") setCurrentStatus("completed");
-      else setCurrentStatus("not-started");
-      setTimer({ hours: 0, minutes: 0, seconds: 0 });
-      setIsPaused(false);
-      setOngoingNotes("");
-      setCompletionNotes("");
-      setProofPhotos([]);
-    }
-  }, [booking?.id]);
+    if (!booking) return;
+    const s = normStatus(booking.status);
+    if (s === "COMPLETED") setPhase("completed");
+    else if (s === "IN_PROGRESS") setPhase("in-progress");
+    else setPhase("not-started");
+    setTimer({ hours: 0, minutes: 0, seconds: 0 });
+    setIsPaused(false);
+    setOngoingNotes("");
+    setCompletionNotes("");
+    setProofPhotos([]);
+  }, [booking?.id, booking?.status]);
 
-  // Timer
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
-    if (currentStatus === "in-progress" && !isPaused) {
+    if (phase === "in-progress" && !isPaused) {
       interval = setInterval(() => {
         setTimer((prev) => {
           let { hours, minutes, seconds } = prev;
           seconds++;
-          if (seconds === 60) { seconds = 0; minutes++; }
-          if (minutes === 60) { minutes = 0; hours++; }
+          if (seconds === 60) {
+            seconds = 0;
+            minutes++;
+          }
+          if (minutes === 60) {
+            minutes = 0;
+            hours++;
+          }
           return { hours, minutes, seconds };
         });
       }, 1000);
     }
-    return () => { if (interval) clearInterval(interval); };
-  }, [currentStatus, isPaused]);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [phase, isPaused]);
 
   if (!booking) return null;
 
-  const currentStepIndex = STATUS_STEPS.findIndex((s) => s.key === currentStatus);
-  const isOvertime = () => (timer.hours * 60 + timer.minutes) > estimatedHours * 60;
+  const apiStatus = normStatus(booking.status);
+  const isPaymentPending = apiStatus === "PAYMENT_PENDING";
+  const isConfirmed = apiStatus === "CONFIRMED";
+  const displayTitle = booking.title || booking.service?.title || "Booking";
+  const customerLabel = booking.customerName ?? "Customer";
 
-  const handleStartKraft = async () => {
+  const stepIndex = STATUS_STEPS.findIndex((s) => s.key === phase);
+  const isOvertime = () => timer.hours * 60 + timer.minutes > estimatedHours * 60;
+
+  const handleStartJob = async () => {
+    if (!isConfirmed) return;
     setIsActionLoading(true);
     try {
-      await startBooking(booking!.id);
-      setCurrentStatus("in-progress");
-      setIsPaused(false);
-    } catch {
-      toast.error("Could not start the job. Try again.");
+      const updated = await startBooking(booking.id);
+      onBookingUpdated?.(updated);
+      toast.success("Job started. Coordinate with your customer while you work.");
+      setPhase("in-progress");
+    } catch (err: unknown) {
+      const ax = err as { response?: { data?: { message?: string } } };
+      toast.error(
+        ax.response?.data?.message ??
+          "Could not start the job. It is only allowed once the booking is confirmed and payment is authorized.",
+      );
     } finally {
       setIsActionLoading(false);
     }
   };
 
   const handleCompleteJob = async () => {
-    if (proofPhotos.length === 0) {
-      toast.error("Please upload at least one photo as proof of work");
-      return;
-    }
     setIsActionLoading(true);
     try {
-      await completeBooking(booking!.id);
-      setCurrentStatus("completed");
+      const updated = await completeBooking(booking.id);
+      onBookingUpdated?.(updated);
+      toast.success("Job completed.");
+      setPhase("completed");
       setShowRatingModal(true);
-    } catch {
-      // Even if API fails, still allow rating flow
-      toast.error("Could not mark complete on server, but continuing...");
-      setCurrentStatus("completed");
-      setShowRatingModal(true);
+    } catch (err: unknown) {
+      const ax = err as { response?: { data?: { message?: string } } };
+      toast.error(ax.response?.data?.message ?? "Could not complete the job. Try again.");
     } finally {
       setIsActionLoading(false);
     }
@@ -118,7 +138,6 @@ export default function ActiveJobModal({ booking, onClose }: ActiveJobModalProps
 
   return (
     <>
-      {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center"
         onClick={onClose}
@@ -127,13 +146,11 @@ export default function ActiveJobModal({ booking, onClose }: ActiveJobModalProps
           className="relative bg-white rounded-t-xl w-full max-w-md mx-auto max-h-[94vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* ── Header ── */}
           <div className="bg-white px-5 pt-5 pb-4 border-b border-gray-100">
             <div className="flex items-center justify-between mb-5">
-              <h1 className="text-[22px] font-bold font-gerat text-gray-900">
-                {booking.title || "Craft"}
-              </h1>
+              <h1 className="text-[22px] font-bold font-gerat text-gray-900">{displayTitle}</h1>
               <button
+                type="button"
                 onClick={onClose}
                 className="p-2 hover:bg-gray-100 rounded-full transition-colors"
               >
@@ -141,11 +158,10 @@ export default function ActiveJobModal({ booking, onClose }: ActiveJobModalProps
               </button>
             </div>
 
-            {/* Status Pills */}
             <div className="flex items-center gap-2 flex-wrap">
               {STATUS_STEPS.map((status, index) => {
-                const isActive = index === currentStepIndex;
-                const isPastStep = index < currentStepIndex;
+                const isActive = index === stepIndex;
+                const isPastStep = index < stepIndex;
                 return (
                   <div
                     key={status.key}
@@ -153,8 +169,8 @@ export default function ActiveJobModal({ booking, onClose }: ActiveJobModalProps
                       isActive
                         ? "bg-brand-blue text-white px-4 py-2"
                         : isPastStep
-                        ? "w-8 h-8 bg-brand-orange text-white"
-                        : "w-8 h-8 bg-gray-200 text-gray-500"
+                          ? "w-8 h-8 bg-brand-orange text-white"
+                          : "w-8 h-8 bg-gray-200 text-gray-500"
                     }`}
                   >
                     {isPastStep && (
@@ -169,15 +185,16 @@ export default function ActiveJobModal({ booking, onClose }: ActiveJobModalProps
             </div>
           </div>
 
-          {/* ── Content ── */}
           <div className="px-5 py-5 space-y-4">
-
-            {/* Timer */}
-            {(currentStatus === "in-progress" || currentStatus === "completed") && (
+            {(phase === "in-progress" || phase === "completed") && (
               <div className="flex items-center justify-center gap-4">
                 {(["hours", "minutes", "seconds"] as const).map((unit) => (
                   <div key={unit} className="bg-gray-100 rounded-2xl p-4 text-center min-w-20">
-                    <div className={`text-4xl font-bold ${isOvertime() && currentStatus === "in-progress" ? "text-red-600" : "text-gray-900"}`}>
+                    <div
+                      className={`text-4xl font-bold ${
+                        isOvertime() && phase === "in-progress" ? "text-red-600" : "text-gray-900"
+                      }`}
+                    >
                       {String(timer[unit]).padStart(2, "0")}
                     </div>
                     <div className="text-sm text-gray-600 mt-1 capitalize">{unit}</div>
@@ -186,41 +203,38 @@ export default function ActiveJobModal({ booking, onClose }: ActiveJobModalProps
               </div>
             )}
 
-            {/* Total Earned */}
-            {currentStatus === "completed" && (
+            {phase === "completed" && (
               <div className="text-center">
-                <p className="text-sm text-gray-600 mb-1">Total Earned</p>
+                <p className="text-sm text-gray-600 mb-1">Total earned</p>
                 <p className="text-3xl font-bold text-green-600">
-                  +€{booking.price?.toFixed(2) ?? "0.00"}
+                  +€{booking.price != null ? Number(booking.price).toFixed(2) : "0.00"}
                 </p>
               </div>
             )}
 
-            {/* Customer Card */}
-            {currentStatus !== "completed" && (
+            {phase !== "completed" && (
               <div className="bg-[#F6F6F6] border border-[#0000001A] rounded-2xl p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-300 flex items-center justify-center">
                       {booking.image ? (
-                        <Image src={booking.image} alt={booking.customerName ?? "Customer"} fill className="object-cover" />
+                        <Image
+                          src={booking.image}
+                          alt={customerLabel}
+                          fill
+                          className="object-cover"
+                        />
                       ) : (
-                        <span className="text-white text-lg font-bold">
-                          {booking.customerName?.charAt(0) ?? "?"}
-                        </span>
+                        <span className="text-white text-lg font-bold">{customerLabel.charAt(0)}</span>
                       )}
                     </div>
                     <div>
-                      <h3 className="text-[15px] font-bold text-gray-900">{booking.customerName}</h3>
-                      <div className="flex items-center gap-1 mt-0.5">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="#000" stroke="none">
-                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                        </svg>
-                        <span className="text-[13px] text-gray-600">4.9</span>
-                      </div>
+                      <h3 className="text-[15px] font-bold text-gray-900">{customerLabel}</h3>
+                      <p className="text-[12px] text-gray-500 mt-0.5">Message for this listed kraft if you use chat.</p>
                     </div>
                   </div>
                   <button
+                    type="button"
                     onClick={() => router.push("/tasker/chat")}
                     className="w-11 h-11 bg-[#FFE5D9] rounded-full flex items-center justify-center hover:bg-[#FFD5C2] transition-colors"
                   >
@@ -230,129 +244,131 @@ export default function ActiveJobModal({ booking, onClose }: ActiveJobModalProps
               </div>
             )}
 
-            {/* Overtime Warning */}
-            {currentStatus === "in-progress" && isOvertime() && (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3">
-                <AlertCircle size={18} className="text-red-600 shrink-0" />
-                <p className="text-[13px] text-red-600 font-medium">You are working overtime</p>
-              </div>
-            )}
-
-            {/* Ongoing Notes */}
-            {currentStatus === "in-progress" && (
-              <div>
-                <h3 className="text-[15px] font-bold text-gray-900 mb-2">Ongoing Notes</h3>
-                <textarea
-                  value={ongoingNotes}
-                  onChange={(e) => setOngoingNotes(e.target.value)}
-                  placeholder="Add progress notes, missing parts, or observations..."
-                  className="w-full h-28 p-3 bg-[#F6F6F6] border border-[#0000001A] rounded-xl text-[14px] resize-none focus:outline-none focus:border-brand-orange"
-                />
-              </div>
-            )}
-
-            {/* Proof of Work */}
-            {currentStatus === "completed" && (
-              <div>
-                <h3 className="text-[15px] font-bold text-gray-900 mb-2 text-center">Upload proof of work</h3>
-                <PhotoUploader photos={proofPhotos} onChange={setProofPhotos} title="" />
-                <p className="text-xs text-gray-500 text-center pt-2">At least 1 photo required</p>
-              </div>
-            )}
-
-            {/* Completion Notes */}
-            {currentStatus === "completed" && (
-              <div>
-                <h3 className="text-[15px] font-bold text-gray-900 mb-2 text-center">Completion Notes</h3>
-                <textarea
-                  value={completionNotes}
-                  onChange={(e) => setCompletionNotes(e.target.value)}
-                  placeholder="Add final notes or observations..."
-                  className="w-full h-28 p-3 bg-[#F6F6F6] border border-[#0000001A] rounded-xl text-[14px] resize-none focus:outline-none focus:border-brand-orange"
-                />
-              </div>
-            )}
-
-            {/* Job Location */}
-            {currentStatus !== "in-progress" && currentStatus !== "completed" && (
-              <div className="bg-[#F6F6F6] border border-[#0000001A] rounded-2xl p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <h3 className="text-[15px] font-bold text-gray-900">Job Location</h3>
-                  <p className="text-[13px] text-gray-500 text-right max-w-[55%] leading-tight">{booking.location}</p>
-                </div>
-                <div className="relative rounded-xl overflow-hidden h-40">
-                  <Image src="/images/map.png" alt="Job location map" fill className="object-cover" />
-                  <button className="absolute bottom-3 left-3 bg-brand-orange text-white px-3 py-1.5 rounded-full text-[12px] font-medium shadow">
-                    Tap to open in maps
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Transit Warning */}
-            {(currentStatus === "not-started" || currentStatus === "in-transit") && (
-              <div className="bg-[#FFF4E6] border border-[#FFB84D] rounded-xl p-4 flex items-start gap-3">
-                <AlertCircle size={18} className="text-brand-orange shrink-0 mt-0.5" />
-                <p className="text-[13px] text-brand-orange leading-relaxed">
-                  Kindly let your client know you are in transit before your kraft officially starts.
+            {isPaymentPending && phase === "not-started" && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+                <AlertCircle size={18} className="text-amber-700 shrink-0 mt-0.5" />
+                <p className="text-[13px] text-amber-900 leading-relaxed">
+                  Waiting for the customer to authorize payment. You can start the job once the booking is confirmed.
                 </p>
               </div>
             )}
 
-            {/* Action Buttons */}
+            {phase === "in-progress" && isOvertime() && (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3">
+                <AlertCircle size={18} className="text-red-600 shrink-0" />
+                <p className="text-[13px] text-red-600 font-medium">You are past the estimated time for this job.</p>
+              </div>
+            )}
+
+            {phase === "in-progress" && (
+              <div>
+                <h3 className="text-[15px] font-bold text-gray-900 mb-2">Notes while working</h3>
+                <textarea
+                  value={ongoingNotes}
+                  onChange={(e) => setOngoingNotes(e.target.value)}
+                  placeholder="Progress notes, access issues, etc."
+                  className="w-full h-28 p-3 bg-[#F6F6F6] border border-[#0000001A] rounded-xl text-[14px] resize-none focus:outline-none focus:border-brand-orange"
+                />
+              </div>
+            )}
+
+            {phase === "in-progress" && (
+              <div>
+                <h3 className="text-[15px] font-bold text-gray-900 mb-2">Proof of work (optional)</h3>
+                <PhotoUploader photos={proofPhotos} onChange={setProofPhotos} title="" />
+              </div>
+            )}
+
+            {phase === "completed" && (
+              <div>
+                <h3 className="text-[15px] font-bold text-gray-900 mb-2 text-center">Completion notes</h3>
+                <textarea
+                  value={completionNotes}
+                  onChange={(e) => setCompletionNotes(e.target.value)}
+                  placeholder="Anything to remember for reviews or support…"
+                  className="w-full h-28 p-3 bg-[#F6F6F6] border border-[#0000001A] rounded-xl text-[14px] resize-none focus:outline-none focus:border-brand-orange"
+                />
+              </div>
+            )}
+
+            {phase === "not-started" && (
+              <div className="bg-[#F6F6F6] border border-[#0000001A] rounded-2xl p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <h3 className="text-[15px] font-bold text-gray-900">Job location</h3>
+                  <p className="text-[13px] text-gray-500 text-right max-w-[55%] leading-tight">{booking.location}</p>
+                </div>
+                <div className="relative rounded-xl overflow-hidden h-40">
+                  <Image src="/images/map.png" alt="Job location map" fill className="object-cover" />
+                  <span className="absolute bottom-3 left-3 bg-brand-orange text-white px-3 py-1.5 rounded-full text-[12px] font-medium shadow">
+                    Open in maps
+                  </span>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-3 pb-4">
-              {currentStatus === "not-started" && (
-                <Button onClick={() => setCurrentStatus("in-transit")} variant="primary" fullWidth>
-                  Set Status to In Transit
-                </Button>
-              )}
-              {currentStatus === "in-transit" && (
+              {phase === "not-started" && isConfirmed && (
                 <Button
-                  onClick={handleStartKraft}
+                  type="button"
+                  onClick={handleStartJob}
                   variant="primary"
                   fullWidth
                   disabled={isActionLoading}
                 >
-                  {isActionLoading ? "Starting..." : "Start Kraft"}
+                  {isActionLoading ? "Starting…" : "Start job"}
                 </Button>
               )}
-              {currentStatus === "in-progress" && (
+
+              {phase === "not-started" && !isConfirmed && !isPaymentPending && (
+                <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-[13px] text-gray-600">
+                  This job is not ready to start yet (status: {booking.status}). Pull to refresh or check again after
+                  the customer confirms.
+                </div>
+              )}
+
+              {phase === "in-progress" && (
                 <>
                   <button
+                    type="button"
                     onClick={() => setIsPaused((p) => !p)}
                     className="w-full py-4 bg-[#FF66001A] border border-[#FF66001A] text-brand-orange text-[15px] font-semibold rounded-xl flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
                   >
                     <Pause size={18} />
-                    {isPaused ? "Resume Task" : "Pause Task"}
+                    {isPaused ? "Resume timer" : "Pause timer"}
                   </button>
-                  <Button onClick={() => setCurrentStatus("completed")} variant="primary" fullWidth>
-                    Mark Kraft as Completed
-                  </Button>
-                </>
-              )}
-              {currentStatus === "completed" && (
-                <>
-                  <Button onClick={handleCompleteJob} variant="primary" fullWidth disabled={isActionLoading}>
-                    {isActionLoading ? "Submitting..." : "Submit & Complete"}
-                  </Button>
-                  {/* Rate Customer — always visible when completed so they can rate later */}
-                  <button
-                    onClick={() => setShowRatingModal(true)}
-                    className="w-full py-3 border border-brand-orange text-brand-orange text-[15px] font-semibold rounded-xl hover:bg-orange-50 transition-colors"
+                  <Button
+                    type="button"
+                    onClick={handleCompleteJob}
+                    variant="primary"
+                    fullWidth
+                    disabled={isActionLoading}
                   >
-                    Rate Customer
-                  </button>
+                    {isActionLoading ? "Completing…" : "Complete job"}
+                  </Button>
+                  <p className="text-[11px] text-center text-gray-500 font-poppins px-1">
+                    Completing tells the customer the work is done and triggers payout steps on the server.
+                  </p>
                 </>
               )}
-              <Button onClick={() => setShowReportIssue(true)} variant="secondary" fullWidth>
-                Report Issue
+
+              {phase === "completed" && (
+                <button
+                  type="button"
+                  onClick={() => setShowRatingModal(true)}
+                  className="w-full py-3 border border-brand-orange text-brand-orange text-[15px] font-semibold rounded-xl hover:bg-orange-50 transition-colors"
+                >
+                  Rate customer
+                </button>
+              )}
+
+              <Button type="button" onClick={() => setShowReportIssue(true)} variant="secondary" fullWidth>
+                Report issue
               </Button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── Report Issue Sub-modal ── */}
       {showReportIssue && (
         <div
           className="fixed inset-0 bg-black/60 z-60 flex items-end justify-center"
@@ -363,8 +379,9 @@ export default function ActiveJobModal({ booking, onClose }: ActiveJobModalProps
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-[20px] font-bold font-gerat">Report Issue</h2>
+              <h2 className="text-[20px] font-bold font-gerat">Report issue</h2>
               <button
+                type="button"
                 onClick={() => setShowReportIssue(false)}
                 className="p-1 hover:bg-gray-100 rounded-full transition-colors"
               >
@@ -373,7 +390,7 @@ export default function ActiveJobModal({ booking, onClose }: ActiveJobModalProps
             </div>
             <div className="space-y-4">
               <div>
-                <label className="text-[14px] font-semibold text-gray-700 mb-2 block">Issue Type</label>
+                <label className="text-[14px] font-semibold text-gray-700 mb-2 block">Issue type</label>
                 <select className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-[14px] focus:outline-none focus:border-brand-orange">
                   <option>Customer not available</option>
                   <option>Wrong address</option>
@@ -385,26 +402,29 @@ export default function ActiveJobModal({ booking, onClose }: ActiveJobModalProps
               <div>
                 <label className="text-[14px] font-semibold text-gray-700 mb-2 block">Description</label>
                 <textarea
-                  placeholder="Describe the issue..."
+                  placeholder="Describe the issue…"
                   className="w-full h-28 p-3 bg-gray-50 border border-gray-200 rounded-xl text-[14px] resize-none focus:outline-none focus:border-brand-orange"
                 />
               </div>
               <button
-                onClick={() => { setShowReportIssue(false); toast.success("Issue reported successfully"); }}
+                type="button"
+                onClick={() => {
+                  setShowReportIssue(false);
+                  toast.success("Issue reported.");
+                }}
                 className="w-full py-3 bg-brand-orange text-white text-[15px] font-semibold rounded-xl hover:opacity-90 transition-opacity"
               >
-                Submit Report
+                Submit report
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── Rate Customer Modal ── */}
       <RateCustomerModal
         isOpen={showRatingModal}
         onClose={() => setShowRatingModal(false)}
-        customerName={booking.customerName ?? "Customer"}
+        customerName={customerLabel}
         customerAvatar={booking.image ?? "/images/pro.jpg"}
         onSubmit={handleRatingSubmit}
       />

@@ -1,8 +1,26 @@
 import type { NextConfig } from "next";
 
+const apiBase = (
+  process.env.NEXT_PUBLIC_API_URL || "https://api.xn--kraftig-g1a.com"
+).replace(/\/$/, "");
+
 const nextConfig: NextConfig = {
   /* config options here */
   reactCompiler: true,
+  /**
+   * Proxy Engine.IO so the browser hits same-origin (`/socket.io`, `/api/socket.io`) and avoids
+   * CORS when the API does not allow `http://localhost:3000`. Next forwards to the real API host.
+   */
+  async rewrites() {
+    return [
+      { source: "/socket.io", destination: `${apiBase}/socket.io` },
+      { source: "/socket.io/", destination: `${apiBase}/socket.io/` },
+      { source: "/socket.io/:path*", destination: `${apiBase}/socket.io/:path*` },
+      { source: "/api/socket.io", destination: `${apiBase}/api/socket.io` },
+      { source: "/api/socket.io/", destination: `${apiBase}/api/socket.io/` },
+      { source: "/api/socket.io/:path*", destination: `${apiBase}/api/socket.io/:path*` },
+    ];
+  },
   images: {
     remotePatterns: [
       {

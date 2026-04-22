@@ -8,7 +8,6 @@ import ActiveJobModal from "@/components/shared/ActiveJobModal";
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { useBookingsStore } from "@/store/useBookingsStore";
 import type { Booking } from "@/types";
-import { type Booking as LegacyBooking } from "@/store/useBookingStore";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
@@ -41,19 +40,6 @@ function buildGrid(year: number, month: number): (Date | null)[] {
   for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(year, month, d));
   while (cells.length % 7 !== 0) cells.push(null);
   return cells;
-}
-
-/* Adapts the global Booking type to the legacy shape ActiveJobModal expects */
-function toActiveJobBooking(b: Booking): LegacyBooking {
-  return {
-    id: b.id,
-    title: b.service?.title ?? "Booking",
-    location: b.location,
-    date: b.scheduled_date,
-    time: b.scheduled_time ?? "TBD",
-    status: b.status as LegacyBooking["status"],
-    price: b.price,
-  };
 }
 
 const SchedulePage = () => {
@@ -122,11 +108,20 @@ const SchedulePage = () => {
 
   const getStatusInfo = (status: string) => {
     switch (status) {
-      case "COMPLETED": return { color: "bg-green-100 text-green-700", dot: "bg-green-500" };
-      case "CONFIRMED": return { color: "bg-orange-100 text-brand-orange", dot: "bg-brand-orange" };
-      case "PENDING":   return { color: "bg-blue-100 text-blue-600", dot: "bg-blue-400" };
-      case "CANCELLED": return { color: "bg-red-100 text-red-600", dot: "bg-red-500" };
-      default:          return { color: "bg-gray-100 text-gray-600", dot: "bg-gray-400" };
+      case "COMPLETED":
+        return { color: "bg-green-100 text-green-700", dot: "bg-green-500" };
+      case "CONFIRMED":
+        return { color: "bg-orange-100 text-brand-orange", dot: "bg-brand-orange" };
+      case "IN_PROGRESS":
+        return { color: "bg-blue-100 text-blue-700", dot: "bg-blue-500" };
+      case "PAYMENT_PENDING":
+        return { color: "bg-amber-100 text-amber-800", dot: "bg-amber-500" };
+      case "PENDING":
+        return { color: "bg-blue-100 text-blue-600", dot: "bg-blue-400" };
+      case "CANCELLED":
+        return { color: "bg-red-100 text-red-600", dot: "bg-red-500" };
+      default:
+        return { color: "bg-gray-100 text-gray-600", dot: "bg-gray-400" };
     }
   };
 
@@ -312,13 +307,21 @@ const SchedulePage = () => {
       {/* ── Modal switcher: show ActiveJobModal within 24h, TaskDetailModal otherwise ── */}
       {selectedBooking && isWithin24Hours(selectedBooking.scheduled_date) ? (
         <ActiveJobModal
-          booking={selectedBooking ? toActiveJobBooking(selectedBooking) : null}
+          booking={selectedBooking}
           onClose={() => setSelectedBooking(null)}
+          onBookingUpdated={(b) => {
+            setSelectedBooking(b);
+            void fetchArtisanBookings();
+          }}
         />
       ) : (
         <TaskDetailModal
           booking={selectedBooking}
           onClose={() => setSelectedBooking(null)}
+          onBookingUpdated={(b) => {
+            setSelectedBooking(b);
+            void fetchArtisanBookings();
+          }}
         />
       )}
     </main>

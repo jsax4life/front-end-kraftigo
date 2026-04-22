@@ -150,7 +150,7 @@ const Page = () => {
                 <div className="flex flex-col gap-1">
                   <div className="flex justify-end">
                     <p
-                      onClick={() => router.push("/user/forget-password")}
+                      onClick={() => router.push("/user/forgot-password")}
                       className="text-brand-blue text-[14px] font-mabry cursor-pointer underline "
                     >
                       Forgot password?

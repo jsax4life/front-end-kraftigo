@@ -35,6 +35,9 @@ export interface ServiceCategory {
   name: string;
   slug: string;
   icon?: string;
+  /** Present on `GET /api/services/categories` responses. */
+  imageUrl?: string | null;
+  description?: string;
 }
 
 export interface Service {
@@ -70,7 +73,13 @@ export type BookingStatus =
   | "IN_PROGRESS"
   | "COMPLETED"
   | "CANCELLED"
-  | "DISPUTED";
+  | "DISPUTED"
+  | "OPEN_FOR_APPLICATIONS"
+  | "RECOMMENDATION_PENDING"
+  | "KRAFTER_SELECTED"
+  | "DECLINED"
+  /** Krafter accepted direct request; customer must authorize payment in Stripe before CONFIRMED */
+  | "PAYMENT_PENDING";
 
 export interface Booking {
   id: string;
@@ -91,7 +100,66 @@ export interface Booking {
   title?: string;
   image?: string;
   customerName?: string;
+  /** Populated on some booking detail responses (e.g. GET `/api/bookings/:id`). */
+  customer?: {
+    id: string;
+    firstName?: string | null;
+    lastName?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    profilePhotoUrl?: string | null;
+    avatar?: string | null;
+  } | null;
   artisanName?: string;
+  /** Artisan marketplace browse: customer already applied to this open job */
+  hasApplied?: boolean;
+  /** Krafter `GET .../marketplace-applications` — application row id (not the booking id). */
+  marketplaceApplicationId?: string;
+  /** Application lifecycle, e.g. `PENDING`. */
+  marketplaceApplicationStatus?: string;
+  /** Message sent with the application offer. */
+  marketplaceApplicationMessage?: string;
+  /** When the Krafter submitted the application. */
+  marketplaceApplicationSubmittedAt?: string;
+  /** Listing’s advertised price on the open job (distinct from the Krafter’s offered `price`). */
+  listingProposedPrice?: number | string | null;
+  /** Customer `/api/bookings/my` and similar responses (camelCase) */
+  jobTitle?: string;
+  jobDescription?: string;
+  /** When returned separately from `jobDescription` (e.g. marketplace / detail). */
+  specialInstructions?: string | null;
+  openForNegotiation?: boolean | null;
+  krafterRatingRequirement?: string | null;
+  address?: string;
+  preferredDate?: string;
+  preferredTime?: string;
+  mediaUrls?: string[];
+  artisan?: {
+    avatar?: string;
+    fullName?: string;
+    firstName?: string;
+    lastName?: string;
+    profilePhotoUrl?: string;
+  } | null;
+  /** API detail/list (camelCase) */
+  artisanId?: string | null;
+  serviceCategoryId?: string | null;
+  serviceCategory?: { id: string; name: string; description?: string; imageUrl?: string };
+  createdAt?: string;
+  latitude?: string | number | null;
+  longitude?: string | number | null;
+  proposedPrice?: number | string | null;
+  finalAgreedPrice?: number | string | null;
+  /** Platform / system fee from API */
+  systemPrice?: number | string | null;
+  system_price?: number | string | null;
+  /** Latest checkout (e.g. after Krafter Accept); optional on list/detail responses */
+  payment?: {
+    clientSecret?: string;
+    client_secret?: string;
+    paymentIntentId?: string;
+    payment_intent_id?: string;
+  } | null;
 }
 
 // ─── Reviews ──────────────────────────────────────────────────────────────────

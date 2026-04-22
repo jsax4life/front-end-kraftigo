@@ -57,6 +57,8 @@ const SelectArtisanPage = () => {
   const dateParam = searchParams.get("date") || new Date().toISOString();
   const timeParam = searchParams.get("time") || "08:00";
   const taskDetails = searchParams.get("taskDetails") || "";
+  const latitudeFromUrl = searchParams.get("latitude") ?? "";
+  const longitudeFromUrl = searchParams.get("longitude") ?? "";
 
   const { getRecommendations, isLoading } = useBookingsStore();
   const { currentLatitude, currentLongitude } = useAddressStore();
@@ -82,8 +84,10 @@ const SelectArtisanPage = () => {
       return;
     }
 
-    const lat = currentLatitude ?? 0;
-    const lng = currentLongitude ?? 0;
+    const latParam = parseFloat(latitudeFromUrl || "");
+    const lngParam = parseFloat(longitudeFromUrl || "");
+    const lat = Number.isFinite(latParam) ? latParam : currentLatitude ?? 0;
+    const lng = Number.isFinite(lngParam) ? lngParam : currentLongitude ?? 0;
     const preferredDate = dateParam.includes("T")
       ? new Date(dateParam).toISOString().split("T")[0]
       : dateParam.slice(0, 10);
@@ -118,14 +122,19 @@ const SelectArtisanPage = () => {
     taskDetails,
     dateParam,
     timeParam,
+    latitudeFromUrl,
+    longitudeFromUrl,
     currentLatitude,
     currentLongitude,
     getRecommendations,
   ]);
 
+  const bookingId = searchParams.get("bookingId") || "";
+
   const handleSelectArtisan = (artisanId: string) => {
     const selected = artisans.find((a) => a.id === artisanId);
     const params = new URLSearchParams(searchParams.toString());
+    if (bookingId) params.set("bookingId", bookingId);
     params.set("artisanId", artisanId);
     if (selected) {
       params.set("artisanName", selected.name);

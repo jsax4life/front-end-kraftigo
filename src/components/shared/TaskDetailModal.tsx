@@ -14,7 +14,8 @@ interface TaskDetailModalProps {
   onClose: () => void;
   onReschedule?: (booking: Booking) => void;
   onReportIssue?: (booking: Booking) => void;
-  onCancel?: (booking: Booking) => void;
+  /** After POST `/api/artisan/bookings/:id/start` or `/complete` (Krafter schedule). */
+  onBookingUpdated?: (booking: Booking) => void;
 }
 
 /* Map status → active step index (0-based) */
@@ -22,6 +23,7 @@ const STATUS_STEP: Record<string, number> = {
   REQUESTED: 0,
   PENDING: 0,
   CONFIRMED: 1,
+  PAYMENT_PENDING: 1,
   IN_PROGRESS: 2,
   COMPLETED: 3,
   CANCELLED: 0,
@@ -49,14 +51,18 @@ export default function TaskDetailModal({
   onClose,
   onReschedule,
   onReportIssue,
-  onCancel,
+  onBookingUpdated,
 }: TaskDetailModalProps) {
   const router = useRouter();
-  const { cancelBooking } = useBookingsStore();
-  const [isCancelling, setIsCancelling] = useState(false);
+  const { startBooking, completeBooking } = useBookingsStore();
+  const [jobActionLoading, setJobActionLoading] = useState(false);
   if (!booking) return null;
 
   const activeStep = STATUS_STEP[booking.status] ?? 0;
+  const isConfirmed = booking.status === "CONFIRMED";
+  const isPaymentPending = booking.status === "PAYMENT_PENDING";
+  const isInProgress = booking.status === "IN_PROGRESS";
+  const displayTitle = booking.title || booking.service?.title || "Craft";
 
   return (
     <div
@@ -70,7 +76,7 @@ export default function TaskDetailModal({
         {/* ── Header ── */}
         <div className="flex items-center justify-between px-5 pt-3 pb-3">
           <h2 className="text-[22px] font-bold text-gray-900 leading-tight">
-            {booking.service?.title || "Craft"}
+            {displayTitle}
           </h2>
           <button
             onClick={onClose}
@@ -132,7 +138,7 @@ export default function TaskDetailModal({
           {/* Info */}
           <div>
             <p className="text-[15px] font-bold text-gray-900">
-              {booking.customerName}
+              {booking.customerName ?? "Customer"}
             </p>
             <div className="flex items-center gap-1 mt-0.5">
               {/* 3 full stars */}
@@ -226,9 +232,71 @@ export default function TaskDetailModal({
         {/* ── Action Buttons (hidden for completed bookings) ── */}
         {booking.status !== "COMPLETED" && (
           <div className="px-5 pt-4 pb-8 space-y-3">
+            {isPaymentPending && (
+              <p className="text-[13px] text-amber-900 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 font-poppins">
+                Waiting for the customer to authorize payment. You can start the job once the booking is{" "}
+                <strong>CONFIRMED</strong>.
+              </p>
+            )}
+            {isConfirmed && (
+              <Button
+                type="button"
+                variant="primary"
+                fullWidth
+                disabled={jobActionLoading}
+                onClick={async () => {
+                  setJobActionLoading(true);
+                  try {
+                    const updated = await startBooking(booking.id);
+                    onBookingUpdated?.(updated);
+                    toast.success("Job started. Coordinate with your customer while you work.");
+                  } catch (err: unknown) {
+                    const ax = err as { response?: { data?: { message?: string } } };
+                    toast.error(
+                      ax.response?.data?.message ??
+                        "Could not start the job. It may only be allowed after payment is confirmed.",
+                    );
+                  } finally {
+                    setJobActionLoading(false);
+                  }
+                }}
+              >
+                {jobActionLoading ? "Starting…" : "Start job"}
+              </Button>
+            )}
+            {isInProgress && (
+              <>
+                <Button
+                  type="button"
+                  variant="primary"
+                  fullWidth
+                  disabled={jobActionLoading}
+                  onClick={async () => {
+                    setJobActionLoading(true);
+                    try {
+                      const updated = await completeBooking(booking.id);
+                      onBookingUpdated?.(updated);
+                      toast.success("Job completed.");
+                      onClose();
+                    } catch (err: unknown) {
+                      const ax = err as { response?: { data?: { message?: string } } };
+                      toast.error(ax.response?.data?.message ?? "Could not complete the job. Try again.");
+                    } finally {
+                      setJobActionLoading(false);
+                    }
+                  }}
+                >
+                  {jobActionLoading ? "Completing…" : "Complete job"}
+                </Button>
+                <p className="text-[11px] text-center text-gray-500 font-poppins px-1">
+                  Use when the work is finished; the customer will see the job as completed and payout runs on the
+                  server.
+                </p>
+              </>
+            )}
             <Button
               onClick={() => onReschedule?.(booking)}
-              variant="primary"
+              variant={isConfirmed || isInProgress ? "outline" : "primary"}
               fullWidth
             >
               Reschedule
@@ -240,24 +308,10 @@ export default function TaskDetailModal({
             >
               Report Issue
             </Button>
-            <button
-              onClick={async () => {
-                setIsCancelling(true);
-                try {
-                  await cancelBooking(booking.id);
-                  toast.success("Booking cancelled.");
-                  onClose();
-                } catch {
-                  toast.error("Could not cancel. Try again.");
-                } finally {
-                  setIsCancelling(false);
-                }
-              }}
-              disabled={isCancelling}
-              className="w-full flex items-center justify-center text-brand-blue-deep py-1 hover:opacity-80 transition-opacity disabled:opacity-50"
-            >
-              {isCancelling ? "Cancelling..." : "Cancel Kraft"}
-            </button>
+            <p className="text-[11px] text-center text-gray-500 font-poppins px-2 leading-relaxed">
+              Krafters can’t cancel an assigned booking here — to decline before accepting, use{" "}
+              <strong>Requests</strong> → direct request actions. Customers cancel from their booking screen.
+            </p>
           </div>
         )}
       </div>

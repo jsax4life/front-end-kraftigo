@@ -44,15 +44,24 @@ const StripeCardForm = ({
 
     setIsSubmitting(true);
     try {
-      // 2. USE confirmSetup instead of confirmCardSetup
+      const { error: submitError } = await elements.submit();
+      if (submitError) {
+        toast.error(submitError.message ?? "Check card details");
+        return;
+      }
+
+      const returnUrl =
+        typeof window !== "undefined" ? window.location.href : "";
+
       const { error, setupIntent } = await stripe.confirmSetup({
         elements,
+        clientSecret,
         confirmParams: {
+          return_url: returnUrl,
           payment_method_data: {
-            billing_details: { name: nameOnCard },
+            billing_details: { name: nameOnCard.trim() },
           },
         },
-        // IMPORTANT: prevents Stripe from redirecting the user to a new URL
         redirect: "if_required",
       });
 
@@ -154,6 +163,7 @@ const PaymentFlowModal = ({ onClose }: PaymentFlowModalProps) => {
   const [showStripeCard, setShowStripeCard] = useState(false);
   const [showAddPaypal, setShowAddPaypal] = useState(false);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [isOpeningCard, setIsOpeningCard] = useState(false);
 
   // Load saved methods on mount
   useEffect(() => {
@@ -162,11 +172,20 @@ const PaymentFlowModal = ({ onClose }: PaymentFlowModalProps) => {
 
   const handleOpenCardForm = async () => {
     setShowAddMethod(false);
-    const idempotencyKey = `card-setup-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-    const result = await initiateSaveCard(idempotencyKey);
-    if (result?.clientSecret) {
-      setClientSecret(result.clientSecret);
-      setShowStripeCard(true);
+    setIsOpeningCard(true);
+    try {
+      const idempotencyKey = `card-setup-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+      const result = await initiateSaveCard(idempotencyKey);
+      if (result?.clientSecret) {
+        setClientSecret(result.clientSecret);
+        setShowStripeCard(true);
+      } else {
+        toast.error(
+          usePaymentStore.getState().error ?? "Could not start card setup",
+        );
+      }
+    } finally {
+      setIsOpeningCard(false);
     }
   };
 
@@ -175,8 +194,14 @@ const PaymentFlowModal = ({ onClose }: PaymentFlowModalProps) => {
     const ok = await persistPaymentMethod(paymentMethodId, isFirst);
     if (ok) {
       toast.success("Card saved successfully!");
-      await fetchSavedMethods();
-      if (isFirst) selectPayment(paymentMethodId);
+      const list = usePaymentStore.getState().savedMethods;
+      const row =
+        list.find((m) => m.paymentMethodId === paymentMethodId) ?? list[0];
+      if (row) selectPayment(row.id);
+    } else {
+      toast.error(
+        usePaymentStore.getState().error ?? "Failed to save payment method",
+      );
     }
     setShowStripeCard(false);
     setClientSecret(null);
@@ -405,11 +430,13 @@ const PaymentFlowModal = ({ onClose }: PaymentFlowModalProps) => {
 
             <div className="space-y-3">
               <button
+                type="button"
                 onClick={handleOpenCardForm}
-                className="w-full flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-gray-400 transition-colors bg-white"
+                disabled={isOpeningCard}
+                className="w-full flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-gray-400 transition-colors bg-white disabled:opacity-60"
               >
                 <span className="font-poppins text-[14px] sm:text-[15px] text-gray-800">
-                  Debit/Credit Card
+                  {isOpeningCard ? "Preparing…" : "Debit/Credit Card"}
                 </span>
                 <ChevronRight className="text-gray-400" size={20} />
               </button>
@@ -447,7 +474,11 @@ const PaymentFlowModal = ({ onClose }: PaymentFlowModalProps) => {
             }}
           />
           {/* 5. APPLY STRIPE OPTIONS HERE */}
-          <Elements stripe={stripePromise} options={stripeOptions}>
+          <Elements
+            key={clientSecret}
+            stripe={stripePromise}
+            options={stripeOptions}
+          >
             <StripeCardForm
               clientSecret={clientSecret}
               onSuccess={handleCardSuccess}
