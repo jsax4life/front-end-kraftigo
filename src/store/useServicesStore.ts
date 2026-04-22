@@ -50,9 +50,12 @@ export const useServicesStore = create<ServicesState>()((set, get) => ({
   fetchCategories: async () => {
     try {
       const categories = await getServiceCategories()
-      set({ categories })
+      set({ categories, error: null })
     } catch (err: any) {
       console.error('Failed to load categories:', err)
+      set({
+        error: err.response?.data?.message || 'Failed to load categories',
+      })
     }
   },
 

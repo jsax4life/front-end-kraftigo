@@ -17,6 +17,7 @@ import {
   type UpdateStep3Payload,
   type CustomKraftFrequency,
 } from "@/lib/api/custom-krafts";
+import { isSavedPaymentMethodRequiredError } from "@/lib/paymentCardRequired";
 
 // ─── State Shape ──────────────────────────────────────────────────────────────
 
@@ -287,6 +288,10 @@ export const useCustomKraftsStore = create<CustomKraftsState>()((set, get) => ({
       }));
       return published;
     } catch (err: any) {
+      if (isSavedPaymentMethodRequiredError(err)) {
+        set({ isSubmitting: false });
+        throw err;
+      }
       set({
         error: err.response?.data?.message || "Failed to publish custom kraft",
         isSubmitting: false,

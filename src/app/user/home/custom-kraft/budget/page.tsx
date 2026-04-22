@@ -8,6 +8,24 @@ import toast from "react-hot-toast";
 import ProgressStepper from "../components/ProgressStepper";
 import { useCustomKraftsStore } from "@/store/useCustomKraftsStore";
 import type { CustomKraftExpiryOption } from "@/lib/api/custom-krafts";
+import { MARKETPLACE_FIXED_PRICE_OFFER_MESSAGE } from "@/lib/marketplaceFixedPriceOfferValidation";
+
+function parseCustomKraftOffer(raw: string): number {
+  const t = raw.trim().replace(",", ".");
+  if (t === "") return NaN;
+  const n = parseFloat(t);
+  return Number.isFinite(n) ? n : NaN;
+}
+
+function fixedPriceWhenNegotiationOffErrorCustom(
+  amountRaw: string,
+  openToNegotiation: boolean,
+): string | null {
+  if (openToNegotiation) return null;
+  const offer = parseCustomKraftOffer(amountRaw);
+  if (Number.isFinite(offer) && offer > 0) return null;
+  return MARKETPLACE_FIXED_PRICE_OFFER_MESSAGE;
+}
 
 // ─── Expiry label → API enum map ──────────────────────────────────────────────
 const EXPIRY_MAP: Record<string, CustomKraftExpiryOption> = {
@@ -38,6 +56,7 @@ const Page = () => {
   const [openToNegotiation, setOpenToNegotiation] = useState(false);
   const [kraftExpiry, setKraftExpiry] = useState("3 days");
   const [urgentBoost, setUrgentBoost] = useState(false);
+  const [fixedPriceListingError, setFixedPriceListingError] = useState<string | null>(null);
 
   const expiryOptions = ["24h", "3 days", "1 Week"];
 
@@ -66,6 +85,12 @@ const Page = () => {
 
   // ─── Handlers ────────────────────────────────────────────────────────────────
   const handleNext = async () => {
+    const err = fixedPriceWhenNegotiationOffErrorCustom(offerAmount, openToNegotiation);
+    if (err) {
+      setFixedPriceListingError(err);
+      return;
+    }
+
     try {
       if (pendingDraftData) {
         // ── First time through: create the full draft with ALL accumulated fields
@@ -155,7 +180,21 @@ const Page = () => {
                 <input
                   type="number"
                   value={offerAmount}
-                  onChange={(e) => setOfferAmount(e.target.value)}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setOfferAmount(v);
+                    if (
+                      fixedPriceListingError &&
+                      fixedPriceWhenNegotiationOffErrorCustom(v, openToNegotiation) === null
+                    ) {
+                      setFixedPriceListingError(null);
+                    }
+                  }}
+                  onBlur={() =>
+                    setFixedPriceListingError(
+                      fixedPriceWhenNegotiationOffErrorCustom(offerAmount, openToNegotiation),
+                    )
+                  }
                   placeholder="0.00"
                   min="0"
                   step="0.01"
@@ -173,7 +212,18 @@ const Page = () => {
                 </span>
               </div>
               <button
-                onClick={() => setOpenToNegotiation(!openToNegotiation)}
+                type="button"
+                onClick={() => {
+                  const next = !openToNegotiation;
+                  setOpenToNegotiation(next);
+                  if (!next) {
+                    setFixedPriceListingError(
+                      fixedPriceWhenNegotiationOffErrorCustom(offerAmount, false),
+                    );
+                  } else {
+                    setFixedPriceListingError(null);
+                  }
+                }}
                 className={`w-12 h-6 rounded-full transition-colors relative ${
                   openToNegotiation ? "bg-brand-orange" : "bg-gray-300"
                 }`}
@@ -185,6 +235,11 @@ const Page = () => {
                 />
               </button>
             </div>
+            {fixedPriceListingError ? (
+              <p className="text-[12px] font-poppins text-red-600 mt-2" role="alert">
+                {fixedPriceListingError}
+              </p>
+            ) : null}
           </div>
 
           {/* Kraft Expiry */}

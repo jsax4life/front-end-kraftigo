@@ -6,6 +6,23 @@ import Image from "next/image";
 import { useState } from "react";
 import Input from "@/components/ui/input";
 import Button from "@/components/ui/button";
+import { MARKETPLACE_FIXED_PRICE_OFFER_MESSAGE } from "@/lib/marketplaceFixedPriceOfferValidation";
+
+function parsePublicOfferAmount(raw: string): number {
+  const t = raw.trim().replace(/^\$/, "").replace(/,/g, "");
+  const n = parseFloat(t);
+  return Number.isFinite(n) ? n : NaN;
+}
+
+function fixedPriceWhenNegotiationOffError(
+  amountRaw: string,
+  openToNegotiation: boolean,
+): string | null {
+  if (openToNegotiation) return null;
+  const offer = parsePublicOfferAmount(amountRaw);
+  if (Number.isFinite(offer) && offer > 0) return null;
+  return MARKETPLACE_FIXED_PRICE_OFFER_MESSAGE;
+}
 
 const Page = () => {
   const router = useRouter();
@@ -36,14 +53,17 @@ const Page = () => {
     amount: "",
     openToNegotiation: true,
     selectedExpiry: "24h",
+    customExpiryDate: "",
     selectedRequirement: "any",
     verifiedOnly: false,
   });
+  const [fixedPriceListingError, setFixedPriceListingError] = useState<string | null>(null);
 
   const timeSlots = [
     { id: "24h", label: "24h" },
     { id: "3days", label: "3 days" },
     { id: "1week", label: "1 Week" },
+    { id: "custom", label: "Custom" },
   ];
 
   const requirements = [
@@ -54,10 +74,23 @@ const Page = () => {
   ];
 
   const handleNext = () => {
-    // Navigate to next page with form data
+    const err = fixedPriceWhenNegotiationOffError(formData.amount, formData.openToNegotiation);
+    if (err) {
+      setFixedPriceListingError(err);
+      return;
+    }
+
     const params = new URLSearchParams(searchParams.toString());
     params.set("isPublic", "true");
-    if (formData.amount) params.set("budget", formData.amount);
+    if (formData.amount.trim()) params.set("budget", formData.amount.trim());
+    params.set("openForNegotiation", String(formData.openToNegotiation));
+    params.set("expiryOption", formData.selectedExpiry);
+    if (formData.selectedExpiry === "custom" && formData.customExpiryDate.trim()) {
+      const d = new Date(formData.customExpiryDate);
+      if (!Number.isNaN(d.getTime())) params.set("expiryDate", d.toISOString());
+    }
+    params.set("krafterRatingRequirement", formData.selectedRequirement);
+    params.set("verifiedOnly", String(formData.verifiedOnly));
     router.push(`/user/book-service/verifyDetails?${params.toString()}`);
   };
 
@@ -130,8 +163,19 @@ const Page = () => {
           <Input
             placeholder="$ 0.00"
             value={formData.amount}
-            onChange={(value) =>
-              setFormData({ ...formData, amount: value })
+            onChange={(value) => {
+              setFormData({ ...formData, amount: value });
+              if (
+                fixedPriceListingError &&
+                fixedPriceWhenNegotiationOffError(value, formData.openToNegotiation) === null
+              ) {
+                setFixedPriceListingError(null);
+              }
+            }}
+            onBlur={() =>
+              setFixedPriceListingError(
+                fixedPriceWhenNegotiationOffError(formData.amount, formData.openToNegotiation),
+              )
             }
             className="mb-4"
           />
@@ -145,12 +189,21 @@ const Page = () => {
               </span>
             </div>
             <button
-              onClick={() =>
+              type="button"
+              onClick={() => {
+                const nextOpen = !formData.openToNegotiation;
                 setFormData({
                   ...formData,
-                  openToNegotiation: !formData.openToNegotiation,
-                })
-              }
+                  openToNegotiation: nextOpen,
+                });
+                if (!nextOpen) {
+                  setFixedPriceListingError(
+                    fixedPriceWhenNegotiationOffError(formData.amount, false),
+                  );
+                } else {
+                  setFixedPriceListingError(null);
+                }
+              }}
               className={`relative w-12 h-6 rounded-full transition-colors ${
                 formData.openToNegotiation ? "bg-brand-orange" : "bg-gray-300"
               }`}
@@ -162,6 +215,14 @@ const Page = () => {
               />
             </button>
           </div>
+          {fixedPriceListingError ? (
+            <p
+              className="text-[12px] font-poppins text-red-600 -mt-1 pb-1"
+              role="alert"
+            >
+              {fixedPriceListingError}
+            </p>
+          ) : null}
         </div>
 
         {/* Kraft Expiry */}
@@ -173,6 +234,7 @@ const Page = () => {
             {timeSlots.map((time) => (
               <button
                 key={time.id}
+                type="button"
                 onClick={() =>
                   setFormData({ ...formData, selectedExpiry: time.id })
                 }
@@ -186,6 +248,21 @@ const Page = () => {
               </button>
             ))}
           </div>
+          {formData.selectedExpiry === "custom" && (
+            <label className="block pt-2 pb-1">
+              <span className="text-[12px] font-poppins text-gray-600 mb-1 block">
+                Expires on (local time)
+              </span>
+              <input
+                type="datetime-local"
+                value={formData.customExpiryDate}
+                onChange={(e) =>
+                  setFormData({ ...formData, customExpiryDate: e.target.value })
+                }
+                className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[14px] font-poppins"
+              />
+            </label>
+          )}
         </div>
 
         {/* Krafter Requirement */}

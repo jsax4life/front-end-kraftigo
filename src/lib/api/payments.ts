@@ -15,11 +15,10 @@ export interface SavePaymentMethodPayload {
 
 // ─── Response Shapes ──────────────────────────────────────────────────────────
 
+/** Normalized from `POST /api/payments/cards` (backend may use camelCase or snake_case). */
 export interface SetupIntentResponse {
-  setupIntentId: string
   clientSecret: string
-  paymentMethodId: string
-  success: boolean
+  setupIntentId?: string
 }
 
 export interface SavedPaymentMethod {
@@ -52,7 +51,7 @@ export const getMyPayments = async (): Promise<Payment[]> => {
   return response.data
 }
 
-/** POST /api/payments/cards — save and validate a card via Stripe SetupIntent.*/
+/** POST /api/payments/cards — returns Stripe SetupIntent `clientSecret` (optional `setupIntentId`). */
 export const saveCard = async (payload?: SaveCardPayload): Promise<SetupIntentResponse> => {
   const headers: Record<string, string> = {}
   if (payload?.idempotencyKey) {
@@ -60,12 +59,27 @@ export const saveCard = async (payload?: SaveCardPayload): Promise<SetupIntentRe
   }
 
   const response = await api.post('/api/payments/cards', {}, { headers })
-  return response.data
+  const data = response.data ?? {}
+  const clientSecret =
+    (typeof data.clientSecret === 'string' && data.clientSecret) ||
+    (typeof data.client_secret === 'string' && data.client_secret) ||
+    ''
+  if (!clientSecret) {
+    throw new Error('Invalid SetupIntent response: missing clientSecret')
+  }
+  const setupIntentId =
+    (typeof data.setupIntentId === 'string' && data.setupIntentId) ||
+    (typeof data.setup_intent_id === 'string' && data.setup_intent_id) ||
+    undefined
+  return { clientSecret, setupIntentId }
 }
 
-/** POST /api/payments/saved-methods — save a Stripe payment method ID to the user profile for future use */
+/** POST /api/payments/saved-methods — body `{ paymentMethodId, isDefault }` per API contract */
 export const savePaymentMethod = async (payload: SavePaymentMethodPayload): Promise<void> => {
-  await api.post('/api/payments/saved-methods', payload)
+  await api.post('/api/payments/saved-methods', {
+    paymentMethodId: payload.paymentMethodId,
+    isDefault: payload.isDefault ?? false,
+  })
 }
 
 /** GET /api/payments/saved-methods — returns all saved payment methods for the current customer */

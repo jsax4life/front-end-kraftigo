@@ -93,12 +93,12 @@ const ConfirmationContent = () => {
         {/* Success Message */}
         <div className="text-center mb-8">
           <h1 className="text-[28px] sm:text-[32px] font-gerat font-bold mb-3">
-            {isPublic ? "Task Posted Successfully" : "Booking Confirmed"}
+            {isPublic ? "Task Posted Successfully" : "Request sent"}
           </h1>
           <p className="text-[14px] sm:text-[15px] font-poppins text-gray-600">
-            {isPublic 
-              ? `You've successfully posted your ${categoryName} task to the marketplace.` 
-              : `You've successfully booked ${searchParams.get("artisanName")} for your ${categoryName} service.`}
+            {isPublic
+              ? `You've successfully posted your ${categoryName} task to the marketplace.`
+              : `We've shared your ${categoryName} request with ${searchParams.get("artisanName") || "your Krafter"}. The booking is not confirmed until they accept — we'll keep you updated.`}
           </p>
         </div>
 
@@ -238,7 +238,7 @@ const ConfirmationContent = () => {
           <div className="flex items-center justify-center gap-2 text-center">
             <Image src="/sheid.svg" alt="shield" width={18} height={18} />
             <p className="text-[13px] sm:text-[14px] font-poppins text-gray-600">
-              Krafter will arrive at the scheduled time
+              After your Krafter accepts, you can coordinate timing in chat if needed.
             </p>
           </div>
         )}

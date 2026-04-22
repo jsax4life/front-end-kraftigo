@@ -88,13 +88,13 @@ const Page = () => {
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // ── Fetch profile & home data on mount ─────────────────────────────────────
+  // ── Fetch profile (auth only) + home feed (`GET /api/home`) for everyone ───
   useEffect(() => {
-    if (isAuthenticated) {
-      if (!customerProfile) fetchCustomerProfile();
-      if (!hasFetched) fetchHomeData();
+    if (isAuthenticated && !customerProfile) {
+      void fetchCustomerProfile();
     }
-  }, [isAuthenticated, customerProfile, fetchCustomerProfile, hasFetched, fetchHomeData]);
+    void fetchHomeData();
+  }, [isAuthenticated, customerProfile, fetchCustomerProfile, fetchHomeData]);
 
   // ── Derived display values ──────────────────────────────────────────────────
   const displayName =
@@ -102,17 +102,17 @@ const Page = () => {
     "User";
   const avatar = user?.avatar;
 
-  // Categories: prefer API data, fall back to static ONLY on confirmed API failure
+  /** Categories from `GET /api/home` (curated, dynamic); IDs must match service categories for book-service. */
   const displayCategories =
     apiCategories.length > 0
       ? apiCategories.map((c) => ({
           id: c.id,
           name: c.name,
-          image: normSrc(c.imageUrl) || "/images/home3.jpg",
+          image: normSrc(c.imageUrl) ?? "/images/home3.jpg",
         }))
       : hasFetched && error
-      ? STATIC_CATEGORIES.map((c) => ({ id: "", ...c }))
-      : [];
+        ? STATIC_CATEGORIES.map((c) => ({ id: "", ...c }))
+        : [];
 
   // Pros: fall back to static ONLY on confirmed API failure
   const displayPros =
@@ -258,7 +258,7 @@ const Page = () => {
                   };
                   return (
                     <div
-                      key={index}
+                      key={category.id || `cat-${index}`}
                       className="cursor-pointer group"
                       onClick={handleCategoryClick}
                     >
@@ -378,11 +378,11 @@ const Page = () => {
                         </div>
                       </div>
 
-                      {/* Krafter Photo */}
+                      {/* Krafter Photo (optional until a Krafter is assigned) */}
                       <div className="relative w-[88px] h-[88px] sm:w-[100px] sm:h-[100px] rounded-xl overflow-hidden shrink-0">
                         <Image
-                          src={normSrc(booking.krafter.profilePhotoUrl) ?? "/images/pro.jpg"}
-                          alt={booking.krafter.displayName}
+                          src={normSrc(booking.krafter?.profilePhotoUrl) ?? "/images/pro.jpg"}
+                          alt={booking.krafter?.displayName ?? "Krafter"}
                           fill
                           className="object-cover"
                         />

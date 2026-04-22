@@ -1,49 +1,163 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import UserNav from "@/components/shared/userNav";
-import { ArrowLeft, Search, MapPin } from "lucide-react";
+import { ArrowLeft, Search, MapPin, Tag } from "lucide-react";
 import OffersModal from "@/components/shared/OffersModal";
+import CustomerKraftTaskDetailModal from "@/components/shared/CustomerKraftTaskDetailModal";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import ErrorBanner from "@/components/shared/ErrorBanner";
 import { useBookingsStore } from "@/store/useBookingsStore";
-import type { Booking } from "@/types";
+import type { Booking, BookingStatus } from "@/types";
+import { bookingNeedsKrafterSelection, buildSelectArtisanQuery, parseBookingMoney } from "@/lib/bookingDisplay";
+import BookingPaymentConfirmModal from "@/components/shared/BookingPaymentConfirmModal";
+import { bookingPaymentClientSecret } from "@/lib/bookingPaymentCheckout";
+import { getBookingApplicants } from "@/lib/api/bookings";
+import { isPendingBookingApplication } from "@/lib/mapBookingApplicants";
+
+function formatPostedDayMonth(iso?: string | null) {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  } catch {
+    return "—";
+  }
+}
+
+type UpcomingBookingFilter = "all" | "active" | "open_and_waiting" | "drafts" | "declined";
+
+const UPCOMING_FILTER_STATUSES: Record<
+  UpcomingBookingFilter,
+  readonly BookingStatus[] | null
+> = {
+  all: null,
+  active: ["ACCEPTED", "CONFIRMED", "IN_PROGRESS", "PAYMENT_PENDING"],
+  open_and_waiting: ["REQUESTED", "KRAFTER_SELECTED", "COUNTERED", "OPEN_FOR_APPLICATIONS"],
+  drafts: ["RECOMMENDATION_PENDING"],
+  declined: ["DECLINED"],
+};
+
+
+const AWAITING_KRAFTER_STATUSES: readonly BookingStatus[] = [
+  "REQUESTED",
+  "KRAFTER_SELECTED",
+  "COUNTERED",
+];
+
+const UPCOMING_FILTER_TABS: { id: UpcomingBookingFilter; label: string; hint?: string }[] = [
+  { id: "all", label: "All" },
+  { id: "active", label: "Active" },
+  { id: "open_and_waiting", label: "Waiting & open", hint: "Responses & community" },
+  { id: "drafts", label: "Drafts", hint: "Pick a Krafter" },
+  { id: "declined", label: "Declined" },
+];
+
+function matchesUpcomingFilter(status: BookingStatus, filter: UpcomingBookingFilter): boolean {
+  const allowed = UPCOMING_FILTER_STATUSES[filter];
+  if (allowed === null) return true;
+  return allowed.includes(status);
+}
+
+/** Statuses shown under “Waiting & open” — card opens task detail modal on tap. */
+const WAITING_OPEN_DETAIL_STATUSES = UPCOMING_FILTER_STATUSES.open_and_waiting as readonly BookingStatus[];
+
+/** “All” filter: same detail modal as Waiting & open, but only for marketplace-style rows. */
+function opensTaskDetailFromUpcomingCard(
+  filter: UpcomingBookingFilter,
+  status: BookingStatus,
+): boolean {
+  if (filter === "open_and_waiting" && WAITING_OPEN_DETAIL_STATUSES.includes(status)) return true;
+  if (filter === "all" && (status === "OPEN_FOR_APPLICATIONS" || status === "KRAFTER_SELECTED")) {
+    return true;
+  }
+  return false;
+}
 
 const KraftsPage = () => {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"upcoming" | "completed">("upcoming");
+  const [upcomingStatusFilter, setUpcomingStatusFilter] = useState<UpcomingBookingFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [showOffers, setShowOffers] = useState(false);
-  const [selectedJob, setSelectedJob] = useState<any>(null);
+  const [selectedJob, setSelectedJob] = useState<Booking | null>(null);
+  const [applicantCounts, setApplicantCounts] = useState<Record<string, number>>({});
+  const [paymentModalBooking, setPaymentModalBooking] = useState<Booking | null>(null);
+  const [taskDetailBooking, setTaskDetailBooking] = useState<Booking | null>(null);
 
   const { fetchMyBookings, getUpcomingBookings, getCompletedBookings, bookings, isLoading, error, clearError, lastFetchStatus } =
     useBookingsStore();
 
   useEffect(() => {
-    fetchMyBookings();
-  }, []);
+    void fetchMyBookings();
+  }, [fetchMyBookings]);
 
   const upcomingBookings = getUpcomingBookings();
   const completedBookings = getCompletedBookings();
-  const requestedBookings = bookings.filter(b => b.status === "REQUESTED");
+  const requestedBookings = bookings.filter((b) => b.status === "REQUESTED");
+
+  const upcomingByStatus = upcomingBookings.filter((b) =>
+    matchesUpcomingFilter(b.status, upcomingStatusFilter),
+  );
 
   // Filter by search query
   const filterBySearch = (bookings: Booking[]) => {
     if (!searchQuery) return bookings;
     const q = searchQuery.toLowerCase();
-    return bookings.filter(
-      (b) =>
-        b.service?.title?.toLowerCase().includes(q) ||
-        b.location?.toLowerCase().includes(q) ||
-        b.service?.artisan?.fullName?.toLowerCase().includes(q)
-    );
+    return bookings.filter((b) => {
+      const title = (b.jobTitle ?? b.service?.title ?? "").toLowerCase();
+      const loc = (b.address ?? b.location ?? "").toLowerCase();
+      const artisan = (b.artisan?.fullName ?? b.service?.artisan?.fullName ?? "").toLowerCase();
+      return title.includes(q) || loc.includes(q) || artisan.includes(q);
+    });
   };
 
-  const filteredUpcoming = filterBySearch(upcomingBookings);
+  const showKraftRequests =
+    (upcomingStatusFilter === "all" || upcomingStatusFilter === "open_and_waiting") &&
+    filterBySearch(requestedBookings).length > 0;
+
+  const upcomingForGroupedList = showKraftRequests
+    ? upcomingByStatus.filter((b) => b.status !== "REQUESTED")
+    : upcomingByStatus;
+
+  const filteredUpcoming = filterBySearch(upcomingForGroupedList);
   const filteredCompleted = filterBySearch(completedBookings);
-  const filteredRequests = filterBySearch(requestedBookings);
+
+  const openListingIdsKey = useMemo(() => {
+    const ids = filteredUpcoming
+      .filter((b) => b.status === "OPEN_FOR_APPLICATIONS")
+      .map((b) => b.id)
+      .sort();
+    return ids.join(",");
+  }, [filteredUpcoming]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      if (!openListingIdsKey) {
+        await Promise.resolve();
+        if (!cancelled) setApplicantCounts({});
+        return;
+      }
+      const ids = openListingIdsKey.split(",");
+      const entries = await Promise.all(
+        ids.map(async (id) => {
+          try {
+            const rows = await getBookingApplicants(id);
+            const n = (Array.isArray(rows) ? rows : []).filter(isPendingBookingApplication).length;
+            return [id, n] as const;
+          } catch {
+            return [id, 0] as const;
+          }
+        }),
+      );
+      if (!cancelled) setApplicantCounts(Object.fromEntries(entries));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [openListingIdsKey]);
 
   const formatDate = (dateStr: string) => {
     try {
@@ -61,7 +175,7 @@ const KraftsPage = () => {
   const groupByMonth = (items: Booking[]) => {
     const groups: Record<string, Booking[]> = {};
     for (const item of items) {
-      const dateKey = item.scheduled_date ?? item.created_at;
+      const dateKey = item.preferredDate ?? item.scheduled_date ?? item.created_at;
       const label = dateKey
         ? new Date(dateKey).toLocaleDateString("en-GB", { month: "long", year: "numeric" })
         : "Upcoming";
@@ -82,10 +196,193 @@ const KraftsPage = () => {
       return <span className="text-[11px] font-poppins font-semibold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">In Progress</span>;
     if (status === "CONFIRMED")
       return <span className="text-[11px] font-poppins font-semibold text-brand-blue bg-blue-50 px-2.5 py-1 rounded-full">Confirmed</span>;
+    if (status === "DECLINED")
+      return <span className="text-[11px] font-poppins font-semibold text-red-600 bg-red-50 px-2.5 py-1 rounded-full">Declined</span>;
+    if (status === "RECOMMENDATION_PENDING")
+      return <span className="text-[11px] font-poppins font-semibold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full">Draft</span>;
+    if (status === "KRAFTER_SELECTED")
+      return <span className="text-[11px] font-poppins font-semibold text-violet-700 bg-violet-50 px-2.5 py-1 rounded-full">Krafter selected</span>;
+    if (status === "OPEN_FOR_APPLICATIONS")
+      return <span className="text-[11px] font-poppins font-semibold text-sky-700 bg-sky-50 px-2.5 py-1 rounded-full">Open listing</span>;
+    if (status === "REQUESTED")
+      return <span className="text-[11px] font-poppins font-semibold text-gray-600 bg-gray-100 px-2.5 py-1 rounded-full">Requested</span>;
+    if (status === "ACCEPTED")
+      return <span className="text-[11px] font-poppins font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full">Accepted</span>;
+    if (status === "PAYMENT_PENDING")
+      return (
+        <span className="text-[11px] font-poppins font-semibold text-amber-800 bg-amber-100 px-2.5 py-1 rounded-full">
+          Payment needed
+        </span>
+      );
+    if (status === "COUNTERED")
+      return <span className="text-[11px] font-poppins font-semibold text-orange-700 bg-orange-50 px-2.5 py-1 rounded-full">Countered</span>;
     return <span className="text-[11px] font-poppins font-semibold text-gray-500 bg-gray-50 px-2.5 py-1 rounded-full">{status}</span>;
   };
 
-  const upcomingGroups = groupByMonth(filteredUpcoming);
+  const awaitingKrafterBookings = filteredUpcoming.filter((b) =>
+    AWAITING_KRAFTER_STATUSES.includes(b.status),
+  );
+  const communityListingBookings = filteredUpcoming.filter(
+    (b) => b.status === "OPEN_FOR_APPLICATIONS",
+  );
+  const hasOpenAndWaitingSplit =
+    upcomingStatusFilter === "open_and_waiting" &&
+    (awaitingKrafterBookings.length > 0 || communityListingBookings.length > 0);
+
+  const waitingOpenTab = upcomingStatusFilter === "open_and_waiting";
+
+  const renderUpcomingCards = (tasks: Booking[]) =>
+    Object.entries(groupByMonth(tasks)).map(([month, monthTasks]) => (
+      <div key={month}>
+        <h2 className="text-[16px] font-poppins font-bold mb-3 text-black">{month}</h2>
+        <div className="space-y-3">
+          {monthTasks.map((task: Booking) => {
+            if (task.status === "OPEN_FOR_APPLICATIONS") {
+              const title = task.jobTitle ?? task.service?.title ?? "Kraft";
+              const rate = parseBookingMoney(task.proposedPrice ?? task.listingProposedPrice);
+              const priceLabel = rate != null ? `$${rate.toFixed(2)}/hr` : "—";
+              const posted = formatPostedDayMonth(task.created_at ?? task.createdAt);
+              const offerCount = applicantCounts[task.id];
+              const offersLabel =
+                offerCount === undefined ? "…" : `${offerCount} Offer${offerCount === 1 ? "" : "s"} Received`;
+
+              const cardOpensDetail = opensTaskDetailFromUpcomingCard(upcomingStatusFilter, task.status);
+
+              return (
+                <div
+                  key={task.id}
+                  role={cardOpensDetail ? "button" : undefined}
+                  tabIndex={cardOpensDetail ? 0 : undefined}
+                  onClick={() => {
+                    if (cardOpensDetail) setTaskDetailBooking(task);
+                  }}
+                  onKeyDown={(e) => {
+                    if (!cardOpensDetail) return;
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setTaskDetailBooking(task);
+                    }
+                  }}
+                  className={`bg-[#FAFAFA] border border-gray-100 rounded-2xl p-4 shadow-sm mb-3 ${
+                    cardOpensDetail ? "cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-orange/40" : ""
+                  }`}
+                >
+                  <h3 className="text-[15px] font-poppins font-bold text-black mb-1">{title}</h3>
+                  <p className="text-[14px] font-poppins font-bold text-black mb-3">{priceLabel}</p>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-4 text-[12px] font-poppins">
+                    <div className="flex items-center gap-1.5 text-gray-500">
+                      <Image src="/taskerCal.svg" alt="" width={14} height={14} />
+                      <span>Posted {posted}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-brand-orange font-semibold">
+                      <Tag size={14} className="shrink-0" aria-hidden />
+                      <span>{offersLabel}</span>
+                    </div>
+                  </div>
+                  <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedJob(task);
+                        setShowOffers(true);
+                      }}
+                      className="flex-1 bg-brand-orange text-white py-3 rounded-xl text-[14px] font-poppins font-semibold hover:bg-orange-600 transition-colors"
+                    >
+                      View Offers
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        router.push(`/user/book-service/active-job?status=accepted&id=${task.id}`)
+                      }
+                      className="px-6 bg-[#FFF5F0] border border-gray-100 rounded-xl text-[14px] font-poppins font-bold text-gray-800 hover:bg-orange-50 transition-colors"
+                    >
+                      Edit
+                    </button>
+                  </div>
+                </div>
+              );
+            }
+
+            const title = task.jobTitle ?? task.service?.title ?? "Service";
+            const location = task.address ?? task.location ?? "—";
+            const dateRaw = task.preferredDate ?? task.scheduled_date ?? task.created_at;
+            const time = dateRaw ? formatDate(dateRaw) : "—";
+            const image =
+              task.artisan?.avatar ??
+              task.service?.artisan?.avatar ??
+              (Array.isArray(task.mediaUrls) ? task.mediaUrls[0] : undefined) ??
+              "/images/pro.jpg";
+
+            const needsPay = task.status === "PAYMENT_PENDING";
+
+            return (
+              <div
+                key={task.id}
+                className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden hover:border-brand-orange transition-colors"
+              >
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    if (opensTaskDetailFromUpcomingCard(upcomingStatusFilter, task.status)) {
+                      setTaskDetailBooking(task);
+                      return;
+                    }
+                    if (bookingNeedsKrafterSelection(task)) {
+                      router.push(`/user/book-service/select-artisan?${buildSelectArtisanQuery(task)}`);
+                      return;
+                    }
+                    router.push(`/user/book-service/active-job?status=accepted&id=${task.id}`);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key !== "Enter" && e.key !== " ") return;
+                    e.preventDefault();
+                    if (opensTaskDetailFromUpcomingCard(upcomingStatusFilter, task.status)) {
+                      setTaskDetailBooking(task);
+                      return;
+                    }
+                    if (bookingNeedsKrafterSelection(task)) {
+                      router.push(`/user/book-service/select-artisan?${buildSelectArtisanQuery(task)}`);
+                      return;
+                    }
+                    router.push(`/user/book-service/active-job?status=accepted&id=${task.id}`);
+                  }}
+                  className="p-4 flex gap-3 cursor-pointer"
+                >
+                  <div className="flex-1 space-y-1.5">
+                    <h3 className="text-[14px] font-poppins font-bold text-black">{title}</h3>
+                    <div className="flex items-center gap-1.5 text-[12px] text-gray-500 font-poppins">
+                      <MapPin size={13} className="text-gray-400 shrink-0" />
+                      <span>{location}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[12px] text-gray-500 font-poppins">
+                      <Image src="/taskerCal.svg" alt="calendar" width={13} height={13} className="shrink-0" />
+                      <span>{time}</span>
+                    </div>
+                    <div className="pt-1">{statusBadge(task.status)}</div>
+                  </div>
+                  <div className="shrink-0">
+                    <Image src={image} alt="artisan" width={80} height={80} className="rounded-xl object-cover w-20 h-20" />
+                  </div>
+                </div>
+                {needsPay && (
+                  <div className="px-4 pb-4 pt-0 border-t border-gray-100">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentModalBooking(task)}
+                      className="w-full py-3 bg-brand-orange text-white text-[14px] font-poppins font-semibold rounded-xl hover:bg-orange-600 transition-colors"
+                    >
+                      Confirm payment
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    ));
 
   return (
     <main className="relative w-full min-h-screen bg-white pb-24">
@@ -101,7 +398,10 @@ const KraftsPage = () => {
         {/* Tabs */}
         <div className="flex bg-gray-100 p-1 rounded-xl mb-5">
           <button
-            onClick={() => setActiveTab("upcoming")}
+            onClick={() => {
+              setActiveTab("upcoming");
+              setUpcomingStatusFilter("all");
+            }}
             className={`flex-1 py-2.5 text-[14px] font-poppins font-semibold rounded-lg transition-all ${
               activeTab === "upcoming" ? "bg-brand-blue text-white" : "text-gray-500"
             }`}
@@ -148,16 +448,53 @@ const KraftsPage = () => {
 
         {!isLoading && activeTab === "upcoming" && (
           <div className="space-y-6">
+            <div className="flex flex-nowrap gap-2 overflow-x-auto pb-2 -mx-1 px-1 scroll-smooth [scrollbar-width:thin]">
+              {UPCOMING_FILTER_TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  title={tab.hint}
+                  onClick={() => setUpcomingStatusFilter(tab.id)}
+                  className={`shrink-0 whitespace-nowrap rounded-full px-3.5 py-2 text-[12px] font-poppins font-semibold transition-colors ${
+                    upcomingStatusFilter === tab.id
+                      ? "bg-brand-blue text-white"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
             {/* Kraft Requests */}
-            {filteredRequests.length > 0 && (
+            {showKraftRequests && (
               <div>
                 <h2 className="text-[16px] font-poppins font-bold mb-3 text-black">Kraft Requests</h2>
-                {filteredRequests.map((job: any) => {
+                {filterBySearch(requestedBookings).map((job) => {
                   const title = `${job.service?.title ?? "Request"} with ${job.service?.artisan?.fullName ?? "Pro"}`;
                   const date = formatDate(job.created_at);
 
                   return (
-                    <div key={job.id} className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm mb-3">
+                    <div
+                      key={job.id}
+                      role={waitingOpenTab ? "button" : undefined}
+                      tabIndex={waitingOpenTab ? 0 : undefined}
+                      onClick={() => {
+                        if (waitingOpenTab) setTaskDetailBooking(job);
+                      }}
+                      onKeyDown={(e) => {
+                        if (!waitingOpenTab) return;
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setTaskDetailBooking(job);
+                        }
+                      }}
+                      className={`bg-white border border-gray-100 rounded-2xl p-4 shadow-sm mb-3 ${
+                        waitingOpenTab
+                          ? "cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-orange/40"
+                          : ""
+                      }`}
+                    >
                       <h3 className="text-[15px] font-poppins font-bold text-black mb-2">{title}</h3>
                       <div className="flex items-center gap-4 mb-3">
                         <div className="flex items-center gap-1.5 text-[12px] text-gray-500 font-poppins">
@@ -169,14 +506,24 @@ const KraftsPage = () => {
                           <span>Request Pending</span>
                         </div>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                         <button
-                          onClick={() => { setSelectedJob(job); setShowOffers(true); }}
+                          type="button"
+                          onClick={() => {
+                            setSelectedJob(job);
+                            setShowOffers(true);
+                          }}
                           className="flex-1 bg-brand-orange text-white py-3 rounded-xl text-[14px] font-poppins font-semibold hover:bg-orange-600 transition-colors"
                         >
                           View Offers
                         </button>
-                        <button className="px-6 bg-[#FFF5F0] border border-gray-100 rounded-xl text-[14px] font-poppins font-bold text-gray-800 hover:bg-orange-50 transition-colors">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            router.push(`/user/book-service/active-job?status=accepted&id=${job.id}`)
+                          }
+                          className="px-6 bg-[#FFF5F0] border border-gray-100 rounded-xl text-[14px] font-poppins font-bold text-gray-800 hover:bg-orange-50 transition-colors"
+                        >
                           Edit
                         </button>
                       </div>
@@ -187,51 +534,50 @@ const KraftsPage = () => {
             )}
 
             {/* Upcoming Bookings grouped by month */}
-            {filteredUpcoming.length === 0 && filteredRequests.length === 0 ? (
+            {filteredUpcoming.length === 0 && !showKraftRequests ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
-                <p className="text-[16px] font-poppins font-semibold text-gray-400">No upcoming krafts</p>
-                <p className="text-[13px] font-poppins text-gray-300 mt-1">Your accepted bookings will appear here</p>
+                <p className="text-[16px] font-poppins font-semibold text-gray-400">
+                  {upcomingStatusFilter === "all" ? "No upcoming krafts" : "No krafts in this category"}
+                </p>
+                <p className="text-[13px] font-poppins text-gray-300 mt-1">
+                  {upcomingStatusFilter === "all"
+                    ? "Your bookings and requests will appear here"
+                    : "Try another filter or choose All"}
+                </p>
+              </div>
+            ) : hasOpenAndWaitingSplit ? (
+              <div className="space-y-8">
+                {awaitingKrafterBookings.length > 0 && (
+                  <section aria-labelledby="krafts-awaiting-heading">
+                    <h2
+                      id="krafts-awaiting-heading"
+                      className="text-[13px] font-poppins font-bold text-gray-500 uppercase tracking-wide mb-3"
+                    >
+                      Awaiting Krafter
+                    </h2>
+                    <p className="text-[12px] font-poppins text-gray-400 mb-4">
+                      Direct requests and counter-offers
+                    </p>
+                    {renderUpcomingCards(awaitingKrafterBookings)}
+                  </section>
+                )}
+                {communityListingBookings.length > 0 && (
+                  <section aria-labelledby="krafts-community-heading">
+                    <h2
+                      id="krafts-community-heading"
+                      className="text-[13px] font-poppins font-bold text-gray-500 uppercase tracking-wide mb-3 mt-2"
+                    >
+                      Public listings
+                    </h2>
+                    <p className="text-[12px] font-poppins text-gray-400 mb-4">
+                      Open to applications from Krafters
+                    </p>
+                    {renderUpcomingCards(communityListingBookings)}
+                  </section>
+                )}
               </div>
             ) : (
-              Object.entries(upcomingGroups).map(([month, tasks]) => (
-                <div key={month}>
-                  <h2 className="text-[16px] font-poppins font-bold mb-3 text-black">{month}</h2>
-                  <div className="space-y-3">
-                    {tasks.map((task: any) => {
-                      const title = task.jobTitle ?? "Service";
-                      const location = task.location;
-                      const time = formatDate(task.preferredDate);
-                      const image = task.artisan?.avatar ?? "/images/pro.jpg";
-
-                      return (
-                        <div
-                          key={task.id}
-                          onClick={() =>
-                            router.push(`/user/book-service/active-job?status=accepted&id=${task.id}`)
-                          }
-                          className="bg-white border border-gray-100 rounded-2xl p-4 flex gap-3 shadow-sm cursor-pointer hover:border-brand-orange transition-colors"
-                        >
-                          <div className="flex-1 space-y-1.5">
-                            <h3 className="text-[14px] font-poppins font-bold text-black">{title}</h3>
-                            <div className="flex items-center gap-1.5 text-[12px] text-gray-500 font-poppins">
-                              <MapPin size={13} className="text-gray-400 shrink-0" />
-                              <span>{location}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 text-[12px] text-gray-500 font-poppins">
-                              <Image src="/taskerCal.svg" alt="calendar" width={13} height={13} className="shrink-0" />
-                              <span>{time}</span>
-                            </div>
-                            <div className="pt-1">{statusBadge(task.status)}</div>
-                          </div>
-                          <div className="shrink-0">
-                            <Image src={image} alt="artisan" width={80} height={80} className="rounded-xl object-cover w-20 h-20" />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))
+              renderUpcomingCards(filteredUpcoming)
             )}
           </div>
         )}
@@ -247,7 +593,7 @@ const KraftsPage = () => {
               <div key={month} className="mb-6">
                 <h2 className="text-[16px] font-poppins font-bold mb-3 text-black">{month}</h2>
                 <div className="space-y-3">
-                  {tasks.map((task: any) => {
+                  {tasks.map((task: Booking) => {
                     const title = `${task.service?.title ?? "Service"} with ${task.service?.artisan?.fullName ?? "Artisan"}`;
                     const location = task.location;
                     const time = formatDate(task.scheduled_date);
@@ -290,8 +636,41 @@ const KraftsPage = () => {
         )}
       </div>
 
-      {showOffers && (
-        <OffersModal job={selectedJob} onClose={() => setShowOffers(false)} />
+      {showOffers && selectedJob && (
+        <OffersModal
+          booking={selectedJob}
+          onClose={() => {
+            setShowOffers(false);
+            setSelectedJob(null);
+          }}
+          onMarketplacePaymentReady={(b) => setPaymentModalBooking(b)}
+        />
+      )}
+
+      {taskDetailBooking && (
+        <CustomerKraftTaskDetailModal
+          booking={taskDetailBooking}
+          open
+          onClose={() => setTaskDetailBooking(null)}
+          onBookingUpdated={() => void fetchMyBookings()}
+        />
+      )}
+
+      {paymentModalBooking && (
+        <BookingPaymentConfirmModal
+          open
+          bookingId={paymentModalBooking.id}
+          initialClientSecret={bookingPaymentClientSecret(paymentModalBooking)}
+          returnUrl={
+            typeof window !== "undefined"
+              ? `${window.location.origin}/user/krafts`
+              : undefined
+          }
+          onClose={() => setPaymentModalBooking(null)}
+          onComplete={() => {
+            void fetchMyBookings();
+          }}
+        />
       )}
 
       <UserNav />

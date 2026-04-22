@@ -1,8 +1,10 @@
-import { loadStripe } from '@stripe/stripe-js'
+import { loadStripe, type Stripe } from '@stripe/stripe-js'
 
-// Singleton — loadStripe returns the same promise on every call
-const stripePromise = loadStripe(
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
-)
+const pk = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim()
+
+/** Resolves `null` when the publishable key is missing (avoid `loadStripe(undefined)` / hung Elements). */
+const stripePromise: Promise<Stripe | null> = pk
+  ? loadStripe(pk)
+  : Promise.resolve(null)
 
 export default stripePromise

@@ -82,17 +82,8 @@ export const usePaymentStore = create<PaymentState>()(
         set({ isLoading: true, error: null })
         try {
           await savePaymentMethod({ paymentMethodId, isDefault })
-          if (isDefault) {
-            set((state) => ({
-              savedMethods: state.savedMethods.map((m) => ({
-                ...m,
-                isDefault: m.paymentMethodId === paymentMethodId,
-              })),
-              isLoading: false,
-            }))
-          } else {
-            set({ isLoading: false })
-          }
+          const methods = await getSavedPaymentMethods()
+          set({ savedMethods: methods, isLoading: false })
           return true
         } catch (err: any) {
           const message =

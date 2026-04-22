@@ -6,11 +6,19 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import Input from "@/components/ui/input";
 import { useBookingsStore } from "@/store/useBookingsStore";
+import type { PublishToMarketplacePayload } from "@/lib/api/bookings";
 import { usePaymentStore } from "@/store/usePaymentStore";
 import { useAddressStore } from "@/store/useAddressStore";
 import toast from "react-hot-toast";
 import { logger } from "@/utils/logger";
 import PaymentFlowModal from "@/components/shared/PaymentFlowModal";
+import { readRecommendationDraftBookingIdFromSession } from "@/lib/recommendationDraftBooking";
+import {
+  isSavedPaymentMethodRequiredError,
+  SAVED_PAYMENT_METHOD_REQUIRED_TOAST,
+  bookingApiErrorUserMessage,
+} from "@/lib/paymentCardRequired";
+import { MARKETPLACE_FIXED_PRICE_FINISH_BOOKING_MESSAGE } from "@/lib/marketplaceFixedPriceOfferValidation";
 
 /** Last resort when no coordinates from the booking URL chain or address store */
 const FALLBACK_LAT = 52.52;
@@ -60,19 +68,36 @@ const Page = () => {
 
   const isPublic = searchParams.get("isPublic") === "true";
   const budget = searchParams.get("budget") || "0";
+  const openForNegotiationRawPublic = searchParams.get("openForNegotiation");
+  const negotiationTurnedOffPublic = openForNegotiationRawPublic === "false";
+  const budgetNumPublic = Number(budget);
+  const publicFixedPriceInvalid =
+    isPublic &&
+    negotiationTurnedOffPublic &&
+    !(Number.isFinite(budgetNumPublic) && budgetNumPublic > 0);
   const [promoCode, setPromoCode] = useState("");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
-  const { createBooking, publishToMarketplace, isSubmitting } =
-    useBookingsStore();
+  const {
+    createBooking,
+    publishToMarketplace,
+    selectKrafter,
+    isSubmitting,
+    recommendationDraftBookingId,
+  } = useBookingsStore();
   const {
     savedMethods: paymentMethods,
     selectedPaymentId,
     selectPayment,
     hasPaymentMethods,
+    fetchSavedMethods,
   } = usePaymentStore();
   const currentLatitude = useAddressStore((s) => s.currentLatitude);
   const currentLongitude = useAddressStore((s) => s.currentLongitude);
+
+  useEffect(() => {
+    void fetchSavedMethods();
+  }, [fetchSavedMethods]);
 
   // Set initial selected payment to default or first method
   useEffect(() => {
@@ -84,6 +109,7 @@ const Page = () => {
   }, [paymentMethods, selectedPaymentId, selectPayment]);
 
   const artisanId = searchParams.get("artisanId");
+  const bookingId = searchParams.get("bookingId");
   const pricePerHourParam = parseFloat(searchParams.get("pricePerHour") || "");
   const hourlyRate =
     Number.isFinite(pricePerHourParam) && pricePerHourParam > 0
@@ -91,10 +117,10 @@ const Page = () => {
       : 41.29;
   const hours = Number(searchParams.get("hours") || "1");
   const serviceFee = 5.0;
-  const discount = 10.0;
 
   const subtotal = isPublic ? Number(budget) : hourlyRate * hours;
-  const totalAmount = subtotal + serviceFee - discount;
+  /** Sum of visible breakdown lines only (discount not wired to promo yet). */
+  const totalAmount = subtotal + serviceFee;
 
   const handleConfirmPayment = async () => {
     logger.log("Initiating booking creation", {
@@ -134,11 +160,16 @@ const Page = () => {
         }
       }
 
+      const jobTitle =
+        searchParams.get("jobTitle")?.trim() || categoryName;
+      const taskDetails = searchParams.get("taskDetails") || "";
+      const specialInstructionsRaw = searchParams.get("specialInstructions") || "";
+
       // Construct payload for API in the format backend expects
       const basePayload = {
         serviceCategoryId: searchParams.get("categoryId") || "",
-        jobTitle: categoryName, // Use category name as job title
-        jobDescription: searchParams.get("taskDetails") || "",
+        jobTitle,
+        jobDescription: taskDetails,
         consentAcknowledged: true,
         address: address,
         latitude: latitude,
@@ -150,12 +181,61 @@ const Page = () => {
       };
 
       if (isPublic) {
-        const publishPayload = {
+        if (publicFixedPriceInvalid) {
+          return;
+        }
+
+        const recommendationBookingId =
+          bookingId ||
+          recommendationDraftBookingId ||
+          readRecommendationDraftBookingIdFromSession() ||
+          undefined;
+        const budgetNum = Number(budget);
+        const offerAmount = Number.isFinite(budgetNum) ? budgetNum : undefined;
+        const proposedPricePublic = Number.isFinite(budgetNum) ? budgetNum : undefined;
+        const verifiedOnlyRaw = searchParams.get("verifiedOnly");
+        const expiryOption = searchParams.get("expiryOption")?.trim() || undefined;
+        const expiryDate = searchParams.get("expiryDate")?.trim() || undefined;
+        const krafterRatingRequirement =
+          searchParams.get("krafterRatingRequirement")?.trim() || undefined;
+        const serviceListingId = searchParams.get("serviceListingId")?.trim() || undefined;
+
+        const pendingMedia = useBookingsStore.getState().pendingPublishMediaFiles;
+        /** Draft already uploaded media in `create-for-recommendation`; re-sending duplicates S3 rows. */
+        const attachMedia =
+          pendingMedia.length > 0 && !recommendationBookingId;
+
+        const publishPayload: PublishToMarketplacePayload = {
           ...basePayload,
-          offerAmount: Number(budget),
+          ...(serviceListingId ? { serviceListingId } : {}),
+          ...(offerAmount !== undefined ? { offerAmount, proposedPrice: proposedPricePublic } : {}),
+          ...(recommendationBookingId ? { recommendationBookingId } : {}),
+          ...(expiryOption ? { expiryOption } : {}),
+          ...(expiryDate ? { expiryDate } : {}),
+          ...(openForNegotiationRawPublic !== null
+            ? { openForNegotiation: openForNegotiationRawPublic === "true" }
+            : {}),
+          ...(krafterRatingRequirement ? { krafterRatingRequirement } : {}),
+          ...(verifiedOnlyRaw !== null ? { verifiedOnly: verifiedOnlyRaw === "true" } : {}),
+          ...(specialInstructionsRaw.trim()
+            ? { specialInstructions: specialInstructionsRaw.trim() }
+            : {}),
+          ...(attachMedia ? { media: pendingMedia } : {}),
         };
         logger.log("Marketplace Booking payload:", publishPayload);
         await publishToMarketplace(publishPayload);
+      } else if (artisanId) {
+        if (!bookingId) {
+          toast.error(
+            "Missing booking reference. Please return to task details and go through the steps again.",
+          );
+          return;
+        }
+        logger.log("Selecting Krafter on recommendation draft", {
+          bookingId,
+          artisanId,
+        });
+        await selectKrafter(bookingId, { krafterId: artisanId });
       } else {
         logger.log("Booking payload:", basePayload);
         await createBooking(basePayload);
@@ -164,7 +244,9 @@ const Page = () => {
       toast.success(
         isPublic
           ? "Public task posted successfully!"
-          : "Booking confirmed successfully!",
+          : artisanId
+            ? "Request sent. Your Krafter will need to accept before the booking is confirmed."
+            : "Booking confirmed successfully!",
       );
       const nextParams = new URLSearchParams(searchParams.toString());
       nextParams.set("isPublic", String(isPublic));
@@ -176,10 +258,15 @@ const Page = () => {
       if (err.response?.status === 401) {
         toast.error("Please log in to create a booking");
         router.push("/user/login");
+      } else if (isSavedPaymentMethodRequiredError(err)) {
+        toast.error(SAVED_PAYMENT_METHOD_REQUIRED_TOAST, { duration: 6500 });
+        setShowPaymentModal(true);
       } else {
         toast.error(
-          err.response?.data?.message ||
+          bookingApiErrorUserMessage(
+            err,
             "Failed to create booking. Please try again.",
+          ),
         );
       }
     }
@@ -302,14 +389,6 @@ const Page = () => {
               ${serviceFee.toFixed(2)}
             </span>
           </div>
-          {/* <div className="flex items-center justify-between">
-            <span className="text-[13px] sm:text-[14px] font-poppins text-[#4CAF50]">
-              Discount (Welcome 10)
-            </span>
-            <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-[#4CAF50]">
-              -${discount.toFixed(2)}
-            </span>
-          </div> */}
           <div className="pt-3 border-t border-[#0000001A] flex items-center justify-between">
             <span className="text-[15px] sm:text-[16px] font-poppins font-bold text-gray-900">
               Total Amount
@@ -319,6 +398,11 @@ const Page = () => {
             </span>
           </div>
         </div>
+        {publicFixedPriceInvalid ? (
+          <p className="text-[12px] font-poppins text-red-600 mt-3" role="alert">
+            {MARKETPLACE_FIXED_PRICE_FINISH_BOOKING_MESSAGE}
+          </p>
+        ) : null}
       </div>
 
       {/* Promo Code */}
@@ -483,14 +567,15 @@ const Page = () => {
         )}
         <button
           onClick={handleConfirmPayment}
-          disabled={isSubmitting}
+          disabled={isSubmitting || publicFixedPriceInvalid}
           className="w-full py-3 bg-brand-orange text-white text-[16px] sm:text-[17px] font-poppins font-semibold rounded-lg hover:bg-brand-orange-dark transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
         >
           {isSubmitting
             ? "Processing..."
             : isPublic
               ? "Post Public Task"
-              : `Confirm & Pay $${totalAmount.toFixed(2)}`}
+              : `Confirm Requests`}
+
         </button>
       </div>
 

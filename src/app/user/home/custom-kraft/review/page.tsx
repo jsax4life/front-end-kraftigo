@@ -12,6 +12,10 @@ import Input from "../../../../../components/ui/input";
 import { useCustomKraftsStore } from "@/store/useCustomKraftsStore";
 import { useAddressStore } from "@/store/useAddressStore";
 import { useServicesStore } from "@/store/useServicesStore";
+import {
+  isSavedPaymentMethodRequiredError,
+  SAVED_PAYMENT_METHOD_REQUIRED_TOAST,
+} from "@/lib/paymentCardRequired";
 
 // ─── Fixed fees (from backend pricing) ──────────────────────────────────────
 const SERVICE_FEE = 5;
@@ -97,8 +101,12 @@ const Page = () => {
     try {
       await publishKraft(selectedKraft.id);
       router.push("/user/home/custom-kraft/finished");
-    } catch {
-      // error handled by useEffect above
+    } catch (err) {
+      if (isSavedPaymentMethodRequiredError(err)) {
+        toast.error(SAVED_PAYMENT_METHOD_REQUIRED_TOAST, { duration: 6500 });
+        setShowPaymentModal(true);
+      }
+      // Other failures: store `error` is set; useEffect above shows the toast.
     }
   };
 

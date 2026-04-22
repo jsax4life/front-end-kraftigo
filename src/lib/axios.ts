@@ -1,7 +1,12 @@
 import axios from 'axios'
 
+/** Same default as `socket.ts` — avoids posting auth calls to the Next origin when env is unset (404). */
+const API_BASE_URL = (
+    process.env.NEXT_PUBLIC_API_URL || 'https://api.xn--kraftig-g1a.com'
+).replace(/\/$/, '')
+
 const api = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL,
+    baseURL: API_BASE_URL,
     headers: {
         'Content-Type': 'application/json',
     },
@@ -149,7 +154,7 @@ api.interceptors.response.use(
                     if (refreshToken) {
                         // Call refresh endpoint
                         const response = await axios.post(
-                            `${process.env.NEXT_PUBLIC_API_URL}/api/auth/refresh`,
+                            `${API_BASE_URL}/api/auth/refresh`,
                             { refreshToken },
                             {
                                 headers: { 'Content-Type': 'application/json' }

@@ -104,7 +104,7 @@ const ArtisanCard = ({ artisan, index, onSelect, onChat }: ArtisanCardProps) => 
               className="py-2.5 bg-brand-orange text-white text-[13px] font-poppins font-bold rounded-xl hover:bg-orange-600 transition-colors"
               style={{ flex: 2 }}
             >
-              Accept Offer
+              Select krafter
             </button>
           </div>
         </div>
