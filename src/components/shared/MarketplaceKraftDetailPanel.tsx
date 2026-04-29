@@ -2,13 +2,15 @@
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
-import { Calendar, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Calendar, X, MessageCircle } from "lucide-react";
 import Button from "@/components/ui/button";
 import MarketplaceNegotiationModal from "@/components/shared/MarketplaceNegotiationModal";
 import { applyToBooking } from "@/lib/api/bookings";
 import type { Booking } from "@/types";
 import TaskerNav from "@/components/shared/taskerNav";
 import toast from "react-hot-toast";
+import { buildTaskerMessageCustomerUrlFromBooking } from "@/lib/chatDeepLinks";
 
 function formatDisplayDate(iso: string) {
   const d = new Date(iso);
@@ -57,6 +59,28 @@ function readOpenForNegotiation(booking: Booking): boolean | undefined {
   if (v === "true") return true;
   if (v === "false") return false;
   return undefined;
+}
+
+function readListingPricingBasis(
+  booking: Booking,
+): { pricingType: "FLAT" | "HOURLY"; durationHours?: number } {
+  const r = booking as unknown as Record<string, unknown>;
+  const rawType = r.offerPricingType ?? r.offer_pricing_type ?? r.proposedPricingType ?? r.proposed_pricing_type;
+  const pricingType = String(rawType ?? "FLAT").toUpperCase() === "HOURLY" ? "HOURLY" : "FLAT";
+  const rawHours =
+    r.offerDurationHours ??
+    r.offer_duration_hours ??
+    r.proposedDurationHours ??
+    r.proposed_duration_hours ??
+    r.durationHours ??
+    r.duration_hours;
+  const parsed = Number(rawHours);
+  const durationHours = Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+  return { pricingType, durationHours };
+}
+
+function fmtHours(hours: number): string {
+  return hours % 1 === 0 ? String(hours) : hours.toFixed(2);
 }
 
 /** Map marketplace list rows and normalized GET `/api/bookings/:id` payloads. */
@@ -170,6 +194,7 @@ export default function MarketplaceKraftDetailPanel({
   readOnlyApplication = false,
   artisanApplicationStatus = null,
 }: MarketplaceKraftDetailPanelProps) {
+  const router = useRouter();
   const [offerOpen, setOfferOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [applying, setApplying] = useState(false);
@@ -198,6 +223,7 @@ export default function MarketplaceKraftDetailPanel({
   const categoryLabel = booking.serviceCategory?.name?.trim();
 
   const openForNegotiation = useMemo(() => readOpenForNegotiation(booking), [booking]);
+  const listingPricing = useMemo(() => readListingPricingBasis(booking), [booking]);
   const negotiationDisabledByListing = openForNegotiation === false;
 
   const formattedApplicationStatus = formatArtisanApplicationStatus(
@@ -209,6 +235,7 @@ export default function MarketplaceKraftDetailPanel({
     : formattedApplicationStatus;
   const showApplicationStatusBlock = Boolean(readOnlyApplication && applicationStatusPillLabel);
   const suppressMarketplaceActions = readOnlyApplication || Boolean(booking.hasApplied);
+  const customerChatUrl = buildTaskerMessageCustomerUrlFromBooking(booking);
 
   const handleOfferSubmit = async (values: {
     amount: string;
@@ -224,6 +251,10 @@ export default function MarketplaceKraftDetailPanel({
     try {
       await applyToBooking(bookingId, {
         proposedPrice: price,
+        proposedPricingType: listingPricing.pricingType,
+        ...(listingPricing.pricingType === "HOURLY" && listingPricing.durationHours
+          ? { proposedDurationHours: listingPricing.durationHours }
+          : {}),
         message: values.message.trim() || undefined,
         openForNegotiation: values.openToNegotiation,
       });
@@ -246,7 +277,13 @@ export default function MarketplaceKraftDetailPanel({
     }
     setApplying(true);
     try {
-      await applyToBooking(bookingId, { proposedPrice: at });
+      await applyToBooking(bookingId, {
+        proposedPrice: at,
+        proposedPricingType: listingPricing.pricingType,
+        ...(listingPricing.pricingType === "HOURLY" && listingPricing.durationHours
+          ? { proposedDurationHours: listingPricing.durationHours }
+          : {}),
+      });
       toast.success("Application sent! The customer will be notified.");
       onApplied?.();
     } catch (err: unknown) {
@@ -372,6 +409,16 @@ export default function MarketplaceKraftDetailPanel({
                 ) : (
                   <p className="text-gray-500">No preferred date or time yet.</p>
                 )}
+                <p className="mt-1">
+                  <span className="font-semibold text-gray-900">Pricing basis: </span>
+                  {listingPricing.pricingType}
+                </p>
+                {listingPricing.pricingType === "HOURLY" && listingPricing.durationHours ? (
+                  <p className="mt-1">
+                    <span className="font-semibold text-gray-900">Proposed duration: </span>
+                    {fmtHours(listingPricing.durationHours)}h
+                  </p>
+                ) : null}
               </div>
             </div>
           </section>
@@ -407,6 +454,21 @@ export default function MarketplaceKraftDetailPanel({
         </div>
 
         <div className="space-y-3 border-t border-gray-200 pt-5 pb-4">
+          {customerChatUrl ? (
+            <Button
+              type="button"
+              variant="secondary"
+              fullWidth
+              onClick={() => {
+                onDismiss();
+                router.push(customerChatUrl);
+              }}
+              className="flex items-center justify-center gap-2"
+            >
+              <MessageCircle size={18} strokeWidth={2} aria-hidden />
+              Message customer
+            </Button>
+          ) : null}
           {suppressMarketplaceActions ? (
             <p className="text-center text-sm font-poppins text-gray-500 py-2 px-1">
               {readOnlyApplication
@@ -452,6 +514,9 @@ export default function MarketplaceKraftDetailPanel({
         onClose={() => setOfferOpen(false)}
         onSubmit={handleOfferSubmit}
         isSubmitting={submitting}
+        minAmount={derived.hourly > 0 ? Number(derived.hourly) : undefined}
+        pricingType={listingPricing.pricingType}
+        durationHours={listingPricing.durationHours}
       />
 
       {showTaskerNav && <TaskerNav />}

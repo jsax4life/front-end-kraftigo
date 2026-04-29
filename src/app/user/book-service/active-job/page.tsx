@@ -89,6 +89,7 @@ const ActiveJobContent = () => {
     bookingId &&
     selectedBooking &&
     !needsKrafterSelection &&
+    apiStatus !== "IN_PROGRESS" &&
     !["DECLINED", "COMPLETED", "CANCELLED", "DISPUTED", "RECOMMENDATION_PENDING", "PAYMENT_PENDING"].includes(
       String(apiStatus ?? ""),
     );

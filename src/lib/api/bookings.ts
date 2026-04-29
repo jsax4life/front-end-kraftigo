@@ -1,4 +1,5 @@
 import api from '@/lib/axios'
+import { readDmConversationIdFromBooking } from '@/lib/bookingChat'
 import type { Booking, Service, ServiceCategory } from '@/types'
 
 export interface CreateBookingPayload {
@@ -45,6 +46,10 @@ export interface ArtisanRespondPayload {
 
 export interface ArtisanApplyPayload {
   proposedPrice?: number
+  /** Must follow listing basis: FLAT | HOURLY. */
+  proposedPricingType?: 'FLAT' | 'HOURLY'
+  /** Required for HOURLY bids when duration is expected. */
+  proposedDurationHours?: number
   message?: string
   /** Krafter marketplace apply: whether the applicant is open to further negotiation. */
   openForNegotiation?: boolean
@@ -52,10 +57,14 @@ export interface ArtisanApplyPayload {
 
 export interface SelectApplicantPayload {
   applicationId: string
+  /** Explicit duration in hours (backend defaults to 1 if omitted). */
+  durationHours?: number
 }
 
 export interface SelectKrafterPayload {
   krafterId: string
+  /** Always send explicitly (backend defaults to 1 if omitted). */
+  durationHours: number
 }
 
 export interface CompareKraftersPayload {
@@ -94,6 +103,12 @@ export interface PublishToMarketplacePayload {
   preferredTime: string
   proposedPrice?: number
   offerAmount?: number
+  /** Required by backend: FLAT or HOURLY pricing for marketplace offer. */
+  offerPricingType: 'FLAT' | 'HOURLY'
+  /** Required when `offerPricingType` is `HOURLY`. */
+  offerDurationHours?: number
+  /** Back-compat alias accepted by FE; sent alongside `offerDurationHours` when provided. */
+  durationHours?: number
   /** Kraft expiry: `24h` | `3days` | `1week` | `custom` */
   expiryOption?: string
   /** Required when `expiryOption` is `custom` (ISO date-time). */
@@ -169,6 +184,8 @@ export interface MarketplaceOpenBookingRow {
   preferredDate: string
   preferredTime: string
   proposedPrice: string | null
+  offerPricingType?: 'FLAT' | 'HOURLY' | string | null
+  offerDurationHours?: string | number | null
   finalAgreedPrice?: string | null
   platformFee?: string | null
   artisanEarning?: string | null
@@ -200,6 +217,7 @@ const slugifyCategory = (name: string) =>
 export const mapMarketplaceOpenRowToBooking = (
   row: MarketplaceOpenBookingRow,
 ): Booking => {
+  const loose = row as unknown as Record<string, unknown>
   const proposed =
     row.proposedPrice != null && row.proposedPrice !== ''
       ? parseFloat(String(row.proposedPrice))
@@ -247,6 +265,29 @@ export const mapMarketplaceOpenRowToBooking = (
     image: cat?.imageUrl ?? firstMedia,
     service,
     hasApplied: row.hasApplied,
+    ...(row.offerPricingType != null
+      ? { offerPricingType: row.offerPricingType }
+      : typeof loose.offer_pricing_type === 'string'
+        ? { offerPricingType: loose.offer_pricing_type as Booking['offerPricingType'] }
+        : {}),
+    ...(row.offerDurationHours != null
+      ? { offerDurationHours: row.offerDurationHours }
+      : loose.offer_duration_hours != null
+        ? { offerDurationHours: loose.offer_duration_hours as Booking['offerDurationHours'] }
+        : {}),
+    ...(loose.proposedPricingType != null || loose.proposed_pricing_type != null
+      ? {
+          proposedPricingType:
+            (loose.proposedPricingType ?? loose.proposed_pricing_type) as Booking['proposedPricingType'],
+        }
+      : {}),
+    ...(loose.proposedDurationHours != null || loose.proposed_duration_hours != null
+      ? {
+          proposedDurationHours:
+            (loose.proposedDurationHours ??
+              loose.proposed_duration_hours) as Booking['proposedDurationHours'],
+        }
+      : {}),
   }
 }
 
@@ -334,6 +375,15 @@ export function normalizeBookingDetailResponse(data: unknown): Booking {
     : undefined
 
   const proposedPrice = r.proposedPrice ?? r.proposed_price ?? r.price
+  const proposedPricingType = pickStr('proposedPricingType', 'proposed_pricing_type')
+  const proposedDurationHours = r.proposedDurationHours ?? r.proposed_duration_hours
+  const offerPricingType = pickStr('offerPricingType', 'offer_pricing_type')
+  const offerDurationHours = r.offerDurationHours ?? r.offer_duration_hours
+  const finalAgreedPrice = r.finalAgreedPrice ?? r.final_agreed_price
+  const platformFee = r.platformFee ?? r.platform_fee
+  const artisanEarning = r.artisanEarning ?? r.artisan_earning
+  const pricingRuleId = pickStr('pricingRuleId', 'pricing_rule_id')
+  const durationHours = r.durationHours ?? r.duration_hours
   const scheduledDate = pickStr('scheduled_date', 'scheduledDate') ?? preferredDate ?? ''
   const scheduledTime = pickStr('scheduled_time', 'scheduledTime') ?? preferredTime ?? ''
 
@@ -357,9 +407,48 @@ export function normalizeBookingDetailResponse(data: unknown): Booking {
     preferredDate,
     preferredTime,
     proposedPrice: proposedPrice as Booking['proposedPrice'],
+    ...(proposedPricingType ? { proposedPricingType: proposedPricingType as Booking['proposedPricingType'] } : {}),
+    ...(proposedDurationHours !== undefined && proposedDurationHours !== null
+      ? { proposedDurationHours: proposedDurationHours as Booking['proposedDurationHours'] }
+      : {}),
+    ...(offerPricingType ? { offerPricingType: offerPricingType as Booking['offerPricingType'] } : {}),
+    ...(offerDurationHours !== undefined && offerDurationHours !== null
+      ? { offerDurationHours: offerDurationHours as Booking['offerDurationHours'] }
+      : {}),
+    ...(finalAgreedPrice !== undefined && finalAgreedPrice !== null
+      ? { finalAgreedPrice: finalAgreedPrice as Booking['finalAgreedPrice'] }
+      : {}),
+    ...(platformFee !== undefined && platformFee !== null
+      ? { platformFee: platformFee as Booking['platformFee'] }
+      : {}),
+    ...(artisanEarning !== undefined && artisanEarning !== null
+      ? { artisanEarning: artisanEarning as Booking['artisanEarning'] }
+      : {}),
+    ...(pricingRuleId ? { pricingRuleId } : {}),
+    ...(durationHours !== undefined && durationHours !== null
+      ? { durationHours: durationHours as Booking['durationHours'] }
+      : {}),
+    ...(offerPricingType !== undefined && offerPricingType !== null
+      ? { offerPricingType: offerPricingType as Booking['offerPricingType'] }
+      : {}),
+    ...(offerDurationHours !== undefined && offerDurationHours !== null
+      ? { offerDurationHours: offerDurationHours as Booking['offerDurationHours'] }
+      : {}),
+    ...(proposedPricingType !== undefined && proposedPricingType !== null
+      ? { proposedPricingType: proposedPricingType as Booking['proposedPricingType'] }
+      : {}),
+    ...(proposedDurationHours !== undefined && proposedDurationHours !== null
+      ? { proposedDurationHours: proposedDurationHours as Booking['proposedDurationHours'] }
+      : {}),
     mediaUrls,
     customer: customer ?? undefined,
     serviceCategory: serviceCategory ?? undefined,
+  }
+
+  const chatDmId = readDmConversationIdFromBooking(merged)
+  if (chatDmId) {
+    merged.conversationId = chatDmId
+    merged.chatConversationId = chatDmId
   }
 
   return merged
@@ -483,13 +572,13 @@ export const proceedToPayment = async (
 /** POST /api/bookings/{id}/select-applicant — select an applicant for the booking */
 export const selectApplicant = async (id: string, payload: SelectApplicantPayload): Promise<Booking> => {
   const response = await api.post(`/api/bookings/${id}/select-applicant`, payload)
-  return response.data
+  return normalizeBookingDetailResponse(response.data)
 }
 
-/** POST /api/bookings/{id}/select-krafter — body: `{ krafterId }` */
+/** POST /api/bookings/{id}/select-krafter — body: `{ krafterId, durationHours }` */
 export const selectKrafter = async (id: string, payload: SelectKrafterPayload): Promise<Booking> => {
   const response = await api.post(`/api/bookings/${id}/select-krafter`, payload)
-  return response.data
+  return normalizeBookingDetailResponse(response.data)
 }
 
 /** POST /api/bookings/compare-krafters — compare up to 2 Krafters side-by-side */
@@ -548,6 +637,12 @@ export const publishToMarketplace = async (payload: PublishToMarketplacePayload)
   formData.append('preferredTime', payload.preferredTime)
   if (payload.proposedPrice !== undefined) formData.append('proposedPrice', String(payload.proposedPrice))
   if (payload.offerAmount !== undefined) formData.append('offerAmount', String(payload.offerAmount))
+  formData.append('offerPricingType', payload.offerPricingType)
+  const offerHours =
+    payload.offerDurationHours !== undefined ? payload.offerDurationHours : payload.durationHours
+  if (payload.offerPricingType === 'HOURLY' && offerHours !== undefined) {
+    formData.append('offerDurationHours', String(offerHours))
+  }
   if (payload.expiryOption) formData.append('expiryOption', payload.expiryOption)
   if (payload.expiryDate) formData.append('expiryDate', payload.expiryDate)
   if (payload.openForNegotiation !== undefined) {
@@ -622,6 +717,8 @@ export interface ArtisanAssignedBookingRow {
   cancellationReason?: string | null
   cancellationReasonDetails?: string | null
   completedAt?: string | null
+  /** Chat thread UUID when API enriches this row. */
+  conversationId?: string | null
 }
 
 function parseMoneyField(value: string | null | undefined): number | undefined {
@@ -687,6 +784,14 @@ export function mapArtisanAssignedBookingRowToBooking(row: ArtisanAssignedBookin
     createdAt: row.createdAt,
     latitude: row.latitude,
     longitude: row.longitude,
+    proposedPrice: row.proposedPrice,
+    finalAgreedPrice: row.finalAgreedPrice ?? undefined,
+    platformFee: row.platformFee ?? undefined,
+    artisanEarning: row.artisanEarning ?? undefined,
+    pricingRuleId: row.pricingRuleId ?? undefined,
+    ...(row.conversationId?.trim()
+      ? { conversationId: row.conversationId.trim(), chatConversationId: row.conversationId.trim() }
+      : {}),
   }
 }
 
@@ -745,6 +850,8 @@ export interface DirectArtisanBookingRequest {
   updatedAt: string
   cancelledAt?: string | null
   completedAt?: string | null
+  /** Chat thread UUID when API enriches this row. */
+  conversationId?: string | null
 }
 
 /** GET /api/artisan/bookings/direct-requests — all direct booking requests for the current artisan */
@@ -882,11 +989,34 @@ export const startBooking = async (id: string): Promise<Booking> => {
   return normalizeArtisanBookingWriteResponse(response.data)
 }
 
-/** POST /api/artisan/bookings/{id}/complete — IN_PROGRESS → COMPLETED (escrow release / payout on server). */
-export const completeBooking = async (id: string): Promise<Booking> => {
-  const response = await api.post(`/api/artisan/bookings/${id}/complete`)
-  return normalizeArtisanBookingWriteResponse(response.data)
-}
+/** Multipart body for `POST /api/artisan/bookings/:id/complete`. */
+export type ArtisanCompleteBookingPayload = {
+  /** Required: 1–3 images. */
+  completionImages: File[];
+  /** Optional completion notes. */
+  notes?: string;
+};
+
+/** POST /api/artisan/bookings/{id}/complete — IN_PROGRESS → COMPLETED (multipart). */
+export const completeBooking = async (
+  id: string,
+  payload: ArtisanCompleteBookingPayload,
+): Promise<Booking> => {
+  const files = payload.completionImages.filter((f): f is File => f instanceof File);
+  if (files.length < 1 || files.length > 3) {
+    throw new Error("completionImages: provide between 1 and 3 files");
+  }
+  const formData = new FormData();
+  for (const file of files.slice(0, 3)) {
+    formData.append("completionImages", file);
+  }
+  const notes = payload.notes?.trim();
+  if (notes) {
+    formData.append("notes", notes);
+  }
+  const response = await api.post(`/api/artisan/bookings/${id}/complete`, formData);
+  return normalizeArtisanBookingWriteResponse(response.data);
+};
 
 /** POST /api/artisan/bookings/{id}/apply — apply to an OPEN_FOR_APPLICATIONS booking */
 export const applyToBooking = async (

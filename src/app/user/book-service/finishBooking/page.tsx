@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import Input from "@/components/ui/input";
 import { useBookingsStore } from "@/store/useBookingsStore";
+import type { Booking } from "@/types";
 import type { PublishToMarketplacePayload } from "@/lib/api/bookings";
 import { usePaymentStore } from "@/store/usePaymentStore";
 import { useAddressStore } from "@/store/useAddressStore";
@@ -19,6 +20,14 @@ import {
   bookingApiErrorUserMessage,
 } from "@/lib/paymentCardRequired";
 import { MARKETPLACE_FIXED_PRICE_FINISH_BOOKING_MESSAGE } from "@/lib/marketplaceFixedPriceOfferValidation";
+import { parseBookingMoney } from "@/lib/bookingDisplay";
+import {
+  clampDurationHours,
+  DURATION_HOURS_MAX,
+  DURATION_HOURS_MIN,
+  parseDurationHoursParam,
+  validateDurationHours,
+} from "@/lib/durationHours";
 
 /** Last resort when no coordinates from the booking URL chain or address store */
 const FALLBACK_LAT = 52.52;
@@ -45,6 +54,21 @@ function resolveBookingCoordinates(
   return { latitude: FALLBACK_LAT, longitude: FALLBACK_LNG };
 }
 
+/** After `select-krafter`, pass server pricing through to confirmation via query params. */
+function appendBookingPricingParams(booking: Booking, params: URLSearchParams) {
+  const setMoneyParam = (key: string, raw: unknown) => {
+    const n = parseBookingMoney(raw);
+    if (n !== null) params.set(key, n.toFixed(2));
+  };
+  setMoneyParam("bookingFinalAgreedPrice", booking.finalAgreedPrice);
+  setMoneyParam("bookingPlatformFee", booking.platformFee);
+  setMoneyParam("bookingArtisanEarning", booking.artisanEarning);
+  const ruleId = booking.pricingRuleId;
+  if (ruleId != null && String(ruleId).trim() !== "") {
+    params.set("bookingPricingRuleId", String(ruleId).trim());
+  }
+}
+
 const Page = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -67,6 +91,8 @@ const Page = () => {
   const fullDateTimeDisplay = `${formattedDisplayDate} at ${rawTime}`;
 
   const isPublic = searchParams.get("isPublic") === "true";
+  const offerPricingType = searchParams.get("offerPricingType") === "HOURLY" ? "HOURLY" : "FLAT";
+  const isPublicHourly = isPublic && offerPricingType === "HOURLY";
   const budget = searchParams.get("budget") || "0";
   const openForNegotiationRawPublic = searchParams.get("openForNegotiation");
   const negotiationTurnedOffPublic = openForNegotiationRawPublic === "false";
@@ -77,6 +103,17 @@ const Page = () => {
     !(Number.isFinite(budgetNumPublic) && budgetNumPublic > 0);
   const [promoCode, setPromoCode] = useState("");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [estimatedHoursInput, setEstimatedHoursInput] = useState(() =>
+    String(parseDurationHoursParam(searchParams.get("hours"))),
+  );
+  const [hoursFieldError, setHoursFieldError] = useState<string | null>(null);
+
+  const hoursFromUrl = searchParams.get("hours");
+  useEffect(() => {
+    setEstimatedHoursInput(
+      String(parseDurationHoursParam(hoursFromUrl)),
+    );
+  }, [hoursFromUrl]);
 
   const {
     createBooking,
@@ -109,18 +146,28 @@ const Page = () => {
   }, [paymentMethods, selectedPaymentId, selectPayment]);
 
   const artisanId = searchParams.get("artisanId");
+  const artisanImageRaw = searchParams.get("artisanImage")?.trim() || "";
+  const artisanDisplayPhoto =
+    artisanImageRaw &&
+    (artisanImageRaw.startsWith("http://") ||
+      artisanImageRaw.startsWith("https://") ||
+      artisanImageRaw.startsWith("/"))
+      ? artisanImageRaw
+      : "/images/pro.jpg";
   const bookingId = searchParams.get("bookingId");
   const pricePerHourParam = parseFloat(searchParams.get("pricePerHour") || "");
   const hourlyRate =
     Number.isFinite(pricePerHourParam) && pricePerHourParam > 0
       ? pricePerHourParam
       : 41.29;
-  const hours = Number(searchParams.get("hours") || "1");
+  const durationHoursDisplay = clampDurationHours(Number(estimatedHoursInput));
   const serviceFee = 5.0;
 
-  const subtotal = isPublic ? Number(budget) : hourlyRate * hours;
+  const estimatedLaborSubtotal = isPublic
+    ? (isPublicHourly ? Number(budget) * durationHoursDisplay : Number(budget))
+    : hourlyRate * durationHoursDisplay;
   /** Sum of visible breakdown lines only (discount not wired to promo yet). */
-  const totalAmount = subtotal + serviceFee;
+  const totalAmount = estimatedLaborSubtotal + serviceFee;
 
   const handleConfirmPayment = async () => {
     logger.log("Initiating booking creation", {
@@ -131,6 +178,18 @@ const Page = () => {
     });
 
     try {
+      let durationHours = 1;
+      if (!isPublic || isPublicHourly) {
+        durationHours = clampDurationHours(Number(estimatedHoursInput));
+        const hoursErr = validateDurationHours(durationHours);
+        if (hoursErr) {
+          setHoursFieldError(hoursErr);
+          toast.error(hoursErr);
+          return;
+        }
+        setHoursFieldError(null);
+      }
+
       const { latitude, longitude } = resolveBookingCoordinates(
         searchParams,
         currentLatitude,
@@ -146,17 +205,17 @@ const Page = () => {
       if (rawTime.includes("AM") || rawTime.includes("PM")) {
         const timeParts = rawTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
         if (timeParts) {
-          let hours = parseInt(timeParts[1]);
+          let hour24 = parseInt(timeParts[1], 10);
           const minutes = timeParts[2];
           const period = timeParts[3].toUpperCase();
 
-          if (period === "PM" && hours !== 12) {
-            hours += 12;
-          } else if (period === "AM" && hours === 12) {
-            hours = 0;
+          if (period === "PM" && hour24 !== 12) {
+            hour24 += 12;
+          } else if (period === "AM" && hour24 === 12) {
+            hour24 = 0;
           }
 
-          formattedTime = `${hours.toString().padStart(2, "0")}:${minutes}`;
+          formattedTime = `${hour24.toString().padStart(2, "0")}:${minutes}`;
         }
       }
 
@@ -177,8 +236,10 @@ const Page = () => {
         preferredDate: new Date(date).toISOString().split("T")[0], // YYYY-MM-DD format
         preferredTime: formattedTime, // HH:mm format
         ...(artisanId && !isPublic ? { artisanId } : {}),
-        ...(!isPublic ? { proposedPrice: hourlyRate * hours } : {}),
+        ...(!isPublic ? { proposedPrice: hourlyRate * durationHours } : {}),
       };
+
+      let pricingFromSelection: Booking | undefined;
 
       if (isPublic) {
         if (publicFixedPriceInvalid) {
@@ -207,6 +268,8 @@ const Page = () => {
 
         const publishPayload: PublishToMarketplacePayload = {
           ...basePayload,
+          offerPricingType,
+          ...(isPublicHourly ? { offerDurationHours: durationHours } : {}),
           ...(serviceListingId ? { serviceListingId } : {}),
           ...(offerAmount !== undefined ? { offerAmount, proposedPrice: proposedPricePublic } : {}),
           ...(recommendationBookingId ? { recommendationBookingId } : {}),
@@ -234,8 +297,12 @@ const Page = () => {
         logger.log("Selecting Krafter on recommendation draft", {
           bookingId,
           artisanId,
+          durationHours,
         });
-        await selectKrafter(bookingId, { krafterId: artisanId });
+        pricingFromSelection = await selectKrafter(bookingId, {
+          krafterId: artisanId,
+          durationHours,
+        });
       } else {
         logger.log("Booking payload:", basePayload);
         await createBooking(basePayload);
@@ -250,12 +317,19 @@ const Page = () => {
       );
       const nextParams = new URLSearchParams(searchParams.toString());
       nextParams.set("isPublic", String(isPublic));
+      if (!isPublic) {
+        nextParams.set("hours", String(durationHours));
+      }
+      if (pricingFromSelection) {
+        appendBookingPricingParams(pricingFromSelection, nextParams);
+      }
       router.push(`/user/book-service/confirmation?${nextParams.toString()}`);
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.error("Booking creation failed:", err);
+      const ax = err as { response?: { status?: number } };
 
       // Handle specific error cases
-      if (err.response?.status === 401) {
+      if (ax.response?.status === 401) {
         toast.error("Please log in to create a booking");
         router.push("/user/login");
       } else if (isSavedPaymentMethodRequiredError(err)) {
@@ -329,9 +403,11 @@ const Page = () => {
                 <span className="text-[13px] sm:text-[14px] font-poppins font-semibold text-gray-900">
                   {searchParams.get("artisanName")}
                 </span>
-                <span className="bg-[#E8F5E9] text-[#2E7D32] text-[10px] sm:text-[11px] font-poppins font-semibold px-2 py-0.5 rounded">
-                  {searchParams.get("artisanBadge")}
-                </span>
+                {searchParams.get("artisanBadge") ? (
+                  <span className="bg-[#E8F5E9] text-[#2E7D32] text-[10px] sm:text-[11px] font-poppins font-semibold px-2 py-0.5 rounded">
+                    {searchParams.get("artisanBadge")}
+                  </span>
+                ) : null}
               </div>
             )}
             <p className="text-[13px] sm:text-[14px] text-gray-700 font-poppins">
@@ -344,7 +420,7 @@ const Page = () => {
           <div className="flex flex-col items-end gap-2">
             {isPublic ? (
               <span className="text-brand-orange text-[16px] sm:text-[18px] font-poppins font-bold">
-                Budget: ${budget}
+                Budget: ${budget}{isPublicHourly ? "/hr" : ""}
               </span>
             ) : (
               <>
@@ -352,11 +428,15 @@ const Page = () => {
                   ${hourlyRate.toFixed(2)}/hr
                 </span>
                 <Image
-                  src="/images/pro.jpg"
+                  src={artisanDisplayPhoto}
                   alt="artisan profile"
                   width={70}
                   height={70}
                   className="w-20 h-20 rounded-lg object-cover"
+                  unoptimized={
+                    artisanDisplayPhoto.startsWith("http://") ||
+                    artisanDisplayPhoto.startsWith("https://")
+                  }
                 />
               </>
             )}
@@ -364,26 +444,132 @@ const Page = () => {
         </div>
       </div>
 
-      {/* Payment Options */}
+      {!isPublic || isPublicHourly ? (
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 border-t border-[#0000001A]">
+          <h3 className="text-[18px] sm:text-[20px] font-poppins font-semibold mb-2">
+            Estimated hours
+          </h3>
+          {isPublic ? (
+            <>
+              <p className="text-[12px] sm:text-[13px] font-poppins text-gray-600 mb-3">
+                Duration is locked from your previous step for this review screen.
+              </p>
+              <div className="max-w-xs rounded-xl border border-[#0000001A] bg-[#F6F6F6] px-4 py-3">
+                <p className="text-[12px] font-poppins text-gray-500 mb-0.5">Hours for this booking</p>
+                <p className="text-[16px] font-poppins font-semibold text-gray-900">
+                  {durationHoursDisplay % 1 === 0
+                    ? durationHoursDisplay
+                    : durationHoursDisplay.toFixed(2)}
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-[12px] sm:text-[13px] font-poppins text-gray-600 mb-3">
+                Between 0.25 and 24 hours, in steps of 0.25 (15 minutes). We always send this to the
+                server explicitly (default 1 hour if you skip verify).
+              </p>
+              <Input
+                label="Hours for this booking"
+                type="number"
+                min={DURATION_HOURS_MIN}
+                max={DURATION_HOURS_MAX}
+                step={0.25}
+                value={estimatedHoursInput}
+                onChange={(v) => {
+                  setHoursFieldError(null);
+                  if (v.includes("-")) return;
+                  if (v !== "" && v !== ".") {
+                    const n = Number(v);
+                    if (Number.isFinite(n) && n < 0) return;
+                  }
+                  setEstimatedHoursInput(v);
+                }}
+                onBlur={() => {
+                  const c = clampDurationHours(Number(estimatedHoursInput));
+                  setEstimatedHoursInput(String(c));
+                  setHoursFieldError(validateDurationHours(c));
+                }}
+                error={hoursFieldError ?? undefined}
+                className="max-w-xs"
+              />
+            </>
+          )}
+        </div>
+      ) : null}
+
       {/* Price Breakdown */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 border-t border-[#0000001A]">
         <h3 className="text-[18px] sm:text-[20px] font-poppins font-semibold mb-4">
           Price Breakdown
         </h3>
         <div className="space-y-3">
+          {isPublic ? (
+            <>
+              <div className="flex items-center justify-between">
+                <span className="text-[13px] sm:text-[14px] font-poppins text-gray-700">
+                  {isPublicHourly ? "Your offer rate" : "Your offer budget"}
+                </span>
+                <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900">
+                  ${Number(budget || 0).toFixed(2)}{isPublicHourly ? "/hr" : ""}
+                </span>
+              </div>
+              {isPublicHourly && (
+                <>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[13px] sm:text-[14px] font-poppins text-gray-700">
+                      Estimated hours
+                    </span>
+                    <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900">
+                      {durationHoursDisplay % 1 === 0
+                        ? durationHoursDisplay
+                        : durationHoursDisplay.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[13px] sm:text-[14px] font-poppins text-gray-700">
+                      Estimated labor subtotal
+                    </span>
+                    <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900">
+                      ${estimatedLaborSubtotal.toFixed(2)}
+                    </span>
+                  </div>
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="flex items-center justify-between">
+                <span className="text-[13px] sm:text-[14px] font-poppins text-gray-700">
+                  Hourly rate (from your pick)
+                </span>
+                <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900">
+                  ${hourlyRate.toFixed(2)}/hr
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[13px] sm:text-[14px] font-poppins text-gray-700">
+                  Estimated hours
+                </span>
+                <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900">
+                  {durationHoursDisplay % 1 === 0
+                    ? durationHoursDisplay
+                    : durationHoursDisplay.toFixed(2)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[13px] sm:text-[14px] font-poppins text-gray-700">
+                  Estimated labor subtotal
+                </span>
+                <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900">
+                  ${estimatedLaborSubtotal.toFixed(2)}
+                </span>
+              </div>
+            </>
+          )}
           <div className="flex items-center justify-between">
             <span className="text-[13px] sm:text-[14px] font-poppins text-gray-700">
-              {isPublic
-                ? "Your Offer Budget"
-                : `Hourly Rate ($${hourlyRate.toFixed(2)}/hr x ${hours}hrs)`}
-            </span>
-            <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900">
-              ${subtotal.toFixed(2)}
-            </span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-[13px] sm:text-[14px] font-poppins text-gray-700">
-              Service fee
+              {isPublic ? "Service fee" : "Service fee (estimate)"}
             </span>
             <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900">
               ${serviceFee.toFixed(2)}
@@ -391,7 +577,7 @@ const Page = () => {
           </div>
           <div className="pt-3 border-t border-[#0000001A] flex items-center justify-between">
             <span className="text-[15px] sm:text-[16px] font-poppins font-bold text-gray-900">
-              Total Amount
+              {isPublic ? "Total Amount" : "Total (estimate)"}
             </span>
             <span className="text-[16px] sm:text-[18px] font-poppins font-bold text-gray-900">
               ${totalAmount.toFixed(2)}
@@ -443,19 +629,26 @@ const Page = () => {
           // With Payment Methods State
           <div className="space-y-4">
             {paymentMethods.map((method) => {
+              const methodLoose = method as unknown as Record<string, unknown>;
+              const paymentMethodLoose =
+                methodLoose.paymentMethod && typeof methodLoose.paymentMethod === "object"
+                  ? (methodLoose.paymentMethod as Record<string, unknown>)
+                  : null;
+              const cardLike = (value: unknown): Record<string, unknown> | null =>
+                value && typeof value === "object" ? (value as Record<string, unknown>) : null;
               // 1. Extract data safely
               const cardData =
-                method.card ||
-                (method as any).details ||
-                (method as any).paymentMethod?.card ||
-                ((method as any).brand ? method : null);
-              const isCard = !!cardData;
+                cardLike(method.card) ||
+                cardLike(methodLoose.details) ||
+                cardLike(paymentMethodLoose?.card) ||
+                (typeof methodLoose.brand === "string" ? methodLoose : null);
+              const isCard = cardData != null;
 
               // We only get last4 from Stripe for security
               const last4 =
-                cardData?.last4 ||
-                cardData?.number?.slice(-4) ||
-                (method as any).cardLast4 ||
+                (typeof cardData?.last4 === "string" ? cardData.last4 : undefined) ||
+                (typeof cardData?.number === "string" ? cardData.number.slice(-4) : undefined) ||
+                (typeof methodLoose.cardLast4 === "string" ? methodLoose.cardLast4 : undefined) ||
                 "****";
               // const holderName =
               //   cardData?.holder ||
@@ -567,7 +760,11 @@ const Page = () => {
         )}
         <button
           onClick={handleConfirmPayment}
-          disabled={isSubmitting || publicFixedPriceInvalid}
+          disabled={
+            isSubmitting ||
+            publicFixedPriceInvalid ||
+            (!!hoursFieldError && (!isPublic || isPublicHourly))
+          }
           className="w-full py-3 bg-brand-orange text-white text-[16px] sm:text-[17px] font-poppins font-semibold rounded-lg hover:bg-brand-orange-dark transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
         >
           {isSubmitting

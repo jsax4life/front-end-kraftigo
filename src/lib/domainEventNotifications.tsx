@@ -7,6 +7,7 @@ import {
   useDomainNotificationHistoryStore,
   type DomainNotificationFeedAction,
 } from "@/store/useDomainNotificationHistoryStore";
+import { emitWalletSummaryInvalidate } from "@/lib/api/payouts";
 import {
   AlertTriangle,
   BadgeCheck,
@@ -70,6 +71,25 @@ function fmtMoney(n: unknown): string | null {
     currency: "USD",
     maximumFractionDigits: 2,
   }).format(num);
+}
+
+function fmtMoneyWithCurrency(n: unknown, currencyCode: unknown): string | null {
+  if (n == null || n === "") return null;
+  const num = typeof n === "number" ? n : parseFloat(String(n));
+  if (!Number.isFinite(num)) return null;
+  const code =
+    typeof currencyCode === "string" && /^[A-Z]{3}$/i.test(currencyCode.trim())
+      ? currencyCode.trim().toUpperCase()
+      : "USD";
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: code,
+      maximumFractionDigits: 2,
+    }).format(num);
+  } catch {
+    return fmtMoney(n);
+  }
 }
 
 function shortId(id: unknown): string {
@@ -190,6 +210,9 @@ export function showDomainEventNotification(raw: unknown): void {
   };
   const goHome = () => {
     if (typeof window !== "undefined") window.location.assign("/user/home");
+  };
+  const goTaskerEarnings = () => {
+    if (typeof window !== "undefined") window.location.assign("/tasker/profile/earnings");
   };
 
   const hist = (
@@ -427,6 +450,34 @@ export function showDomainEventNotification(raw: unknown): void {
         hist("PAYMENT_AUTHORIZED", null),
       );
       break;
+    case "ARTISAN_WALLET_WITHDRAWN": {
+      emitWalletSummaryInvalidate();
+      if (!useAuthStore.getState().isTasker()) break;
+      const withdrawn = fmtMoneyWithCurrency(msg.amount, msg.currency);
+      const countRaw =
+        typeof msg.payoutCount === "number" && Number.isFinite(msg.payoutCount)
+          ? msg.payoutCount
+          : parseInt(String(msg.payoutCount ?? ""), 10);
+      const count = Number.isFinite(countRaw) ? countRaw : NaN;
+      const tid =
+        typeof msg.transferId === "string" && msg.transferId.trim()
+          ? shortId(msg.transferId)
+          : "";
+      let body = withdrawn ? `${withdrawn} sent to your bank.` : "Funds were withdrawn.";
+      if (tid) body += ` Transfer ${tid}.`;
+      if (Number.isFinite(count) && count > 0) {
+        body += ` ${count} payout${count === 1 ? "" : "s"}.`;
+      }
+      pushToast(
+        "success",
+        <Coins className="h-5 w-5" />,
+        "Withdrawal sent",
+        body,
+        { actionLabel: "Wallet", onAction: goTaskerEarnings },
+        hist("ARTISAN_WALLET_WITHDRAWN", null),
+      );
+      break;
+    }
     case "DISPUTE_OPENED":
       pushToast(
         "danger",

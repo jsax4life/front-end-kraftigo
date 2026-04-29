@@ -35,15 +35,20 @@ const ChatInterface = ({ isOpen, onClose, conversation }: ChatInterfaceProps) =>
   const displayMessages = messages;
 
   useEffect(() => {
-    if (isOpen && conversationId) {
-      fetchMessages(conversationId);
-      chatSocketManager.joinConversation(conversationId);
-    }
-    
+    if (!isOpen || !conversationId) return;
+    /** Join ASAP so `new_message` is not missed while history fetch is still in flight. */
+    chatSocketManager.joinConversation(conversationId);
+    let cancelled = false;
+    void fetchMessages(conversationId)
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) {
+          chatSocketManager.joinConversation(conversationId);
+        }
+      });
     return () => {
-      if (conversationId) {
-        chatSocketManager.leaveConversation(conversationId);
-      }
+      cancelled = true;
+      chatSocketManager.leaveConversation(conversationId);
     };
   }, [isOpen, conversationId, fetchMessages]);
 

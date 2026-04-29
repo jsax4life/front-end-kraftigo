@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, ChevronRight, Calendar } from "lucide-react";
 import Image from "next/image";
 import { useBookingsStore } from "@/store/useBookingsStore";
@@ -8,6 +8,7 @@ import type { Booking } from "@/types";
 import Button from "../ui/button";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import PhotoUploader, { type Photo } from "@/components/shared/PhotoUploader";
 
 interface TaskDetailModalProps {
   booking: Booking | null;
@@ -56,7 +57,18 @@ export default function TaskDetailModal({
   const router = useRouter();
   const { startBooking, completeBooking } = useBookingsStore();
   const [jobActionLoading, setJobActionLoading] = useState(false);
+  const [completionPhotos, setCompletionPhotos] = useState<Photo[]>([]);
+  const [completionNotesInput, setCompletionNotesInput] = useState("");
+
+  useEffect(() => {
+    if (!booking?.id) return;
+    setCompletionPhotos([]);
+    setCompletionNotesInput("");
+  }, [booking?.id]);
+
   if (!booking) return null;
+
+  const hasCompletionPhotos = completionPhotos.some((p) => p.file instanceof File);
 
   const activeStep = STATUS_STEP[booking.status] ?? 0;
   const isConfirmed = booking.status === "CONFIRMED";
@@ -248,6 +260,9 @@ export default function TaskDetailModal({
                   setJobActionLoading(true);
                   try {
                     const updated = await startBooking(booking.id);
+                    if (typeof window !== "undefined") {
+                      window.sessionStorage.setItem(`kraftigo:jobWorkStart:${booking.id}`, String(Date.now()));
+                    }
                     onBookingUpdated?.(updated);
                     toast.success("Job started. Coordinate with your customer while you work.");
                   } catch (err: unknown) {
@@ -265,16 +280,41 @@ export default function TaskDetailModal({
               </Button>
             )}
             {isInProgress && (
+              <div className="px-5 pb-2 space-y-3">
+                <h3 className="text-[15px] font-bold text-gray-900">Completion photos (1–3 required)</h3>
+                <PhotoUploader photos={completionPhotos} onChange={setCompletionPhotos} maxPhotos={3} title="" />
+                <div>
+                  <label className="text-[14px] font-semibold text-gray-700 mb-1 block">Notes (optional)</label>
+                  <textarea
+                    value={completionNotesInput}
+                    onChange={(e) => setCompletionNotesInput(e.target.value)}
+                    placeholder="Optional notes sent with completion"
+                    className="w-full h-24 p-3 bg-[#F6F6F6] border border-[#0000001A] rounded-xl text-[14px] resize-none focus:outline-none focus:border-brand-orange"
+                  />
+                </div>
+              </div>
+            )}
+            {isInProgress && (
               <>
                 <Button
                   type="button"
                   variant="primary"
                   fullWidth
-                  disabled={jobActionLoading}
+                  disabled={jobActionLoading || !hasCompletionPhotos}
                   onClick={async () => {
+                    const files = completionPhotos
+                      .map((p) => p.file)
+                      .filter((f): f is File => f instanceof File);
+                    if (files.length < 1) {
+                      toast.error("Add at least one completion photo (up to 3).");
+                      return;
+                    }
                     setJobActionLoading(true);
                     try {
-                      const updated = await completeBooking(booking.id);
+                      const updated = await completeBooking(booking.id, {
+                        completionImages: files.slice(0, 3),
+                        notes: completionNotesInput.trim() || undefined,
+                      });
                       onBookingUpdated?.(updated);
                       toast.success("Job completed.");
                       onClose();
@@ -289,8 +329,7 @@ export default function TaskDetailModal({
                   {jobActionLoading ? "Completing…" : "Complete job"}
                 </Button>
                 <p className="text-[11px] text-center text-gray-500 font-poppins px-1">
-                  Use when the work is finished; the customer will see the job as completed and payout runs on the
-                  server.
+                  The customer is notified when you complete the job; payout steps run on the server.
                 </p>
               </>
             )}

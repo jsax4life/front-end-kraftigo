@@ -4,14 +4,21 @@ import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import UserNav from "@/components/shared/userNav";
-import { ArrowLeft, Search, MapPin, Tag } from "lucide-react";
+import { ArrowLeft, Search, MapPin, Tag, MessageCircle } from "lucide-react";
 import OffersModal from "@/components/shared/OffersModal";
 import CustomerKraftTaskDetailModal from "@/components/shared/CustomerKraftTaskDetailModal";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import ErrorBanner from "@/components/shared/ErrorBanner";
 import { useBookingsStore } from "@/store/useBookingsStore";
 import type { Booking, BookingStatus } from "@/types";
-import { bookingNeedsKrafterSelection, buildSelectArtisanQuery, parseBookingMoney } from "@/lib/bookingDisplay";
+import {
+  bookingNeedsKrafterSelection,
+  buildSelectArtisanQuery,
+  bookingArtisanName,
+  deriveActiveJobDisplay,
+  parseBookingMoney,
+} from "@/lib/bookingDisplay";
+import { buildCustomerMessageKrafterUrl } from "@/lib/chatDeepLinks";
 import BookingPaymentConfirmModal from "@/components/shared/BookingPaymentConfirmModal";
 import { bookingPaymentClientSecret } from "@/lib/bookingPaymentCheckout";
 import { getBookingApplicants } from "@/lib/api/bookings";
@@ -377,6 +384,21 @@ const KraftsPage = () => {
                     </button>
                   </div>
                 )}
+                {!bookingNeedsKrafterSelection(task) && buildCustomerMessageKrafterUrl(task) ? (
+                  <div
+                    className="px-4 pb-3 pt-0 border-t border-gray-100"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => router.push(buildCustomerMessageKrafterUrl(task)!)}
+                      className="w-full py-2.5 flex items-center justify-center gap-2 rounded-xl border border-brand-orange text-brand-orange text-[13px] font-poppins font-semibold hover:bg-[#FFF5F0] transition-colors"
+                    >
+                      <MessageCircle size={16} strokeWidth={2} aria-hidden />
+                      Message Krafter
+                    </button>
+                  </div>
+                ) : null}
               </div>
             );
           })}
@@ -594,38 +616,59 @@ const KraftsPage = () => {
                 <h2 className="text-[16px] font-poppins font-bold mb-3 text-black">{month}</h2>
                 <div className="space-y-3">
                   {tasks.map((task: Booking) => {
-                    const title = `${task.service?.title ?? "Service"} with ${task.service?.artisan?.fullName ?? "Artisan"}`;
-                    const location = task.location;
-                    const time = formatDate(task.scheduled_date);
-                    const image = task.service?.artisan?.avatar ?? "/images/pro.jpg";
+                    const display = deriveActiveJobDisplay(task);
+                    const title = display.artisan.name || `${display.service} with ${bookingArtisanName(task)}`;
+                    const location = display.jobLocation || "—";
+                    const time = [display.date, display.time].filter(Boolean).join(" · ") || "—";
+                    const image = display.artisan.image;
                     const taskStatus = task.status;
 
                     return (
                       <div
                         key={task.id}
-                        onClick={() =>
-                          taskStatus === "COMPLETED" &&
-                          router.push(`/user/book-service/completed-job?id=${task.id}`)
-                        }
-                        className={`bg-white border border-gray-100 rounded-2xl p-4 flex gap-3 shadow-sm ${
-                          taskStatus === "COMPLETED" ? "cursor-pointer hover:border-brand-orange transition-colors" : ""
-                        }`}
+                        className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden"
                       >
-                        <div className="flex-1 space-y-1.5">
-                          <h3 className="text-[14px] font-poppins font-bold text-black">{title}</h3>
-                          <div className="flex items-center gap-1.5 text-[12px] text-gray-500 font-poppins">
-                            <MapPin size={13} className="text-gray-400 shrink-0" />
-                            <span>{location}</span>
+                        <div
+                          onClick={() =>
+                            taskStatus === "COMPLETED" &&
+                            router.push(`/user/book-service/completed-job?id=${task.id}`)
+                          }
+                          className={`p-4 flex gap-3 ${
+                            taskStatus === "COMPLETED"
+                              ? "cursor-pointer hover:border-brand-orange transition-colors"
+                              : ""
+                          }`}
+                        >
+                          <div className="flex-1 space-y-1.5">
+                            <h3 className="text-[14px] font-poppins font-bold text-black">{title}</h3>
+                            <div className="flex items-center gap-1.5 text-[12px] text-gray-500 font-poppins">
+                              <MapPin size={13} className="text-gray-400 shrink-0" />
+                              <span>{location}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-[12px] text-gray-500 font-poppins">
+                              <Image src="/taskerCal.svg" alt="calendar" width={13} height={13} className="shrink-0" />
+                              <span>{time}</span>
+                            </div>
+                            <div className="pt-1">{statusBadge(taskStatus)}</div>
                           </div>
-                          <div className="flex items-center gap-1.5 text-[12px] text-gray-500 font-poppins">
-                            <Image src="/taskerCal.svg" alt="calendar" width={13} height={13} className="shrink-0" />
-                            <span>{time}</span>
+                          <div className="shrink-0">
+                            <Image src={image} alt="artisan" width={80} height={80} className="rounded-xl object-cover w-20 h-20" />
                           </div>
-                          <div className="pt-1">{statusBadge(taskStatus)}</div>
                         </div>
-                        <div className="shrink-0">
-                          <Image src={image} alt="artisan" width={80} height={80} className="rounded-xl object-cover w-20 h-20" />
-                        </div>
+                        {taskStatus !== "COMPLETED" &&
+                        !bookingNeedsKrafterSelection(task) &&
+                        buildCustomerMessageKrafterUrl(task) ? (
+                          <div className="px-4 pb-3 border-t border-gray-100" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              onClick={() => router.push(buildCustomerMessageKrafterUrl(task)!)}
+                              className="w-full py-2.5 flex items-center justify-center gap-2 rounded-xl border border-brand-orange text-brand-orange text-[13px] font-poppins font-semibold hover:bg-[#FFF5F0] transition-colors"
+                            >
+                              <MessageCircle size={16} strokeWidth={2} aria-hidden />
+                              Message Krafter
+                            </button>
+                          </div>
+                        ) : null}
                       </div>
                     );
                   })}

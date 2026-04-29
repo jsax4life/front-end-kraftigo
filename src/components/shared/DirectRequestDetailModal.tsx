@@ -1,9 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { X, Calendar } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { X, Calendar, MessageCircle } from "lucide-react";
 import type { DirectArtisanBookingRequest } from "@/lib/api/bookings";
 import { isDirectRequestPendingPayment } from "@/lib/directRequestStatus";
+import { buildTaskerMessageCustomerUrlFromDirectRequest } from "@/lib/chatDeepLinks";
 
 function formatPreferredTime(time: string): string {
   if (!time) return "";
@@ -102,7 +104,10 @@ export default function DirectRequestDetailModal({
   onRenegotiate,
   isSubmitting = false,
 }: DirectRequestDetailModalProps) {
+  const router = useRouter();
   if (!open || !request) return null;
+
+  const customerChatUrl = buildTaskerMessageCustomerUrlFromDirectRequest(request);
 
   const pendingCustomerPayment = isDirectRequestPendingPayment(request.status);
 
@@ -124,7 +129,7 @@ export default function DirectRequestDetailModal({
       role="presentation"
     >
       <div
-        className="bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-lg max-h-[92vh] overflow-hidden flex flex-col shadow-xl"
+        className="bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-lg max-h-[92vh] overflow-hidden flex flex-col shadow-xl pt-10"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -259,6 +264,19 @@ export default function DirectRequestDetailModal({
         </div>
 
         <div className="border-t border-gray-100 px-5 py-4 space-y-3 shrink-0 bg-white">
+          {customerChatUrl ? (
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                router.push(customerChatUrl);
+              }}
+              className="w-full py-3 rounded-xl border-2 border-brand-orange text-brand-orange bg-white font-poppins font-semibold text-[15px] hover:bg-[#FFF5F0] transition-colors flex items-center justify-center gap-2"
+            >
+              <MessageCircle size={18} strokeWidth={2} aria-hidden />
+              Message customer
+            </button>
+          ) : null}
           {/* <button
             type="button"
             onClick={() => onRenegotiate(request.id)}

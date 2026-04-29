@@ -10,24 +10,47 @@ import ErrorBanner from "@/components/shared/ErrorBanner";
 import { useBookingsStore } from "@/store/useBookingsStore";
 import { submitReview } from "@/lib/api/reviews";
 import { createDispute } from "@/lib/api/disputes";
+import { bookingArtisanName, deriveActiveJobDisplay } from "@/lib/bookingDisplay";
 
-// ─── Elapsed timer since job "started" ────────────────────────────────────────
-const useElapsedTimer = () => {
-  const [elapsed, setElapsed] = useState({ h: 2, m: 45, s: 12 });
-  useEffect(() => {
-    const id = setInterval(() => {
-      setElapsed((prev) => {
-        let { h, m, s } = prev;
-        s++;
-        if (s >= 60) { s = 0; m++; }
-        if (m >= 60) { m = 0; h++; }
-        return { h, m, s };
-      });
-    }, 1000);
-    return () => clearInterval(id);
-  }, []);
-  return elapsed;
-};
+function bookingTimeField(booking: Record<string, unknown>, ...keys: string[]): string | null {
+  for (const key of keys) {
+    const v = booking[key];
+    if (typeof v === "string" && v.trim()) return v.trim();
+  }
+  return null;
+}
+
+function completedDuration(booking: unknown): { h: number; m: number; s: number } {
+  const fallback = { h: 0, m: 0, s: 0 };
+  if (!booking || typeof booking !== "object") return fallback;
+  const b = booking as Record<string, unknown>;
+  const startedAt = bookingTimeField(
+    b,
+    "startedAt",
+    "started_at",
+    "workStartedAt",
+    "work_started_at",
+    "inProgressAt",
+    "in_progress_at",
+  );
+  const completedAt = bookingTimeField(
+    b,
+    "completedAt",
+    "completed_at",
+    "updatedAt",
+    "updated_at",
+  );
+  if (!startedAt || !completedAt) return fallback;
+  const startMs = Date.parse(startedAt);
+  const endMs = Date.parse(completedAt);
+  if (Number.isNaN(startMs) || Number.isNaN(endMs) || endMs <= startMs) return fallback;
+  const secs = Math.floor((endMs - startMs) / 1000);
+  return {
+    h: Math.floor(secs / 3600),
+    m: Math.floor((secs % 3600) / 60),
+    s: secs % 60,
+  };
+}
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -37,52 +60,60 @@ const CompletedJobContent = () => {
   const bookingId = searchParams.get("id");
 
   const { fetchBookingById, isLoading, error, clearError, selectedBooking } = useBookingsStore();
-  const elapsed = useElapsedTimer();
 
   const [showRating, setShowRating] = useState(false);
   const [showPriceBreakdown, setShowPriceBreakdown] = useState(false);
   const [showKraftDetails, setShowKraftDetails] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasSubmittedReview, setHasSubmittedReview] = useState(false);
 
   useEffect(() => {
     if (bookingId) {
-      fetchBookingById(bookingId);
+      void fetchBookingById(bookingId);
     }
-  }, [bookingId]);
+  }, [bookingId, fetchBookingById]);
 
   // Derive display data
   const booking = bookingId && selectedBooking ? selectedBooking : null;
-  const artisanName = booking?.service?.artisan?.fullName?.split(" ")[0] ?? "Edith";
-  const artisanImage = booking?.service?.artisan?.avatar ?? "/images/pro.jpg";
-  const serviceName = booking?.service?.title ?? "House Cleaning";
+  const displayData = booking ? deriveActiveJobDisplay(booking) : null;
+  const elapsed = completedDuration(booking);
+  const artisanFullNameRaw = booking ? bookingArtisanName(booking) : "Krafter";
+  const artisanName = artisanFullNameRaw.split(" ")[0] ?? artisanFullNameRaw;
+  const artisanImage = displayData?.artisan.image ?? "/images/pro.jpg";
+  const serviceName = displayData?.service ?? booking?.service?.title ?? "Service";
   const artisanFullName = booking
-    ? `${serviceName} with ${booking.service?.artisan?.fullName ?? "Artisan"}`
-    : "House Cleaning with Sarah M.";
-  const location = booking?.location ?? "Hauptstraße 123 - 10115, Berlin";
-  const dateStr = booking
-    ? new Date(booking.scheduled_date).toLocaleDateString("en-GB", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      })
-    : "15th Jan, 2025 12:55 PM";
+    ? `${serviceName} with ${artisanFullNameRaw}`
+    : `${serviceName} with ${artisanFullNameRaw}`;
+  const location = displayData?.jobLocation ?? booking?.address ?? booking?.location ?? "—";
+  const dateStr = displayData
+    ? [displayData.date, displayData.time].filter(Boolean).join(" · ")
+    : "—";
   const price = booking?.price ?? 95.0;
 
-  const handleRatingDone = async (rating: number, tags: string[], comment: string, tipAmount: number) => {
+  const isCompletedBooking = booking?.status === "COMPLETED";
+
+  const handleRatingDone = async (rating: number, tags: string[], feedback: string, tipAmount: number) => {
+    if (!isCompletedBooking || hasSubmittedReview) return;
     setIsSubmitting(true);
     try {
       if (bookingId) {
         await submitReview({
-          booking_id: bookingId,
+          bookingId,
           rating,
-          tags,
-          comment,
-          tip_amount: tipAmount,
+          feedback: feedback.trim() || undefined,
+          selectedTags: tags,
+          highlights: tags,
         });
       }
+      void tipAmount;
+      setHasSubmittedReview(true);
       setShowRating(false);
       router.push("/user/krafts?tab=completed");
-    } catch (err) {
+    } catch (err: unknown) {
+      const ax = err as { response?: { data?: { message?: string } } };
+      if ((ax.response?.data?.message ?? "").toLowerCase().includes("already")) {
+        setHasSubmittedReview(true);
+      }
       console.error("Failed to submit review:", err);
     } finally {
       setIsSubmitting(false);
@@ -251,12 +282,15 @@ const CompletedJobContent = () => {
 
       {/* Action Buttons */}
       <div className="px-4 space-y-3">
-        <button
-          onClick={() => setShowRating(true)}
-          className="w-full py-4 bg-brand-blue text-white rounded-2xl text-[15px] font-poppins font-semibold hover:bg-blue-700 transition-colors"
-        >
-          Rate {artisanName}
-        </button>
+        {isCompletedBooking && (
+          <button
+            onClick={() => setShowRating(true)}
+            disabled={hasSubmittedReview}
+            className="w-full py-4 bg-brand-blue text-white rounded-2xl text-[15px] font-poppins font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {hasSubmittedReview ? "Review submitted" : `Rate ${artisanName}`}
+          </button>
+        )}
         <button
           onClick={handleReport}
           className="w-full py-4 bg-red-50 text-red-500 rounded-2xl text-[15px] font-poppins font-semibold border border-red-100 hover:bg-red-100 transition-colors"

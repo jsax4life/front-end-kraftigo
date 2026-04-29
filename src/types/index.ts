@@ -149,7 +149,28 @@ export interface Booking {
   latitude?: string | number | null;
   longitude?: string | number | null;
   proposedPrice?: number | string | null;
+  /** Marketplace listing/customer offer basis. */
+  offerPricingType?: "FLAT" | "HOURLY" | string | null;
+  /** Marketplace listing duration when offer is HOURLY. */
+  offerDurationHours?: number | string | null;
+  offer_duration_hours?: number | string | null;
+  /** Krafter application pricing basis. */
+  proposedPricingType?: "FLAT" | "HOURLY" | string | null;
+  proposedDurationHours?: number | string | null;
+  proposed_duration_hours?: number | string | null;
   finalAgreedPrice?: number | string | null;
+  /** Customer-visible platform fee (camelCase or snake_case from API). */
+  platformFee?: number | string | null;
+  platform_fee?: number | string | null;
+  /** Amount attributed to the service provider after fees (detail / list). */
+  artisanEarning?: number | string | null;
+  artisan_earning?: number | string | null;
+  /** Pricing rule applied for this booking, when returned by the API. */
+  pricingRuleId?: string | null;
+  pricing_rule_id?: string | null;
+  /** Job duration in hours (e.g. after select-krafter / verify flow). */
+  durationHours?: number | string | null;
+  duration_hours?: number | string | null;
   /** Platform / system fee from API */
   systemPrice?: number | string | null;
   system_price?: number | string | null;
@@ -160,6 +181,10 @@ export interface Booking {
     paymentIntentId?: string;
     payment_intent_id?: string;
   } | null;
+  /** DM thread UUID from enriched booking APIs (`LISTED_KRAFT_ORDER` / booking id). */
+  conversationId?: string | null;
+  /** @deprecated Alias for legacy readers; prefer `conversationId`. */
+  chatConversationId?: string | null;
 }
 
 // ─── Reviews ──────────────────────────────────────────────────────────────────
@@ -331,6 +356,8 @@ export interface Conversation {
     id: string;
     name: string;
     avatar?: string;
+    /** When omitted or false, UI shows offline (grey). Only true when API explicitly reports online. */
+    isOnline?: boolean;
   };
   participants?: string[];
   lastMessage?: string;

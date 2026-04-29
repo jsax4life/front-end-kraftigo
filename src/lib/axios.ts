@@ -80,6 +80,11 @@ const getAccessToken = (): string | null => {
     return null
 }
 
+/** Same JWT axios uses for `Authorization` — prefer this for Socket.IO `connect` over a possibly stale Zustand snapshot. */
+export function getStoredAccessToken(): string | null {
+    return getAccessToken()
+}
+
 // Helper to update cached token
 export const updateCachedToken = (token: string | null) => {
     cachedAccessToken = token
@@ -92,6 +97,16 @@ api.interceptors.request.use(
         
         if (accessToken) {
             config.headers.Authorization = `Bearer ${accessToken}`
+        }
+
+        // Never force JSON headers for multipart uploads (e.g. completionImages FormData).
+        // Let the browser set the correct multipart boundary.
+        if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+            if (config.headers && typeof (config.headers as any).set === 'function') {
+                ;(config.headers as any).set('Content-Type', undefined)
+            } else if (config.headers) {
+                delete (config.headers as any)['Content-Type']
+            }
         }
         
         return config
@@ -169,6 +184,15 @@ api.interceptors.response.use(
 
                         // Update cached token
                         updateCachedToken(newAccessToken)
+
+                        void import('@/store/useAuthStore').then(({ useAuthStore }) => {
+                            useAuthStore
+                                .getState()
+                                .applyRefreshedTokens(newAccessToken, newRefreshToken ?? null)
+                        })
+                        void import('@/lib/socket').then(({ chatSocketManager }) => {
+                            chatSocketManager.notifyAccessTokenRefreshed(newAccessToken)
+                        })
 
                         // Process queue
                         processQueue(null, newAccessToken)

@@ -4,7 +4,17 @@ import type { BookingStatus } from "@/types";
 export type BookingLike = {
   id?: string;
   status?: BookingStatus | string;
-  service?: { title?: string; artisan?: { fullName?: string; avatar?: string } };
+  service?: {
+    title?: string;
+    artisan?: {
+      fullName?: string;
+      firstName?: string;
+      lastName?: string;
+      username?: string;
+      userName?: string;
+      avatar?: string;
+    };
+  };
   service_id?: string;
   serviceCategoryId?: string | null;
   serviceCategory?: { id?: string; name?: string; imageUrl?: string };
@@ -12,19 +22,26 @@ export type BookingLike = {
   jobDescription?: string;
   notes?: string;
   address?: string;
+  serviceAddress?: string;
   location?: string;
   preferredDate?: string;
   preferredTime?: string;
+  scheduledDate?: string;
+  scheduledTime?: string;
   scheduled_date?: string;
   scheduled_time?: string;
   createdAt?: string;
   created_at?: string;
   artisanId?: string | null;
   artisan_id?: string | null;
+  artisanName?: string;
+  artisan_name?: string;
   artisan?: {
     firstName?: string;
     lastName?: string;
     fullName?: string;
+    username?: string;
+    userName?: string;
     avatar?: string;
     profilePhotoUrl?: string;
   } | null;
@@ -36,6 +53,14 @@ export type BookingLike = {
   final_agreed_price?: number | string | null;
   systemPrice?: number | string | null;
   system_price?: number | string | null;
+  platformFee?: number | string | null;
+  platform_fee?: number | string | null;
+  artisanEarning?: number | string | null;
+  artisan_earning?: number | string | null;
+  pricingRuleId?: string | null;
+  pricing_rule_id?: string | null;
+  durationHours?: number | string | null;
+  duration_hours?: number | string | null;
   latitude?: string | number | null;
   longitude?: string | number | null;
 };
@@ -48,14 +73,30 @@ export function parseBookingMoney(value: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+function personName(
+  p: { fullName?: string; firstName?: string; lastName?: string; username?: string; userName?: string } | undefined,
+): string | null {
+  if (!p) return null;
+  if (p.fullName?.trim()) return p.fullName.trim();
+  if (p.firstName?.trim()) return p.firstName.trim();
+  const n = `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim();
+  if (n) return n;
+  if (p.username?.trim()) return p.username.trim();
+  if (p.userName?.trim()) return p.userName.trim();
+  return null;
+}
+
+export function bookingArtisanName(b: BookingLike, fallback = "Krafter"): string {
+  const explicit =
+    (typeof b.artisanName === "string" && b.artisanName.trim()) ||
+    (typeof b.artisan_name === "string" && b.artisan_name.trim()) ||
+    "";
+  return explicit || personName(b.service?.artisan) || personName(b.artisan ?? undefined) || fallback;
+}
+
 function artisanDisplayName(b: BookingLike): string | null {
-  const nested = b.service?.artisan?.fullName;
-  if (nested?.trim()) return nested.trim();
-  const a = b.artisan;
-  if (!a) return null;
-  if (a.fullName?.trim()) return a.fullName.trim();
-  const n = `${a.firstName ?? ""} ${a.lastName ?? ""}`.trim();
-  return n || null;
+  const name = bookingArtisanName(b, "");
+  return name || null;
 }
 
 /** Customer-facing status chip label (Active Job, detail modals). */
@@ -143,7 +184,8 @@ export function buildSelectArtisanQuery(b: BookingLike): string {
 
 export function deriveActiveJobDisplay(b: BookingLike) {
   const service = b.jobTitle ?? b.serviceCategory?.name ?? b.service?.title ?? "Service";
-  const dateRaw = b.preferredDate ?? b.scheduled_date ?? b.createdAt ?? b.created_at ?? "";
+  const dateRaw =
+    b.preferredDate ?? b.scheduledDate ?? b.scheduled_date ?? b.createdAt ?? b.created_at ?? "";
   let date = "—";
   if (dateRaw) {
     const iso = /^\d{4}-\d{2}-\d{2}$/.test(String(dateRaw)) ? `${dateRaw}T12:00:00` : String(dateRaw);
@@ -156,7 +198,7 @@ export function deriveActiveJobDisplay(b: BookingLike) {
       });
     }
   }
-  const timeRaw = b.preferredTime ?? b.scheduled_time ?? "";
+  const timeRaw = b.preferredTime ?? b.scheduledTime ?? b.scheduled_time ?? "";
   const time =
     typeof timeRaw === "string" && timeRaw.length > 0
       ? timeRaw.length >= 5
@@ -165,7 +207,7 @@ export function deriveActiveJobDisplay(b: BookingLike) {
       : "";
 
   const artisanName = artisanDisplayName(b);
-  const loc = String(b.address ?? b.location ?? "—") || "—";
+  const loc = String(b.address ?? b.serviceAddress ?? b.location ?? "—") || "—";
   const needsKrafterSelection = bookingNeedsKrafterSelection(b);
 
   const image =
@@ -185,32 +227,81 @@ export function deriveActiveJobDisplay(b: BookingLike) {
   const kraftDetails = (b.jobDescription ?? b.notes ?? "").trim();
 
   const proposed = parseBookingMoney(b.proposedPrice ?? b.proposed_price);
+  const loose = b as BookingLike & {
+    proposedPricingType?: string | null;
+    proposed_pricing_type?: string | null;
+    offerPricingType?: string | null;
+    offer_pricing_type?: string | null;
+    proposedDurationHours?: number | string | null;
+    proposed_duration_hours?: number | string | null;
+  };
+  const proposedPricingTypeRaw =
+    loose.proposedPricingType ??
+    loose.proposed_pricing_type ??
+    loose.offerPricingType ??
+    loose.offer_pricing_type;
+  const isHourlyProposal = String(proposedPricingTypeRaw ?? "").toUpperCase() === "HOURLY";
+  const proposedDurationHours = parseBookingMoney(
+    loose.proposedDurationHours ??
+      loose.proposed_duration_hours ??
+      b.durationHours ??
+      b.duration_hours,
+  );
   const finalAgreed = parseBookingMoney(b.finalAgreedPrice ?? b.final_agreed_price);
   const system = parseBookingMoney(b.systemPrice ?? b.system_price);
+  const platformFee = parseBookingMoney(b.platformFee ?? b.platform_fee);
+  const artisanEarning = parseBookingMoney(b.artisanEarning ?? b.artisan_earning);
   const legacyPrice = parseBookingMoney(b.price);
 
   const priceRows: { key: string; label: string; amount: number }[] = [];
-  if (proposed !== null) {
-    priceRows.push({ key: "proposedPrice", label: "Proposed price", amount: proposed });
-  }
-  if (finalAgreed !== null) {
+  const hourlySubtotal =
+    isHourlyProposal &&
+    finalAgreed === null &&
+    proposed !== null &&
+    proposedDurationHours !== null &&
+    proposedDurationHours > 0
+      ? proposed * proposedDurationHours
+      : null;
+
+  if (hourlySubtotal !== null) {
+    priceRows.push({
+      key: "hourlySubtotal",
+      label: `Hourly offer (${proposedDurationHours!.toFixed(2)}h × ${proposed!.toFixed(2)})`,
+      amount: hourlySubtotal,
+    });
+  } else if (finalAgreed !== null) {
     priceRows.push({ key: "finalAgreedPrice", label: "Final agreed price", amount: finalAgreed });
+  } else if (proposed !== null) {
+    priceRows.push({ key: "proposedPrice", label: "Agreed service amount", amount: proposed });
   }
-  if (system !== null) {
-    priceRows.push({ key: "systemPrice", label: "System price", amount: system });
+  if (platformFee !== null) {
+    priceRows.push({ key: "platformFee", label: "Platform fee", amount: platformFee });
+  } else if (system !== null) {
+    priceRows.push({ key: "systemPrice", label: "Platform fee", amount: system });
+  }
+  if (artisanEarning !== null) {
+    priceRows.push({ key: "artisanEarning", label: "Krafter payout", amount: artisanEarning });
   }
   if (priceRows.length === 0 && legacyPrice !== null) {
     priceRows.push({ key: "price", label: "Price", amount: legacyPrice });
   }
 
-  const baseForTotal = finalAgreed !== null ? finalAgreed : proposed !== null ? proposed : legacyPrice;
+  const baseForTotal =
+    hourlySubtotal !== null
+      ? hourlySubtotal
+      : finalAgreed !== null
+        ? finalAgreed
+        : proposed !== null
+          ? proposed
+          : legacyPrice;
+  const feeForTotal = platformFee !== null ? platformFee : system;
   let total: number | null = null;
-  if (baseForTotal !== null && system !== null) {
-    total = baseForTotal + system;
+  if (baseForTotal !== null && feeForTotal !== null) {
+    total = baseForTotal + feeForTotal;
   } else if (baseForTotal !== null) {
     total = baseForTotal;
-  } else if (system !== null) {
-    total = system;
+  } else if (feeForTotal !== null) {
+    total = feeForTotal;
   }
 
   return {

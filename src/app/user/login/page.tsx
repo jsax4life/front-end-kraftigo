@@ -14,6 +14,7 @@ import { useOTPInput } from "@/hooks/useOTPInput";
 import { isValidEmail, isNotEmpty } from "@/utils/validation";
 import { AUTH_CONFIG } from "@/constants/auth";
 import toast from "react-hot-toast";
+import { formatLoginApiError } from "@/lib/authApiErrors";
 import GoogleLoginButton from "@/components/auth/GoogleLoginButton";
 
 const Page = () => {
@@ -112,9 +113,9 @@ const Page = () => {
         return;
       }
       router.replace("/user/home");
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || error || "Login failed.";
-      toast.error(errorMessage);
+    } catch (err: unknown) {
+      const msg = formatLoginApiError(err, useAuthStore.getState().error);
+      toast.error(msg);
     }
   };
 

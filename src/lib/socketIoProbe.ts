@@ -50,6 +50,7 @@ export function probeSocketHandshake(
     const s: Socket = io(url, {
       path: enginePath,
       auth: { token: accessToken },
+      query: { token: accessToken },
       reconnection: false,
       timeout: timeoutMs,
       transports,

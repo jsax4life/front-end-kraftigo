@@ -138,7 +138,9 @@ const SelectArtisanPage = () => {
     params.set("artisanId", artisanId);
     if (selected) {
       params.set("artisanName", selected.name);
-      params.set("artisanImage", selected.profileImage);
+      if (selected.profileImage) {
+        params.set("artisanImage", selected.profileImage);
+      }
       params.set("artisanBadge", selected.badge ?? "");
       params.set("pricePerHour", selected.pricePerHour.toString());
       params.set("artisanKrafts", selected.taskCount.toString());
@@ -163,11 +165,12 @@ const SelectArtisanPage = () => {
   }));
 
   const handleChat = (artisanId: string) => {
-    // Navigate to chat page
     const artisan = artisans.find((a) => a.id === artisanId);
-    router.push(
-      `/user/chat?artisanId=${artisanId}&name=${encodeURIComponent(artisan?.name || "")}`,
-    );
+    const p = new URLSearchParams();
+    p.set("artisanId", artisanId);
+    p.set("name", artisan?.name || "");
+    if (bookingId) p.set("bookingId", bookingId);
+    router.push(`/user/chat?${p.toString()}`);
   };
 
   return (

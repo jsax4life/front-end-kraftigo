@@ -1,216 +1,518 @@
 "use client";
 
-import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Home, Wallet, History, CreditCard } from "lucide-react";
+import { ChevronLeft, Home } from "lucide-react";
 import TaskerNav from "@/components/shared/taskerNav";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import toast from "react-hot-toast";
+import {
+  getWalletSummary,
+  postPayoutWithdraw,
+  WALLET_SUMMARY_INVALIDATE_EVENT,
+  type ArtisanWalletSummary,
+  type WalletDailyEarning,
+  type WalletRecentActivity,
+} from "@/lib/api/payouts";
 
-const SimpleLineChart = () => {
+function formatWalletMoney(amount: number, currency: string): string {
+  const code = typeof currency === "string" && currency.trim() ? currency.trim().toUpperCase() : "USD";
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: code,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  } catch {
+    return `${amount.toFixed(2)} ${code}`;
+  }
+}
+
+function formatNextRelease(iso: string | null): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
+function formatActivityDate(raw: string | undefined): string {
+  if (!raw?.trim()) return "—";
+  const d = new Date(raw);
+  if (!Number.isNaN(d.getTime())) {
+    return d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+  }
+  return raw;
+}
+
+function firstString(o: Record<string, unknown>, keys: string[]): string | undefined {
+  for (const k of keys) {
+    const v = o[k];
+    if (typeof v === "string" && v.trim()) return v.trim();
+  }
+  return undefined;
+}
+
+function firstNumber(o: Record<string, unknown>, keys: string[]): number {
+  for (const k of keys) {
+    const v = o[k];
+    if (typeof v === "number" && Number.isFinite(v)) return v;
+    if (typeof v === "string") {
+      const n = parseFloat(v);
+      if (Number.isFinite(n)) return n;
+    }
+  }
+  return 0;
+}
+
+type ActivityTone = "success" | "info" | "danger";
+
+function activityTone(statusRaw: string): ActivityTone {
+  const u = statusRaw.toUpperCase();
+  if (u.includes("CANCEL") || u.includes("FAIL") || u.includes("REFUND")) return "danger";
+  if (u.includes("PEND") || u.includes("PROCESS") || u.includes("HOLD")) return "info";
+  return "success";
+}
+
+function mapRecentActivities(items: WalletRecentActivity[]): {
+  id: string;
+  title: string;
+  subtitle: string;
+  amount: number;
+  statusLabel: string;
+  tone: ActivityTone;
+}[] {
+  return items.map((raw, i) => {
+    const o = raw as Record<string, unknown>;
+    const title =
+      firstString(o, ["title", "jobTitle", "bookingTitle", "label", "description"]) ||
+      (typeof o.type === "string" ? o.type : "Activity");
+    const rawDate = firstString(o, [
+      "date",
+      "occurredAt",
+      "createdAt",
+      "completedAt",
+      "timestamp",
+      "scheduledAt",
+    ]);
+    const amount = firstNumber(o, ["amount", "netAmount", "value", "grossAmount"]);
+    const statusRaw = firstString(o, ["status", "state"]) || "Completed";
+    return {
+      id: `${i}-${title.slice(0, 20)}`,
+      title,
+      subtitle: formatActivityDate(rawDate),
+      amount,
+      statusLabel: statusRaw.replace(/_/g, " "),
+      tone: activityTone(statusRaw),
+    };
+  });
+}
+
+function WeeklyEarningsChart({ daily }: { daily: WalletDailyEarning[] }) {
+  const w = 400;
+  const h = 120;
+  const padL = 20;
+  const padR = 16;
+  const padT = 10;
+  const padB = 22;
+  const plotW = w - padL - padR;
+  const plotH = h - padT - padB;
+
+  const series = daily.length ? daily : [{ date: "", dayLabel: "—", amount: 0 }];
+  const amounts = series.map((d) => d.amount);
+  const maxA = Math.max(...amounts, 0);
+  const flat = maxA <= 0;
+  const denom = flat ? 1 : maxA;
+  const n = series.length;
+
+  const xs = series.map((_, i) =>
+    n === 1 ? padL + plotW / 2 : padL + (i / (n - 1)) * plotW,
+  );
+  const ys = series.map((d) => {
+    if (flat) return padT + plotH * 0.92;
+    return padT + plotH * (1 - d.amount / denom);
+  });
+
+  const pathMain = series
+    .map((_, i) => `${i === 0 ? "M" : "L"} ${xs[i].toFixed(1)} ${ys[i].toFixed(1)}`)
+    .join(" ");
+
+  const pathGuide = series
+    .map((d, i) => {
+      const y = flat ? padT + plotH * 0.75 : padT + plotH * (1 - (d.amount * 0.85) / denom);
+      return `${i === 0 ? "M" : "L"} ${xs[i].toFixed(1)} ${y.toFixed(1)}`;
+    })
+    .join(" ");
+
   return (
     <div className="w-full h-32 relative mt-4">
-      <svg viewBox="0 0 400 120" className="w-full h-full">
-        {/* Background Grid Lines (Horizontal) */}
-        {[0, 40, 80].map((y) => (
-          <line 
-            key={y} 
-            x1="0" y1={y} x2="400" y2={y} 
-            stroke="#F2F4F7" 
-            strokeWidth="1" 
+      <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-full" preserveAspectRatio="xMidYMid meet">
+        {[0, 0.33, 0.66].map((t) => (
+          <line
+            key={t}
+            x1={padL}
+            y1={padT + plotH * t}
+            x2={w - padR}
+            y2={padT + plotH * t}
+            stroke="#F2F4F7"
+            strokeWidth="1"
           />
         ))}
-        
-        {/* Dash lines - matching screenshot */}
-        <path 
-          d="M 10 90 L 60 70 L 110 85 L 160 60 L 210 50 L 260 40 L 310 55 L 360 45 L 400 50" 
-          fill="none" 
-          stroke="#FF6600" 
-          strokeWidth="1.5" 
-          strokeDasharray="4 4" 
-          opacity="0.5"
+        <path
+          d={pathGuide}
+          fill="none"
+          stroke="#FF6600"
+          strokeWidth="1.5"
+          strokeDasharray="4 4"
+          opacity="0.45"
         />
-        <path 
-          d="M 10 110 L 60 85 L 110 95 L 160 75 L 210 65 L 260 45 L 310 70 L 360 55 L 400 65" 
-          fill="none" 
-          stroke="#FF6600" 
-          strokeWidth="2.5" 
-          strokeLinecap="round" 
-          strokeLinejoin="round" 
-        />
-        
-        {/* Points with shadows */}
-        {[
-          {x: 60, y: 85}, 
-          {x: 110, y: 95}, 
-          {x: 160, y: 75}, 
-          {x: 210, y: 65}, 
-          {x: 260, y: 45}, 
-          {x: 310, y: 70}
-        ].map((p, i) => (
-          <circle 
-            key={i} 
-            cx={p.x} cy={p.y} r="3" 
-            fill="#1D2939" 
-            stroke="white" 
-            strokeWidth="1.5" 
+        <path d={pathMain} fill="none" stroke="#FF6600" strokeWidth="2.5" strokeLinecap="round" />
+        {series.map((_, i) => (
+          <circle
+            key={i}
+            cx={xs[i]}
+            cy={ys[i]}
+            r="3"
+            fill="#1D2939"
+            stroke="white"
+            strokeWidth="1.5"
           />
         ))}
-        
-        {/* Labels */}
-        <text x="45" y="115" fontSize="10" fill="#98A2B3" fontFamily="Poppins">Mon</text>
-        <text x="95" y="115" fontSize="10" fill="#98A2B3" fontFamily="Poppins">Tue</text>
-        <text x="145" y="115" fontSize="10" fill="#98A2B3" fontFamily="Poppins">Wed</text>
-        <text x="195" y="115" fontSize="10" fill="#98A2B3" fontFamily="Poppins">Thu</text>
-        <text x="245" y="115" fontSize="10" fill="#98A2B3" fontFamily="Poppins">Fri</text>
-        <text x="295" y="115" fontSize="10" fill="#98A2B3" fontFamily="Poppins">Sat</text>
+        {series.map((d, i) => (
+          <text
+            key={`${d.dayLabel}-${d.date}-${i}`}
+            x={xs[i] ?? padL}
+            y={h - 4}
+            fontSize="10"
+            fill="#98A2B3"
+            fontFamily="Poppins"
+            textAnchor="middle"
+          >
+            {d.dayLabel || "—"}
+          </text>
+        ))}
       </svg>
     </div>
   );
+}
+
+const toneClass: Record<ActivityTone, string> = {
+  success: "text-[#00A651]",
+  info: "text-brand-blue",
+  danger: "text-[#F04438]",
 };
 
-const ActivityItem = ({ title, date, amount, status }: { 
-  title: string, 
-  date: string, 
-  amount: string, 
-  status: "Completed" | "Processing" | "Cancelled" 
-}) => {
-  const statusColor = {
-    Completed: "text-[#00A651]",
-    Processing: "text-brand-blue",
-    Cancelled: "text-[#F04438]"
-  }[status];
-
-  return (
-    <div className="flex items-center justify-between py-4 border-b border-[#F2F4F7] last:border-0 hover:bg-gray-50 px-2 transition-colors">
-      <div className="flex items-center gap-4">
-        <div className="p-3 bg-brand-blue/10 text-brand-blue rounded-xl">
-           <Home size={22} strokeWidth={1.5} />
-        </div>
-        <div>
-          <p className="text-[14px] font-poppins font-medium text-[#1D2939] leading-tight">{title}</p>
-          <p className="text-[12px] font-poppins text-[#667085] mt-0.5">{date}</p>
-        </div>
+const ActivityRow = ({
+  title,
+  subtitle,
+  amountText,
+  statusLabel,
+  tone,
+}: {
+  title: string;
+  subtitle: string;
+  amountText: string;
+  statusLabel: string;
+  tone: ActivityTone;
+}) => (
+  <div className="flex items-center justify-between py-4 border-b border-[#F2F4F7] last:border-0 hover:bg-gray-50 px-2 transition-colors">
+    <div className="flex items-center gap-4 min-w-0">
+      <div className="p-3 bg-brand-blue/10 text-brand-blue rounded-xl shrink-0">
+        <Home size={22} strokeWidth={1.5} />
       </div>
-      <div className="text-right">
-        <p className={`text-[15px] font-poppins font-bold ${statusColor}`}>+${amount}</p>
-        <p className="text-[10px] font-poppins text-[#98A2B3] mt-0.5 uppercase tracking-wider">{status}</p>
+      <div className="min-w-0">
+        <p className="text-[14px] font-poppins font-medium text-[#1D2939] leading-tight truncate">{title}</p>
+        <p className="text-[12px] font-poppins text-[#667085] mt-0.5 truncate">{subtitle}</p>
       </div>
     </div>
-  );
-};
+    <div className="text-right shrink-0 pl-2">
+      <p className={`text-[15px] font-poppins font-bold ${toneClass[tone]}`}>{amountText}</p>
+      <p className="text-[10px] font-poppins text-[#98A2B3] mt-0.5 uppercase tracking-wider line-clamp-1">
+        {statusLabel}
+      </p>
+    </div>
+  </div>
+);
 
 const EarningsPage = () => {
   const router = useRouter();
+  const [wallet, setWallet] = useState<ArtisanWalletSummary | null>(null);
+  const [walletLoading, setWalletLoading] = useState(true);
+  const [walletError, setWalletError] = useState<string | null>(null);
+  const [withdrawLoading, setWithdrawLoading] = useState(false);
+
+  const loadWallet = useCallback(async () => {
+    setWalletLoading(true);
+    setWalletError(null);
+    try {
+      const data = await getWalletSummary();
+      setWallet(data);
+    } catch (err: unknown) {
+      const ax = err as { response?: { data?: { message?: string } } };
+      const msg = ax.response?.data?.message ?? "Could not load wallet.";
+      setWalletError(msg);
+      setWallet(null);
+    } finally {
+      setWalletLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadWallet();
+  }, [loadWallet]);
+
+  useEffect(() => {
+    const onInvalidate = () => {
+      void loadWallet();
+    };
+    window.addEventListener(WALLET_SUMMARY_INVALIDATE_EVENT, onInvalidate);
+    return () => window.removeEventListener(WALLET_SUMMARY_INVALIDATE_EVENT, onInvalidate);
+  }, [loadWallet]);
+
+  const withdrawableAmount = wallet
+    ? Math.max(wallet.availableToWithdrawAmount, wallet.availableForWithdrawal)
+    : 0;
+
+  const handleWithdraw = async () => {
+    if (!wallet || withdrawableAmount <= 0 || withdrawLoading) return;
+    setWithdrawLoading(true);
+    try {
+      await postPayoutWithdraw();
+      toast.success("Withdrawal started. Balances update when the transfer completes.");
+      await loadWallet();
+    } catch (err: unknown) {
+      const ax = err as { response?: { data?: { message?: string } } };
+      toast.error(ax.response?.data?.message ?? "Withdrawal could not be started. Try again.");
+    } finally {
+      setWithdrawLoading(false);
+    }
+  };
+
+  const cur = "USD";
+  const fmt = useCallback((n: number) => formatWalletMoney(n, cur), [cur]);
+  const nextLabel = formatNextRelease(wallet?.nextReleaseAt ?? null);
+
+  const activityRows = useMemo(
+    () => (wallet ? mapRecentActivities(wallet.recentActivities) : []),
+    [wallet],
+  );
+
+  const weekly = wallet?.weeklyEarnings;
+  const daily = weekly?.daily?.length ? weekly.daily : [];
+
+  const recentWithdrawalLine = useMemo(() => {
+    const rw = wallet?.recentWithdrawal;
+    if (!rw || typeof rw !== "object") return null;
+    const o = rw as Record<string, unknown>;
+    const amt = firstNumber(o, ["amount", "value"]);
+    const when = firstString(o, ["completedAt", "createdAt", "occurredAt"]);
+    const status = firstString(o, ["status", "state"]);
+    if (amt <= 0 && !when && !status) return null;
+    const parts: string[] = [];
+    if (amt > 0) parts.push(fmt(amt));
+    if (when) parts.push(formatActivityDate(when));
+    if (status) parts.push(status.replace(/_/g, " "));
+    return parts.length ? parts.join(" · ") : null;
+  }, [wallet, fmt]);
 
   return (
     <main className="min-h-screen bg-white">
-      {/* Header */}
       <div className="w-full flex items-center justify-between py-6 px-4 bg-white border-b border-[#F2F4F7]">
-        <button onClick={() => router.back()} className="p-1 hover:opacity-70 transition-opacity">
+        <button type="button" onClick={() => router.back()} className="p-1 hover:opacity-70 transition-opacity">
           <ChevronLeft className="w-8 h-8 text-[#1D2939]" strokeWidth={1.5} />
         </button>
         <div className="text-center pr-10 flex-1">
-           <h1 className="text-[20px] font-gerat font-bold text-[#1D2939]">Earnings</h1>
+          <h1 className="text-[20px] font-gerat font-bold text-[#1D2939]">Earnings</h1>
         </div>
       </div>
 
       <div className="px-5 py-8 space-y-8 max-w-2xl mx-auto pb-32">
-        
-        {/* Weekly Earnings Card */}
         <section className="bg-white rounded-3xl p-6 border border-[#EAECF0] shadow-sm">
-           <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-[13px] font-poppins text-[#667085]">Weekly Earnings</p>
-                <h3 className="text-[32px] font-gerat font-bold text-[#1D2939] leading-tight">$840.00</h3>
-                <p className="text-[11px] font-poppins text-[#98A2B3]">Oct 18 - Oct 24, 2026</p>
-              </div>
-              <button className="flex items-center gap-2 bg-[#F6F6F6] text-[#475467] font-poppins text-[12px] font-medium px-4 py-2 rounded-xl border border-[#D0D5DD]">
-                 Weekly <ChevronLeft size={14} className="-rotate-90" />
-              </button>
-           </div>
-           <SimpleLineChart />
+          <div className="flex items-center justify-between gap-3">
+            <div className="space-y-1 min-w-0">
+              <p className="text-[13px] font-poppins text-[#667085]">Weekly earnings</p>
+              {walletLoading && !wallet ? (
+                <h3 className="text-[32px] font-gerat font-bold text-[#1D2939] leading-tight">…</h3>
+              ) : (
+                <h3 className="text-[32px] font-gerat font-bold text-[#1D2939] leading-tight">
+                  {fmt(weekly?.total ?? 0)}
+                </h3>
+              )}
+              <p className="text-[11px] font-poppins text-[#98A2B3]">{weekly?.label ?? "This week"}</p>
+            </div>
+            <span className="shrink-0 flex items-center gap-2 bg-[#F6F6F6] text-[#475467] font-poppins text-[12px] font-medium px-4 py-2 rounded-xl border border-[#D0D5DD]">
+              Week <ChevronLeft size={14} className="-rotate-90" aria-hidden />
+            </span>
+          </div>
+          {walletLoading && !wallet ? (
+            <div className="flex justify-center py-10 mt-4">
+              <div className="animate-spin rounded-full h-9 w-9 border-2 border-brand-orange border-t-transparent" />
+            </div>
+          ) : (
+            <WeeklyEarningsChart daily={daily} />
+          )}
         </section>
 
-        {/* Mini Stats Grid */}
         <div className="grid grid-cols-2 gap-4">
-           <div className="bg-[#F9FAFB] p-5 rounded-2xl border border-[#EAECF0]">
-              <p className="text-[12px] font-poppins text-[#667085] mb-2 font-medium">Tasks Completed</p>
-              <p className="text-[32px] font-gerat font-bold text-[#1D2939]">28</p>
-           </div>
-           <div className="bg-[#F9FAFB] p-5 rounded-2xl border border-[#EAECF0]">
-              <p className="text-[12px] font-poppins text-[#667085] mb-2 font-medium">Avg Hourly Rate</p>
-              <p className="text-[32px] font-gerat font-bold text-[#1D2939]">$34</p>
-           </div>
+          <div className="bg-[#F9FAFB] p-5 rounded-2xl border border-[#EAECF0]">
+            <p className="text-[12px] font-poppins text-[#667085] mb-2 font-medium">Tasks completed</p>
+            <p className="text-[32px] font-gerat font-bold text-[#1D2939]">
+              {walletLoading && !wallet ? "…" : wallet != null ? wallet.tasksCompleted : "—"}
+            </p>
+          </div>
+          <div className="bg-[#F9FAFB] p-5 rounded-2xl border border-[#EAECF0]">
+            <p className="text-[12px] font-poppins text-[#667085] mb-2 font-medium">Avg hourly rate</p>
+            <p className="text-[32px] font-gerat font-bold text-[#1D2939]">
+              {walletLoading && !wallet ? "…" : fmt(wallet?.averageHourlyRate ?? 0)}
+              {!walletLoading && wallet ? (
+                <span className="text-[14px] font-poppins font-medium text-[#667085]">/hr</span>
+              ) : null}
+            </p>
+          </div>
         </div>
 
-        {/* Withdrawal Section */}
         <section className="space-y-6 pt-4">
-           <div className="space-y-1">
-             <h2 className="text-[18px] font-gerat font-bold text-[#475467]">Available For Withdrawal</h2>
-             <p className="text-[36px] font-gerat font-bold text-brand-orange leading-tight">$300.00</p>
-             <p className="text-[13px] font-poppins text-[#667085]">Ready to transfer to your bank</p>
-           </div>
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-1 min-w-0">
+              <h2 className="text-[18px] font-gerat font-bold text-[#475467]">Wallet</h2>
+              <p className="text-[12px] font-poppins text-[#667085]">
+                {walletLoading ? "Loading…" : `Balances · ${cur}`}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void loadWallet()}
+              disabled={walletLoading}
+              className="shrink-0 text-[12px] font-poppins font-semibold text-brand-orange hover:text-orange-700 disabled:opacity-50"
+            >
+              Refresh
+            </button>
+          </div>
 
-           <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white p-5 rounded-2xl border border-[#EAECF0] shadow-sm">
-                 <p className="text-[12px] font-poppins text-[#667085] mb-1 font-medium">Pending Clearance</p>
-                 <p className="text-[24px] font-gerat font-bold text-[#1D2939]">$540</p>
-              </div>
-              <div className="bg-white p-5 rounded-2xl border border-[#EAECF0] shadow-sm">
-                 <p className="text-[12px] font-poppins text-[#667085] mb-1 font-medium">Lifetime Earnings</p>
-                 <p className="text-[24px] font-gerat font-bold text-[#1D2939]">$55,400.50</p>
-              </div>
-           </div>
+          {walletError && (
+            <p className="text-sm text-red-600 font-poppins" role="alert">
+              {walletError}
+            </p>
+          )}
 
-           <div className="space-y-3 pt-2">
-              <button className="w-full bg-brand-orange py-4 rounded-2xl text-white font-gerat font-bold text-[16px] hover:bg-orange-600 transition-colors">
-                Withdraw Funds
-              </button>
-              <button className="w-full bg-brand-blue py-4 rounded-2xl text-white font-gerat font-bold text-[16px] hover:bg-blue-700 transition-colors">
-                Manage Payments
-              </button>
-           </div>
+          {walletLoading && !wallet ? (
+            <div className="flex justify-center py-10">
+              <div className="animate-spin rounded-full h-9 w-9 border-2 border-brand-orange border-t-transparent" />
+            </div>
+          ) : wallet ? (
+            <>
+              <div className="space-y-1">
+                <p className="text-[13px] font-poppins text-[#667085]">Available to withdraw</p>
+                <p className="text-[36px] font-gerat font-bold text-brand-orange leading-tight">
+                  {fmt(withdrawableAmount)}
+                </p>
+                <p className="text-[13px] font-poppins text-[#667085]">
+                  {wallet.availableToWithdrawCount} payout
+                  {wallet.availableToWithdrawCount === 1 ? "" : "s"} ready for transfer
+                </p>
+                {wallet.availableForWithdrawal !== wallet.availableToWithdrawAmount ? (
+                  <p className="text-[11px] font-poppins text-[#98A2B3]">
+                    Alternate field: {fmt(wallet.availableForWithdrawal)}
+                  </p>
+                ) : null}
+                {nextLabel ? (
+                  <p className="text-[12px] font-poppins text-[#98A2B3] pt-1">
+                    Next funds release: {nextLabel}
+                  </p>
+                ) : null}
+              </div>
+
+              {recentWithdrawalLine ? (
+                <div className="rounded-2xl border border-[#EAECF0] bg-[#F9FAFB] px-4 py-3">
+                  <p className="text-[11px] font-poppins font-semibold uppercase tracking-wide text-[#667085]">
+                    Last withdrawal
+                  </p>
+                  <p className="text-[13px] font-poppins text-[#1D2939] mt-0.5">{recentWithdrawalLine}</p>
+                </div>
+              ) : null}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white p-5 rounded-2xl border border-[#EAECF0] shadow-sm">
+                  <p className="text-[12px] font-poppins text-[#667085] mb-1 font-medium">On 24h hold</p>
+                  <p className="text-[24px] font-gerat font-bold text-[#1D2939]">{fmt(wallet.pendingHoldAmount)}</p>
+                  <p className="text-[11px] font-poppins text-[#98A2B3] mt-1">
+                    {wallet.pendingHoldCount} payout{wallet.pendingHoldCount === 1 ? "" : "s"}
+                  </p>
+                  {wallet.pendingClearance !== wallet.pendingHoldAmount ? (
+                    <p className="text-[10px] font-poppins text-[#98A2B3] mt-1">
+                      Clearance: {fmt(wallet.pendingClearance)}
+                    </p>
+                  ) : null}
+                </div>
+                <div className="bg-white p-5 rounded-2xl border border-[#EAECF0] shadow-sm">
+                  <p className="text-[12px] font-poppins text-[#667085] mb-1 font-medium">Total withdrawn</p>
+                  <p className="text-[24px] font-gerat font-bold text-[#1D2939]">
+                    {fmt(wallet.totalWithdrawnAmount)}
+                  </p>
+                  <p className="text-[11px] font-poppins text-[#98A2B3] mt-1">Completed payouts</p>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-[#EAECF0] bg-white px-5 py-4 shadow-sm">
+                <p className="text-[12px] font-poppins text-[#667085] font-medium">Lifetime earnings</p>
+                <p className="text-[26px] font-gerat font-bold text-[#1D2939] mt-1">{fmt(wallet.lifetimeEarnings)}</p>
+                <p className="text-[11px] font-poppins text-[#98A2B3] mt-1">From completed work (before fees / splits)</p>
+              </div>
+            </>
+          ) : null}
+
+          <div className="space-y-3 pt-2">
+            <button
+              type="button"
+              onClick={() => void handleWithdraw()}
+              disabled={
+                withdrawLoading ||
+                walletLoading ||
+                !wallet ||
+                withdrawableAmount <= 0
+              }
+              className="w-full bg-brand-orange py-4 rounded-2xl text-white font-gerat font-bold text-[16px] hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {withdrawLoading ? "Withdrawing…" : "Withdraw funds"}
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push("/tasker/dashboard/paymentMethod")}
+              className="w-full bg-brand-blue py-4 rounded-2xl text-white font-gerat font-bold text-[16px] hover:bg-blue-700 transition-colors"
+            >
+              Manage payout details
+            </button>
+          </div>
         </section>
 
-        {/* Recent Activity */}
         <section className="pt-4 pb-12">
-           <div className="flex items-center justify-between mb-4">
-              <h2 className="text-[18px] font-gerat font-bold text-[#1D2939]">Recent Activity</h2>
-              <button className="text-brand-orange text-[14px] font-poppins font-bold">View all</button>
-           </div>
-           <div className="space-y-1">
-              <ActivityItem 
-                title="House Cleaning - IKEA" 
-                date="Oct 24, 2025 · 2:30 PM" 
-                amount="540" 
-                status="Completed" 
-              />
-              <ActivityItem 
-                title="House Cleaning - IKEA" 
-                date="Oct 21, 2025 · 2:30 PM" 
-                amount="540" 
-                status="Processing" 
-              />
-              <ActivityItem 
-                title="House Cleaning - IKEA" 
-                date="Oct 20, 2025 · 2:30 PM" 
-                amount="540" 
-                status="Cancelled" 
-              />
-              <ActivityItem 
-                title="House Cleaning - IKEA" 
-                date="Oct 20, 2025 · 2:30 PM" 
-                amount="540" 
-                status="Cancelled" 
-              />
-              <ActivityItem 
-                title="House Cleaning - IKEA" 
-                date="Oct 20, 2025 · 2:30 PM" 
-                amount="540" 
-                status="Cancelled" 
-              />
-           </div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-[18px] font-gerat font-bold text-[#1D2939]">Recent activity</h2>
+          </div>
+          {activityRows.length === 0 ? (
+            <p className="text-center text-[#98A2B3] font-poppins text-sm py-8">No recent activity yet.</p>
+          ) : (
+            <div className="space-y-1">
+              {activityRows.map((row) => (
+                <ActivityRow
+                  key={row.id}
+                  title={row.title}
+                  subtitle={row.subtitle}
+                  amountText={
+                    row.amount > 0
+                      ? `+${fmt(row.amount)}`
+                      : row.amount < 0
+                        ? fmt(row.amount)
+                        : fmt(0)
+                  }
+                  statusLabel={row.statusLabel}
+                  tone={row.tone}
+                />
+              ))}
+            </div>
+          )}
         </section>
-
       </div>
       <TaskerNav />
     </main>

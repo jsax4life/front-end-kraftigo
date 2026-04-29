@@ -138,7 +138,6 @@ const RequestsPage = () => {
     fetchMarketplaceApplications,
     respondToBooking,
     startBooking,
-    completeBooking,
   } = useBookingsStore();
 
   const [activeTab, setActiveTab] = useState<"marketplace" | "requests">("marketplace");
@@ -380,6 +379,9 @@ const RequestsPage = () => {
     setAssignedActionId(bookingId);
     try {
       await startBooking(bookingId);
+      if (typeof window !== "undefined") {
+        window.sessionStorage.setItem(`kraftigo:jobWorkStart:${bookingId}`, String(Date.now()));
+      }
       toast.success("Job started.");
       await loadAssignedBookings();
     } catch (err: unknown) {
@@ -393,18 +395,12 @@ const RequestsPage = () => {
     }
   };
 
-  const handleCompleteAssignedBooking = async (bookingId: string) => {
-    setAssignedActionId(bookingId);
-    try {
-      await completeBooking(bookingId);
-      toast.success("Job completed.");
-      await loadAssignedBookings();
-    } catch (err: unknown) {
-      const ax = err as { response?: { data?: { message?: string } } };
-      toast.error(ax.response?.data?.message ?? "Could not complete the job. Try again.");
-    } finally {
-      setAssignedActionId(null);
-    }
+  const handleCompleteAssignedBooking = (bookingId: string) => {
+    router.push(`/tasker/schedule?openJob=${encodeURIComponent(bookingId)}`);
+    toast(
+      "Finish on Schedule: add 1–3 completion photos, optional notes, then tap Complete job.",
+      { duration: 5000 },
+    );
   };
 
   const handleAcceptRequest = async (requestId: string) => {
@@ -478,6 +474,27 @@ const RequestsPage = () => {
       setIsSubmitting(false);
     }
   };
+
+  const selectedCounterRequest =
+    (selectedRequestId
+      ? directArtisanRequests.find((r) => r.id === selectedRequestId) ?? null
+      : null) ?? detailRequest;
+  const selectedCounterMinAmount = (() => {
+    const raw = selectedCounterRequest?.proposedPrice;
+    const n = typeof raw === "number" ? raw : parseFloat(String(raw ?? ""));
+    return Number.isFinite(n) && n > 0 ? n : undefined;
+  })();
+  const selectedCounterPricingType = (() => {
+    const raw = (
+      selectedCounterRequest as unknown as
+        | { proposedPricingType?: string; proposed_pricing_type?: string; offerPricingType?: string }
+        | null
+    );
+    const t = String(
+      raw?.proposedPricingType ?? raw?.proposed_pricing_type ?? raw?.offerPricingType ?? "FLAT",
+    ).toUpperCase();
+    return t === "HOURLY" ? "HOURLY" : "FLAT";
+  })();
 
   return (
     <main className="relative w-full min-h-screen bg-white pb-24">
@@ -911,10 +928,9 @@ const RequestsPage = () => {
                             variant="primary"
                             fullWidth={false}
                             className="!h-auto !min-h-0 !py-2 !px-3 !text-[13px] sm:!min-w-0"
-                            disabled={assignedActionId === booking.id}
-                            onClick={() => void handleCompleteAssignedBooking(booking.id)}
+                            onClick={() => handleCompleteAssignedBooking(booking.id)}
                           >
-                            {assignedActionId === booking.id ? "Completing…" : "Complete job"}
+                            Complete job
                           </Button>
                         )}
                         <button
@@ -964,6 +980,8 @@ const RequestsPage = () => {
         }}
         onSubmit={handleCounterNegotiationSubmit}
         isSubmitting={isSubmitting}
+        minAmount={selectedCounterMinAmount}
+        pricingType={selectedCounterPricingType}
       />
 
       {/* Bottom Navigation */}
