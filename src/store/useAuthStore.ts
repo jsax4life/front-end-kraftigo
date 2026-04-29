@@ -44,7 +44,10 @@ interface AuthState {
   logout: () => Promise<void>
   logoutAll: () => Promise<void>
   clearError: () => void
-  
+
+  /** Keep Zustand in sync when axios refresh updates tokens (Socket.IO `/chat` reads `accessToken`). */
+  applyRefreshedTokens: (accessToken: string, refreshToken: string | null) => void
+
   // Helper Methods
   isUser: () => boolean
   isTasker: () => boolean
@@ -296,6 +299,14 @@ export const useAuthStore = create<AuthState>()(
 
       // Clear Error
       clearError: () => set({ error: null }),
+
+      applyRefreshedTokens: (accessToken: string, refreshToken: string | null) => {
+        updateCachedToken(accessToken)
+        set((s) => ({
+          accessToken,
+          refreshToken: refreshToken ?? s.refreshToken,
+        }))
+      },
 
       // Helper: Check if current user is a regular user
       isUser: () => {

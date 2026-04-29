@@ -20,6 +20,12 @@ interface MarketplaceNegotiationModalProps {
   onClose: () => void;
   onSubmit: (values: MarketplaceNegotiationFormValues) => void | Promise<void>;
   isSubmitting?: boolean;
+  /** Optional minimum allowed amount (e.g. customer proposed price). */
+  minAmount?: number;
+  /** Optional pricing basis context shown to the user. */
+  pricingType?: "FLAT" | "HOURLY";
+  /** Optional duration context for HOURLY pricing. */
+  durationHours?: number;
 }
 
 export default function MarketplaceNegotiationModal({
@@ -28,22 +34,37 @@ export default function MarketplaceNegotiationModal({
   onClose,
   onSubmit,
   isSubmitting = false,
+  minAmount,
+  pricingType,
+  durationHours,
 }: MarketplaceNegotiationModalProps) {
   const [amount, setAmount] = useState("");
   const [openToNegotiation, setOpenToNegotiation] = useState(true);
   const [message, setMessage] = useState("");
+  const [amountError, setAmountError] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
       setAmount("");
       setOpenToNegotiation(true);
       setMessage("");
+      setAmountError(null);
     }
   }, [open, mode]);
 
   if (!open) return null;
 
   const handleSubmit = async () => {
+    const parsed = parseFloat(amount);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      setAmountError("Please enter a valid amount.");
+      return;
+    }
+    if (minAmount != null && Number.isFinite(minAmount) && parsed < minAmount) {
+      setAmountError(`Amount cannot be less than ${minAmount.toFixed(2)}.`);
+      return;
+    }
+    setAmountError(null);
     await onSubmit({ amount, openToNegotiation, message });
   };
 
@@ -75,9 +96,24 @@ export default function MarketplaceNegotiationModal({
               placeholder="€ 0.00"
               label={mode === "counter" ? "Your counter price" : "Offer amount"}
               value={amount}
-              onChange={setAmount}
+              onChange={(v) => {
+                setAmount(v);
+                setAmountError(null);
+              }}
               type="number"
+              error={amountError ?? undefined}
             />
+            {(pricingType || minAmount != null) && (
+              <p className="mt-2 text-[12px] font-poppins text-gray-600">
+                {pricingType ? `Pricing basis: ${pricingType}` : ""}
+                {pricingType === "HOURLY" && durationHours != null
+                  ? ` · Duration: ${durationHours % 1 === 0 ? durationHours : durationHours.toFixed(2)}h`
+                  : ""}
+                {minAmount != null && Number.isFinite(minAmount)
+                  ? `${pricingType ? " · " : ""}Minimum: ${minAmount.toFixed(2)}`
+                  : ""}
+              </p>
+            )}
           </div>
 
           <div className="flex items-center justify-between pb-3">

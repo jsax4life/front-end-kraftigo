@@ -11,6 +11,7 @@ import Loader from "@/components/ui/loader";
 import { isValidEmail, isNotEmpty } from "@/utils/validation";
 import { logger } from "@/utils/logger";
 import toast from "react-hot-toast";
+import { formatLoginApiError } from "@/lib/authApiErrors";
 
 const Page = () => {
   const router = useRouter();
@@ -58,9 +59,9 @@ const Page = () => {
       await loginTasker(formData.email, formData.password);
       toast.success("Login successful! Welcome back, Tasker.");
       router.push("/tasker/dashboard");
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || error || "Login failed.";
-      toast.error(errorMessage);
+    } catch (err: unknown) {
+      const msg = formatLoginApiError(err, useAuthStore.getState().error);
+      toast.error(msg);
     }
   };
 

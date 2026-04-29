@@ -5,6 +5,13 @@ import Image from "next/image";
 import { Check, Minus, Plus } from "lucide-react";
 import { useState } from "react";
 import Button from "@/components/ui/button";
+import toast from "react-hot-toast";
+import {
+  clampDurationHours,
+  parseDurationHoursParam,
+  validateDurationHours,
+  DURATION_HOURS_MIN,
+} from "@/lib/durationHours";
 
 const Page = () => {
   const router = useRouter();
@@ -15,6 +22,9 @@ const Page = () => {
   const date = searchParams.get("date") || new Date().toISOString();
   const taskDetails = searchParams.get("taskDetails") || "";
   const isPublic = searchParams.get("isPublic") === "true";
+  const offerPricingType =
+    searchParams.get("offerPricingType") === "HOURLY" ? "HOURLY" : "FLAT";
+  const shouldShowEstimatedHours = !isPublic || offerPricingType === "HOURLY";
 
   // Artisan details passed from selection step
   const artisanName = searchParams.get("artisanName") || "";
@@ -22,22 +32,33 @@ const Page = () => {
   const artisanBadge = searchParams.get("artisanBadge") || "";
   const pricePerHour = parseFloat(searchParams.get("pricePerHour") || "0") || 0;
 
-  const [bookingHours, setBookingHours] = useState(1);
+  const [bookingHours, setBookingHours] = useState(() =>
+    parseDurationHoursParam(searchParams.get("hours")),
+  );
   const [selectedFrequency, setSelectedFrequency] = useState("just-once");
 
   const handleIncrement = () => {
-    setBookingHours((prev) => prev + 1);
+    setBookingHours((prev) => clampDurationHours(prev + 0.25));
   };
 
   const handleDecrement = () => {
-    if (bookingHours > 1) {
-      setBookingHours((prev) => prev - 1);
-    }
+    setBookingHours((prev) => clampDurationHours(prev - 0.25));
   };
 
   const handleNext = () => {
+    if (shouldShowEstimatedHours) {
+      const hoursErr = validateDurationHours(bookingHours);
+      if (hoursErr) {
+        toast.error(hoursErr);
+        return;
+      }
+    }
     const params = new URLSearchParams(searchParams.toString());
-    params.set("hours", bookingHours.toString());
+    if (shouldShowEstimatedHours) {
+      params.set("hours", String(bookingHours));
+    } else {
+      params.delete("hours");
+    }
     params.set("frequency", selectedFrequency);
     router.push(`/user/book-service/finishBooking?${params.toString()}`);
   };
@@ -154,45 +175,47 @@ const Page = () => {
         </div>
       </div>
 
-      {/* Booking Hours */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 border-t border-[#0000001A]">
-        <h3 className="text-[18px] sm:text-[20px] font-poppins font-semibold mb-3">
-          Booking Hours
-        </h3>
-        <p className="text-[13px] sm:text-[14px] text-gray-700 font-poppins mb-4">
-          How many hours do you want to book
-        </p>
-        <div className="flex items-center justify-center gap-4 mb-4">
-          <button
-            onClick={handleDecrement}
-            className="w-12 h-12 rounded-full bg-[#FFE5D9] flex items-center justify-center hover:bg-[#FFD5C2] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={bookingHours <= 1}
-          >
-            <Minus size={20} className="text-brand-orange" />
-          </button>
-          <span className="text-[28px] sm:text-[32px] font-poppins font-semibold min-w-15 text-center">
-            {bookingHours}
-          </span>
-          <button
-            onClick={handleIncrement}
-            className="w-12 h-12 rounded-full bg-[#FFE5D9] flex items-center justify-center hover:bg-[#FFD5C2] transition-colors"
-          >
-            <Plus size={20} className="text-brand-orange" />
-          </button>
-        </div>
-        {!isPublic && pricePerHour > 0 && (
-          <div className="text-center">
-            <p className="text-[13px] sm:text-[14px] text-gray-600 font-poppins mb-1">
-              You will be charged
-            </p>
-            <div className="inline-block bg-[#FF66001A] px-6 py-2 rounded-full">
-              <span className="text-brand-orange text-[18px] sm:text-[20px] font-poppins font-bold">
-                €{(pricePerHour * bookingHours).toFixed(2)}
-              </span>
-            </div>
+      {/* Estimated hours (hidden for public FLAT pricing) */}
+      {shouldShowEstimatedHours && (
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 border-t border-[#0000001A]">
+          <h3 className="text-[18px] sm:text-[20px] font-poppins font-semibold mb-3">
+            Estimated hours
+          </h3>
+          <p className="text-[13px] sm:text-[14px] text-gray-700 font-poppins mb-4">
+            Adjust in steps of 0.25 hours (15 minutes), between {DURATION_HOURS_MIN} and 24 hours.
+          </p>
+          <div className="flex items-center justify-center gap-4 mb-4">
+            <button
+              onClick={handleDecrement}
+              className="w-12 h-12 rounded-full bg-[#FFE5D9] flex items-center justify-center hover:bg-[#FFD5C2] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={bookingHours <= DURATION_HOURS_MIN}
+            >
+              <Minus size={20} className="text-brand-orange" />
+            </button>
+            <span className="text-[28px] sm:text-[32px] font-poppins font-semibold min-w-15 text-center">
+              {bookingHours % 1 === 0 ? bookingHours : bookingHours.toFixed(2)}
+            </span>
+            <button
+              onClick={handleIncrement}
+              className="w-12 h-12 rounded-full bg-[#FFE5D9] flex items-center justify-center hover:bg-[#FFD5C2] transition-colors"
+            >
+              <Plus size={20} className="text-brand-orange" />
+            </button>
           </div>
-        )}
-      </div>
+          {!isPublic && pricePerHour > 0 && (
+            <div className="text-center">
+              <p className="text-[13px] sm:text-[14px] text-gray-600 font-poppins mb-1">
+                You will be charged
+              </p>
+              <div className="inline-block bg-[#FF66001A] px-6 py-2 rounded-full">
+                <span className="text-brand-orange text-[18px] sm:text-[20px] font-poppins font-bold">
+                  €{(pricePerHour * bookingHours).toFixed(2)}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Frequency */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-20 border-t border-[#0000001A]">

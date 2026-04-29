@@ -15,6 +15,10 @@ interface InputProps {
   required?: boolean;
   disabled?: boolean;
   className?: string;
+  /** Passed to the native `<input>` when `type` is `number` (or other types that support them). */
+  min?: number | string;
+  max?: number | string;
+  step?: number | string;
 }
 
 const Input = ({
@@ -28,6 +32,9 @@ const Input = ({
   required = false,
   disabled = false,
   className = "",
+  min,
+  max,
+  step,
 }: InputProps) => {
   const [showPassword, setShowPassword] = useState(false);
 
@@ -48,6 +55,9 @@ const Input = ({
           onChange={(e) => onChange(e.target.value)}
           onBlur={onBlur}
           disabled={disabled}
+          min={min}
+          max={max}
+          step={step}
           className="w-full h-13 px-4 py-2 bg-[#F6F6F6] rounded-xl border border-[#0000001A] outline-none text-[14px] font-poppins placeholder:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed pr-11"
         />
         {isPassword && (

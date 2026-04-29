@@ -42,10 +42,20 @@ import {
   type CompareKraftersPayload,
   type DirectArtisanBookingRequest,
   type CancelBookingPayload,
+  type ArtisanCompleteBookingPayload,
   type BookingSavedPaymentPayload,
 } from '@/lib/api/bookings'
 import { usePaymentStore } from '@/store/usePaymentStore'
+import { useChatStore } from '@/store/useChatStore'
 import { bookingApiErrorUserMessage } from '@/lib/paymentCardRequired'
+
+function scheduleChatRefreshAfterKrafterSelection(booking: Booking) {
+  const raw = booking.artisanId ?? booking.artisan_id
+  const id = raw != null && String(raw).trim() !== '' ? String(raw).trim() : undefined
+  void useChatStore.getState().refreshAfterKrafterOrApplicantSelection({
+    otherParticipantId: id,
+  })
+}
 
 /** Stripe `pm_…` for the customer’s current selection (or default / first saved method). */
 function resolveCustomerStripePaymentMethodId(explicit?: string): string | undefined {
@@ -125,7 +135,7 @@ interface BookingsState {
   respondToBooking: (id: string, payload: ArtisanRespondPayload) => Promise<Booking>
   applyToBooking: (id: string, payload: ArtisanApplyPayload) => Promise<Booking>
   startBooking: (id: string) => Promise<Booking>
-  completeBooking: (id: string) => Promise<Booking>
+  completeBooking: (id: string, payload: ArtisanCompleteBookingPayload) => Promise<Booking>
 
   // Selectors
   getUpcomingBookings: () => Booking[]
@@ -376,6 +386,7 @@ export const useBookingsStore = create<BookingsState>()((set, get) => ({
     set({ isSubmitting: true, error: null })
     try {
       const updated = await selectApplicant(id, payload)
+      scheduleChatRefreshAfterKrafterSelection(updated)
       set((state) => ({
         bookings: state.bookings.map((b) => (b.id === id ? updated : b)),
         selectedBooking: state.selectedBooking?.id === id ? updated : state.selectedBooking,
@@ -395,6 +406,7 @@ export const useBookingsStore = create<BookingsState>()((set, get) => ({
     set({ isSubmitting: true, error: null })
     try {
       const updated = await selectKrafter(id, payload)
+      scheduleChatRefreshAfterKrafterSelection(updated)
       clearRecommendationDraftBookingIdFromSession()
       set((state) => ({
         bookings: state.bookings.map((b) => (b.id === id ? updated : b)),
@@ -560,10 +572,10 @@ export const useBookingsStore = create<BookingsState>()((set, get) => ({
     }
   },
 
-  completeBooking: async (id) => {
+  completeBooking: async (id, payload) => {
     set({ isSubmitting: true, error: null })
     try {
-      const updated = await completeBookingApi(id)
+      const updated = await completeBookingApi(id, payload)
       set((state) => {
         const idx = state.bookings.findIndex((b) => b.id === id)
         const bookings =

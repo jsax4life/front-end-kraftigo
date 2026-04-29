@@ -4,6 +4,7 @@ import { Check, Calendar, Clock, MapPin } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { useEffect, useState, Suspense } from "react";
+import { parseBookingMoney } from "@/lib/bookingDisplay";
 
 const ConfirmationContent = () => {
   const router = useRouter();
@@ -13,6 +14,48 @@ const ConfirmationContent = () => {
   const address = searchParams.get("address")
   const rawDate = searchParams.get("date") || "";
   const rawTime = searchParams.get("time")
+
+  const pricePerHourParam = parseFloat(searchParams.get("pricePerHour") || "");
+  const hourlyRate =
+    Number.isFinite(pricePerHourParam) && pricePerHourParam > 0
+      ? pricePerHourParam
+      : null;
+  const estimatedHoursRaw = searchParams.get("hours") || "1";
+  const estimatedHoursNum = Number(estimatedHoursRaw);
+  const estimatedHoursLabel = Number.isFinite(estimatedHoursNum)
+    ? estimatedHoursNum % 1 === 0
+      ? String(estimatedHoursNum)
+      : estimatedHoursNum.toFixed(2)
+    : estimatedHoursRaw;
+
+  const bookingFinalAgreed = parseBookingMoney(
+    searchParams.get("bookingFinalAgreedPrice"),
+  );
+  const bookingPlatformFee = parseBookingMoney(
+    searchParams.get("bookingPlatformFee"),
+  );
+  const bookingArtisanEarning = parseBookingMoney(
+    searchParams.get("bookingArtisanEarning"),
+  );
+  const bookingPricingRuleId =
+    searchParams.get("bookingPricingRuleId")?.trim() || "";
+  const hasServerPricing =
+    !isPublic &&
+    (bookingFinalAgreed !== null ||
+      bookingPlatformFee !== null ||
+      bookingArtisanEarning !== null);
+  const serverSubtotal =
+    bookingFinalAgreed ??
+    (hourlyRate !== null && Number.isFinite(estimatedHoursNum)
+      ? hourlyRate * estimatedHoursNum
+      : null);
+  const serverTotal =
+    serverSubtotal !== null && bookingPlatformFee !== null
+      ? serverSubtotal + bookingPlatformFee
+      : serverSubtotal;
+
+  const artisanImage =
+    searchParams.get("artisanImage")?.trim() || "/images/pro.jpg";
 
   const parsedDate = new Date(rawDate);
   const formattedDisplayDate = !isNaN(parsedDate.getTime()) 
@@ -43,9 +86,15 @@ const ConfirmationContent = () => {
   }, []);
 
   const handleMessageKrafter = () => {
-    // Navigate to messaging page
-    console.log("Message Krafter");
-    router.push("/user/chat");
+    const artisanId = searchParams.get("artisanId")?.trim();
+    const name = (searchParams.get("artisanName") || "Your Krafter").trim();
+    const bookingId = searchParams.get("bookingId")?.trim();
+    const params = new URLSearchParams();
+    if (artisanId) params.set("artisanId", artisanId);
+    params.set("name", name);
+    if (bookingId) params.set("bookingId", bookingId);
+    const q = params.toString();
+    router.push(q ? `/user/chat?${q}` : "/user/chat");
   };
 
   const handleViewDetails = () => {
@@ -108,11 +157,15 @@ const ConfirmationContent = () => {
             <div className="flex items-start gap-4">
               <div className="relative">
                 <Image
-                  src={searchParams.get("artisanImage") || "/images/pro.jpg"}
+                  src={artisanImage}
                   alt="Edith Ropalanum"
                   width={60}
                   height={60}
                   className="w-20 h-20 rounded-lg object-cover"
+                  unoptimized={
+                    artisanImage.startsWith("http://") ||
+                    artisanImage.startsWith("https://")
+                  }
                 />
               </div>
               <div className="flex-1">
@@ -198,6 +251,74 @@ const ConfirmationContent = () => {
             </div>
           </div>
         </div>
+
+        {!isPublic ? (
+          <div className="mb-6 rounded-xl border border-[#0000001A] bg-[#FAFAFA] p-4">
+            <h3 className="text-[16px] font-poppins font-semibold text-gray-900 mb-3">
+              Pricing
+            </h3>
+            <div className="space-y-2 text-[13px] font-poppins">
+              {hourlyRate !== null ? (
+                <div className="flex justify-between gap-4">
+                  <span className="text-gray-600">Hourly rate (from recommendation)</span>
+                  <span className="font-semibold text-gray-900">
+                    ${hourlyRate.toFixed(2)}/hr
+                  </span>
+                </div>
+              ) : null}
+              <div className="flex justify-between gap-4">
+                <span className="text-gray-600">Estimated hours</span>
+                <span className="font-semibold text-gray-900">{estimatedHoursLabel}</span>
+              </div>
+              {hasServerPricing ? (
+                <>
+                  {bookingFinalAgreed !== null ? (
+                    <div className="flex justify-between gap-4">
+                      <span className="text-gray-600">Subtotal (from booking)</span>
+                      <span className="font-semibold text-gray-900">
+                        ${bookingFinalAgreed.toFixed(2)}
+                      </span>
+                    </div>
+                  ) : null}
+                  {bookingPlatformFee !== null ? (
+                    <div className="flex justify-between gap-4">
+                      <span className="text-gray-600">Platform fee</span>
+                      <span className="font-semibold text-gray-900">
+                        ${bookingPlatformFee.toFixed(2)}
+                      </span>
+                    </div>
+                  ) : null}
+                  {bookingArtisanEarning !== null ? (
+                    <div className="flex justify-between gap-4">
+                      <span className="text-gray-600">Krafter payout</span>
+                      <span className="font-semibold text-gray-900">
+                        ${bookingArtisanEarning.toFixed(2)}
+                      </span>
+                    </div>
+                  ) : null}
+                  {serverTotal !== null ? (
+                    <div className="flex justify-between gap-4 border-t border-[#0000001A] pt-2 mt-2">
+                      <span className="text-gray-900 font-semibold">Total (from booking)</span>
+                      <span className="font-bold text-brand-orange">
+                        ${serverTotal.toFixed(2)}
+                      </span>
+                    </div>
+                  ) : null}
+                  {bookingPricingRuleId ? (
+                    <p className="text-[11px] text-gray-500 pt-1">
+                      Pricing rule: {bookingPricingRuleId}
+                    </p>
+                  ) : null}
+                </>
+              ) : (
+                <p className="text-[12px] text-gray-600">
+                  Final charges from Kraftigo will appear here once the booking is fully priced on
+                  the server.
+                </p>
+              )}
+            </div>
+          </div>
+        ) : null}
 
         {/* Map */}
         <div className="relative mb-4">

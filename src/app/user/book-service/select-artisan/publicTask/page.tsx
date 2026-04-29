@@ -7,6 +7,11 @@ import { useState } from "react";
 import Input from "@/components/ui/input";
 import Button from "@/components/ui/button";
 import { MARKETPLACE_FIXED_PRICE_OFFER_MESSAGE } from "@/lib/marketplaceFixedPriceOfferValidation";
+import {
+  clampDurationHours,
+  parseDurationHoursParam,
+  validateDurationHours,
+} from "@/lib/durationHours";
 
 function parsePublicOfferAmount(raw: string): number {
   const t = raw.trim().replace(/^\$/, "").replace(/,/g, "");
@@ -51,6 +56,8 @@ const Page = () => {
 
   const [formData, setFormData] = useState({
     amount: "",
+    offerPricingType: "FLAT" as "FLAT" | "HOURLY",
+    durationHours: String(parseDurationHoursParam(searchParams.get("hours"))),
     openToNegotiation: true,
     selectedExpiry: "24h",
     customExpiryDate: "",
@@ -74,15 +81,34 @@ const Page = () => {
   ];
 
   const handleNext = () => {
+    const parsedOffer = parsePublicOfferAmount(formData.amount);
+    if (!Number.isFinite(parsedOffer) || parsedOffer <= 0) {
+      setFixedPriceListingError("Enter a valid numeric offer amount.");
+      return;
+    }
     const err = fixedPriceWhenNegotiationOffError(formData.amount, formData.openToNegotiation);
     if (err) {
       setFixedPriceListingError(err);
       return;
     }
+    if (formData.offerPricingType === "HOURLY") {
+      const dur = Number(formData.durationHours);
+      const durErr = validateDurationHours(dur);
+      if (durErr) {
+        setFixedPriceListingError(`For HOURLY pricing, ${durErr}`);
+        return;
+      }
+    }
 
     const params = new URLSearchParams(searchParams.toString());
     params.set("isPublic", "true");
-    if (formData.amount.trim()) params.set("budget", formData.amount.trim());
+    params.set("budget", String(parsedOffer));
+    params.set("offerPricingType", formData.offerPricingType);
+    if (formData.offerPricingType === "HOURLY") {
+      params.set("hours", String(clampDurationHours(Number(formData.durationHours))));
+    } else {
+      params.delete("hours");
+    }
     params.set("openForNegotiation", String(formData.openToNegotiation));
     params.set("expiryOption", formData.selectedExpiry);
     if (formData.selectedExpiry === "custom" && formData.customExpiryDate.trim()) {
@@ -158,6 +184,30 @@ const Page = () => {
             Budget
           </h2>
           <span className="text-[14px] sm:text-[15px] font-poppins text-gray-800 block mb-2">
+            Offer pricing type
+          </span>
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-4">
+            {(["FLAT", "HOURLY"] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    offerPricingType: t,
+                  }))
+                }
+                className={`py-3 rounded-xl text-[13px] sm:text-[14px] font-poppins font-medium transition-colors border ${
+                  formData.offerPricingType === t
+                    ? "text-brand-orange border-brand-orange bg-[#FF66001A]"
+                    : "bg-[#F6F6F6] text-gray-800 border-transparent hover:bg-gray-100"
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+          <span className="text-[14px] sm:text-[15px] font-poppins text-gray-800 block mb-2">
             Offer Amount
           </span>
           <Input
@@ -179,6 +229,24 @@ const Page = () => {
             }
             className="mb-4"
           />
+          {formData.offerPricingType === "HOURLY" && (
+            <>
+              <span className="text-[14px] sm:text-[15px] font-poppins text-gray-800 block mb-2">
+                Estimated duration (hours)
+              </span>
+              <Input
+                placeholder="e.g. 2"
+                value={formData.durationHours}
+                onChange={(value) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    durationHours: value,
+                  }))
+                }
+                className="mb-4"
+              />
+            </>
+          )}
 
           {/* Open to Negotiation Toggle */}
           <div className="flex items-center justify-between pb-3">

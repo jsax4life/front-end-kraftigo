@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useBookingsStore } from "@/store/useBookingsStore";
 import { useCustomKraftsStore } from "@/store/useCustomKraftsStore";
+import { useChatStore } from "@/store/useChatStore";
 import {
   connectDomainEventsSocket,
   disconnectDomainEventsSocket,
@@ -12,8 +13,19 @@ import { showDomainEventNotification } from "@/lib/domainEventNotifications";
 import DomainNotificationBell from "@/components/shared/DomainNotificationBell";
 
 let refetchDebounce: ReturnType<typeof setTimeout> | null = null;
+let pendingChatListRefetch = false;
 
-function scheduleStoresRefresh() {
+const DOMAIN_EVENTS_THAT_REFRESH_CHAT = new Set([
+  "KRAFTER_SELECTED",
+  "BOOKING_CREATED",
+  "BOOKING_CONFIRMED",
+]);
+
+function scheduleStoresRefresh(msg?: Record<string, unknown>) {
+  const t = typeof msg?.type === "string" ? msg.type : "";
+  if (t && DOMAIN_EVENTS_THAT_REFRESH_CHAT.has(t)) {
+    pendingChatListRefetch = true;
+  }
   if (refetchDebounce) clearTimeout(refetchDebounce);
   refetchDebounce = setTimeout(() => {
     refetchDebounce = null;
@@ -32,6 +44,11 @@ function scheduleStoresRefresh() {
     if (auth.isUser()) {
       void useCustomKraftsStore.getState().fetchMyCustomKrafts().catch(() => {});
     }
+
+    if (pendingChatListRefetch) {
+      pendingChatListRefetch = false;
+      void useChatStore.getState().fetchConversations({ silent: true }).catch(() => {});
+    }
   }, 450);
 }
 
@@ -45,7 +62,7 @@ export default function DomainEventsListener() {
   const onEventRef = useRef<(msg: Record<string, unknown>) => void>(() => {});
   onEventRef.current = (msg: Record<string, unknown>) => {
     showDomainEventNotification(msg);
-    scheduleStoresRefresh();
+    scheduleStoresRefresh(msg);
   };
 
   const stableHandler = useCallback((msg: Record<string, unknown>) => {
@@ -68,10 +85,10 @@ export default function DomainEventsListener() {
   }
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-0 z-[55] flex justify-center">
-      <div className="relative w-full max-w-[480px] px-3 pt-2">
-        <div className="pointer-events-auto absolute right-3 top-2 sm:right-4">
-          <DomainNotificationBell />
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[35] flex justify-center pb-[calc(96px+env(safe-area-inset-bottom,0px))]">
+      <div className="pointer-events-auto relative w-full max-w-[480px] px-3">
+        <div className="absolute bottom-0 right-3 sm:right-4">
+          <DomainNotificationBell preferPanelAbove />
         </div>
       </div>
     </div>

@@ -86,6 +86,7 @@ async function runEventsSocketConnect(
         path,
         transports,
         auth: { token: accessToken },
+        query: { token: accessToken },
         reconnection: true,
         reconnectionAttempts: 12,
         reconnectionDelay: 2000,

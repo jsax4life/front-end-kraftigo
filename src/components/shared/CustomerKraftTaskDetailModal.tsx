@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { X, ChevronRight, MapPin, Calendar } from "lucide-react";
+import { X, ChevronRight, MapPin, Calendar, MessageCircle } from "lucide-react";
 import type { Booking } from "@/types";
 import type { CancelBookingPayload } from "@/lib/api/bookings";
 import { getBookingById } from "@/lib/api/bookings";
@@ -13,6 +13,7 @@ import {
   upcomingStatusLabel,
   bookingNeedsKrafterSelection,
 } from "@/lib/bookingDisplay";
+import { buildCustomerMessageKrafterUrl } from "@/lib/chatDeepLinks";
 import { useBookingsStore } from "@/store/useBookingsStore";
 import CancelModal from "@/components/shared/CancelModal";
 import RescheduleModal from "@/components/shared/RescheduleModal";
@@ -98,6 +99,7 @@ export default function CustomerKraftTaskDetailModal({
   const needsKrafterSelection = Boolean(bookingNeedsKrafterSelection(b));
   const isDeclined = apiStatus === "DECLINED";
   const isPaymentPending = apiStatus === "PAYMENT_PENDING";
+  const isCompleted = apiStatus === "COMPLETED";
 
   const badgeTreatAccepted =
     apiStatus === "CONFIRMED" ||
@@ -115,6 +117,7 @@ export default function CustomerKraftTaskDetailModal({
     badgeTreatAccepted &&
     b.id &&
     !needsKrafterSelection &&
+    apiStatus !== "IN_PROGRESS" &&
     !["DECLINED", "COMPLETED", "CANCELLED", "DISPUTED", "RECOMMENDATION_PENDING", "PAYMENT_PENDING"].includes(
       String(apiStatus ?? ""),
     );
@@ -460,6 +463,21 @@ export default function CustomerKraftTaskDetailModal({
               </button>
             ) : null}
 
+            {!isCompleted && !needsKrafterSelection && buildCustomerMessageKrafterUrl(b) ? (
+              <button
+                type="button"
+                onClick={() => {
+                  const url = buildCustomerMessageKrafterUrl(b);
+                  onClose();
+                  if (url) router.push(url);
+                }}
+                className="w-full py-4 rounded-2xl border-2 border-brand-orange text-brand-orange bg-white text-[15px] font-poppins font-semibold hover:bg-[#FFF5F0] transition-colors flex items-center justify-center gap-2"
+              >
+                <MessageCircle size={20} strokeWidth={2} aria-hidden />
+                Message Krafter
+              </button>
+            ) : null}
+
             {isDeclined && b.id ? (
               <button
                 type="button"
@@ -474,11 +492,11 @@ export default function CustomerKraftTaskDetailModal({
                 type="button"
                 onClick={() => {
                   onClose();
-                  router.push("/user/chat");
+                  router.push("/user/support");
                 }}
                 className="w-full py-4 bg-brand-blue text-white rounded-2xl text-[15px] font-poppins font-semibold hover:bg-blue-700 transition-colors"
               >
-                Report Issue
+                Report issue
               </button>
             )}
 

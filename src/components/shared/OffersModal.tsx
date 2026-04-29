@@ -14,6 +14,7 @@ import {
 } from "@/lib/mapBookingApplicants";
 import { bookingPaymentClientSecret } from "@/lib/bookingPaymentCheckout";
 import { useBookingsStore } from "@/store/useBookingsStore";
+import { DEFAULT_DURATION_HOURS } from "@/lib/durationHours";
 
 interface OffersModalProps {
   booking: Booking | null;
@@ -113,7 +114,27 @@ const OffersModal = ({ booking, onClose, onMarketplacePaymentReady }: OffersModa
     }
     setSelectingId(applicationId);
     try {
-      const afterSelect = await selectApplicant(booking.id, { applicationId });
+      const bookingLoose = booking as unknown as Record<string, unknown>;
+      const pricingTypeRaw =
+        bookingLoose.offerPricingType ??
+        bookingLoose.offer_pricing_type ??
+        bookingLoose.proposedPricingType ??
+        bookingLoose.proposed_pricing_type;
+      const isHourlyListing = String(pricingTypeRaw ?? "").toUpperCase() === "HOURLY";
+      const durationRaw =
+        bookingLoose.offerDurationHours ??
+        bookingLoose.offer_duration_hours ??
+        bookingLoose.durationHours ??
+        bookingLoose.duration_hours;
+      const durationParsed = Number(durationRaw);
+      const durationHours =
+        Number.isFinite(durationParsed) && durationParsed > 0
+          ? durationParsed
+          : DEFAULT_DURATION_HOURS;
+      const afterSelect = await selectApplicant(booking.id, {
+        applicationId,
+        ...(isHourlyListing ? { durationHours } : {}),
+      });
 
       let afterPay: Booking;
       try {
@@ -234,7 +255,9 @@ const OffersModal = ({ booking, onClose, onMarketplacePaymentReady }: OffersModa
                 </div>
               </div>
 
-              <p className="text-[20px] font-gerat font-bold text-black mb-2">{app.price}</p>
+              {/* horizontal line */}
+              <div className="h-px bg-gray-200 my-4"></div>
+              <p className="text-[20px] font-gerat  mb-2"> {app.artisan_name} is negotiating the price <span className="text-brand-orange "> {app.price}</span></p>
 
               <p className="text-[13px] font-poppins text-gray-600 mb-4 leading-relaxed">
                 {app.proposal_message || app.description}
@@ -243,11 +266,13 @@ const OffersModal = ({ booking, onClose, onMarketplacePaymentReady }: OffersModa
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() =>
-                    router.push(
-                      `/user/chat?artisanId=${encodeURIComponent(app.artisan_id)}&name=${encodeURIComponent(app.artisan_name)}`,
-                    )
-                  }
+                  onClick={() => {
+                    const qp = new URLSearchParams();
+                    qp.set("artisanId", app.artisan_id);
+                    qp.set("name", app.artisan_name);
+                    if (app.job_id?.trim()) qp.set("bookingId", app.job_id.trim());
+                    router.push(`/user/chat?${qp.toString()}`);
+                  }}
                   className="bg-[#FF66001A] flex items-center justify-center gap-2 px-5 py-3 border border-gray-200 rounded-xl text-[13px] font-poppins font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   Chat

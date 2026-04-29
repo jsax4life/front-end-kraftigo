@@ -11,6 +11,7 @@ import ChatInterface from "@/components/support/ChatInterface";
 import { useChatStore } from "@/store/useChatStore";
 import { useBookingsStore } from "@/store/useBookingsStore";
 import type { Booking } from "@/types";
+import { bookingArtisanName } from "@/lib/bookingDisplay";
 
 // Map API booking status to KraftStatusCard display status
 const toDisplayStatus = (status: Booking["status"]): "Completed" | "In Progress" | "Cancelled" | "Upcoming" => {
@@ -41,7 +42,7 @@ const Page = () => {
   // Take the 3 most recent bookings as "recent krafts"
   const recentKrafts = bookings.slice(0, 3).map((b) => ({
     title: b.service?.title ?? "Service",
-    artisan: b.service?.artisan?.fullName ?? "Artisan",
+    artisan: bookingArtisanName(b),
     date: b.scheduled_date
       ? new Date(b.scheduled_date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
       : b.created_at

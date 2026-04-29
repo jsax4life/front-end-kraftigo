@@ -4,49 +4,80 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Search, ChevronRight, User as UserIcon, MoreHorizontal } from "lucide-react";
+import toast from "react-hot-toast";
 import UserNav from "@/components/shared/userNav";
 import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
+import { getStoredAccessToken } from "@/lib/axios";
 import { chatSocketManager } from "@/lib/socket";
-import { Conversation } from "@/types";
 import ChatInterface from "@/components/support/ChatInterface";
+import ChatListPresenceDot from "@/components/shared/ChatListPresenceDot";
 
 const ChatPage = () => {
   const searchParams = useSearchParams();
   const { conversations, fetchConversations, currentConversation, setCurrentConversation } = useChatStore();
   const { accessToken } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState("");
+  const [deepLinkBusy, setDeepLinkBusy] = useState(false);
 
   useEffect(() => {
     fetchConversations();
-    
-    if (accessToken) {
-      chatSocketManager.connect(accessToken);
+
+    const token = getStoredAccessToken()?.trim() || accessToken?.trim();
+    if (token) {
+      chatSocketManager.connect(token);
     }
   }, [fetchConversations, accessToken]);
 
   useEffect(() => {
+    const ids = conversations
+      .map((c) => String(c.conversationId ?? c.id ?? "").trim())
+      .filter(Boolean);
+    chatSocketManager.syncConversationSubscriptions(ids);
+    return () => {
+      chatSocketManager.syncConversationSubscriptions([]);
+    };
+  }, [conversations]);
+
+  useEffect(() => {
     const artisanId = searchParams.get("artisanId");
     const name = searchParams.get("name");
-    
-    if (artisanId && name) {
-      const existing = conversations.find(c => c.otherParticipant?.id === artisanId);
-      if (existing) {
-        setCurrentConversation(existing);
-      } else {
-        setCurrentConversation({
-          conversationId: artisanId,
-          otherParticipant: {
-            id: artisanId,
-            name: name,
-            avatar: "/images/pro.jpg"
-          },
-          isLocked: false,
-          unreadCount: 0
-        } as Conversation);
-      }
+    const bookingId = searchParams.get("bookingId");
+
+    if (!artisanId?.trim() || !name?.trim()) {
+      setDeepLinkBusy(false);
+      return;
     }
-  }, [searchParams, conversations, setCurrentConversation]);
+
+    let cancelled = false;
+    setDeepLinkBusy(true);
+
+    void (async () => {
+      try {
+        const conv = await useChatStore.getState().ensureChatConversationForParticipant({
+          otherUserId: artisanId.trim(),
+          displayName: name.trim(),
+          displayAvatar: "/images/pro.jpg",
+          bookingId,
+        });
+        if (cancelled) return;
+        if (conv) {
+          setCurrentConversation(conv);
+        } else {
+          setCurrentConversation(null);
+          toast.error(
+            "Could not open this conversation yet. Open Messages from your Kraft, or try again in a moment.",
+          );
+        }
+      } finally {
+        if (!cancelled) setDeepLinkBusy(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams, setCurrentConversation]);
 
   const filteredChats = conversations.filter(chat => 
     chat.otherParticipant?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -64,6 +95,10 @@ const ChatPage = () => {
                <MoreHorizontal size={20} className="text-gray-500" />
             </button>
          </div>
+
+         {deepLinkBusy && (
+            <p className="text-[13px] font-poppins text-[#667085] mb-4 -mt-2">Opening conversation…</p>
+         )}
 
          {/* Search */}
          <div className="relative mb-8">
@@ -103,7 +138,7 @@ const ChatPage = () => {
                            <UserIcon size={24} className="text-gray-400" />
                         )}
                      </div>
-                     <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-[#00A651] border-2 border-white rounded-full shadow-sm"></div>
+                     <ChatListPresenceDot chat={chat} />
                   </div>
                   
                   <div className="flex-1 min-w-0 text-left">

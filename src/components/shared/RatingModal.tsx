@@ -12,7 +12,7 @@ interface RatingModalProps {
 }
 
 
-const TAGS = ["Punctual", "Hygiene", "Efficient", "Communication", "Hygiene"];
+const TAGS = ["Punctual", "Hygiene", "Efficient", "Communication", "Professional"];
 const TIPS = ["$10", "$20", "$50", "Custom"];
 
 const RATING_LABELS: Record<number, string> = {

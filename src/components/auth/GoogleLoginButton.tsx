@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useGoogleLogin } from "@react-oauth/google";
 import { useAuthStore } from "@/store/useAuthStore";
+import { formatLoginApiError } from "@/lib/authApiErrors";
 import { logger } from "@/utils/logger";
 import toast from "react-hot-toast";
 
@@ -14,7 +15,7 @@ interface GoogleLoginButtonProps {
 
 const GoogleLoginButton = ({ className, variant = "icon" }: GoogleLoginButtonProps) => {
   const router = useRouter();
-  const { loginWithGoogle, isLoading, error } = useAuthStore();
+  const { loginWithGoogle, isLoading } = useAuthStore();
 
   const googleLogin = useGoogleLogin({
     flow: "implicit",
@@ -25,13 +26,9 @@ const GoogleLoginButton = ({ className, variant = "icon" }: GoogleLoginButtonPro
         logger.log("Google OAuth successful!");
         toast.success("Login successful! Welcome to Kraftigo.");
         router.push("/user/home");
-      } catch (err: any) {
+      } catch (err: unknown) {
         logger.error("Google OAuth failed:", err);
-        const errorMessage =
-          err.response?.data?.message ||
-          error ||
-          "Google sign-in failed. Please try again.";
-        toast.error(errorMessage);
+        toast.error(formatLoginApiError(err, useAuthStore.getState().error));
       }
     },
     onError: () => {

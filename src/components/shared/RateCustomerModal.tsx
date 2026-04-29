@@ -11,7 +11,8 @@ interface RateCustomerModalProps {
   onClose: () => void;
   customerName: string;
   customerAvatar: string;
-  onSubmit: (rating: number, tags: string[], feedback: string) => void;
+  onSubmit: (rating: number, tags: string[], feedback: string) => void | Promise<void>;
+  isSubmitting?: boolean;
 }
 
 const RateCustomerModal = ({
@@ -20,6 +21,7 @@ const RateCustomerModal = ({
   customerName,
   customerAvatar,
   onSubmit,
+  isSubmitting = false,
 }: RateCustomerModalProps) => {
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
@@ -51,12 +53,12 @@ const RateCustomerModal = ({
     );
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (rating === 0) {
       toast.error("Please select a rating");
       return;
     }
-    onSubmit(rating, selectedTags, feedback);
+    await onSubmit(rating, selectedTags, feedback);
     onClose();
   };
 
@@ -174,11 +176,11 @@ const RateCustomerModal = ({
 
           {/* Sticky Action Buttons */}
           <div className="px-3 pb-5 pt-1 space-y-3 border-t border-gray-100">
-            <Button onClick={handleSubmit} variant="primary" fullWidth>
-              Done
+            <Button onClick={() => void handleSubmit()} variant="primary" fullWidth disabled={isSubmitting}>
+              {isSubmitting ? "Submitting..." : "Done"}
             </Button>
 
-            <Button onClick={onClose} variant="secondary" fullWidth>
+            <Button onClick={onClose} variant="secondary" fullWidth disabled={isSubmitting}>
               Report Issue
             </Button>
           </div>

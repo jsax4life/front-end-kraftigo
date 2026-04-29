@@ -40,10 +40,16 @@ export function mapBookingApplicationRowToApplication(
     "/images/pro.jpg";
 
   const proposed = r.proposedPrice ?? r.proposed_price ?? r.hourlyRate ?? r.hourly_rate;
+  const pricingTypeRaw =
+    r.proposedPricingType ??
+    r.proposed_pricing_type ??
+    r.offerPricingType ??
+    r.offer_pricing_type;
+  const isHourly = String(pricingTypeRaw ?? "").toUpperCase() === "HOURLY";
   let priceStr = "—";
   if (proposed != null && proposed !== "") {
     const n = Number(proposed);
-    if (Number.isFinite(n)) priceStr = `$${n.toFixed(2)}/hr`;
+    if (Number.isFinite(n)) priceStr = isHourly ? `$${n.toFixed(2)}/hr` : `$${n.toFixed(2)}`;
   }
 
   const message =

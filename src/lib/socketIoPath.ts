@@ -14,6 +14,12 @@ export function isSocketIoBrowserProxyDisabled(): boolean {
   return v === "1" || v === "true" || v === "yes";
 }
 
+/** `NEXT_PUBLIC_SOCKET_IO_FORCE_POLLING`: `1`, `true`, or `yes` — never upgrade to WebSocket (avoids broken WS behind some nginx/LB configs). */
+export function isSocketIoForcePolling(): boolean {
+  const v = process.env.NEXT_PUBLIC_SOCKET_IO_FORCE_POLLING?.trim().toLowerCase();
+  return v === "1" || v === "true" || v === "yes";
+}
+
 /**
  * Base URL for Socket.IO (Engine.IO) handshakes in the browser.
  * Defaults to same-origin so `next.config` rewrites can proxy to the API and avoid CORS.
@@ -34,6 +40,7 @@ export function getSocketConnectionBaseUrl(): string {
  *   so Engine.IO can upgrade once polling has established the session.
  */
 export function getSocketIoTransports(): Array<"polling" | "websocket"> {
+  if (isSocketIoForcePolling()) return ["polling"];
   if (typeof window === "undefined") return ["polling", "websocket"];
   try {
     const connOrigin = new URL(getSocketConnectionBaseUrl()).origin;

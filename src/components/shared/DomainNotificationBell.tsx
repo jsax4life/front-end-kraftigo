@@ -29,9 +29,14 @@ function runStoredAction(action: DomainNotificationFeedAction) {
 type Props = {
   /** Extra classes on the outer wrapper (e.g. shrink-0). */
   className?: string;
+  /** Open the panel above the bell (use when the bell sits at the bottom of the viewport). */
+  preferPanelAbove?: boolean;
 };
 
-export default function DomainNotificationBell({ className = "" }: Props) {
+export default function DomainNotificationBell({
+  className = "",
+  preferPanelAbove = false,
+}: Props) {
   const items = useDomainNotificationHistoryStore((s) => s.items);
   const markRead = useDomainNotificationHistoryStore((s) => s.markRead);
   const markAllRead = useDomainNotificationHistoryStore((s) => s.markAllRead);
@@ -76,7 +81,9 @@ export default function DomainNotificationBell({ className = "" }: Props) {
 
       {open ? (
         <div
-          className="absolute right-0 top-[calc(100%+0.5rem)] z-[60] max-h-[min(70vh,24rem)] w-[min(calc(100vw-2rem),22rem)] overflow-hidden rounded-2xl border border-black/[0.06] bg-white shadow-[0_12px_40px_-12px_rgba(0,0,0,0.2)] ring-1 ring-black/[0.04]"
+          className={`absolute right-0 z-50 max-h-[min(70vh,24rem)] w-[min(calc(100vw-2rem),22rem)] overflow-hidden rounded-2xl border border-black/[0.06] bg-white shadow-[0_12px_40px_-12px_rgba(0,0,0,0.2)] ring-1 ring-black/[0.04] ${
+            preferPanelAbove ? "bottom-[calc(100%+0.5rem)]" : "top-[calc(100%+0.5rem)]"
+          }`}
           role="dialog"
           aria-label="Recent notifications"
         >
