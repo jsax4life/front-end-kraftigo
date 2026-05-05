@@ -25,8 +25,9 @@ const ChatInterface = ({ isOpen, onClose, conversation }: ChatInterfaceProps) =>
   const [messageContent, setMessageContent] = useState("");
   const [showAttachments, setShowAttachments] = useState(false);
   const [activeMockScreen, setActiveMockScreen] = useState<MockScreen>('none');
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
   
-  const { messages, fetchMessages, sendMessage, isLoading } = useChatStore();
+  const { messages, fetchMessages, sendMessage } = useChatStore();
   const { user } = useAuthStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -57,9 +58,11 @@ const ChatInterface = ({ isOpen, onClose, conversation }: ChatInterfaceProps) =>
   }, [displayMessages]);
 
   const handleSendMessage = async (content: string = messageContent) => {
+    if (isSendingMessage) return;
     const finalContent = content || messageContent;
     if (!finalContent.trim() || !conversationId) return;
     
+    setIsSendingMessage(true);
     try {
       await sendMessage(conversationId, finalContent);
       setMessageContent("");
@@ -67,6 +70,8 @@ const ChatInterface = ({ isOpen, onClose, conversation }: ChatInterfaceProps) =>
     } catch (error) {
        console.error("Failed to send message", error);
        setMessageContent("");
+    } finally {
+      setIsSendingMessage(false);
     }
   };
 
@@ -176,13 +181,19 @@ const ChatInterface = ({ isOpen, onClose, conversation }: ChatInterfaceProps) =>
                       placeholder="Send a message"
                       value={messageContent}
                       onChange={(e) => setMessageContent(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                      onKeyDown={(e) => {
+                        if (e.key !== "Enter") return;
+                        e.preventDefault();
+                        if (!isSendingMessage) void handleSendMessage();
+                      }}
                       className="flex-1 bg-transparent py-4 px-2 text-[14px] font-poppins outline-none text-[#1D2939] placeholder:text-[#999999]"
                   />
                   <button 
-                      onClick={() => handleSendMessage()}
-                      disabled={!messageContent.trim()}
-                      className={`transition-all ${messageContent.trim() ? 'text-brand-orange' : 'text-gray-300'}`}
+                      onClick={() => {
+                        if (!isSendingMessage) void handleSendMessage();
+                      }}
+                      disabled={!messageContent.trim() || isSendingMessage}
+                      className={`transition-all ${messageContent.trim() && !isSendingMessage ? 'text-brand-orange' : 'text-gray-300'}`}
                   >
                       <Send size={24} />
                   </button>

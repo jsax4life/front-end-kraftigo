@@ -100,6 +100,8 @@ export default function CustomerKraftTaskDetailModal({
   const isDeclined = apiStatus === "DECLINED";
   const isPaymentPending = apiStatus === "PAYMENT_PENDING";
   const isCompleted = apiStatus === "COMPLETED";
+  const isExpired = apiStatus === "EXPIRED";
+  const isTerminal = isCompleted || isExpired || apiStatus === "CANCELLED" || apiStatus === "DISPUTED";
 
   const badgeTreatAccepted =
     apiStatus === "CONFIRMED" ||
@@ -118,7 +120,7 @@ export default function CustomerKraftTaskDetailModal({
     b.id &&
     !needsKrafterSelection &&
     apiStatus !== "IN_PROGRESS" &&
-    !["DECLINED", "COMPLETED", "CANCELLED", "DISPUTED", "RECOMMENDATION_PENDING", "PAYMENT_PENDING"].includes(
+    !["DECLINED", "COMPLETED", "EXPIRED", "CANCELLED", "DISPUTED", "RECOMMENDATION_PENDING", "PAYMENT_PENDING"].includes(
       String(apiStatus ?? ""),
     );
 
@@ -463,7 +465,7 @@ export default function CustomerKraftTaskDetailModal({
               </button>
             ) : null}
 
-            {!isCompleted && !needsKrafterSelection && buildCustomerMessageKrafterUrl(b) ? (
+            {!isTerminal && !needsKrafterSelection && buildCustomerMessageKrafterUrl(b) ? (
               <button
                 type="button"
                 onClick={() => {
@@ -477,6 +479,12 @@ export default function CustomerKraftTaskDetailModal({
                 Message Krafter
               </button>
             ) : null}
+
+            {isExpired && (
+              <p className="w-full py-2 text-center text-[12px] font-poppins text-amber-900 bg-amber-50 border border-amber-100 rounded-xl px-3">
+                This booking expired because the scheduled time passed.
+              </p>
+            )}
 
             {isDeclined && b.id ? (
               <button

@@ -7,6 +7,7 @@ import {
   type DomainNotificationFeedAction,
   type DomainNotificationFeedItem,
 } from "@/store/useDomainNotificationHistoryStore";
+import { useAuthStore } from "@/store/useAuthStore";
 
 function formatAge(createdAt: number): string {
   const sec = Math.floor((Date.now() - createdAt) / 1000);
@@ -19,10 +20,14 @@ function formatAge(createdAt: number): string {
   return `${d}d ago`;
 }
 
-function runStoredAction(action: DomainNotificationFeedAction) {
+function runStoredAction(action: DomainNotificationFeedAction, bookingId?: string) {
   if (typeof window === "undefined") return;
   if (action === "krafts") window.location.assign("/user/krafts");
   else if (action === "requests") window.location.assign("/tasker/requests");
+  else if (action === "schedule") {
+    const id = typeof bookingId === "string" ? bookingId.trim() : "";
+    window.location.assign(id ? `/tasker/schedule?openJob=${encodeURIComponent(id)}` : "/tasker/schedule");
+  }
   else if (action === "home") window.location.assign("/user/home");
 }
 
@@ -37,6 +42,7 @@ export default function DomainNotificationBell({
   className = "",
   preferPanelAbove = false,
 }: Props) {
+  const isTasker = useAuthStore((s) => s.isTasker);
   const items = useDomainNotificationHistoryStore((s) => s.items);
   const markRead = useDomainNotificationHistoryStore((s) => s.markRead);
   const markAllRead = useDomainNotificationHistoryStore((s) => s.markAllRead);
@@ -57,7 +63,19 @@ export default function DomainNotificationBell({
   const onRowClick = (item: DomainNotificationFeedItem) => {
     markRead(item.id);
     if (item.action) {
-      runStoredAction(item.action);
+      const taskerModeActive =
+        isTasker() ||
+        (typeof window !== "undefined" && window.location.pathname.startsWith("/tasker"));
+      const forcedAction: DomainNotificationFeedAction =
+        taskerModeActive &&
+        (
+          item.eventType === "BOOKING_IN_PROGRESS" ||
+          item.eventType === "BOOKING_EXPIRED" ||
+          item.eventType === "BOOKING_COMPLETED"
+        )
+          ? "schedule"
+          : item.action;
+      runStoredAction(forcedAction, item.bookingId);
       setOpen(false);
     }
   };

@@ -3,18 +3,61 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { ArrowLeft, Plus, CreditCard, ChevronRight, X, Lock, Info, Trash2, Camera, MapPin } from "lucide-react";
+import { ArrowLeft, Plus, ChevronRight, X, Lock, Camera, MapPin } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import { usePaymentStore } from "@/store/usePaymentStore";
 import { useAddressStore } from "@/store/useAddressStore";
 import type { SavedPaymentMethod } from "@/lib/api/payments";
 import type { Address } from "@/types";
+import PaymentFlowModal from "@/components/shared/PaymentFlowModal";
 
 type Screen = 'list' | 'choice' | 'card-form' | 'sepa-form' | 'paypal' | 'edit-card' | 'address-form';
+const DEFAULT_ADDRESS_DATA = { name: "", details: "", zip: "", city: "Berlin", country: "Germany" };
+
+const toAddressFormData = (address?: Address | null) =>
+  address
+    ? {
+        name: address.label,
+        details: address.address,
+        zip: address.postalCode || "",
+        city: address.city || "Berlin",
+        country: address.country || "Germany",
+      }
+    : { ...DEFAULT_ADDRESS_DATA };
+
+const readMethodCard = (method: SavedPaymentMethod | null) => {
+  if (!method) return null;
+  const fromCard = method.card as Record<string, unknown> | undefined;
+  const fromDetails = method.details as Record<string, unknown> | undefined;
+  const nested = (fromDetails?.card ?? null) as Record<string, unknown> | null;
+  const source = fromCard ?? nested ?? fromDetails ?? null;
+  if (!source) return null;
+  const brand = typeof source.brand === "string" ? source.brand : "";
+  const last4 = typeof source.last4 === "string" ? source.last4 : "";
+  const expMonth =
+    typeof source.expMonth === "number"
+      ? source.expMonth
+      : typeof source.exp_month === "number"
+        ? source.exp_month
+        : null;
+  const expYear =
+    typeof source.expYear === "number"
+      ? source.expYear
+      : typeof source.exp_year === "number"
+        ? source.exp_year
+        : null;
+  const holder =
+    (typeof source.holder === "string" && source.holder) ||
+    (typeof source.name === "string" && source.name) ||
+    method.name ||
+    "";
+  return { brand, last4, expMonth, expYear, holder };
+};
 
 const PaymentMethodsPage = () => {
   const router = useRouter();
   const [currentScreen, setCurrentScreen] = useState<Screen>("list");
+  const [showPaymentFlowModal, setShowPaymentFlowModal] = useState(false);
 
   const {
     savedMethods: methods,
@@ -33,30 +76,41 @@ const PaymentMethodsPage = () => {
   } = useAddressStore();
 
   useEffect(() => {
-    fetchSavedMethods();
-    loadAddresses();
-  }, []);
+    void fetchSavedMethods();
+    void loadAddresses();
+  }, [fetchSavedMethods, loadAddresses]);
+
+  useEffect(() => {
+    const refreshMethods = () => {
+      void fetchSavedMethods();
+    };
+    window.addEventListener("focus", refreshMethods);
+    document.addEventListener("visibilitychange", refreshMethods);
+    return () => {
+      window.removeEventListener("focus", refreshMethods);
+      document.removeEventListener("visibilitychange", refreshMethods);
+    };
+  }, [fetchSavedMethods]);
 
   const [editingMethod, setEditingMethod] = useState<SavedPaymentMethod | null>(null);
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
+  const editingCard = readMethodCard(editingMethod);
 
   // Form states
   const [cardData, setCardData] = useState({ number: "", expires: "", cv: "", name: "", zip: "", country: "Germany" });
-  const [addressData, setAddressData] = useState({ name: "", details: "", zip: "", city: "Berlin", country: "Germany" });
+  const [addressData, setAddressData] = useState({ ...DEFAULT_ADDRESS_DATA });
 
-  useEffect(() => {
-    if (editingAddress) {
-      setAddressData({
-        name: editingAddress.label,
-        details: editingAddress.address,
-        zip: editingAddress.postalCode || "",
-        city: editingAddress.city || "Berlin",
-        country: editingAddress.country || "Germany"
-      });
-    } else {
-      setAddressData({ name: "", details: "", zip: "", city: "Berlin", country: "Germany" });
-    }
-  }, [editingAddress]);
+  const openNewAddressForm = () => {
+    setEditingAddress(null);
+    setAddressData({ ...DEFAULT_ADDRESS_DATA });
+    setCurrentScreen("address-form");
+  };
+
+  const openEditAddressForm = (address: Address) => {
+    setEditingAddress(address);
+    setAddressData(toAddressFormData(address));
+    setCurrentScreen("address-form");
+  };
 
   const handleBack = () => {
     if (currentScreen === "list") {
@@ -65,6 +119,7 @@ const PaymentMethodsPage = () => {
       setCurrentScreen("list");
       setEditingMethod(null);
       setEditingAddress(null);
+      setAddressData({ ...DEFAULT_ADDRESS_DATA });
     }
   };
 
@@ -104,12 +159,6 @@ const PaymentMethodsPage = () => {
     setEditingAddress(null);
   };
 
-  const handleRemoveAddress = (id: string) => {
-    removeAddress(id);
-    setCurrentScreen("list");
-    setEditingAddress(null);
-  };
-
   return (
     <main className="min-h-screen bg-white font-poppins text-[#1D2939]">
       <Toaster position="top-center" />
@@ -132,13 +181,17 @@ const PaymentMethodsPage = () => {
               <h2 className="text-[12px] font-bold text-black/80 mb-4">
                 Saved Payment Methods
               </h2>
-              {methods.length === 0 ? (
+              {methodsLoading && methods.length === 0 ? (
+                <div className="flex items-center justify-center py-10 bg-[#F6F6F6] rounded-[12px] border border-black/10">
+                  <p className="text-[12px] text-black/60 font-medium">Loading payment methods...</p>
+                </div>
+              ) : methods.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-10 bg-[#F6F6F6] rounded-[12px] border border-black/10">
                   <p className="text-[12px] text-black/60 mb-6 font-medium">
                     You have not added any payment methods
                   </p>
                   <button
-                    onClick={() => setCurrentScreen("choice")}
+                    onClick={() => setShowPaymentFlowModal(true)}
                     className="flex items-center gap-2 text-[#0000FF] font-bold text-[14px]"
                   >
                     <Plus size={18} />
@@ -175,22 +228,28 @@ const PaymentMethodsPage = () => {
                       </div>
                       <div className="space-y-1">
                         <p className="text-[14px] font-bold text-black/90 leading-tight">
-                          {method.card?.holder ?? method.card?.name ?? method.name ?? "Card"}
+                          {readMethodCard(method)?.holder || "Card"}
                         </p>
                         <p className="text-[14px] text-black/90 leading-tight">
-                          {method.card ? `${method.card.brand?.toUpperCase()} •••• ${method.card.last4}` : method.details ?? ""}
+                          {readMethodCard(method)
+                            ? `${readMethodCard(method)?.brand?.toUpperCase() || "CARD"} •••• ${readMethodCard(method)?.last4 || "----"}`
+                            : typeof method.details === "string"
+                              ? method.details
+                              : "Saved method"}
                         </p>
                         <p className="text-[12px] text-black/60 leading-tight">
-                          {method.card ? `Exp ${method.card.expMonth}/${method.card.expYear}` : ""}
+                          {readMethodCard(method)?.expMonth && readMethodCard(method)?.expYear
+                            ? `Exp ${String(readMethodCard(method)?.expMonth).padStart(2, "0")}/${readMethodCard(method)?.expYear}`
+                            : ""}
                         </p>
                       </div>
                     </div>
                   ))}
                   <button
-                    onClick={() => setCurrentScreen("choice")}
+                    onClick={() => setShowPaymentFlowModal(true)}
                     className="w-full h-[52px] bg-[#0000FF] rounded-[12px] text-white font-bold text-[14px] flex items-center justify-center gap-2 active:scale-[0.98] transition-transform mt-2"
                   >
-                    <span>+ add new</span>
+                    <span>View</span>
                   </button>
                 </div>
               )}
@@ -199,17 +258,20 @@ const PaymentMethodsPage = () => {
             {/* Shipping Addresses Section */}
             <div className="flex flex-col pb-20">
               <h2 className="text-[12px] font-bold text-black/80 mb-4">
-                Shipping Addresses
+                Saved Addresses
               </h2>
-              {addresses.length === 0 ? (
+              {isLoadingAddresses && addresses.length === 0 ? (
+                <div className="flex items-center justify-center py-10 bg-[#F6F6F6] rounded-[12px] border border-black/10">
+                  <p className="text-[12px] text-black/60 font-medium">Loading addresses...</p>
+                </div>
+              ) : addresses.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-10 bg-[#F6F6F6] rounded-[12px] border border-black/10">
                   <p className="text-[12px] text-black/60 mb-6 font-medium">
-                    You have not added any shipping addresses
+                    You have not added any saved addresses
                   </p>
                   <button
                     onClick={() => {
-                      setEditingAddress(null);
-                      setCurrentScreen("address-form");
+                      openNewAddressForm();
                     }}
                     className="flex items-center gap-2 text-[#0000FF] font-bold text-[14px]"
                   >
@@ -223,8 +285,7 @@ const PaymentMethodsPage = () => {
                     <div
                       key={address.id}
                       onClick={() => {
-                        setEditingAddress(address);
-                        setCurrentScreen("address-form");
+                        openEditAddressForm(address);
                       }}
                       className="flex items-center gap-4 p-[12px_15px] bg-[#F6F6F6] border border-black/10 rounded-[12px] cursor-pointer active:scale-[0.98] transition-all relative"
                     >
@@ -244,18 +305,26 @@ const PaymentMethodsPage = () => {
                   ))}
                   <button
                     onClick={() => {
-                      setEditingAddress(null);
-                      setCurrentScreen("address-form");
+                      openNewAddressForm();
                     }}
                     className="w-full h-[52px] bg-[#0000FF] rounded-[12px] text-white font-bold text-[14px] flex items-center justify-center gap-2 active:scale-[0.98] transition-transform mt-2"
                   >
-                    <span>+ add shipping address</span>
+                    <span>+ add saved address</span>
                   </button>
                 </div>
               )}
             </div>
           </div>
         </div>
+      )}
+
+      {showPaymentFlowModal && (
+        <PaymentFlowModal
+          onClose={() => {
+            setShowPaymentFlowModal(false);
+            void fetchSavedMethods();
+          }}
+        />
       )}
 
       {/* Choice Overlay */}
@@ -634,7 +703,8 @@ const PaymentMethodsPage = () => {
                     <input
                       type="text"
                       className="bg-transparent border-none outline-none text-[14px] text-black/80 flex-1"
-                      defaultValue={editingMethod.details}
+                      value={editingCard?.last4 ? `•••• •••• •••• ${editingCard.last4}` : ""}
+                      readOnly
                     />
                     <Camera size={18} className="text-black/60" />
                   </div>
@@ -645,7 +715,12 @@ const PaymentMethodsPage = () => {
                     <input
                       type="text"
                       className="bg-transparent border-none outline-none text-[14px] text-black/80 flex-1"
-                      defaultValue="09 2029"
+                      value={
+                        editingCard?.expMonth && editingCard?.expYear
+                          ? `${String(editingCard.expMonth).padStart(2, "0")} ${editingCard.expYear}`
+                          : ""
+                      }
+                      readOnly
                     />
                   </div>
                   <div className="flex items-center px-3 h-[47px]">
@@ -655,7 +730,9 @@ const PaymentMethodsPage = () => {
                     <input
                       type="text"
                       className="bg-transparent border-none outline-none text-[14px] text-black/80 flex-1"
-                      defaultValue="4443"
+                      value=""
+                      readOnly
+                      placeholder="Not stored for security"
                     />
                   </div>
                 </div>
@@ -668,7 +745,8 @@ const PaymentMethodsPage = () => {
                 <input
                   type="text"
                   className="w-full bg-[#F6F6F6] border border-black/10 rounded-[12px] px-4 py-[15px] outline-none text-[14px] text-black/80"
-                  defaultValue={editingMethod.name}
+                  value={editingCard?.holder || editingMethod.name || ""}
+                  readOnly
                 />
               </div>
 
@@ -684,7 +762,9 @@ const PaymentMethodsPage = () => {
                     <input
                       type="text"
                       className="w-full bg-[#F6F6F6] border border-black/10 rounded-[12px] px-4 py-[15px] outline-none text-[14px] text-black/80"
-                      defaultValue="43434"
+                      value=""
+                      readOnly
+                      placeholder="Not available"
                     />
                   </div>
                   <div className="flex flex-col gap-2">
@@ -742,7 +822,7 @@ const PaymentMethodsPage = () => {
           <div className="bg-white rounded-t-[12px] w-full h-[90vh] overflow-y-auto px-6 pt-10 pb-12 animate-in slide-in-from-bottom duration-400">
             <div className="flex items-center justify-between mb-8">
               <h1 className="text-[20px] font-medium text-black/80 tracking-[-0.03em]">
-                {editingAddress ? "Edit Shipping Address" : "Add Shipping Address"}
+                {editingAddress ? "Edit Saved Address" : "Add Saved Address"}
               </h1>
               <button
                 onClick={handleBack}

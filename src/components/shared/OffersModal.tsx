@@ -57,6 +57,7 @@ const OffersModal = ({ booking, onClose, onMarketplacePaymentReady }: OffersModa
   const { selectApplicant, proceedToPayment, fetchMyBookings, clearError } = useBookingsStore();
 
   const isMarketplaceOpen = booking?.status === "OPEN_FOR_APPLICATIONS";
+  const isBookingExpired = booking?.status === "EXPIRED";
 
   const loadApplicants = useCallback(async () => {
     if (!booking?.id || !isMarketplaceOpen) return;
@@ -108,6 +109,10 @@ const OffersModal = ({ booking, onClose, onMarketplacePaymentReady }: OffersModa
       : "Offers");
 
   const handleAcceptApplication = async (applicationId: string) => {
+    if (isBookingExpired) {
+      toast.error("This booking has expired. Create or repost a new booking to continue.");
+      return;
+    }
     if (!booking?.id || !isMarketplaceOpen) {
       router.push("/user/book-service/active-job?status=accepted");
       return;
@@ -195,6 +200,11 @@ const OffersModal = ({ booking, onClose, onMarketplacePaymentReady }: OffersModa
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-28 mb-20">
+          {isBookingExpired && (
+            <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4 text-[13px] font-poppins text-amber-900">
+              This booking expired because the scheduled time passed. Repost the task to receive new offers.
+            </div>
+          )}
           {loadError && isMarketplaceOpen && (
             <div className="rounded-2xl border border-red-100 bg-red-50 p-4 text-[13px] font-poppins text-red-700">
               {loadError}
@@ -279,7 +289,7 @@ const OffersModal = ({ booking, onClose, onMarketplacePaymentReady }: OffersModa
                 </button>
                 <button
                   type="button"
-                  disabled={Boolean(selectingId)}
+                  disabled={Boolean(selectingId) || isBookingExpired}
                   onClick={() =>
                     isMarketplaceOpen ? void handleAcceptApplication(app.id) : router.push("/user/book-service/active-job?status=accepted")
                   }
@@ -296,7 +306,7 @@ const OffersModal = ({ booking, onClose, onMarketplacePaymentReady }: OffersModa
           <button
             type="button"
             onClick={() => setShowCompare(true)}
-            disabled={applications.length < 2 || Boolean(selectingId)}
+            disabled={applications.length < 2 || Boolean(selectingId) || isBookingExpired}
             className="w-full py-4 bg-brand-orange text-white rounded-full text-[15px] font-poppins font-semibold flex items-center justify-center gap-2 hover:bg-orange-600 transition-colors shadow-md disabled:opacity-40 disabled:pointer-events-none"
           >
             <svg

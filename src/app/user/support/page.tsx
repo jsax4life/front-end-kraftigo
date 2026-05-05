@@ -17,6 +17,7 @@ import { bookingArtisanName } from "@/lib/bookingDisplay";
 const toDisplayStatus = (status: Booking["status"]): "Completed" | "In Progress" | "Cancelled" | "Upcoming" => {
   if (status === "COMPLETED") return "Completed";
   if (status === "IN_PROGRESS") return "In Progress";
+  if (status === "EXPIRED") return "Cancelled";
   if (status === "CANCELLED" || status === "DISPUTED") return "Cancelled";
   return "Upcoming";
 };

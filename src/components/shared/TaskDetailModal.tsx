@@ -27,6 +27,7 @@ const STATUS_STEP: Record<string, number> = {
   PAYMENT_PENDING: 1,
   IN_PROGRESS: 2,
   COMPLETED: 3,
+  EXPIRED: 0,
   CANCELLED: 0,
   COUNTERED: 0,
 };
@@ -74,6 +75,7 @@ export default function TaskDetailModal({
   const isConfirmed = booking.status === "CONFIRMED";
   const isPaymentPending = booking.status === "PAYMENT_PENDING";
   const isInProgress = booking.status === "IN_PROGRESS";
+  const isExpired = booking.status === "EXPIRED";
   const displayTitle = booking.title || booking.service?.title || "Craft";
 
   return (
@@ -244,6 +246,11 @@ export default function TaskDetailModal({
         {/* ── Action Buttons (hidden for completed bookings) ── */}
         {booking.status !== "COMPLETED" && (
           <div className="px-5 pt-4 pb-8 space-y-3">
+            {isExpired && (
+              <p className="text-[13px] text-amber-900 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 font-poppins">
+                This booking expired before work started. Use reschedule or create a new booking.
+              </p>
+            )}
             {isPaymentPending && (
               <p className="text-[13px] text-amber-900 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 font-poppins">
                 Waiting for the customer to authorize payment. You can start the job once the booking is{" "}

@@ -195,6 +195,8 @@ const KraftsPage = () => {
   const statusBadge = (status: Booking["status"]) => {
     if (status === "COMPLETED")
       return <span className="text-[11px] font-poppins font-semibold text-green-600 bg-green-50 px-2.5 py-1 rounded-full">Completed</span>;
+    if (status === "EXPIRED")
+      return <span className="text-[11px] font-poppins font-semibold text-amber-800 bg-amber-100 px-2.5 py-1 rounded-full">Expired</span>;
     if (status === "CANCELLED")
       return <span className="text-[11px] font-poppins font-semibold text-red-500 bg-red-50 px-2.5 py-1 rounded-full">You cancelled this Kraft</span>;
     if (status === "DISPUTED")

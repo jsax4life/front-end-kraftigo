@@ -151,7 +151,7 @@ interface BookingsState {
   clearPendingPublishMediaFiles: () => void
 }
 
-const COMPLETED_STATUSES: BookingStatus[] = ['COMPLETED', 'CANCELLED', 'DISPUTED']
+const COMPLETED_STATUSES: BookingStatus[] = ['COMPLETED', 'EXPIRED', 'CANCELLED', 'DISPUTED']
 
 export const useBookingsStore = create<BookingsState>()((set, get) => ({
   // Initial state

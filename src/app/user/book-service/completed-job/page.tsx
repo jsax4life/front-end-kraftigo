@@ -24,6 +24,26 @@ function completedDuration(booking: unknown): { h: number; m: number; s: number 
   const fallback = { h: 0, m: 0, s: 0 };
   if (!booking || typeof booking !== "object") return fallback;
   const b = booking as Record<string, unknown>;
+  const workDurationRaw = b.workDurationSeconds ?? b.work_duration_seconds;
+  if (typeof workDurationRaw === "number" && Number.isFinite(workDurationRaw) && workDurationRaw >= 0) {
+    const secs = Math.floor(workDurationRaw);
+    return {
+      h: Math.floor(secs / 3600),
+      m: Math.floor((secs % 3600) / 60),
+      s: secs % 60,
+    };
+  }
+  if (typeof workDurationRaw === "string" && workDurationRaw.trim()) {
+    const parsedSecs = Number(workDurationRaw);
+    if (Number.isFinite(parsedSecs) && parsedSecs >= 0) {
+      const secs = Math.floor(parsedSecs);
+      return {
+        h: Math.floor(secs / 3600),
+        m: Math.floor((secs % 3600) / 60),
+        s: secs % 60,
+      };
+    }
+  }
   const startedAt = bookingTimeField(
     b,
     "startedAt",
@@ -37,8 +57,6 @@ function completedDuration(booking: unknown): { h: number; m: number; s: number 
     b,
     "completedAt",
     "completed_at",
-    "updatedAt",
-    "updated_at",
   );
   if (!startedAt || !completedAt) return fallback;
   const startMs = Date.parse(startedAt);
@@ -88,7 +106,17 @@ const CompletedJobContent = () => {
   const dateStr = displayData
     ? [displayData.date, displayData.time].filter(Boolean).join(" · ")
     : "—";
-  const price = booking?.price ?? 95.0;
+  const priceRows = displayData?.priceBreakdown.rows ?? [];
+  const fallbackServicePrice =
+    priceRows.length === 0 && booking?.price != null
+      ? [{ key: "servicePrice", label: "Service price", amount: Number(booking.price) }]
+      : [];
+  const resolvedPriceRows = priceRows.length > 0 ? priceRows : fallbackServicePrice;
+  const resolvedTotal =
+    displayData?.priceBreakdown.total ??
+    (resolvedPriceRows.length > 0
+      ? resolvedPriceRows.reduce((sum, row) => sum + row.amount, 0)
+      : null);
 
   const isCompletedBooking = booking?.status === "COMPLETED";
 
@@ -264,18 +292,22 @@ const CompletedJobContent = () => {
         </button>
         {showPriceBreakdown && (
           <div className="py-3 space-y-2">
-            <div className="flex justify-between text-[13px] font-poppins text-gray-600">
-              <span>Service price</span>
-              <span>${price.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-[13px] font-poppins text-gray-600">
-              <span>Service fee</span>
-              <span>$9.00</span>
-            </div>
-            <div className="flex justify-between text-[14px] font-poppins font-bold text-black border-t border-gray-100 pt-2 mt-2">
-              <span>Total Paid</span>
-              <span>${(price + 9).toFixed(2)}</span>
-            </div>
+            {resolvedPriceRows.length === 0 ? (
+              <p className="text-[13px] font-poppins text-gray-500">No pricing details available.</p>
+            ) : (
+              resolvedPriceRows.map((row) => (
+                <div key={row.key} className="flex justify-between text-[13px] font-poppins text-gray-600">
+                  <span>{row.label}</span>
+                  <span>${row.amount.toFixed(2)}</span>
+                </div>
+              ))
+            )}
+            {resolvedTotal != null && (
+              <div className="flex justify-between text-[14px] font-poppins font-bold text-black border-t border-gray-100 pt-2 mt-2">
+                <span>Total Paid</span>
+                <span>${resolvedTotal.toFixed(2)}</span>
+              </div>
+            )}
           </div>
         )}
       </div>

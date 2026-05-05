@@ -208,6 +208,14 @@ export function showDomainEventNotification(raw: unknown): void {
   const goTaskerRequests = () => {
     if (typeof window !== "undefined") window.location.assign("/tasker/requests");
   };
+  const goTaskerSchedule = (id?: unknown) => {
+    if (typeof window === "undefined") return;
+    const bookingIdParam = typeof id === "string" ? id.trim() : "";
+    const target = bookingIdParam
+      ? `/tasker/schedule?openJob=${encodeURIComponent(bookingIdParam)}`
+      : "/tasker/schedule";
+    window.location.assign(target);
+  };
   const goHome = () => {
     if (typeof window !== "undefined") window.location.assign("/user/home");
   };
@@ -261,26 +269,50 @@ export function showDomainEventNotification(raw: unknown): void {
         hist("BOOKING_CONFIRMED", "krafts"),
       );
       break;
-    case "BOOKING_IN_PROGRESS":
+    case "BOOKING_IN_PROGRESS": {
+      const isTasker = useAuthStore.getState().isTasker();
       pushToast(
         "brand",
         <Loader2 className="h-5 w-5" />,
         "In progress",
         bid ? `Booking ${bid} is now in progress.` : "A booking has started.",
-        { actionLabel: "View Krafts", onAction: goKrafts },
-        hist("BOOKING_IN_PROGRESS", "krafts"),
+        isTasker
+          ? { actionLabel: "View schedule", onAction: () => goTaskerSchedule(msg.bookingId) }
+          : { actionLabel: "View Krafts", onAction: goKrafts },
+        hist("BOOKING_IN_PROGRESS", isTasker ? "schedule" : "krafts"),
       );
       break;
-    case "BOOKING_COMPLETED":
+    }
+    case "BOOKING_COMPLETED": {
+      const isTasker = useAuthStore.getState().isTasker();
       pushToast(
         "success",
         <PartyPopper className="h-5 w-5" />,
         "Completed",
         bid ? `Booking ${bid} is complete.` : "A booking was completed.",
-        { actionLabel: "View Krafts", onAction: goKrafts },
-        hist("BOOKING_COMPLETED", "krafts"),
+        isTasker
+          ? { actionLabel: "View schedule", onAction: () => goTaskerSchedule(msg.bookingId) }
+          : { actionLabel: "View Krafts", onAction: goKrafts },
+        hist("BOOKING_COMPLETED", isTasker ? "schedule" : "krafts"),
       );
       break;
+    }
+    case "BOOKING_EXPIRED": {
+      const isTasker = useAuthStore.getState().isTasker();
+      pushToast(
+        "amber",
+        <AlertTriangle className="h-5 w-5" />,
+        "Booking expired",
+        isTasker
+          ? "This booking expired before work started."
+          : "This booking expired because the scheduled time passed.",
+        isTasker
+          ? { actionLabel: "View schedule", onAction: () => goTaskerSchedule(msg.bookingId) }
+          : { actionLabel: "View Krafts", onAction: goKrafts },
+        hist("BOOKING_EXPIRED", isTasker ? "schedule" : "krafts"),
+      );
+      break;
+    }
     case "BOOKING_CANCELLED":
       pushToast(
         "amber",
