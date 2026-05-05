@@ -11,6 +11,7 @@ import type { Payment } from "@/types";
 const statusStyles: Record<string, string> = {
   HELD: "bg-orange-50 text-brand-orange border-orange-100",
   PENDING: "bg-orange-50 text-brand-orange border-orange-100",
+  ESCROWED: "bg-orange-50 text-brand-orange border-orange-100",
   RELEASED: "bg-green-50 text-[#00A651] border-green-100",
   REFUNDED: "bg-red-50 text-[#F04438] border-red-100",
 };
@@ -18,8 +19,24 @@ const statusStyles: Record<string, string> = {
 const statusLabel: Record<string, string> = {
   HELD: "Held",
   PENDING: "Pending",
+  ESCROWED: "Escrowed",
   RELEASED: "Paid",
   REFUNDED: "Refunded",
+};
+
+const readPaymentId = (p: Payment) => String(p.id ?? "");
+const readContextId = (p: Payment) =>
+  String((p as any).booking_id ?? (p as any).contextId ?? (p as any).context_id ?? "");
+const readContextType = (p: Payment) =>
+  String((p as any).contextType ?? (p as any).context_type ?? "PAYMENT");
+const readCreatedAt = (p: Payment) =>
+  String((p as any).created_at ?? (p as any).createdAt ?? "");
+const readCurrency = (p: Payment) =>
+  String((p as any).currency ?? "EUR").toUpperCase();
+const readAmount = (p: Payment) => {
+  const value = Number((p as any).amount ?? 0);
+  if (!Number.isFinite(value)) return 0;
+  return value;
 };
 
 const TransactionsPage = () => {
@@ -47,12 +64,12 @@ const TransactionsPage = () => {
     }
   };
 
-  const formatAmount = (amount: number) =>
-    new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(amount / 100);
+  const formatAmount = (amount: number, currency: string) =>
+    new Intl.NumberFormat("en-GB", { style: "currency", currency }).format(amount);
 
   const filteredPayments = payments.filter((p) =>
-    p.booking_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.id?.toLowerCase().includes(searchQuery.toLowerCase())
+    readContextId(p).toLowerCase().includes(searchQuery.toLowerCase()) ||
+    readPaymentId(p).toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -103,27 +120,27 @@ const TransactionsPage = () => {
             </h3>
             {filteredPayments.map((p) => (
               <div
-                key={p.id}
-                onClick={() => router.push(`/user/profile/receipt?id=${p.id}`)}
+                key={readPaymentId(p)}
+                onClick={() => router.push(`/user/profile/receipt?id=${readPaymentId(p)}`)}
                 className="bg-white p-5 rounded-2xl border border-[#F2F4F7] shadow-sm flex gap-4 items-center hover:border-brand-orange transition-all cursor-pointer group"
               >
                 <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 relative bg-gray-50 border border-[#F2F4F7] flex items-center justify-center">
                   <span className="text-[10px] font-poppins font-bold text-gray-400 text-center px-1 leading-tight">
-                    {p.id.slice(-6).toUpperCase()}
+                    {readPaymentId(p).slice(-6).toUpperCase()}
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-start mb-1.5">
                     <h3 className="text-[15px] font-gerat font-bold text-[#1D2939] truncate pr-2">
-                      Booking #{p.booking_id?.slice(-8).toUpperCase() ?? "—"}
+                      {readContextType(p).replaceAll("_", " ")} #{readContextId(p).slice(-8).toUpperCase() || "—"}
                     </h3>
                     <span className="text-[16px] font-poppins font-bold text-[#1D2939] shrink-0">
-                      {formatAmount(p.amount)}
+                      {formatAmount(readAmount(p), readCurrency(p))}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <p className="text-[12px] text-[#667085] font-poppins font-medium">
-                      {formatDate(p.created_at)}
+                      {formatDate(readCreatedAt(p))}
                     </p>
                     <span className={`text-[10px] font-bold px-3 py-1 rounded-full border ${statusStyles[p.status] ?? "bg-gray-50 text-gray-500 border-gray-100"}`}>
                       {statusLabel[p.status] ?? p.status}

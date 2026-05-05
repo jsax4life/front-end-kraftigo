@@ -7,7 +7,7 @@ const norm = (s: string) => s.replace(/-/g, "_").toUpperCase();
 export function canCustomerCancelBookingStatus(status: string | undefined | null): boolean {
   if (status == null || status === "") return false;
   const s = norm(status);
-  return s !== "IN_PROGRESS" && s !== "COMPLETED" && s !== "CANCELLED";
+  return s !== "IN_PROGRESS" && s !== "COMPLETED" && s !== "EXPIRED" && s !== "CANCELLED";
 }
 
 /** Short UI copy when cancel is hidden (customer). */
@@ -19,6 +19,9 @@ export function customerCancelDisabledReason(status: string | undefined | null):
   }
   if (s === "COMPLETED") {
     return "This booking is already completed.";
+  }
+  if (s === "EXPIRED") {
+    return "This booking has expired because the scheduled time passed.";
   }
   if (s === "CANCELLED") {
     return "This booking is already cancelled.";

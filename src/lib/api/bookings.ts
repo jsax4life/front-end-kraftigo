@@ -218,6 +218,14 @@ export const mapMarketplaceOpenRowToBooking = (
   row: MarketplaceOpenBookingRow,
 ): Booking => {
   const loose = row as unknown as Record<string, unknown>
+  const expiredAt =
+    (typeof loose.expiredAt === 'string' && loose.expiredAt) ||
+    (typeof loose.expired_at === 'string' && loose.expired_at) ||
+    null
+  const expirationReason =
+    (typeof loose.expirationReason === 'string' && loose.expirationReason) ||
+    (typeof loose.expiration_reason === 'string' && loose.expiration_reason) ||
+    null
   const proposed =
     row.proposedPrice != null && row.proposedPrice !== ''
       ? parseFloat(String(row.proposedPrice))
@@ -288,6 +296,8 @@ export const mapMarketplaceOpenRowToBooking = (
               loose.proposed_duration_hours) as Booking['proposedDurationHours'],
         }
       : {}),
+    ...(expiredAt ? { expiredAt } : {}),
+    ...(expirationReason ? { expirationReason } : {}),
   }
 }
 
@@ -717,6 +727,8 @@ export interface ArtisanAssignedBookingRow {
   cancellationReason?: string | null
   cancellationReasonDetails?: string | null
   completedAt?: string | null
+  startedAt?: string | null
+  workDurationSeconds?: number | string | null
   /** Chat thread UUID when API enriches this row. */
   conversationId?: string | null
 }
@@ -729,6 +741,30 @@ function parseMoneyField(value: string | null | undefined): number | undefined {
 
 /** Normalize `GET /api/artisan/bookings` rows into shared `Booking` (snake_case + `title`/`service` for UI). */
 export function mapArtisanAssignedBookingRowToBooking(row: ArtisanAssignedBookingRow): Booking {
+  const loose = row as unknown as Record<string, unknown>
+  const expiredAt =
+    (typeof loose.expiredAt === 'string' && loose.expiredAt) ||
+    (typeof loose.expired_at === 'string' && loose.expired_at) ||
+    null
+  const expirationReason =
+    (typeof loose.expirationReason === 'string' && loose.expirationReason) ||
+    (typeof loose.expiration_reason === 'string' && loose.expiration_reason) ||
+    null
+  const startedAt =
+    (typeof loose.startedAt === 'string' && loose.startedAt) ||
+    (typeof loose.started_at === 'string' && loose.started_at) ||
+    null
+  const completedAt =
+    (typeof loose.completedAt === 'string' && loose.completedAt) ||
+    (typeof loose.completed_at === 'string' && loose.completed_at) ||
+    null
+  const workDurationRaw = loose.workDurationSeconds ?? loose.work_duration_seconds
+  const workDurationSeconds =
+    typeof workDurationRaw === 'number'
+      ? workDurationRaw
+      : typeof workDurationRaw === 'string' && workDurationRaw.trim()
+        ? Number(workDurationRaw)
+        : null
   const proposed = parseMoneyField(row.proposedPrice)
   const finalAgreed = parseMoneyField(row.finalAgreedPrice)
   const price = finalAgreed ?? proposed
@@ -792,6 +828,13 @@ export function mapArtisanAssignedBookingRowToBooking(row: ArtisanAssignedBookin
     ...(row.conversationId?.trim()
       ? { conversationId: row.conversationId.trim(), chatConversationId: row.conversationId.trim() }
       : {}),
+    ...(startedAt ? { startedAt } : {}),
+    ...(completedAt ? { completedAt } : {}),
+    ...(workDurationSeconds != null && Number.isFinite(workDurationSeconds)
+      ? { workDurationSeconds }
+      : {}),
+    ...(expiredAt ? { expiredAt } : {}),
+    ...(expirationReason ? { expirationReason } : {}),
   }
 }
 

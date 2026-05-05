@@ -42,6 +42,22 @@ function buildGrid(year: number, month: number): (Date | null)[] {
   return cells;
 }
 
+function parseScheduleDate(value: string | null | undefined): Date | null {
+  if (!value) return null;
+  const raw = value.trim();
+  if (!raw) return null;
+  const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+  if (dateOnlyMatch) {
+    const y = Number(dateOnlyMatch[1]);
+    const m = Number(dateOnlyMatch[2]);
+    const d = Number(dateOnlyMatch[3]);
+    const local = new Date(y, m - 1, d);
+    return Number.isNaN(local.getTime()) ? null : local;
+  }
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 const SchedulePage = () => {
   const { bookings, isLoading, error, fetchArtisanBookings } = useBookingsStore();
 
@@ -60,7 +76,7 @@ const SchedulePage = () => {
 
   // Booking dates for calendar orange highlights
   const bookingDates = displayBookings
-    .map((b) => (b.scheduled_date ? new Date(b.scheduled_date) : null))
+    .map((b) => parseScheduleDate(b.scheduled_date))
     .filter((d): d is Date => d !== null && !isNaN(d.getTime()));
 
   useEffect(() => {
@@ -110,6 +126,8 @@ const SchedulePage = () => {
     switch (status) {
       case "COMPLETED":
         return { color: "bg-green-100 text-green-700", dot: "bg-green-500" };
+      case "EXPIRED":
+        return { color: "bg-amber-100 text-amber-800", dot: "bg-amber-500" };
       case "CONFIRMED":
         return { color: "bg-orange-100 text-brand-orange", dot: "bg-brand-orange" };
       case "IN_PROGRESS":
@@ -221,8 +239,8 @@ const SchedulePage = () => {
                   {grid.map((date, idx) => {
                     if (!date) return <div key={idx} />;
 
-                    const isToday    = isSameDay(date, today);
-                    const isUpcoming = bookingDates.some((bd) => isSameDay(bd, date)) && date >= today;
+                    const isToday = isSameDay(date, today);
+                    const hasTask = bookingDates.some((bd) => isSameDay(bd, date));
                     const isSelected = isSameDay(date, selectedDate);
 
                     let cls =
@@ -230,7 +248,7 @@ const SchedulePage = () => {
 
                     if (isToday) {
                       cls += " bg-brand-blue text-white";
-                    } else if (isUpcoming || isSelected) {
+                    } else if (hasTask || isSelected) {
                       cls += " bg-brand-orange text-white";
                     } else {
                       cls += " text-gray-700 hover:bg-gray-200";
@@ -269,7 +287,7 @@ const SchedulePage = () => {
               </div>
             ) : (() => {
               const dayBookings = displayBookings.filter((b) =>
-                b.scheduled_date && isSameDay(new Date(b.scheduled_date), selectedDate)
+                isSameDay(parseScheduleDate(b.scheduled_date) ?? new Date("invalid"), selectedDate)
               );
               return dayBookings.length > 0 ? (
                 dayBookings.map((booking, index) => {
@@ -304,8 +322,13 @@ const SchedulePage = () => {
       {/* Bottom Navigation */}
       <TaskerNav />
 
-      {/* ── Modal switcher: show ActiveJobModal within 24h, TaskDetailModal otherwise ── */}
-      {selectedBooking && isWithin24Hours(selectedBooking.scheduled_date) ? (
+      {/* ── Modal switcher:
+          - Completed jobs always use ActiveJobModal (timer/earnings/review flow)
+          - Others: ActiveJobModal within 24h, TaskDetailModal otherwise
+      ── */}
+      {selectedBooking &&
+      (String(selectedBooking.status).toUpperCase() === "COMPLETED" ||
+        isWithin24Hours(selectedBooking.scheduled_date)) ? (
         <ActiveJobModal
           booking={selectedBooking}
           onClose={() => setSelectedBooking(null)}

@@ -3,7 +3,12 @@ import { persist, createJSONStorage } from "zustand/middleware";
 
 const MAX_ITEMS = 80;
 
-export type DomainNotificationFeedAction = "krafts" | "requests" | "home" | null;
+export type DomainNotificationFeedAction =
+  | "krafts"
+  | "requests"
+  | "schedule"
+  | "home"
+  | null;
 
 export type DomainNotificationFeedItem = {
   id: string;

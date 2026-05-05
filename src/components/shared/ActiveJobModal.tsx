@@ -4,13 +4,14 @@ import { useState, useEffect, useRef } from "react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { X, MessageCircle, AlertCircle, Pause } from "lucide-react";
+import { X, MessageCircle, AlertCircle, Pause, ChevronRight, Calendar } from "lucide-react";
 import PhotoUploader, { Photo } from "@/components/shared/PhotoUploader";
 import Button from "@/components/ui/button";
 import RateCustomerModal from "@/components/shared/RateCustomerModal";
 import { submitReview } from "@/lib/api/reviews";
 import type { Booking } from "@/types";
 import { useBookingsStore } from "@/store/useBookingsStore";
+import { parseBookingMoney } from "@/lib/bookingDisplay";
 
 type JobPhase = "not-started" | "in-progress" | "completed";
 
@@ -27,6 +28,7 @@ function normStatus(status: string | undefined): string {
 }
 
 const jobWorkStartStorageKey = (bookingId: string) => `kraftigo:jobWorkStart:${bookingId}`;
+const jobWorkDurationStorageKey = (bookingId: string) => `kraftigo:jobWorkDuration:${bookingId}`;
 
 function msToTimer(totalMs: number): { hours: number; minutes: number; seconds: number } {
   const ms = Math.max(0, totalMs);
@@ -70,6 +72,72 @@ function resolveJobWorkStartedAtMs(booking: Booking): number {
   return Date.now();
 }
 
+function resolveJobCompletedDurationMs(booking: Booking): number {
+  const loose = booking as unknown as Record<string, unknown>;
+  const workDurationRaw = loose.workDurationSeconds ?? loose.work_duration_seconds;
+  if (typeof workDurationRaw === "number" && Number.isFinite(workDurationRaw) && workDurationRaw >= 0) {
+    return workDurationRaw * 1000;
+  }
+  if (typeof workDurationRaw === "string" && workDurationRaw.trim()) {
+    const parsedSeconds = Number(workDurationRaw);
+    if (Number.isFinite(parsedSeconds) && parsedSeconds >= 0) return parsedSeconds * 1000;
+  }
+  const startCandidates = [
+    loose.startedAt,
+    loose.started_at,
+    loose.workStartedAt,
+    loose.work_started_at,
+    loose.inProgressAt,
+    loose.in_progress_at,
+    loose.jobStartedAt,
+    loose.job_started_at,
+  ];
+  const endCandidates = [
+    loose.completedAt,
+    loose.completed_at,
+  ];
+
+  let startMs: number | null = null;
+  for (const c of startCandidates) {
+    if (typeof c === "string" && c.trim()) {
+      const t = Date.parse(c);
+      if (!Number.isNaN(t)) {
+        startMs = t;
+        break;
+      }
+    }
+  }
+  let endMs: number | null = null;
+  for (const c of endCandidates) {
+    if (typeof c === "string" && c.trim()) {
+      const t = Date.parse(c);
+      if (!Number.isNaN(t)) {
+        endMs = t;
+        break;
+      }
+    }
+  }
+  if (startMs != null && endMs != null && endMs > startMs) {
+    return endMs - startMs;
+  }
+
+  if (typeof window !== "undefined") {
+    const raw = window.localStorage.getItem(jobWorkDurationStorageKey(booking.id));
+    if (raw) {
+      const ms = parseInt(raw, 10);
+      if (!Number.isNaN(ms) && ms >= 0) return ms;
+    }
+  }
+  return 0;
+}
+
+function formatDateLabel(iso?: string): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
 interface ActiveJobModalProps {
   booking: Booking | null;
   onClose: () => void;
@@ -89,6 +157,8 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
   const [ongoingNotes, setOngoingNotes] = useState("");
   const [completionNotes, setCompletionNotes] = useState("");
   const [proofPhotos, setProofPhotos] = useState<Photo[]>([]);
+  const [showKraftDetails, setShowKraftDetails] = useState(false);
+  const [showPriceBreakdown, setShowPriceBreakdown] = useState(false);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [isReviewSubmitting, setIsReviewSubmitting] = useState(false);
   const [hasSubmittedReview, setHasSubmittedReview] = useState(false);
@@ -108,6 +178,8 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
     const s = normStatus(booking.status);
     if (s === "COMPLETED") {
       setPhase("completed");
+      const completedMs = resolveJobCompletedDurationMs(booking);
+      setTimer(msToTimer(completedMs));
       if (typeof window !== "undefined") {
         window.sessionStorage.removeItem(jobWorkStartStorageKey(booking.id));
       }
@@ -127,6 +199,8 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
     setOngoingNotes("");
     setCompletionNotes("");
     setProofPhotos([]);
+    setShowKraftDetails(false);
+    setShowPriceBreakdown(false);
   }, [booking?.id, booking?.status]);
 
   useEffect(() => {
@@ -142,8 +216,17 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
   const apiStatus = normStatus(booking.status);
   const isPaymentPending = apiStatus === "PAYMENT_PENDING";
   const isConfirmed = apiStatus === "CONFIRMED";
+  const isExpired = apiStatus === "EXPIRED";
   const displayTitle = booking.title || booking.service?.title || "Booking";
   const customerLabel = booking.customerName ?? "Customer";
+  const dateLabel = formatDateLabel(booking.scheduled_date);
+  const timeLabel = booking.scheduled_time || booking.preferredTime || "TBD";
+  const kraftDetailsText = booking.jobDescription || booking.notes || "No additional details provided.";
+  const serviceAmount = parseBookingMoney(
+    booking.finalAgreedPrice ?? booking.proposedPrice ?? booking.price,
+  );
+  const platformFee = parseBookingMoney(booking.platformFee ?? booking.systemPrice);
+  const payoutAmount = parseBookingMoney(booking.artisanEarning);
 
   const stepIndex = STATUS_STEPS.findIndex((s) => s.key === phase);
   const isOvertime = () => timer.hours * 60 + timer.minutes > estimatedHours * 60;
@@ -156,6 +239,7 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
       onBookingUpdated?.(updated);
       if (typeof window !== "undefined") {
         window.sessionStorage.setItem(jobWorkStartStorageKey(booking.id), String(Date.now()));
+        window.localStorage.removeItem(jobWorkDurationStorageKey(booking.id));
       }
       workAnchorMsRef.current = resolveJobWorkStartedAtMs(updated);
       pausedTotalMsRef.current = 0;
@@ -188,6 +272,8 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
       });
       onBookingUpdated?.(updated);
       if (typeof window !== "undefined") {
+        // Freeze elapsed time at completion so reopening the modal keeps the final timer.
+        window.localStorage.setItem(jobWorkDurationStorageKey(booking.id), String(Math.max(0, computeElapsedMs())));
         window.sessionStorage.removeItem(jobWorkStartStorageKey(booking.id));
       }
       toast.success("Job completed.");
@@ -312,27 +398,40 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
               </div>
             )}
 
-            {phase !== "completed" && (
-              <div className="bg-[#F6F6F6] border border-[#0000001A] rounded-2xl p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-300 flex items-center justify-center">
-                      {booking.image ? (
-                        <Image
-                          src={booking.image}
-                          alt={customerLabel}
-                          fill
-                          className="object-cover"
-                        />
-                      ) : (
-                        <span className="text-white text-lg font-bold">{customerLabel.charAt(0)}</span>
-                      )}
-                    </div>
-                    <div>
-                      <h3 className="text-[15px] font-bold text-gray-900">{customerLabel}</h3>
-                      <p className="text-[12px] text-gray-500 mt-0.5">Message for this listed kraft if you use chat.</p>
-                    </div>
+            {phase === "completed" && (
+              <div className="flex items-center justify-center gap-2 text-[13px] font-poppins text-gray-500">
+                <Calendar size={14} className="shrink-0" />
+                <span>
+                  {dateLabel} {timeLabel ? `· ${timeLabel}` : ""}
+                </span>
+              </div>
+            )}
+
+            <div className="bg-[#F6F6F6] border border-[#0000001A] rounded-2xl p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-300 flex items-center justify-center">
+                    {booking.image ? (
+                      <Image
+                        src={booking.image}
+                        alt={customerLabel}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <span className="text-white text-lg font-bold">{customerLabel.charAt(0)}</span>
+                    )}
+                </div>
+                  <div>
+                    <h3 className="text-[15px] font-bold text-gray-900">{customerLabel}</h3>
+                    <p className="text-[12px] text-gray-500 mt-0.5">
+                      {phase === "completed"
+                        ? "Completed booking summary"
+                        : "Message for this listed kraft if you use chat."}
+                    </p>
                   </div>
+              </div>
+                {phase !== "completed" ? (
                   <button
                     type="button"
                     onClick={() => router.push("/tasker/chat")}
@@ -340,7 +439,69 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
                   >
                     <MessageCircle size={18} className="text-brand-orange" />
                   </button>
-                </div>
+                ) : (
+                  <div className="w-11 h-11 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                      <path d="M9 16.17 4.83 12 3.41 13.41 9 19l12-12-1.41-1.41z" />
+                    </svg>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {phase === "completed" && (
+              <div className="space-y-1">
+                <button
+                  type="button"
+                  onClick={() => setShowKraftDetails((v) => !v)}
+                  className="w-full flex items-center justify-between py-3 border-b border-gray-100"
+                >
+                  <span className="text-[15px] font-bold text-gray-900">Kraft details</span>
+                  <ChevronRight
+                    size={18}
+                    className={`text-gray-400 transition-transform ${showKraftDetails ? "rotate-90" : ""}`}
+                  />
+                </button>
+                {showKraftDetails && (
+                  <div className="py-2">
+                    <p className="text-[13px] text-gray-700 whitespace-pre-wrap leading-relaxed">
+                      {kraftDetailsText}
+                    </p>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setShowPriceBreakdown((v) => !v)}
+                  className="w-full flex items-center justify-between py-3 border-b border-gray-100"
+                >
+                  <span className="text-[15px] font-bold text-gray-900">Price breakdown</span>
+                  <ChevronRight
+                    size={18}
+                    className={`text-gray-400 transition-transform ${showPriceBreakdown ? "rotate-90" : ""}`}
+                  />
+                </button>
+                {showPriceBreakdown && (
+                  <div className="py-2 space-y-1.5">
+                    {serviceAmount != null && (
+                      <div className="flex justify-between text-[13px] text-gray-600">
+                        <span>Service amount</span>
+                        <span>€{serviceAmount.toFixed(2)}</span>
+                      </div>
+                    )}
+                    {platformFee != null && (
+                      <div className="flex justify-between text-[13px] text-gray-600">
+                        <span>Platform fee</span>
+                        <span>€{platformFee.toFixed(2)}</span>
+                      </div>
+                    )}
+                    {payoutAmount != null && (
+                      <div className="flex justify-between text-[13px] font-semibold text-gray-900">
+                        <span>Krafter payout</span>
+                        <span>€{payoutAmount.toFixed(2)}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
@@ -349,6 +510,15 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
                 <AlertCircle size={18} className="text-amber-700 shrink-0 mt-0.5" />
                 <p className="text-[13px] text-amber-900 leading-relaxed">
                   Waiting for the customer to authorize payment. You can start the job once the booking is confirmed.
+                </p>
+              </div>
+            )}
+
+            {isExpired && phase === "not-started" && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+                <AlertCircle size={18} className="text-amber-700 shrink-0 mt-0.5" />
+                <p className="text-[13px] text-amber-900 leading-relaxed">
+                  This booking expired before work started. Ask the customer to reschedule or create a new booking.
                 </p>
               </div>
             )}

@@ -157,6 +157,18 @@ export const usePaymentStore = create<PaymentState>()(
     }),
     {
       name: 'payment-storage',
+      version: 2,
+      migrate: (persistedState: any) => {
+        return {
+          selectedPaymentId:
+            typeof persistedState?.selectedPaymentId === 'string'
+              ? persistedState.selectedPaymentId
+              : null,
+        }
+      },
+      partialize: (state) => ({
+        selectedPaymentId: state.selectedPaymentId,
+      }),
     }
   )
 )

@@ -13,6 +13,7 @@ export function krafterAssignedTabForStatus(status: string): KrafterAssignedTabI
   const s = norm(status);
   if (s === "CONFIRMED") return "confirmed";
   if (s === "IN_PROGRESS") return "in_progress";
+  if (s === "EXPIRED") return "completed";
   if (s === "COMPLETED") return "completed";
   return "needs_attention";
 }

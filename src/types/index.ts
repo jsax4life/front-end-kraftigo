@@ -72,6 +72,7 @@ export type BookingStatus =
   | "CONFIRMED"
   | "IN_PROGRESS"
   | "COMPLETED"
+  | "EXPIRED"
   | "CANCELLED"
   | "DISPUTED"
   | "OPEN_FOR_APPLICATIONS"
@@ -96,6 +97,14 @@ export interface Booking {
   counterPrice?: number;
   created_at: string;
   updated_at: string;
+  /** Canonical lifecycle timestamps from backend. */
+  startedAt?: string | null;
+  started_at?: string | null;
+  completedAt?: string | null;
+  completed_at?: string | null;
+  /** Backend-computed elapsed work duration in seconds (preferred for completed jobs). */
+  workDurationSeconds?: number | null;
+  work_duration_seconds?: number | null;
   // Optional enriched fields returned by the backend in some responses
   title?: string;
   image?: string;
@@ -183,6 +192,11 @@ export interface Booking {
   } | null;
   /** DM thread UUID from enriched booking APIs (`LISTED_KRAFT_ORDER` / booking id). */
   conversationId?: string | null;
+  /** Automatic expiry metadata when a booking passes schedule grace period before start. */
+  expiredAt?: string | null;
+  expired_at?: string | null;
+  expirationReason?: string | null;
+  expiration_reason?: string | null;
   /** @deprecated Alias for legacy readers; prefer `conversationId`. */
   chatConversationId?: string | null;
 }
@@ -204,10 +218,20 @@ export interface Review {
 // ─── Payments ─────────────────────────────────────────────────────────────────
 export interface Payment {
   id: string;
-  booking_id: string;
+  booking_id?: string;
+  contextType?: string;
+  contextId?: string;
+  context_type?: string;
+  context_id?: string;
   amount: number;
-  status: "PENDING" | "HELD" | "RELEASED" | "REFUNDED";
-  created_at: string;
+  currency?: string;
+  paymentIntentId?: string;
+  payment_intent_id?: string;
+  status: "PENDING" | "HELD" | "ESCROWED" | "RELEASED" | "REFUNDED" | string;
+  created_at?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  updated_at?: string;
 }
 
 // ─── Disputes ─────────────────────────────────────────────────────────────────
