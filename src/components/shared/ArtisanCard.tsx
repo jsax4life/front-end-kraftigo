@@ -78,6 +78,7 @@ const ArtisanCard = ({ artisan, index, onSelect, onChat }: ArtisanCardProps) => 
               </div>
               <span className="inline-block text-[#FF6600] text-xs bg-[#FF66001A] px-2 py-1 rounded-full">
                 {artisan.isAvailable ? "Available Now" : "Not Available"}
+                <Image src="/light.svg" alt="light" width={9} height={12} />
               </span>
             </div>
           </div>
