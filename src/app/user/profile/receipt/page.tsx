@@ -33,7 +33,7 @@ const ReceiptPage = () => {
           Transaction Successful
         </h2>
         <div className="text-[48px] font-gerat font-[850] text-[#1D2939] mb-10 tracking-tight">
-          $840.00
+          €840.00
         </div>
 
         {/* Artisan Info */}
@@ -61,19 +61,19 @@ const ReceiptPage = () => {
           <div className="space-y-4">
             <div className="flex justify-between items-center px-1">
                <span className="text-[15px] text-[#667085] font-poppins">House Cleaning Kraft</span>
-               <span className="text-[15px] text-[#1D2939] font-poppins font-bold">$750.00</span>
+               <span className="text-[15px] text-[#1D2939] font-poppins font-bold">€750.00</span>
             </div>
             <div className="flex justify-between items-center px-1">
                <span className="text-[15px] text-[#667085] font-poppins">Service Fee</span>
-               <span className="text-[15px] text-[#1D2939] font-poppins font-bold">$50.00</span>
+               <span className="text-[15px] text-[#1D2939] font-poppins font-bold">€50.00</span>
             </div>
             <div className="flex justify-between items-center px-1 font-medium">
                <span className="text-[15px] text-[#667085] font-poppins">Taxes</span>
-               <span className="text-[15px] text-[#1D2939] font-poppins font-bold">$40.00</span>
+               <span className="text-[15px] text-[#1D2939] font-poppins font-bold">€40.00</span>
             </div>
             <div className="pt-6 border-t border-dashed border-[#EAECF0] flex justify-between items-center px-1">
                <span className="text-[20px] font-gerat font-bold text-[#1D2939]">Total Charged</span>
-               <span className="text-[24px] font-gerat font-bold text-[#FF6600]">$840.00</span>
+               <span className="text-[24px] font-gerat font-bold text-[#FF6600]">€840.00</span>
             </div>
           </div>
         </div>

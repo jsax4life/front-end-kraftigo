@@ -14,7 +14,7 @@ import {
 } from "@/lib/durationHours";
 
 function parsePublicOfferAmount(raw: string): number {
-  const t = raw.trim().replace(/^\$/, "").replace(/,/g, "");
+  const t = raw.trim().replace(/^[€$]\s?/, "").replace(/,/g, "");
   const n = parseFloat(t);
   return Number.isFinite(n) ? n : NaN;
 }
@@ -211,7 +211,7 @@ const Page = () => {
             Offer Amount
           </span>
           <Input
-            placeholder="$ 0.00"
+            placeholder="€ 0.00"
             value={formData.amount}
             onChange={(value) => {
               setFormData({ ...formData, amount: value });

@@ -68,7 +68,7 @@ function fmtMoney(n: unknown): string | null {
   if (!Number.isFinite(num)) return null;
   return new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "USD",
+    currency: "EUR",
     maximumFractionDigits: 2,
   }).format(num);
 }
@@ -80,7 +80,7 @@ function fmtMoneyWithCurrency(n: unknown, currencyCode: unknown): string | null 
   const code =
     typeof currencyCode === "string" && /^[A-Z]{3}$/i.test(currencyCode.trim())
       ? currencyCode.trim().toUpperCase()
-      : "USD";
+      : "EUR";
   try {
     return new Intl.NumberFormat("en-US", {
       style: "currency",

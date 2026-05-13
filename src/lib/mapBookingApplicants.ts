@@ -49,7 +49,15 @@ export function mapBookingApplicationRowToApplication(
   let priceStr = "—";
   if (proposed != null && proposed !== "") {
     const n = Number(proposed);
-    if (Number.isFinite(n)) priceStr = isHourly ? `$${n.toFixed(2)}/hr` : `$${n.toFixed(2)}`;
+    if (Number.isFinite(n)) {
+      const formatted = new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "EUR",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(n);
+      priceStr = isHourly ? `${formatted}/hr` : formatted;
+    }
   }
 
   const message =

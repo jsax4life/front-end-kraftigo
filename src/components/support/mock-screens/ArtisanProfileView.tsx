@@ -109,7 +109,7 @@ const ArtisanProfileView = ({ onClose, artisan }: ArtisanProfileViewProps) => {
 
       <div className="sticky bottom-0 bg-white border-t border-gray-100 p-4 px-6 flex items-center justify-between z-10">
          <div>
-            <span className="text-[20px] font-gerat font-bold text-[#1D2939]">$41.29</span>
+            <span className="text-[20px] font-gerat font-bold text-[#1D2939]">€41.29</span>
             <span className="text-[14px] font-poppins text-gray-500 font-medium whitespace-nowrap"> /hr</span>
          </div>
          <button className="bg-brand-orange text-white rounded-xl px-8 py-3.5 font-poppins font-bold text-[14px] shadow-sm active:scale-95 transition-transform">

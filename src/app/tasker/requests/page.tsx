@@ -39,13 +39,13 @@ import toast from "react-hot-toast";
 
 const MARKETPLACE_PAGE_SIZE = 20;
 
-function formatMarketplaceUsd(value: number | string | null | undefined): string | null {
+function formatMarketplaceMoney(value: number | string | null | undefined): string | null {
   if (value == null || value === "") return null;
   const n = typeof value === "string" ? parseFloat(value) : Number(value);
   if (!Number.isFinite(n)) return null;
   return new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "USD",
+    currency: "EUR",
     maximumFractionDigits: 2,
   }).format(n);
 }
@@ -55,7 +55,7 @@ function buildMarketplaceApplicationMetaLine(booking: Booking): string {
   if (booking.marketplaceApplicationStatus?.trim()) {
     parts.push(`Status: ${booking.marketplaceApplicationStatus.trim()}`);
   }
-  const listing = formatMarketplaceUsd(booking.listingProposedPrice);
+  const listing = formatMarketplaceMoney(booking.listingProposedPrice);
   if (listing) parts.push(`Listing: ${listing}`);
   if (booking.marketplaceApplicationSubmittedAt) {
     const d = new Date(booking.marketplaceApplicationSubmittedAt);
@@ -342,7 +342,7 @@ const RequestsPage = () => {
     if (!Number.isFinite(n)) return value;
     return new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency: "USD",
+      currency: "EUR",
       maximumFractionDigits: 2,
     }).format(n);
   };
@@ -665,9 +665,9 @@ const RequestsPage = () => {
                   onChange={setPriceRange}
                   options={[
                     { value: "all", label: "Any price" },
-                    { value: "0-100", label: "$0 – $100" },
-                    { value: "100-200", label: "$100 – $200" },
-                    { value: "200+", label: "$200+" },
+                    { value: "0-100", label: "€0 – €100" },
+                    { value: "100-200", label: "€100 – €200" },
+                    { value: "200+", label: "€200+" },
                   ]}
                   placeholder="Price"
                 />
@@ -770,7 +770,7 @@ const RequestsPage = () => {
           ) : (
             marketplaceApplications.map((booking) => {
               const price = Number(booking.price ?? 0);
-              const offerLabel = formatMarketplaceUsd(booking.price);
+              const offerLabel = formatMarketplaceMoney(booking.price);
               const metaLine = buildMarketplaceApplicationMetaLine(booking);
               return (
                 <JobCard

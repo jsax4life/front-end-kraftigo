@@ -15,7 +15,7 @@ import {
 } from "@/lib/api/payouts";
 
 function formatWalletMoney(amount: number, currency: string): string {
-  const code = typeof currency === "string" && currency.trim() ? currency.trim().toUpperCase() : "USD";
+  const code = typeof currency === "string" && currency.trim() ? currency.trim().toUpperCase() : "EUR";
   try {
     return new Intl.NumberFormat(undefined, {
       style: "currency",
@@ -289,7 +289,7 @@ const EarningsPage = () => {
     }
   };
 
-  const cur = "USD";
+  const cur = "EUR";
   const fmt = useCallback((n: number) => formatWalletMoney(n, cur), [cur]);
   const nextLabel = formatNextRelease(wallet?.nextReleaseAt ?? null);
 

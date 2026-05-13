@@ -207,7 +207,7 @@ export default function MarketplaceKraftDetailPanel({
     if (!derived.hourly || !Number.isFinite(Number(derived.hourly))) return "—";
     return new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency: "USD",
+      currency: "EUR",
       maximumFractionDigits: 2,
     }).format(Number(derived.hourly));
   }, [derived.hourly]);

@@ -304,11 +304,11 @@ const ConfirmationContent = () => {
                       </span>
                     </div>
                   ) : null}
-                  {bookingPricingRuleId ? (
+                  {/* {bookingPricingRuleId ? (
                     <p className="text-[11px] text-gray-500 pt-1">
                       Pricing rule: {bookingPricingRuleId}
                     </p>
-                  ) : null}
+                  ) : null} */}
                 </>
               ) : (
                 <p className="text-[12px] text-gray-600">

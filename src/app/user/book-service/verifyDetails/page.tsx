@@ -38,11 +38,11 @@ const Page = () => {
   const [selectedFrequency, setSelectedFrequency] = useState("just-once");
 
   const handleIncrement = () => {
-    setBookingHours((prev) => clampDurationHours(prev + 0.25));
+    setBookingHours((prev) => clampDurationHours(prev + 1));
   };
 
   const handleDecrement = () => {
-    setBookingHours((prev) => clampDurationHours(prev - 0.25));
+    setBookingHours((prev) => clampDurationHours(prev - 1));
   };
 
   const handleNext = () => {
@@ -182,7 +182,7 @@ const Page = () => {
             Estimated hours
           </h3>
           <p className="text-[13px] sm:text-[14px] text-gray-700 font-poppins mb-4">
-            Adjust in steps of 0.25 hours (15 minutes), between {DURATION_HOURS_MIN} and 24 hours.
+            Adjust in steps of 1 hour, between {DURATION_HOURS_MIN} and 24 hours.
           </p>
           <div className="flex items-center justify-center gap-4 mb-4">
             <button

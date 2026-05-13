@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { X, Star } from "lucide-react";
 import Image from "next/image";
+import toast from "react-hot-toast";
 import { Application } from "@/types";
 import { useBookingsStore } from "@/store/useBookingsStore";
 
@@ -91,10 +92,12 @@ const CompareRow = ({
 // ─── Picker Overlay ───────────────────────────────────────────────────────────
 const ArtisanPicker = ({
   artisans,
+  selectedArtisanIds,
   onPick,
   onClose,
 }: {
   artisans: Application[];
+  selectedArtisanIds: string[];
   onPick: (a: Application) => void;
   onClose: () => void;
 }) => (
@@ -107,10 +110,17 @@ const ArtisanPicker = ({
     </div>
     <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
       {artisans.map((app) => (
+        (() => {
+          const artisanKey = String(app.artisan_id || app.id || "");
+          const alreadySelected = selectedArtisanIds.includes(artisanKey);
+          return (
         <button
           key={app.id}
           onClick={() => onPick(app)}
-          className="w-full flex items-center gap-3 p-4 border border-gray-100 rounded-2xl hover:border-brand-orange transition-colors text-left"
+          disabled={alreadySelected}
+          className={`w-full flex items-center gap-3 p-4 border border-gray-100 rounded-2xl transition-colors text-left ${
+            alreadySelected ? "opacity-50 cursor-not-allowed" : "hover:border-brand-orange"
+          }`}
         >
           <Image
             src={app.image}
@@ -149,8 +159,13 @@ const ArtisanPicker = ({
             <p className="text-[14px] font-poppins font-bold text-black mt-1">
               {app.price}
             </p>
+            {alreadySelected && (
+              <p className="text-[11px] font-poppins text-amber-700 mt-1">Already selected</p>
+            )}
           </div>
         </button>
+          );
+        })()
       ))}
     </div>
   </div>
@@ -233,6 +248,13 @@ const CompareSheet = ({
 
   const handlePick = (artisan: Application) => {
     if (pickingSlot === null) return;
+    const pickedId = String(artisan.artisan_id || artisan.id || "");
+    const otherSlot = pickingSlot === 0 ? slots[1] : slots[0];
+    const otherId = otherSlot ? String(otherSlot.artisan_id || otherSlot.id || "") : "";
+    if (pickedId && otherId && pickedId === otherId) {
+      toast.error("Pick a different Krafter for comparison.");
+      return;
+    }
     const newSlots = [...slots] as [Application | null, Application | null];
     newSlots[pickingSlot] = artisan;
     setSlots(newSlots);
@@ -432,6 +454,9 @@ const CompareSheet = ({
       {pickingSlot !== null && (
         <ArtisanPicker
           artisans={allArtisans}
+          selectedArtisanIds={slots
+            .map((s) => (s ? String(s.artisan_id || s.id || "") : ""))
+            .filter(Boolean)}
           onPick={handlePick}
           onClose={() => setPickingSlot(null)}
         />

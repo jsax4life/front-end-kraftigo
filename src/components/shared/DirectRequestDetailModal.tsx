@@ -47,7 +47,7 @@ function formatHourlyPrice(value: string | null | undefined): string {
   if (!Number.isFinite(n)) return String(value);
   const formatted = new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "USD",
+    currency: "EUR",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(n);

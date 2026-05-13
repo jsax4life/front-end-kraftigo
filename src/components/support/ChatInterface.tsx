@@ -135,7 +135,7 @@ const ChatInterface = ({ isOpen, onClose, conversation }: ChatInterfaceProps) =>
                   {/* System Message */}
                   <div className="flex justify-center w-full">
                       <p className="text-[13px] font-poppins italic text-brand-blue font-semibold text-center leading-relaxed max-w-[80%]">
-                          You accepted {otherParticipant?.name?.split('.')[0]}s Counter offer at 45$
+                          You accepted {otherParticipant?.name?.split('.')[0]}`s offer at 45$
                       </p>
                   </div>
               </div>

@@ -31,7 +31,7 @@ const STATIC_PROS = [
     tasks: 72,
     description:
       "I have six years of experience cleaning houses. My priority is to bring a good service and leav...",
-    price: "$41.29/hr",
+    price: "€41.29/hr",
     image: "/images/pro.jpg",
     badge: "TOP PRO",
   },
@@ -42,7 +42,7 @@ const STATIC_PROS = [
     tasks: 120,
     description:
       "Professional cleaner with attention to detail. I ensure every corner is spotless and your home...",
-    price: "$45.00/hr",
+    price: "€45.00/hr",
     image: "/images/pro.jpg",
     badge: "TOP PRO",
   },
@@ -123,7 +123,7 @@ const Page = () => {
           reviews: p.reviewCount,
           tasks: p.completedKrafts,
           description: `${p.distanceKm} km away · ${p.badges.join(", ")}`,
-          price: `$${p.hourlyRate.toFixed(2)}/hr`,
+          price: `€${p.hourlyRate.toFixed(2)}/hr`,
           image: normSrc(p.profilePhotoUrl) ?? "/images/pro.jpg",
           badge: p.badges[0] ?? undefined,
         }))
