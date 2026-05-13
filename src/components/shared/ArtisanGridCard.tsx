@@ -1,6 +1,4 @@
 import Image from "next/image";
-import { Star } from "lucide-react";
-import Button from "@/components/ui/button";
 
 interface ArtisanGridCardProps {
   artisan: {
@@ -71,7 +69,7 @@ const ArtisanGridCard = ({ artisan, onSelect }: ArtisanGridCardProps) => {
 
         {/* Price */}
         <div className="text-sm font-poppins font-semibold mb-3">
-          ${artisan.pricePerHour}/hr
+          €{artisan.pricePerHour.toFixed(2)}/hr
         </div>
       </div>
     </div>

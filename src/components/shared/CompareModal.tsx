@@ -177,7 +177,8 @@ function mapCompareItemToApplication(item: any, fallback: Application): Applicat
   const id = item?.id ?? item?.artisanId ?? item?.krafterId ?? fallback.id;
   const name = item?.fullName ?? item?.name ?? item?.artisanName ?? fallback.artisan_name;
   const image = item?.avatar ?? item?.image ?? item?.profilePhotoUrl ?? fallback.image;
-  const price = item?.price ?? item?.pricePerHour != null ? `$${item.pricePerHour}/hr` : fallback.price;
+  const price =
+    item?.price ?? (item?.pricePerHour != null ? `€${item.pricePerHour}/hr` : fallback.price);
   return {
     ...fallback,
     id: String(id),

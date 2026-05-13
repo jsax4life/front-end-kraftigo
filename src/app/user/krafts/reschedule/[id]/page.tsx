@@ -209,7 +209,7 @@ const ReschedulePage = () => {
                 <div className="space-y-1">
                     <p className="text-[14px] font-poppins font-bold text-[#FF6600]">Reschedule Policy</p>
                     <p className="text-[13px] font-poppins text-[#FF6600] leading-tight">
-                        Rescheduling 24 hours of the agreed time may incur a $9.99 late notice fee. <span className="underline cursor-pointer">Learn more</span>
+                        Rescheduling 24 hours of the agreed time may incur a €9.99 late notice fee. <span className="underline cursor-pointer">Learn more</span>
                     </p>
                 </div>
             </div>

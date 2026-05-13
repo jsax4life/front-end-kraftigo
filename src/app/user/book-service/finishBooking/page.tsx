@@ -544,7 +544,7 @@ const Page = () => {
                   Hourly rate (from your pick)
                 </span>
                 <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900">
-                  ${hourlyRate.toFixed(2)}/hr
+                  €{hourlyRate.toFixed(2)}/hr
                 </span>
               </div>
               <div className="flex items-center justify-between">
@@ -562,7 +562,7 @@ const Page = () => {
                   Estimated labor subtotal
                 </span>
                 <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900">
-                  ${estimatedLaborSubtotal.toFixed(2)}
+                  €{estimatedLaborSubtotal.toFixed(2)}
                 </span>
               </div>
             </>
@@ -572,7 +572,7 @@ const Page = () => {
               {isPublic ? "Service fee" : "Service fee (estimate)"}
             </span>
             <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900">
-              ${serviceFee.toFixed(2)}
+              €{serviceFee.toFixed(2)}
             </span>
           </div>
           <div className="pt-3 border-t border-[#0000001A] flex items-center justify-between">
@@ -580,7 +580,7 @@ const Page = () => {
               {isPublic ? "Total Amount" : "Total (estimate)"}
             </span>
             <span className="text-[16px] sm:text-[18px] font-poppins font-bold text-gray-900">
-              ${totalAmount.toFixed(2)}
+              €{totalAmount.toFixed(2)}
             </span>
           </div>
         </div>
