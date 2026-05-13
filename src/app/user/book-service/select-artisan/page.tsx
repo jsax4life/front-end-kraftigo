@@ -22,6 +22,7 @@ interface Artisan {
   taskCount: number;
   location: string;
   description: string;
+  distance: number;
   pricePerHour: number;
   isNewTasker?: boolean;
   isAvailable?: boolean;
@@ -34,12 +35,18 @@ function mapRecommendationToArtisan(rawItem: any, index: number): Artisan {
     id,
     name: item?.displayName ?? item?.fullName ?? item?.name ?? item?.artisanName ?? "Krafter",
     profileImage: item?.profilePhotoUrl ?? item?.avatar ?? item?.profileImage ?? "/images/pro.jpg",
-    badge: item?.badges?.[0] ?? (item?.badge === "TOP PRO" || item?.isTopPro ? "TOP PRO" : item?.badge ?? null),
+    badge: (() => {
+      const raw = item?.badges?.[0] ?? (item?.badge ?? null);
+      if (!raw) return null;
+      const upper = String(raw).toUpperCase().replace(/_/g, " ");
+      return upper;
+    })(),
     rating: Number(item?.rating ?? item?.reviewsRating ?? 0) || 0,
     reviewCount: Number(item?.reviewCount ?? item?.reviewsCount ?? item?.reviews_count ?? 0) || 0,
     taskCount: Number(item?.completedKrafts ?? item?.completedJobs ?? item?.taskCount ?? item?.tasks_count ?? 0) || 0,
     location: item?.location ?? item?.city ?? item?.baseCity ?? "New Tasker",
     description: item?.description ?? item?.bio ?? item?.proposal_message ?? "",
+    distance: item?.distanceKm,
     pricePerHour: Number(item?.hourlyRate ?? item?.pricePerHour ?? item?.price_per_hour ?? item?.proposedPrice ?? 0) || 0,
     isNewTasker: item?.isNewTasker ?? item?.is_new ?? false,
     isAvailable: item?.isAvailable ?? false,
@@ -161,16 +168,14 @@ const SelectArtisanPage = () => {
     tasks_count: artisan.taskCount,
     image: artisan.profileImage,
     description: artisan.description,
+    distance: artisan.distance,
     is_top_pro: artisan.badge === "TOP PRO",
   }));
-
   const handleChat = (artisanId: string) => {
     const artisan = artisans.find((a) => a.id === artisanId);
-    const p = new URLSearchParams();
-    p.set("artisanId", artisanId);
-    p.set("name", artisan?.name || "");
-    if (bookingId) p.set("bookingId", bookingId);
-    router.push(`/user/chat?${p.toString()}`);
+    router.push(
+      `/user/chat?artisanId=${artisanId}&name=${encodeURIComponent(artisan?.name || "")}`,
+    );
   };
 
   return (

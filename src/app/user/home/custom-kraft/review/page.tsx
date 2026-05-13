@@ -274,26 +274,33 @@ const Page = () => {
             // With Payment Methods State
             <div className="space-y-4">
               {savedMethods.map((method) => {
+                const methodLoose = method as unknown as Record<string, unknown>;
+                const paymentMethodLoose =
+                  methodLoose.paymentMethod && typeof methodLoose.paymentMethod === "object"
+                    ? (methodLoose.paymentMethod as Record<string, unknown>)
+                    : null;
+                const cardLike = (value: unknown): Record<string, unknown> | null =>
+                  value && typeof value === "object" ? (value as Record<string, unknown>) : null;
                 // 1. Extract data safely
                 const cardData =
-                  method.card ||
-                  (method as any).details ||
-                  (method as any).paymentMethod?.card ||
-                  ((method as any).brand ? method : null);
-                const isCard = !!cardData;
+                  cardLike(method.card) ||
+                  cardLike(methodLoose.details) ||
+                  cardLike(paymentMethodLoose?.card) ||
+                  (typeof methodLoose.brand === "string" ? methodLoose : null);
+                const isCard = cardData != null;
 
                 // We only get last4 from Stripe for security
                 const last4 =
-                  cardData?.last4 ||
-                  cardData?.number?.slice(-4) ||
-                  (method as any).cardLast4 ||
+                  (typeof cardData?.last4 === "string" ? cardData.last4 : undefined) ||
+                  (typeof cardData?.number === "string" ? cardData.number.slice(-4) : undefined) ||
+                  (typeof methodLoose.cardLast4 === "string" ? methodLoose.cardLast4 : undefined) ||
                   "****";
-                const holderName =
-                  cardData?.holder ||
-                  cardData?.name ||
-                  (method as any).name ||
-                  (method as any).billingDetails?.name ||
-                  "John Doe";
+                // const holderName =
+                //   cardData?.holder ||
+                //   cardData?.name ||
+                //   (method as any).name ||
+                //   (method as any).billingDetails?.name ||
+                //   "John Doe";
 
                 // 2. Determine the Title based on the payment type
                 let methodTitle = "Debit/Credit Card";
@@ -339,9 +346,9 @@ const Page = () => {
                       <div className="mt-4 flex justify-between items-end">
                         {/* Left Side: Name and Number */}
                         <div className="flex flex-col gap-1.5">
-                          <h4 className="font-poppins font-bold text-[15px] text-gray-900 leading-none">
+                          {/* <h4 className="font-poppins font-bold text-[15px] text-gray-900 leading-none">
                             {holderName}
-                          </h4>
+                          </h4> */}
                           <p className="font-poppins text-[14px] text-gray-800 tracking-widest leading-none mt-1">
                             **** **** **** {last4}
                           </p>

@@ -298,7 +298,7 @@ const Page = () => {
           <h2 className="text-[20px] sm:text-[22px] font-poppins font-semibold mb-3 pt-2">
             Kraft Expiry
           </h2>
-          <div className="grid grid-cols-3 gap-2 sm:gap-3 pb-3">
+          <div className="grid grid-cols-4 gap-2 sm:gap-3 pb-3">
             {timeSlots.map((time) => (
               <button
                 key={time.id}

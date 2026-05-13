@@ -120,7 +120,7 @@ const Page = () => {
             </div>
           </div>
 
-          {selectedKraft?.scheduledDate && (
+          {/* {selectedKraft?.scheduledDate && (
             <div className="flex items-center gap-2">
               <div className="bg-[#FF66001A] p-3 rounded-full">
                 <Image
@@ -130,7 +130,7 @@ const Page = () => {
                   height={25}
                 />
               </div>
-              <div>
+              {/* <div>
                 <p className="font-semibold">Scheduled</p>
                 <p>
                   {selectedKraft.scheduledDate}
@@ -138,9 +138,9 @@ const Page = () => {
                     ? ` · ${selectedKraft.scheduledTime}`
                     : ""}
                 </p>
-              </div>
+              </div> 
             </div>
-          )}
+          )} */}
         </div>
 
         {/* Notice */}

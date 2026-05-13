@@ -11,6 +11,7 @@ interface ArtisanCardProps {
     taskCount: number;
     location: string;
     description: string;
+    distance: number;
     pricePerHour: number;
     isNewTasker?: boolean;
     isAvailable?: boolean;
@@ -47,8 +48,13 @@ const ArtisanCard = ({ artisan, index, onSelect, onChat }: ArtisanCardProps) => 
                   {artisan.name}
                 </h3>
                 {artisan.badge && (
-                  <span className="text-xs font-poppins bg-[#014F2A1A] text-[#014F2A] px-2 py-0.5">
-                    {artisan.badge}
+                  <span className="text-[10px] font-poppins bg-[#014F2A1A] text-[#014F2A] px-2 py-0.5">
+                    {artisan.badge.replace(/_/g, " ")}
+                  </span>
+                )}
+                {artisan.distance != null && (
+                  <span className="inline-block text-[12px] font-poppins">
+                    {typeof artisan.distance === "number" ? artisan.distance.toFixed(1) : artisan.distance}km away
                   </span>
                 )}
               </div>
@@ -67,7 +73,7 @@ const ArtisanCard = ({ artisan, index, onSelect, onChat }: ArtisanCardProps) => 
                   ))}
                 </div> */}
                 <span className="text-[12px] text-gray-600 font-poppins">
-                  {artisan.taskCount} tasks
+                  {artisan.taskCount} Krafts
                 </span>
               </div>
               <span className="inline-block text-[#FF6600] text-xs bg-[#FF66001A] px-2 py-1 rounded-full">
@@ -79,31 +85,21 @@ const ArtisanCard = ({ artisan, index, onSelect, onChat }: ArtisanCardProps) => 
       </div>
 
       <div className="mt-3">
-        <p className="text-[12px] sm:text-[13px] text-gray-700 font-poppins mb-3 line-clamp-2">
+        <p className="text-[15px] sm:text-[13px] text-gray-700 font-poppins mb-3 line-clamp-2">
           {artisan.description}
         </p>
 
         <div className="flex items-end justify-between gap-3">
-          <p className="text-[18px] sm:text-[20px] font-poppins font-bold">
-            €{artisan.pricePerHour.toFixed(2)}{" "}
-            <span className="text-[14px] font-normal text-gray-500">/hr</span>
+          <p className="text-[24px] sm:text-[20px] font-mabry font-semibold">
+            €{artisan.pricePerHour.toFixed(2)} <span className="text-[24px] font-normal text-gray-500">/hr</span>
           </p>
-          <div className="flex gap-2 flex-1 justify-end max-w-[240px]">
-            <button
-              onClick={(e) => {
-                  e.stopPropagation();
-                  if (onChat) onChat(artisan.id);
-              }}
-              className="flex-1 py-2.5 bg-[#FFF4ED] text-[#1D2939] text-[13px] font-poppins font-bold rounded-xl hover:bg-[#FFE5D9] transition-colors"
-            >
-              Chat
-            </button>
+          <div className="flex gap-2 flex-1 justify-end max-w-[200px]">
             <button
               onClick={() => onSelect(artisan.id)}
-              className="py-2.5 bg-brand-orange text-white text-[13px] font-poppins font-bold rounded-xl hover:bg-orange-600 transition-colors"
+              className="py-4 bg-brand-orange text-white text-[14px] font-poppins font-semibold rounded-xl hover:bg-orange-600 transition-colors"
               style={{ flex: 2 }}
             >
-              Select krafter
+              Select
             </button>
           </div>
         </div>

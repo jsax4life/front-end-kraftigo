@@ -49,14 +49,6 @@ const SupportHeader = () => {
               </div>
             ))}
           </div>
-          
-          <button 
-            onClick={handleLogout}
-            className="p-2 hover:bg-red-50 rounded-full transition-colors text-[#F04438]"
-            title="Log Out"
-          >
-            <LogOut size={24} />
-          </button>
         </div>
       </div>
       
