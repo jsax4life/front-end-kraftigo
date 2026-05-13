@@ -9,7 +9,7 @@ const Notify = () => {
           <p className="font-poppins text-[14px] sm:text-[16px] text-gray-800">
             Mariah Accepted your Offer of{" "}
             <span className="font-semibold font-gerat text-brand-orange">
-              $20
+              €20
             </span>
           </p>
         </div>

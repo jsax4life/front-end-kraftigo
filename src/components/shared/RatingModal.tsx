@@ -13,7 +13,7 @@ interface RatingModalProps {
 
 
 const TAGS = ["Punctual", "Hygiene", "Efficient", "Communication", "Professional"];
-const TIPS = ["$10", "$20", "$50", "Custom"];
+const TIPS = ["€10", "€20", "€50", "Custom"];
 
 const RATING_LABELS: Record<number, string> = {
   1: "Poor Experience",
@@ -152,7 +152,7 @@ const RatingModal = ({ artisan, onClose, onDone, isSubmitting = false }: RatingM
         <button
           disabled={isSubmitting}
           onClick={() => {
-            const tipAmount = selectedTip === "Custom" ? 0 : parseInt(selectedTip.replace("$", "")) || 0;
+            const tipAmount = selectedTip === "Custom" ? 0 : parseInt(selectedTip.replace("€", "")) || 0;
             onDone(rating, selectedTags, review, tipAmount);
           }}
           className="w-full py-4 bg-brand-orange text-white rounded-2xl text-[15px] font-poppins font-semibold hover:bg-orange-600 transition-colors disabled:opacity-60"

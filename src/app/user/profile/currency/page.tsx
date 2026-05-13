@@ -6,7 +6,6 @@ import { ArrowLeft, Check, Globe } from "lucide-react";
 import Header from "@/components/shared/Header";
 
 const currencies = [
-  { code: "USD", name: "US Dollar", flag: "🇺🇸" },
   { code: "EUR", name: "Euro", flag: "🇪🇺" },
   { code: "GBP", name: "British Pound", flag: "🇬🇧" },
   { code: "NGN", name: "Nigerian Naira", flag: "🇳🇬" },
@@ -14,7 +13,7 @@ const currencies = [
 
 const CurrencyPage = () => {
   const router = useRouter();
-  const [selected, setSelected] = useState("USD");
+  const [selected, setSelected] = useState("EUR");
 
   const handleSelect = (code: string) => {
     setSelected(code);

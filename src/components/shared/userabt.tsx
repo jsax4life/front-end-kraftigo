@@ -21,7 +21,7 @@ const Userabt = () => {
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [language, setLanguage] = useState("de");
-  const [currency, setCurrency] = useState("USD");
+  const [currency, setCurrency] = useState("EUR");
 
   useEffect(() => {
     if (isAuthenticated && !customerProfile) {
@@ -167,9 +167,9 @@ const Userabt = () => {
                   value={currency}
                   onChange={(val) => setCurrency(val)}
                   options={[
-                    { value: "USD", label: "$ USD" },
                     { value: "EUR", label: "€ EUR" },
                     { value: "GBP", label: "£ GBP" },
+                    { value: "NGN", label: "₦ NGN" },
                   ]}
                   required
                 />

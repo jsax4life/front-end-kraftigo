@@ -36,7 +36,7 @@ const mockApplications: Application[] = [
     rating: 4,
     reviews_count: 23,
     tasks_count: 72,
-    price: "$41.29/hr",
+    price: "€41.29/hr",
     status: "pending",
     proposal_message:
       "I have six years of experience cleaning houses. My priority is to bring a good service and leave everything very clean✨.",

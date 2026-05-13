@@ -180,7 +180,7 @@ const RescheduleModal = ({ booking, onClose, onConfirm }: RescheduleModalProps) 
                 Reschedule Policy
               </p>
               <p className="text-[11px] font-poppins text-orange-500">
-                Rescheduling 24 hours of the agreed time may incur a $9.99 late notice fee.{" "}
+                Rescheduling 24 hours of the agreed time may incur a €9.99 late notice fee.{" "}
                 <span className="underline cursor-pointer">Learn more</span>
               </p>
             </div>

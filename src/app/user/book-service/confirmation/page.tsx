@@ -262,7 +262,7 @@ const ConfirmationContent = () => {
                 <div className="flex justify-between gap-4">
                   <span className="text-gray-600">Hourly rate (from recommendation)</span>
                   <span className="font-semibold text-gray-900">
-                    ${hourlyRate.toFixed(2)}/hr
+                    €{hourlyRate.toFixed(2)}/hr
                   </span>
                 </div>
               ) : null}
@@ -276,7 +276,7 @@ const ConfirmationContent = () => {
                     <div className="flex justify-between gap-4">
                       <span className="text-gray-600">Subtotal (from booking)</span>
                       <span className="font-semibold text-gray-900">
-                        ${bookingFinalAgreed.toFixed(2)}
+                        €{bookingFinalAgreed.toFixed(2)}
                       </span>
                     </div>
                   ) : null}
@@ -284,7 +284,7 @@ const ConfirmationContent = () => {
                     <div className="flex justify-between gap-4">
                       <span className="text-gray-600">Platform fee</span>
                       <span className="font-semibold text-gray-900">
-                        ${bookingPlatformFee.toFixed(2)}
+                        €{bookingPlatformFee.toFixed(2)}
                       </span>
                     </div>
                   ) : null}
@@ -292,7 +292,7 @@ const ConfirmationContent = () => {
                     <div className="flex justify-between gap-4">
                       <span className="text-gray-600">Krafter payout</span>
                       <span className="font-semibold text-gray-900">
-                        ${bookingArtisanEarning.toFixed(2)}
+                        €{bookingArtisanEarning.toFixed(2)}
                       </span>
                     </div>
                   ) : null}
@@ -300,15 +300,15 @@ const ConfirmationContent = () => {
                     <div className="flex justify-between gap-4 border-t border-[#0000001A] pt-2 mt-2">
                       <span className="text-gray-900 font-semibold">Total (from booking)</span>
                       <span className="font-bold text-brand-orange">
-                        ${serverTotal.toFixed(2)}
+                        €{serverTotal.toFixed(2)}
                       </span>
                     </div>
                   ) : null}
-                  {bookingPricingRuleId ? (
+                  {/* {bookingPricingRuleId ? (
                     <p className="text-[11px] text-gray-500 pt-1">
                       Pricing rule: {bookingPricingRuleId}
                     </p>
-                  ) : null}
+                  ) : null} */}
                 </>
               ) : (
                 <p className="text-[12px] text-gray-600">

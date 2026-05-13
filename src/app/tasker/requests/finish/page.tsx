@@ -77,7 +77,7 @@ const Page = () => {
             </div>
             <div>
               <p className="font-semibold">Your bid</p>
-              <p>$85</p>
+              <p>€85</p>
             </div>
           </div>
         </div>

@@ -298,14 +298,14 @@ const CompletedJobContent = () => {
               resolvedPriceRows.map((row) => (
                 <div key={row.key} className="flex justify-between text-[13px] font-poppins text-gray-600">
                   <span>{row.label}</span>
-                  <span>${row.amount.toFixed(2)}</span>
+                  <span>€{row.amount.toFixed(2)}</span>
                 </div>
               ))
             )}
             {resolvedTotal != null && (
               <div className="flex justify-between text-[14px] font-poppins font-bold text-black border-t border-gray-100 pt-2 mt-2">
                 <span>Total Paid</span>
-                <span>${resolvedTotal.toFixed(2)}</span>
+                <span>€{resolvedTotal.toFixed(2)}</span>
               </div>
             )}
           </div>

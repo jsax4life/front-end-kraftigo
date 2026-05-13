@@ -1,6 +1,4 @@
 import Image from "next/image";
-import { Star } from "lucide-react";
-import Button from "@/components/ui/button";
 
 interface ArtisanCardProps {
   artisan: {
@@ -87,7 +85,8 @@ const ArtisanCard = ({ artisan, index, onSelect, onChat }: ArtisanCardProps) => 
 
         <div className="flex items-end justify-between gap-3">
           <p className="text-[18px] sm:text-[20px] font-poppins font-bold">
-            ${artisan.pricePerHour} <span className="text-[14px] font-normal text-gray-500">/hr</span>
+            €{artisan.pricePerHour.toFixed(2)}{" "}
+            <span className="text-[14px] font-normal text-gray-500">/hr</span>
           </p>
           <div className="flex gap-2 flex-1 justify-end max-w-[240px]">
             <button
