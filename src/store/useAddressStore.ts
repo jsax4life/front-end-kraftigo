@@ -187,14 +187,34 @@ export const useAddressStore = create<AddressStore>()(
         externalPlaceId,
       }) => {
         let savedAddress: Address | null = null;
+        let finalLat = latitude;
+        let finalLng = longitude;
+
+        // Geocode if coordinates are missing
+        if ((finalLat == null || finalLng == null) && address) {
+          try {
+            const geoResponse = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`, {
+              headers: { "User-Agent": "Krafitgo/1.0" },
+            });
+            if (geoResponse.ok) {
+              const geoData = await geoResponse.json();
+              if (geoData && geoData.length > 0) {
+                finalLat = parseFloat(geoData[0].lat);
+                finalLng = parseFloat(geoData[0].lon);
+              }
+            }
+          } catch (e) {
+            logger.warn("Geocoding manual address failed:", e);
+          }
+        }
 
         try {
           // Persist to backend — server returns a stable UUID as `id`
           savedAddress = await createAddress({
             fullAddress: address,
             label: label || "Unnamed Location",
-            latitude,
-            longitude,
+            latitude: finalLat,
+            longitude: finalLng,
             city,
             postalCode,
             country,
@@ -216,8 +236,8 @@ export const useAddressStore = create<AddressStore>()(
             label: label || "Unnamed Location",
             address,
             fullAddress: address,
-            latitude,
-            longitude,
+            latitude: finalLat,
+            longitude: finalLng,
             city,
             postalCode,
             country,
@@ -229,8 +249,8 @@ export const useAddressStore = create<AddressStore>()(
           addresses: [...state.addresses, savedAddress!],
           selectedAddressId: savedAddress!.id,
           currentAddress: savedAddress!.address,
-          currentLatitude: latitude ?? null,
-          currentLongitude: longitude ?? null,
+          currentLatitude: finalLat ?? null,
+          currentLongitude: finalLng ?? null,
         }));
 
         logger.log("New address saved:", savedAddress);

@@ -59,6 +59,7 @@ export interface HomeProOfWeek {
   hourlyRate: number;
   badges: string[];
   distanceKm: number;
+  description: string;
 }
 
 export interface HomeUpcomingKrafter {

@@ -1,6 +1,7 @@
 "use client";
 
-import { Headset, MapPin, ChevronDown, X } from "lucide-react";
+import { MapPin, ChevronDown, X } from "lucide-react";
+import DomainNotificationBell from "@/components/shared/DomainNotificationBell";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -83,16 +84,7 @@ const Userabt = () => {
             onClick={() => setShowLanguageModal(true)}
           />
 
-          <div
-            className="relative bg-[#F2F2F2] p-2 rounded-full cursor-pointer"
-            onClick={() => {
-              if (!isAuthenticated) openPrompt();
-              else router.push("/user/support");
-            }}
-          >
-            <Headset size={22} className="sm:w-6 sm:h-6 lg:w-7 lg:h-7" />
-            <div className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></div>
-          </div>
+          <DomainNotificationBell />
         </div>
       </div>
 

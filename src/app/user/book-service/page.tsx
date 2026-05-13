@@ -59,6 +59,7 @@ const BookServicePage = () => {
     consentAcknowledged: false,
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [customTime, setCustomTime] = useState("");
 
 
 
@@ -72,8 +73,14 @@ const BookServicePage = () => {
   ];
 
   const handleNext = async () => {
-    if (!formData.selectedDate || !formData.selectedTime || !formData.taskDetails) {
-      toast.error("Please fill in all required fields");
+    const resolvedTime =
+      formData.selectedTime === "Custom" ? customTime.trim() : formData.selectedTime;
+    if (!formData.selectedDate || !resolvedTime || !formData.taskDetails) {
+      toast.error(
+        !resolvedTime && formData.selectedTime === "Custom"
+          ? "Please enter a custom time."
+          : "Please fill in all required fields"
+      );
       return;
     }
     if (!categoryId.trim()) {
@@ -82,14 +89,47 @@ const BookServicePage = () => {
     }
 
     const preferredDate = formData.selectedDate.toISOString().split("T")[0];
-    const lat =
+    // Prefer live GPS → selected saved address coords → block if still unavailable
+    const selectedAddr = addresses.find((a) => a.id === selectedAddressId);
+    let lat =
       currentLatitude != null && Number.isFinite(currentLatitude)
         ? currentLatitude
-        : 52.52;
-    const lng =
+        : selectedAddr?.latitude != null && Number.isFinite(selectedAddr.latitude)
+          ? selectedAddr.latitude
+          : null;
+    let lng =
       currentLongitude != null && Number.isFinite(currentLongitude)
         ? currentLongitude
-        : 13.4;
+        : selectedAddr?.longitude != null && Number.isFinite(selectedAddr.longitude)
+          ? selectedAddr.longitude
+          : null;
+
+    if (lat === null || lng === null) {
+      const addressToGeocode = currentAddress || selectedAddr?.address;
+      if (addressToGeocode && addressToGeocode !== "Add your location") {
+        try {
+          toast.loading("Geocoding address...", { id: "geocode" });
+          const geoResponse = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(addressToGeocode)}&format=json&limit=1`, {
+            headers: { "User-Agent": "Krafitgo/1.0" },
+          });
+          const geoData = await geoResponse.json();
+          if (geoData && geoData.length > 0) {
+            lat = parseFloat(geoData[0].lat);
+            lng = parseFloat(geoData[0].lon);
+            toast.dismiss("geocode");
+          } else {
+            toast.error("Could not find coordinates for this address.", { id: "geocode" });
+            return;
+          }
+        } catch (e) {
+          toast.error("Geocoding failed. Please try another address.", { id: "geocode" });
+          return;
+        }
+      } else {
+        toast.error("Could not determine your location. Please select or add an address first.");
+        return;
+      }
+    }
 
     const mediaFiles = formData.photos
       .map((p) => p.file)
@@ -110,12 +150,11 @@ const BookServicePage = () => {
         jobTitle: categoryName,
         jobDescription,
         media: mediaFiles.length > 0 ? mediaFiles : undefined,
-        consentAcknowledged: formData.consentAcknowledged,
         address: currentAddress,
         latitude: lat,
         longitude: lng,
         preferredDate,
-        preferredTime: formData.selectedTime,
+        preferredTime: resolvedTime,
       });
 
       setPendingPublishMediaFiles(mediaFiles);
@@ -125,7 +164,7 @@ const BookServicePage = () => {
         category: categoryName,
         address: currentAddress,
         date: formData.selectedDate.toISOString(),
-        time: formData.selectedTime,
+        time: resolvedTime,
         taskDetails: formData.taskDetails,
         specialInstructions: formData.specialInstructions,
         bookingId: booking.id,
@@ -276,7 +315,10 @@ const BookServicePage = () => {
             {timeSlots.map((time) => (
               <button
                 key={time.value}
-                onClick={() => setFormData({ ...formData, selectedTime: time.value })}
+                onClick={() => {
+                  setFormData({ ...formData, selectedTime: time.value });
+                  if (time.value !== "Custom") setCustomTime("");
+                }}
                 className={`py-3 rounded-lg text-[13px] sm:text-[14px] font-poppins font-medium transition-colors ${
                   formData.selectedTime === time.value
                     ? "bg-brand-orange text-white"
@@ -287,6 +329,16 @@ const BookServicePage = () => {
               </button>
             ))}
           </div>
+{formData.selectedTime === "Custom" && (
+              <div className="mt-3">
+                <input
+                  type="time"
+                  value={customTime}
+                  onChange={(e) => setCustomTime(e.target.value)}
+                  className="w-full p-3 bg-[#F6F6F6] rounded-xl text-[14px] sm:text-[15px] font-poppins border border-[#0000001A] text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-orange"
+                />
+              </div>
+            )}
         </div>
 
         {/* Tell Us The Details */}
@@ -317,7 +369,7 @@ const BookServicePage = () => {
         />
 
         {/* Special Instructions */}
-        <div className="p-4 sm:p-5 border-b border-[#0000001A]">
+        <div className="p-4 sm:p-5">
           <h2 className="text-[20px] sm:text-[22px] font-poppins font-medium mb-3">
             Special Instructions
           </h2>
@@ -338,29 +390,11 @@ const BookServicePage = () => {
         </div>
 
         <div className="pt-8 sm:pt-12 lg:pt-16 pb-10">
-          {/* Consent Checkbox */}
-          <div className="mb-6 max-w-md mx-auto">
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={formData.consentAcknowledged}
-                onChange={(e) =>
-                  setFormData({ ...formData, consentAcknowledged: e.target.checked })
-                }
-                className="mt-1 w-5 h-5 rounded border-gray-300 text-brand-orange focus:ring-brand-orange"
-              />
-              <span className="text-[13px] sm:text-[14px] font-poppins text-gray-700">
-                I acknowledge that I have read and agree to the Terms of Service and Privacy Policy
-              </span>
-            </label>
-          </div>
-          
           <Button
             variant="primary"
             fullWidth
             onClick={() => void handleNext()}
             disabled={
-              !formData.consentAcknowledged ||
               !formData.taskDetails ||
               !formData.selectedDate ||
               !formData.selectedTime ||

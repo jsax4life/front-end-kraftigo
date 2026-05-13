@@ -32,6 +32,7 @@ const STATIC_PROS = [
     description:
       "I have six years of experience cleaning houses. My priority is to bring a good service and leav...",
     price: "€41.29/hr",
+    distance: undefined,
     image: "/images/pro.jpg",
     badge: "TOP PRO",
   },
@@ -43,6 +44,7 @@ const STATIC_PROS = [
     description:
       "Professional cleaner with attention to detail. I ensure every corner is spotless and your home...",
     price: "€45.00/hr",
+    distance: undefined,
     image: "/images/pro.jpg",
     badge: "TOP PRO",
   },
@@ -118,14 +120,15 @@ const Page = () => {
   const displayPros =
     prosOfWeek.length > 0
       ? prosOfWeek.map((p) => ({
-          name: p.displayName,
+          name: (() => { const parts = p.displayName.trim().split(/\s+/); return parts.length > 1 ? `${parts[0]} ${parts[1][0]}.` : parts[0]; })(),
           rating: Math.round(p.rating),
           reviews: p.reviewCount,
           tasks: p.completedKrafts,
-          description: `${p.distanceKm} km away · ${p.badges.join(", ")}`,
+          description: p.description,
           price: `€${p.hourlyRate.toFixed(2)}/hr`,
+          distance: `${p.distanceKm} Km away` ,
           image: normSrc(p.profilePhotoUrl) ?? "/images/pro.jpg",
-          badge: p.badges[0] ?? undefined,
+          badge: p.badges[0] ? p.badges[0].replace(/_/g, " ") : undefined,
         }))
       : hasFetched && error
       ? STATIC_PROS
@@ -284,7 +287,7 @@ const Page = () => {
 
           {/* Pro's Of The Week */}
           <div className="mb-8">
-            <h2 className="text-[18px] sm:text-[20px] font-gerat font-bold mb-4">
+            <h2 className="text-[20px] sm:text-[20px] font-poppins font-semibold mb-4">
               Pro&apos;s Of The Week
             </h2>
 
@@ -309,6 +312,7 @@ const Page = () => {
                       tasks={pro.tasks}
                       description={pro.description}
                       price={pro.price}
+                      distance={pro.distance}
                       image={pro.image}
                       badge={pro.badge}
                     />
@@ -326,6 +330,7 @@ const Page = () => {
                     tasks={pro.tasks}
                     description={pro.description}
                     price={pro.price}
+                    distance={pro.distance}
                     image={pro.image}
                     badge={pro.badge}
                   />
@@ -345,10 +350,13 @@ const Page = () => {
               <div className="animate-pulse bg-gray-100 rounded-xl h-28" />
             ) : upcoming.length > 0 ? (
               <div className="flex flex-col gap-3">
-                {upcoming.map((booking) => (
+                {[...upcoming]
+                  .sort((a, b) => new Date(a.scheduledAt || 0).getTime() - new Date(b.scheduledAt || 0).getTime())
+                  .slice(0, 1)
+                  .map((booking) => (
                   <div
                     key={booking.bookingId}
-                    className="bg-[#FF66001A] rounded-xl p-4 sm:p-5 border border-[#0000001A]"
+                    className="bg-[#FF66001A] rounded-xl p-2 sm:p-5 border border-[#0000001A]"
                   >
                     <div className="flex gap-4">
                       {/* Booking Details */}
@@ -356,12 +364,12 @@ const Page = () => {
                         <h3 className="text-[16px] sm:text-[14px] font-poppins font-bold mb-2">
                           {booking.jobTitle}
                         </h3>
-                        <div className="space-y-1 text-[12px] sm:text-[13px] text-gray-700 font-poppins">
-                          <div className="flex items-center gap-2">
+                        <div className="space-y-1 text-[14px] sm:text-[13px] text-gray-700 font-poppins">
+                          <div className="flex items-start gap-2">
                             <MapPin size={14} className="text-gray-500" />
                             <span>{booking.addressSummary}</span>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-start gap-2">
                             <Image
                               src="/taskerCal.svg"
                               alt="calendar"
@@ -370,16 +378,11 @@ const Page = () => {
                             />
                             <span>{formatScheduledAt(booking.scheduledAt)}</span>
                           </div>
-                          <div>
-                            <span className="inline-block mt-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">
-                              {booking.status}
-                            </span>
-                          </div>
                         </div>
                       </div>
 
                       {/* Krafter Photo (optional until a Krafter is assigned) */}
-                      <div className="relative w-[88px] h-[88px] sm:w-[100px] sm:h-[100px] rounded-xl overflow-hidden shrink-0">
+                      <div className="relative w-[75px] h-[75px] sm:w-[100px] sm:h-[100px] rounded-xl overflow-hidden shrink-0">
                         <Image
                           src={normSrc(booking.krafter?.profilePhotoUrl) ?? "/images/pro.jpg"}
                           alt={booking.krafter?.displayName ?? "Krafter"}

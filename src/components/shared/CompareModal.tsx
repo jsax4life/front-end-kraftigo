@@ -18,8 +18,8 @@ interface CompareSheetProps {
 
 // ─── Empty Slot Placeholder ───────────────────────────────────────────────────
 const EmptySlot = ({ onPick }: { onPick: () => void }) => (
-  <div className="flex flex-col items-center gap-3">
-    <div className="w-full aspect-4/3 bg-gray-100 rounded-2xl" />
+  <div className="flex flex-col items-center gap-3 pb-10">
+    <div className="w-full aspect-4/3 bg-gray-100 rounded-2xl " />
     <p className="text-[13px] font-poppins text-gray-500 text-center">
       Select a Krafter to compare
     </p>
@@ -55,7 +55,7 @@ const FilledSlot = ({
         <X size={12} className="text-white" />
       </button>
     </div>
-    <p className="text-[13px] font-poppins font-bold text-black text-center">
+    <p className="text-[15px] font-poppins font-bold text-black text-center">
       {artisan.artisan_name}
     </p>
     {artisan.is_top_pro && (
@@ -64,10 +64,10 @@ const FilledSlot = ({
       </span>
     )}
     <div className="flex items-center gap-1 text-[11px] font-poppins text-gray-500">
-      <span>{artisan.rating} ★ ({artisan.reviews_count})</span>
-      <span>&nbsp;{artisan.tasks_count} Krafts</span>
+      {/* <span>{artisan.rating} ★ ({artisan.reviews_count})</span> */}
+      <span className="text-[14px]">&nbsp;{artisan.tasks_count} Krafts</span>
     </div>
-    <p className="text-[14px] font-poppins font-bold text-black">{artisan.price}</p>
+    <p className="text-[15px] font-mabry font-bold text-black -mt-2">{artisan.price}</p>
   </div>
 );
 
@@ -80,12 +80,12 @@ const CompareRow = ({
   children: React.ReactNode;
 }) => (
   <div className="mb-1">
-    <div className="bg-gray-50 py-2 px-4 mb-3">
+    <div className="py-2 px-4 mb-3">
       <p className="text-[13px] font-poppins font-semibold text-black text-center">
         {label}
       </p>
     </div>
-    <div className="grid grid-cols-2 gap-4 px-2 pb-4">{children}</div>
+    <div className="grid grid-cols-2 gap-4 px-2 pb-4 relative">{children}</div>
   </div>
 );
 
@@ -141,7 +141,7 @@ const ArtisanPicker = ({
               )}
             </div>
             <div className="flex items-center gap-1 mt-0.5">
-              {[1, 2, 3, 4, 5].map((s) => (
+              {/* {[1, 2, 3, 4, 5].map((s) => (
                 <Star
                   key={s}
                   size={11}
@@ -151,12 +151,12 @@ const ArtisanPicker = ({
                       : "text-gray-300 fill-gray-300"
                   }
                 />
-              ))}
-              <span className="text-[11px] font-poppins text-gray-500 ml-1">
-                ({app.reviews_count}) &nbsp; {app.tasks_count} Krafts
+              ))} */}
+              <span className="text-[12px] font-poppins text-gray-500 ml-1">
+                {/*({app.reviews_count})*/} {app.tasks_count} Krafts
               </span>
             </div>
-            <p className="text-[14px] font-poppins font-bold text-black mt-1">
+            <p className="text-[14px] font-mabry font-bold text-black mt-1">
               {app.price}
             </p>
             {alreadySelected && (
@@ -298,7 +298,7 @@ const CompareSheet = ({
       <div className="fixed inset-0 z-60 bg-black/40" onClick={onClose} />
 
       {/* Sheet */}
-      <div className="fixed bottom-0 left-0 right-0 z-60 bg-white rounded-t-[32px] max-h-[92vh] flex flex-col">
+      <div className="fixed bottom-0 left-0 right-0 z-60 bg-white rounded-t-[32px] max-h-[92vh] flex flex-col px-5">
         {/* Drag handle */}
         <div className="flex justify-center pt-3 pb-1 shrink-0">
           <div className="w-10 h-1 bg-gray-200 rounded-full" />
@@ -315,7 +315,7 @@ const CompareSheet = ({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-5 pb-8">
+        <div className="flex-1 overflow-y-auto  pb-8">
           {!showFullCompare ? (
             /* ── Empty / Partial State ── */
             <div className="grid grid-cols-2 gap-4 mt-2">
@@ -343,8 +343,8 @@ const CompareSheet = ({
               <div className="grid grid-cols-2 gap-4 mb-6">
                 {displaySlots.map((artisan, idx) =>
                   artisan ? (
-                    <div key={idx} className="flex flex-col items-center text-center">
-                      <div className="w-full aspect-square rounded-2xl overflow-hidden mb-3 bg-gray-100">
+                    <div key={idx} className="flex flex-col items-center text-center px-5">
+                      <div className="relative w-full aspect-square rounded-2xl overflow-hidden mb-3 bg-gray-100">
                         <Image
                           src={artisan.image}
                           alt={artisan.artisan_name}
@@ -352,6 +352,12 @@ const CompareSheet = ({
                           height={200}
                           className="w-full h-full object-cover"
                         />
+                        <button
+                          onClick={() => removeSlot(idx as 0 | 1)}
+                          className="absolute top-2 right-2 w-6 h-6 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center transition-colors z-10"
+                        >
+                          <X size={12} className="text-white" />
+                        </button>
                       </div>
                       <p className="text-[15px] font-poppins font-bold text-black mb-1">
                         {artisan.artisan_name}
@@ -363,11 +369,11 @@ const CompareSheet = ({
                       )}
                       <div className="flex items-center gap-1 text-[11px] font-poppins text-gray-500">
                         <span>
-                          {artisan.rating} ★ ({artisan.reviews_count}) &nbsp;{" "}
+                          {/* {artisan.rating} ★ ({artisan.reviews_count}) &nbsp;{" "} */}
                           {artisan.tasks_count} Krafts
                         </span>
                       </div>
-                      <p className="text-[14px] font-poppins font-bold text-black mt-1">
+                      <p className="text-[14px] font-mabry font-bold text-black mt-1">
                         {artisan.price}
                       </p>
                     </div>
@@ -376,11 +382,12 @@ const CompareSheet = ({
               </div>
 
               {/* Hourly Rate */}
-              <CompareRow label="Hourly Rate">
+             <div className="bg-[#F6F6F6] mb-2">
+               <CompareRow label="Hourly Rate">
                 {displaySlots.map((a, i) =>
                   a ? (
                     <div key={i} className="text-center">
-                      <p className="text-[16px] font-poppins font-bold text-brand-orange">
+                      <p className="text-[18px] font-mabry font-bold text-brand-orange">
                         {a.price}
                       </p>
                     </div>
@@ -388,15 +395,20 @@ const CompareSheet = ({
                 )}
               </CompareRow>
 
+             </div>
               {/* Top Skills */}
               <CompareRow label="Top Skills">
+                <div className="absolute left-1/2 top-0 bottom-4 w-px bg-[#0000001A] transform -translate-x-1/2"></div>
                 {displaySlots.map((a, i) =>
                   a ? (
-                    <div key={i} className="flex flex-wrap gap-1 justify-center">
+                    <div
+                      key={i}
+                      className="flex flex-wrap gap-1 justify-center content-start"
+                    >
                       {skills.map((skill) => (
                         <span
                           key={skill}
-                          className="text-[11px] font-poppins text-gray-700 border border-gray-200 rounded-full px-2.5 py-1"
+                          className="text-[11px] font-poppins text-gray-700 bg-[#F6F6F6] rounded-sm px-3 py-1.5"
                         >
                           {skill}
                         </span>
@@ -407,20 +419,23 @@ const CompareSheet = ({
               </CompareRow>
 
               {/* Krafts Completed */}
-              <CompareRow label="Krafts Completed">
+              <div className="bg-[#F6F6F6] mb-2">
+                <CompareRow label="Krafts Completed">
                 {displaySlots.map((a, i) =>
                   a ? (
                     <div key={i} className="text-center">
-                      <p className="text-[15px] font-poppins font-semibold text-black">
+                      <p className="text-[15px] font-mabry font-semibold text-black">
                         {a.tasks_count} Krafts
                       </p>
                     </div>
                   ) : null
                 )}
               </CompareRow>
+              </div>
 
               {/* Relevant Review */}
               <CompareRow label="Relevant Review">
+                <div className="absolute left-1/2 top-0 bottom-4 w-px bg-[#0000001A] transform -translate-x-1/2"></div>
                 {displaySlots.map((a, i) =>
                   a ? (
                     <div key={i} className="text-center">

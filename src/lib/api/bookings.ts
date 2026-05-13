@@ -78,7 +78,6 @@ export interface CreateBookingForRecommendationPayload {
   jobTitle: string
   jobDescription: string
   media?: File[]
-  consentAcknowledged: boolean
   address: string
   latitude: number
   longitude: number
@@ -310,7 +309,7 @@ export const createBooking = async (payload: CreateBookingPayload): Promise<Book
   if (payload.artisanId) formData.append('artisanId', payload.artisanId)
   formData.append('jobTitle', payload.jobTitle)
   formData.append('jobDescription', payload.jobDescription)
-  formData.append('consentAcknowledged', String(payload.consentAcknowledged))
+  formData.append('consentAcknowledged', 'true')
   formData.append('address', payload.address)
   formData.append('latitude', String(payload.latitude))
   formData.append('longitude', String(payload.longitude))
@@ -605,7 +604,7 @@ export const createBookingForRecommendation = async (payload: CreateBookingForRe
   if (payload.serviceListingId) formData.append('serviceListingId', payload.serviceListingId)
   formData.append('jobTitle', payload.jobTitle)
   formData.append('jobDescription', payload.jobDescription)
-  formData.append('consentAcknowledged', String(payload.consentAcknowledged))
+  formData.append('consentAcknowledged', 'true')
   formData.append('address', payload.address)
   formData.append('latitude', String(payload.latitude))
   formData.append('longitude', String(payload.longitude))
@@ -639,7 +638,7 @@ export const publishToMarketplace = async (payload: PublishToMarketplacePayload)
   if (payload.serviceListingId) formData.append('serviceListingId', payload.serviceListingId)
   formData.append('jobTitle', payload.jobTitle)
   formData.append('jobDescription', payload.jobDescription)
-  formData.append('consentAcknowledged', String(payload.consentAcknowledged))
+  formData.append('consentAcknowledged', 'true')
   formData.append('address', payload.address)
   formData.append('latitude', String(payload.latitude))
   formData.append('longitude', String(payload.longitude))

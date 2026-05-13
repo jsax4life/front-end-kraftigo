@@ -84,7 +84,7 @@ const Page = () => {
         <SupportHeader />
 
         {/* Recent Chats */}
-        {conversations.length > 0 && (
+        {/* {conversations.length > 0 && (
           <div className="mb-8 px-4 sm:px-6 lg:px-8 mt-8">
             <h2 className="text-[14px] text-[#667085] font-poppins mb-4">Recent Chats</h2>
             {conversations.slice(0, 3).map((conv: any) => (
@@ -122,10 +122,10 @@ const Page = () => {
               </button>
             ))}
           </div>
-        )}
+        )} */}
 
         {/* Recent Krafts */}
-        <div className="space-y-4 px-4 sm:px-6 lg:px-8">
+        {/* <div className="space-y-4 px-4 sm:px-6 lg:px-8">
           <h2 className="text-[14px] text-[#667085] font-poppins">Need support on a recent Kraft</h2>
           {recentKrafts.length === 0 ? (
             <p className="text-[13px] font-poppins text-gray-300 py-4">No recent krafts to show</p>
@@ -136,7 +136,7 @@ const Page = () => {
               ))}
             </div>
           )}
-        </div>
+        </div> */}
 
         {/* Need Help Banner */}
         <HelpBanner onSendMessage={() => handleOpenChat()} />

@@ -10,7 +10,6 @@ import {
   disconnectDomainEventsSocket,
 } from "@/lib/domainEventsSocket";
 import { showDomainEventNotification } from "@/lib/domainEventNotifications";
-import DomainNotificationBell from "@/components/shared/DomainNotificationBell";
 
 let refetchDebounce: ReturnType<typeof setTimeout> | null = null;
 let pendingChatListRefetch = false;
@@ -80,17 +79,5 @@ export default function DomainEventsListener() {
     };
   }, [accessToken, isAuthenticated, stableHandler]);
 
-  if (!accessToken || !isAuthenticated) {
-    return null;
-  }
-
-  return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[35] flex justify-center pb-[calc(96px+env(safe-area-inset-bottom,0px))]">
-      <div className="pointer-events-auto relative w-full max-w-[480px] px-3">
-        <div className="absolute bottom-0 right-3 sm:right-4">
-          <DomainNotificationBell preferPanelAbove />
-        </div>
-      </div>
-    </div>
-  );
+  return null;
 }

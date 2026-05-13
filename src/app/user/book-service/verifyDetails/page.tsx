@@ -146,7 +146,7 @@ const Page = () => {
           </div>
           <div className="flex flex-col items-end gap-2">
             {!isPublic && pricePerHour > 0 && (
-              <span className="text-brand-orange text-[16px] sm:text-[18px] font-poppins font-bold">
+              <span className="text-brand-orange text-[16px] sm:text-[18px] font-mabry font-bold">
                 €{pricePerHour.toFixed(2)}/hr
               </span>
             )}
@@ -182,7 +182,7 @@ const Page = () => {
             Estimated hours
           </h3>
           <p className="text-[13px] sm:text-[14px] text-gray-700 font-poppins mb-4">
-            Adjust in steps of 1 hour, between {DURATION_HOURS_MIN} and 24 hours.
+            How many hours do you want to book
           </p>
           <div className="flex items-center justify-center gap-4 mb-4">
             <button

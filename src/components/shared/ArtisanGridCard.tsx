@@ -33,7 +33,8 @@ const ArtisanGridCard = ({ artisan, onSelect }: ArtisanGridCardProps) => {
         {/* Availability Badge */}
         {artisan.isAvailable ? (
           <span className="absolute top-3 left-2 text-[#FF6600] text-[10px] bg-white px-2 py-1 rounded-full font-poppins font-medium flex items-center gap-1">
-            Available Now ⚡
+            Available Now 
+            <Image src="/light.svg" alt="light" width={9} height={12} />
           </span>
         ) : (
           <span className="absolute top-3 left-2 text-purple-600 text-[10px] bg-white px-2 py-1 rounded-full font-poppins font-medium">
@@ -43,18 +44,20 @@ const ArtisanGridCard = ({ artisan, onSelect }: ArtisanGridCardProps) => {
       </div>
 
       {/* Card Content */}
-      <div className="p-3">
+      <div className="p-1 mt-1">
         {/* Name and Badge */}
-        {artisan.badge && (
-          <span className="text-xs font-poppins bg-[#014F2A1A] text-[#014F2A] px-2 py-0.5">
-            {artisan.badge}
-          </span>
-        )}
-        <h3 className="text-[16px] font-poppins font-bold">{artisan.name}</h3>
+        <div className="flex items-center gap-2 mb-2">
+          <h3 className="text-[15px] font-poppins font-semibold">{artisan.name}</h3>
+          {artisan.badge && (
+            <span className="text-[10px] font-poppins bg-[#014F2A1A] text-[#014F2A] px-1 py-0.5">
+              {artisan.badge.replace(/_/g, " ")}
+            </span>
+          )}
+        </div>
 
 
         {/* Rating and Reviews */}
-        <div className="flex items-center gap-1 mb-2">
+        <div className="flex items-center gap-1 mb-1">
           {/* <span className="text-[14px] font-poppins font-semibold">
             {artisan.rating}
           </span> */}
@@ -62,14 +65,14 @@ const ArtisanGridCard = ({ artisan, onSelect }: ArtisanGridCardProps) => {
           <span className="text-[12px] text-gray-600 font-poppins">
             ({artisan.reviewCount})
           </span> */}
-          <span className="text-[12px] text-gray-600 font-poppins">
-            {artisan.taskCount} tasks
+          <span className="text-[14px] text-gray-600 font-poppins">
+            {artisan.taskCount} Krafts
           </span>
         </div>
 
         {/* Price */}
-        <div className="text-sm font-poppins font-semibold mb-3">
-          €{artisan.pricePerHour.toFixed(2)}/hr
+        <div className="text-[16px] font-mabry font-semibold mb-3">
+          ${artisan.pricePerHour.toFixed(2)}/hr
         </div>
       </div>
     </div>

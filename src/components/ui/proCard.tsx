@@ -9,6 +9,7 @@ interface ProCardProps {
   tasks: number;
   description: string;
   price: string;
+  distance?: number | string;
   image: string;
   badge?: string;
 }
@@ -20,11 +21,12 @@ const ProCard = ({
   tasks,
   description,
   price,
+  distance,
   image,
   badge,
 }: ProCardProps) => {
   return (
-    <div className="bg-[#F6F6F6] rounded-xl p-4 sm:p-5 border border-[#0000001A] w-[85%] sm:w-[70%] lg:w-[48%] shrink-0">
+    <div className="bg-[#F6F6F6] rounded-xl p-4 sm:p-5 border border-[#0000001A] w-[95%] sm:w-[80%] lg:w-[48%] shrink-0">
       <div className="flex gap-4">
         {/* Pro Image */}
         <div className="relative shrink-0">
@@ -41,18 +43,23 @@ const ProCard = ({
         <div className="flex-1">
           <div className="flex items-start justify-between mb-2">
             <div className="space-y-1">
-              <div className="flex flex-col items-left gap-2">
+              <div className="flex flex-row items-center gap-1.5 min-w-0 overflow-hidden">
+                <h3 className="text-[15px] sm:text-[16px] font-poppins font-bold whitespace-nowrap shrink-0">
+                  {name}
+                </h3>
                 {badge && (
-                  <span className="text-xs  w-fit rounded-full font-poppins bg-[#014F2A1A] text-[#014F2A] px-2 py-0.5">
+                  <span className="text-[10px] shrink-0 font-poppins bg-[#014F2A1A] text-[#014F2A] px-1.5 py-0.5  whitespace-nowrap">
                     {badge}
                   </span>
                 )}
-                <h3 className="text-[16px] sm:text-[18px] font-gerat font-bold">
-                  {name}
-                </h3>
+                {distance !== undefined && distance !== null && (
+                  <p className="text-[11px] text-gray-500 font-poppins truncate min-w-0">
+                    {typeof distance === 'number' ? `${distance} km away` : distance}
+                  </p>
+                )}
               </div>
-              <div className="flex items-center gap-2 mt-1">
-                <div className="flex items-center">
+              <div className="flex items-center mt-1">
+                {/* <div className="flex items-center">
                   {[...Array(5)].map((_, i) => (
                     <Star
                       key={i}
@@ -64,25 +71,23 @@ const ProCard = ({
                       }
                     />
                   ))}
-                </div>
-                <span className="text-[12px] text-gray-600 font-poppins">
-                  ({reviews}) · {tasks} tasks
+                </div> */}
+                <span className="text-[14px] text-gray-600 font-poppins">
+                  {/* ({reviews}) ·  */}{tasks} Krafts
                 </span>
               </div>
-              <span className="text-[#FF6600] text-xs bg-[#FF66001A] px-2 py-1 rounded-full">
-                Available Now{" "}
+              <span className="text-[#FF6600] text-xs bg-[#FF66001A] px-2 py-1 rounded-full flex items-center gap-1 w-fit">
+                Available Now
+                <Image src="/light.svg" alt="light" width={9} height={12} />
               </span>
             </div>
           </div>
         </div>
       </div>
-      <div className="mt-2">
-        <p className="text-[12px] sm:text-[13px] text-gray-700 font-poppins mb-3 line-clamp-2">
-          {description}
-        </p>
-
+      <div className="mt-3">
+        <p className="mb-3">{description}</p>
         <div className="flex items-center justify-between gap-3">
-          <p className="text-[18px] sm:text-[20px] font-gerat font-bold">
+          <p className="text-[20px] sm:text-[20px] font-mabry font-semibold">
             {price}
           </p>
           <Button

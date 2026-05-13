@@ -23,10 +23,7 @@ import { MARKETPLACE_FIXED_PRICE_FINISH_BOOKING_MESSAGE } from "@/lib/marketplac
 import { parseBookingMoney } from "@/lib/bookingDisplay";
 import {
   clampDurationHours,
-  DURATION_HOURS_MAX,
-  DURATION_HOURS_MIN,
   parseDurationHoursParam,
-  validateDurationHours,
 } from "@/lib/durationHours";
 
 /** Last resort when no coordinates from the booking URL chain or address store */
@@ -106,7 +103,6 @@ const Page = () => {
   const [estimatedHoursInput, setEstimatedHoursInput] = useState(() =>
     String(parseDurationHoursParam(searchParams.get("hours"))),
   );
-  const [hoursFieldError, setHoursFieldError] = useState<string | null>(null);
 
   const hoursFromUrl = searchParams.get("hours");
   useEffect(() => {
@@ -114,6 +110,7 @@ const Page = () => {
       String(parseDurationHoursParam(hoursFromUrl)),
     );
   }, [hoursFromUrl]);
+
 
   const {
     createBooking,
@@ -181,13 +178,6 @@ const Page = () => {
       let durationHours = 1;
       if (!isPublic || isPublicHourly) {
         durationHours = clampDurationHours(Number(estimatedHoursInput));
-        const hoursErr = validateDurationHours(durationHours);
-        if (hoursErr) {
-          setHoursFieldError(hoursErr);
-          toast.error(hoursErr);
-          return;
-        }
-        setHoursFieldError(null);
       }
 
       const { latitude, longitude } = resolveBookingCoordinates(
@@ -370,7 +360,7 @@ const Page = () => {
               <Check size={20} className="text-white" />
             </span>
             <span className="w-fit px-3 py-2.5 text-xs sm:text-sm bg-brand-orange text-white rounded-full flex items-center justify-center">
-              {isPublic ? "Details" : "Krafter"}
+              {isPublic ? "Details" : "Finish"}
             </span>
           </div>
           <button
@@ -417,9 +407,9 @@ const Page = () => {
               {fullDateTimeDisplay}
             </p>
           </div>
-          <div className="flex flex-col items-end gap-2">
+          <div className="flex flex-col items-end gap-2 ">
             {isPublic ? (
-              <span className="text-brand-orange text-[16px] sm:text-[18px] font-poppins font-bold">
+              <span className="text-brand-orange text-[18px] sm:text-[18px] mt-2 font-mabry font-bold">
                 Budget: ${budget}{isPublicHourly ? "/hr" : ""}
               </span>
             ) : (
@@ -444,59 +434,7 @@ const Page = () => {
         </div>
       </div>
 
-      {!isPublic || isPublicHourly ? (
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 border-t border-[#0000001A]">
-          <h3 className="text-[18px] sm:text-[20px] font-poppins font-semibold mb-2">
-            Estimated hours
-          </h3>
-          {isPublic ? (
-            <>
-              <p className="text-[12px] sm:text-[13px] font-poppins text-gray-600 mb-3">
-                Duration is locked from your previous step for this review screen.
-              </p>
-              <div className="max-w-xs rounded-xl border border-[#0000001A] bg-[#F6F6F6] px-4 py-3">
-                <p className="text-[12px] font-poppins text-gray-500 mb-0.5">Hours for this booking</p>
-                <p className="text-[16px] font-poppins font-semibold text-gray-900">
-                  {durationHoursDisplay % 1 === 0
-                    ? durationHoursDisplay
-                    : durationHoursDisplay.toFixed(2)}
-                </p>
-              </div>
-            </>
-          ) : (
-            <>
-              <p className="text-[12px] sm:text-[13px] font-poppins text-gray-600 mb-3">
-                Between 0.25 and 24 hours, in steps of 0.25 (15 minutes). We always send this to the
-                server explicitly (default 1 hour if you skip verify).
-              </p>
-              <Input
-                label="Hours for this booking"
-                type="number"
-                min={DURATION_HOURS_MIN}
-                max={DURATION_HOURS_MAX}
-                step={0.25}
-                value={estimatedHoursInput}
-                onChange={(v) => {
-                  setHoursFieldError(null);
-                  if (v.includes("-")) return;
-                  if (v !== "" && v !== ".") {
-                    const n = Number(v);
-                    if (Number.isFinite(n) && n < 0) return;
-                  }
-                  setEstimatedHoursInput(v);
-                }}
-                onBlur={() => {
-                  const c = clampDurationHours(Number(estimatedHoursInput));
-                  setEstimatedHoursInput(String(c));
-                  setHoursFieldError(validateDurationHours(c));
-                }}
-                error={hoursFieldError ?? undefined}
-                className="max-w-xs"
-              />
-            </>
-          )}
-        </div>
-      ) : null}
+
 
       {/* Price Breakdown */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 border-t border-[#0000001A]">
@@ -508,63 +446,28 @@ const Page = () => {
             <>
               <div className="flex items-center justify-between">
                 <span className="text-[13px] sm:text-[14px] font-poppins text-gray-700">
-                  {isPublicHourly ? "Your offer rate" : "Your offer budget"}
+                  {isPublicHourly ? "Your offer rate" : "Your offer budget"} (${Number(budget || 0)}{isPublicHourly ? "/hr" : ""} * {durationHoursDisplay % 1 === 0
+                        ? durationHoursDisplay
+                        : durationHoursDisplay.toFixed(2)} )
                 </span>
                 <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900">
-                  ${Number(budget || 0).toFixed(2)}{isPublicHourly ? "/hr" : ""}
+                  ${estimatedLaborSubtotal.toFixed(2)}
                 </span>
               </div>
-              {isPublicHourly && (
-                <>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[13px] sm:text-[14px] font-poppins text-gray-700">
-                      Estimated hours
-                    </span>
-                    <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900">
-                      {durationHoursDisplay % 1 === 0
-                        ? durationHoursDisplay
-                        : durationHoursDisplay.toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[13px] sm:text-[14px] font-poppins text-gray-700">
-                      Estimated labor subtotal
-                    </span>
-                    <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900">
-                      ${estimatedLaborSubtotal.toFixed(2)}
-                    </span>
-                  </div>
-                </>
-              )}
             </>
           ) : (
             <>
               <div className="flex items-center justify-between">
                 <span className="text-[13px] sm:text-[14px] font-poppins text-gray-700">
-                  Hourly rate (from your pick)
-                </span>
-                <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900">
-                  €{hourlyRate.toFixed(2)}/hr
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-[13px] sm:text-[14px] font-poppins text-gray-700">
-                  Estimated hours
-                </span>
-                <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900">
-                  {durationHoursDisplay % 1 === 0
+                  Hourly rate (€{hourlyRate.toFixed(2)}/hr  * {durationHoursDisplay % 1 === 0
                     ? durationHoursDisplay
-                    : durationHoursDisplay.toFixed(2)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-[13px] sm:text-[14px] font-poppins text-gray-700">
-                  Estimated labor subtotal
+                    : durationHoursDisplay.toFixed(2)} hours)
                 </span>
                 <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900">
                   €{estimatedLaborSubtotal.toFixed(2)}
                 </span>
               </div>
+              
             </>
           )}
           <div className="flex items-center justify-between">
@@ -761,9 +664,8 @@ const Page = () => {
         <button
           onClick={handleConfirmPayment}
           disabled={
-            isSubmitting ||
-            publicFixedPriceInvalid ||
-            (!!hoursFieldError && (!isPublic || isPublicHourly))
+          isSubmitting ||
+            publicFixedPriceInvalid
           }
           className="w-full py-3 bg-brand-orange text-white text-[16px] sm:text-[17px] font-poppins font-semibold rounded-lg hover:bg-brand-orange-dark transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
         >

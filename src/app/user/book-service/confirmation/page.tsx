@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Calendar, Clock, MapPin } from "lucide-react";
+import { Check, Calendar, Clock, MapPin, CheckCircle2, MessageSquare, ShieldCheck } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { useEffect, useState, Suspense } from "react";
@@ -100,7 +100,7 @@ const ConfirmationContent = () => {
   const handleViewDetails = () => {
     // Navigate to tasks page
     console.log("View Kraft Details");
-    router.push("/user/krafts");
+    router.push("/user/home");
   };
 
   return (
@@ -260,39 +260,27 @@ const ConfirmationContent = () => {
             <div className="space-y-2 text-[13px] font-poppins">
               {hourlyRate !== null ? (
                 <div className="flex justify-between gap-4">
-                  <span className="text-gray-600">Hourly rate (from recommendation)</span>
+                  <span className="text-gray-600">Hourly rate (${hourlyRate.toFixed(2)}/hr x {
+                    estimatedHoursLabel
+                  } )</span>  
                   <span className="font-semibold text-gray-900">
-                    €{hourlyRate.toFixed(2)}/hr
-                  </span>
-                </div>
-              ) : null}
-              <div className="flex justify-between gap-4">
-                <span className="text-gray-600">Estimated hours</span>
-                <span className="font-semibold text-gray-900">{estimatedHoursLabel}</span>
-              </div>
-              {hasServerPricing ? (
-                <>
                   {bookingFinalAgreed !== null ? (
                     <div className="flex justify-between gap-4">
-                      <span className="text-gray-600">Subtotal (from booking)</span>
                       <span className="font-semibold text-gray-900">
                         €{bookingFinalAgreed.toFixed(2)}
                       </span>
                     </div>
                   ) : null}
+                  </span>
+                </div>
+              ) : null}
+              {hasServerPricing ? (
+                <>
                   {bookingPlatformFee !== null ? (
                     <div className="flex justify-between gap-4">
                       <span className="text-gray-600">Platform fee</span>
                       <span className="font-semibold text-gray-900">
                         €{bookingPlatformFee.toFixed(2)}
-                      </span>
-                    </div>
-                  ) : null}
-                  {bookingArtisanEarning !== null ? (
-                    <div className="flex justify-between gap-4">
-                      <span className="text-gray-600">Krafter payout</span>
-                      <span className="font-semibold text-gray-900">
-                        €{bookingArtisanEarning.toFixed(2)}
                       </span>
                     </div>
                   ) : null}
@@ -336,6 +324,36 @@ const ConfirmationContent = () => {
           </div>
         </div>
 
+
+{!isPublic && (
+        <div className="mb-6 mt-2">
+          <h3 className="text-[18px] sm:text-[20px] font-poppins font-semibold text-gray-900 mb-4">
+            What&apos;s Next?
+          </h3>
+          <div className="space-y-4">
+            <div className="flex items-start gap-3">
+              <CheckCircle2 size={22} className="text-brand-orange mt-0.5 shrink-0" />
+              <p className="text-[14px] sm:text-[15px] font-poppins text-gray-700">
+                Krafter will arrive at the scheduled time
+              </p>
+            </div>
+            <div className="flex items-start gap-3">
+              <MessageSquare size={22} className="text-brand-orange mt-0.5 shrink-0" />
+              <p className="text-[14px] sm:text-[15px] font-poppins text-gray-700">
+                You can chat with them anytime to share entry instructions or details
+              </p>
+            </div>
+            <div className="flex items-start gap-3">
+              <ShieldCheck size={22} className="text-brand-orange mt-0.5 shrink-0" />
+              <p className="text-[14px] sm:text-[15px] font-poppins text-gray-700">
+                You&apos;re protected by Kraftigo&apos;s satisfaction guarantee
+              </p>
+            </div>
+          </div>
+        </div>
+        )}
+       
+
         {/* Action Buttons */}
         <div className="space-y-3 mb-6 mt-7">
           {!isPublic && (
@@ -350,19 +368,12 @@ const ConfirmationContent = () => {
             onClick={handleViewDetails}
             className="w-full py-3 bg-[#0000FF] text-white text-[16px] sm:text-[17px] font-poppins rounded-xl hover:bg-blue-700 transition-colors"
           >
-            View Kraft Details
+            Go Back Home
           </button>
         </div>
 
         {/* Footer Info */}
-        {!isPublic && (
-          <div className="flex items-center justify-center gap-2 text-center">
-            <Image src="/sheid.svg" alt="shield" width={18} height={18} />
-            <p className="text-[13px] sm:text-[14px] font-poppins text-gray-600">
-              After your Krafter accepts, you can coordinate timing in chat if needed.
-            </p>
-          </div>
-        )}
+        
       </div>
 
       {/* CSS for confetti animation */}
