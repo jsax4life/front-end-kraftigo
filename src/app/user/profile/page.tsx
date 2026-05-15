@@ -8,23 +8,25 @@ import {
   Lock, 
   CreditCard, 
   Clock, 
-  Globe, 
   Bell, 
   Languages, 
   ChevronRight,
   MapPin,
   MessageCircle,
+  UserX,
 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useProfileStore } from "@/store/useProfileStore";
+import { deleteAccount } from "@/lib/api/auth";
 import {
   getVerificationWire,
   shouldRedirectToDiditKyc,
   shouldRouteToKrafterProfileOnboarding,
 } from "@/lib/api/verification";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { ProfileInfoSkeleton } from "@/components/shared/Skeletons";
+import DeleteAccountModal from "@/components/shared/DeleteAccountModal";
 
 const SettingsItem = ({ icon: Icon, label, onClick, showBorder = true }: { icon: any, label: string, onClick: () => void, showBorder?: boolean }) => (
   <button 
@@ -49,6 +51,7 @@ const Page = () => {
   const router = useRouter();
   const { user } = useAuthStore();
   const { customerProfile, fetchCustomerProfile, isLoading, verificationStatus, fetchVerificationStatus } = useProfileStore();
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
   useEffect(() => {
     if (!customerProfile) {
@@ -92,6 +95,24 @@ const Page = () => {
       return;
     }
     router.push("/krafter/verification");
+  };
+
+  const handleDeleteAccount = async (payload: {
+    password?: string;
+    confirmation?: "DELETE_MY_KRAFTIGO_ACCOUNT";
+  }) => {
+    try {
+      await deleteAccount(payload);
+      await useAuthStore.getState().logout();
+      toast.success("Account closed successfully.");
+      router.replace("/user/login");
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message ||
+        "Could not close account. Check active bookings/applications and try again.";
+      toast.error(Array.isArray(message) ? message.join(", ") : message);
+      throw error;
+    }
   };
 
   return (
@@ -180,11 +201,6 @@ const Page = () => {
              icon={Clock} 
              label="Transaction History" 
              onClick={() => router.push("/user/profile/transactions")}
-           />
-           <SettingsItem 
-             icon={Globe} 
-             label="Currency" 
-             onClick={() => router.push("/user/profile/currency")} 
              showBorder={false}
            />
         </div>
@@ -214,6 +230,11 @@ const Page = () => {
              icon={MessageCircle} 
              label="Help Center" 
              onClick={() => {}}
+           />
+           <SettingsItem
+             icon={UserX}
+             label="Close Account"
+             onClick={() => setDeleteModalOpen(true)}
              showBorder={false}
            />
         </div>
@@ -235,6 +256,11 @@ const Page = () => {
       </div>
 
       <UserNav />
+      <DeleteAccountModal
+        open={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={handleDeleteAccount}
+      />
     </main>
   );
 };

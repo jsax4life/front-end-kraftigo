@@ -30,6 +30,11 @@ export interface ResetPasswordPayload {
   password: string;
 }
 
+export interface DeleteAccountPayload {
+  password?: string;
+  confirmation?: "DELETE_MY_KRAFTIGO_ACCOUNT";
+}
+
 // ─── Response Shapes ──────────────────────────────────────────────────────────
 
 export interface AuthResponse {
@@ -165,6 +170,14 @@ export const logoutUser = async (refreshToken: string): Promise<void> => {
 /** DELETE /api/auth/logout-all — revoke all refresh tokens (all devices) */
 export const logoutAllDevices = async (): Promise<void> => {
   await api.delete("/api/auth/logout-all");
+};
+
+/** POST /api/auth/account/delete — close currently authenticated account */
+export const deleteAccount = async (
+  payload: DeleteAccountPayload,
+): Promise<{ message?: string }> => {
+  const response = await api.post("/api/auth/account/delete", payload);
+  return response.data;
 };
 
 /** GET /api/home — dynamic customer home page data */

@@ -2,12 +2,33 @@ import api from '@/lib/axios'
 import type { Service, ServiceCategory } from '@/types'
 
 export interface ServiceSearchParams {
+  // Search terms
+  q?: string
+  search?: string
   query?: string
+  // Filters
+  categoryId?: string
+  lat?: number
+  lng?: number
+  radiusKm?: number
+  minPrice?: number
+  maxPrice?: number
+  minRating?: number
+  artisanLevel?: string
+  availability?: boolean
+  // Ranking weights
+  distanceWeight?: number
+  ratingWeight?: number
+  completionWeight?: number
+  availabilityWeight?: number
+  // Legacy/local params (kept for compatibility)
   category?: string
   location?: string
   min_price?: number
   max_price?: number
   sort?: 'rating' | 'price_asc' | 'price_desc' | 'newest'
+  // Pagination
+  offset?: number
   page?: number
   limit?: number
 }

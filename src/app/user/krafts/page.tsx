@@ -16,6 +16,8 @@ import {
   buildSelectArtisanQuery,
   bookingArtisanName,
   deriveActiveJobDisplay,
+  getKraftListCardImage,
+  isKraftTaskPlaceholderImage,
   parseBookingMoney,
 } from "@/lib/bookingDisplay";
 import { buildCustomerMessageKrafterUrl } from "@/lib/chatDeepLinks";
@@ -23,6 +25,25 @@ import BookingPaymentConfirmModal from "@/components/shared/BookingPaymentConfir
 import { bookingPaymentClientSecret } from "@/lib/bookingPaymentCheckout";
 import { getBookingApplicants } from "@/lib/api/bookings";
 import { isPendingBookingApplication } from "@/lib/mapBookingApplicants";
+
+function KraftTaskThumbnail({ src, alt }: { src: string; alt: string }) {
+  const isPlaceholder = isKraftTaskPlaceholderImage(src);
+  return (
+    <div
+      className={`relative w-20 h-20 rounded-xl shrink-0 overflow-hidden ${
+        isPlaceholder ? "bg-[#FFF5F0] border border-orange-100 flex items-center justify-center" : ""
+      }`}
+    >
+      <Image
+        src={src}
+        alt={alt}
+        width={isPlaceholder ? 36 : 80}
+        height={isPlaceholder ? 36 : 80}
+        className={isPlaceholder ? "object-contain" : "object-cover w-full h-full"}
+      />
+    </div>
+  );
+}
 
 function formatPostedDayMonth(iso?: string | null) {
   if (!iso) return "—";
@@ -317,11 +338,8 @@ const KraftsPage = () => {
             const location = task.address ?? task.location ?? "—";
             const dateRaw = task.preferredDate ?? task.scheduled_date ?? task.created_at;
             const time = dateRaw ? formatDate(dateRaw) : "—";
-            const image =
-              task.artisan?.avatar ??
-              task.service?.artisan?.avatar ??
-              (Array.isArray(task.mediaUrls) ? task.mediaUrls[0] : undefined) ??
-              "/images/pro.jpg";
+            const image = getKraftListCardImage(task);
+            const imageAlt = title;
 
             const needsPay = task.status === "PAYMENT_PENDING";
 
@@ -371,9 +389,7 @@ const KraftsPage = () => {
                     </div>
                     <div className="pt-1">{statusBadge(task.status)}</div>
                   </div>
-                  <div className="shrink-0">
-                    <Image src={image} alt="artisan" width={80} height={80} className="rounded-xl object-cover w-20 h-20" />
-                  </div>
+                  <KraftTaskThumbnail src={image} alt={imageAlt} />
                 </div>
                 {needsPay && (
                   <div className="px-4 pb-4 pt-0 border-t border-gray-100">
@@ -622,7 +638,8 @@ const KraftsPage = () => {
                     const title = display.artisan.name || `${display.service} with ${bookingArtisanName(task)}`;
                     const location = display.jobLocation || "—";
                     const time = [display.date, display.time].filter(Boolean).join(" · ") || "—";
-                    const image = display.artisan.image;
+                    const image = getKraftListCardImage(task);
+                    const imageAlt = display.artisan.name || title;
                     const taskStatus = task.status;
 
                     return (
@@ -653,9 +670,7 @@ const KraftsPage = () => {
                             </div>
                             <div className="pt-1">{statusBadge(taskStatus)}</div>
                           </div>
-                          <div className="shrink-0">
-                            <Image src={image} alt="artisan" width={80} height={80} className="rounded-xl object-cover w-20 h-20" />
-                          </div>
+                          <KraftTaskThumbnail src={image} alt={imageAlt} />
                         </div>
                         {taskStatus !== "COMPLETED" &&
                         !bookingNeedsKrafterSelection(task) &&

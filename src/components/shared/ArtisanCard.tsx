@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { ChevronRight } from "lucide-react";
 
 interface ArtisanCardProps {
   artisan: {
@@ -22,16 +23,23 @@ interface ArtisanCardProps {
   onViewProfile?: (id: string) => void;
 }
 
-const ArtisanCard = ({ artisan, index, onSelect, onViewProfile }: ArtisanCardProps) => {
-  const bgColor = index % 2 === 0 ? "bg-white" : "bg-[#F6F6F6]";
+const ArtisanCard = ({ artisan, onSelect, onViewProfile }: ArtisanCardProps) => {
+  const openProfile = () => onViewProfile?.(artisan.id);
 
   return (
     <div
-      className={`${bgColor} p-3 sm:p-4 cursor-pointer`}
-      onClick={() => onViewProfile?.(artisan.id)}
+      role="button"
+      tabIndex={0}
+      onClick={openProfile}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openProfile();
+        }
+      }}
+      className="mx-4 bg-white rounded-2xl border border-gray-200 p-3 sm:p-4 shadow-sm cursor-pointer transition-all hover:border-brand-orange hover:shadow-md hover:bg-[#FFFBF8] active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange/50 focus-visible:ring-offset-2"
     >
       <div className="flex gap-3 sm:gap-4">
-        {/* Profile Image */}
         <div className="relative shrink-0">
           <Image
             src={artisan.profileImage || "/images/pro.jpg"}
@@ -42,10 +50,9 @@ const ArtisanCard = ({ artisan, index, onSelect, onViewProfile }: ArtisanCardPro
           />
         </div>
 
-        {/* Details */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between mb-2">
-            <div className="space-y-1 flex-1">
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <div className="space-y-1 flex-1 min-w-0">
               <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
                 <h3 className="text-[16px] sm:text-[18px] font-gerat font-bold">
                   {artisan.name}
@@ -71,6 +78,12 @@ const ArtisanCard = ({ artisan, index, onSelect, onViewProfile }: ArtisanCardPro
                 <Image src="/light.svg" alt="light" width={9} height={12} />
               </span>
             </div>
+            <div className="flex flex-col items-center gap-0.5 shrink-0 text-brand-orange pt-0.5">
+              <ChevronRight size={22} strokeWidth={2.5} aria-hidden />
+              <span className="text-[10px] font-poppins font-semibold whitespace-nowrap">
+                View profile
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -85,10 +98,13 @@ const ArtisanCard = ({ artisan, index, onSelect, onViewProfile }: ArtisanCardPro
             €{artisan.pricePerHour.toFixed(2)}{" "}
             <span className="text-[24px] font-normal text-gray-500">/hr</span>
           </p>
-          {/* Stop propagation so Select doesn't also open the modal */}
           <button
-            onClick={(e) => { e.stopPropagation(); onSelect(artisan.id); }}
-            className="py-4 px-14 bg-brand-orange text-white text-[14px] font-poppins font-semibold rounded-xl hover:bg-orange-600 transition-colors"
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect(artisan.id);
+            }}
+            className="py-4 px-14 bg-brand-orange text-white text-[14px] font-poppins font-semibold rounded-xl hover:bg-orange-600 transition-colors shrink-0"
           >
             Select
           </button>

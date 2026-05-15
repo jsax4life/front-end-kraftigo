@@ -12,16 +12,17 @@ import {
   Languages,
   HelpCircle,
   MessageCircleQuestion,
-  Globe,
   Wallet,
-  LogOut,
-  Target
+  Target,
+  UserX,
 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useProfileStore } from "@/store/useProfileStore";
 import { useBookingsStore } from "@/store/useBookingsStore";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { deleteAccount } from "@/lib/api/auth";
+import DeleteAccountModal from "@/components/shared/DeleteAccountModal";
 
 const SimpleLineChart = () => {
   return (
@@ -109,6 +110,7 @@ const Page = () => {
  
   const completedBookings = getCompletedBookings();
   const totalEarnings = completedBookings.reduce((sum, b) => sum + (b.price || 0), 0);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -117,6 +119,24 @@ const Page = () => {
       router.push("/user/login");
     } catch (error) {
       toast.error("Logout failed");
+    }
+  };
+
+  const handleDeleteAccount = async (payload: {
+    password?: string;
+    confirmation?: "DELETE_MY_KRAFTIGO_ACCOUNT";
+  }) => {
+    try {
+      await deleteAccount(payload);
+      await useAuthStore.getState().logout();
+      toast.success("Account closed successfully.");
+      router.replace("/user/login");
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message ||
+        "Could not close account. Check active bookings/applications and try again.";
+      toast.error(Array.isArray(message) ? message.join(", ") : message);
+      throw error;
     }
   };
 
@@ -228,7 +248,6 @@ const Page = () => {
             <h5 className="text-[14px] font-gerat font-bold text-[#1D2939] px-2 mb-4">Earnings & Billing</h5>
             <div className="bg-white border border-[#F2F4F7] rounded-3xl overflow-hidden shadow-sm">
               <SettingsRow icon={Wallet} label="Earnings & Activity" onClick={() => router.push("/tasker/profile/earnings")} />
-              <SettingsRow icon={Globe} label="Currency" onClick={() => {}} />
             </div>
           </div>
 
@@ -239,6 +258,7 @@ const Page = () => {
               <SettingsRow icon={Bell} label="Notifications" onClick={() => {}} />
               <SettingsRow icon={Languages} label="Language" onClick={() => {}} />
               <SettingsRow icon={HelpCircle} label="Help Center" onClick={() => {}} />
+              <SettingsRow icon={UserX} label="Close Account" onClick={() => setDeleteModalOpen(true)} />
             </div>
           </div>
           
@@ -253,6 +273,11 @@ const Page = () => {
       </div>
 
       <TaskerNav />
+      <DeleteAccountModal
+        open={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={handleDeleteAccount}
+      />
     </main>
   );
 };
