@@ -52,10 +52,12 @@ const ProCard = ({
                     {badge}
                   </span>
                 )}
-                {distance !== undefined && distance !== null && (
+                {distance == undefined || distance == null ? (
                   <p className="text-[11px] text-gray-500 font-poppins truncate min-w-0">
                     {typeof distance === 'number' ? `${distance} km away` : distance}
                   </p>
+                ) : (
+                  null
                 )}
               </div>
               <div className="flex items-center mt-1">
