@@ -184,6 +184,28 @@ export function buildSelectArtisanQuery(b: BookingLike): string {
   return params.toString();
 }
 
+/** Shown on Krafts list cards when the booking has no uploaded task media. */
+export const KRAFT_TASK_PLACEHOLDER_IMAGE = "/craft.svg";
+
+/** Task-first thumbnail for customer Krafts list cards (media → category → craft icon). */
+export function getKraftListCardImage(b: BookingLike): string {
+  if (Array.isArray(b.mediaUrls)) {
+    const media = b.mediaUrls.find(
+      (u): u is string => typeof u === "string" && u.trim().length > 0,
+    );
+    if (media) return media.trim();
+  }
+
+  const categoryImage = b.serviceCategory?.imageUrl?.trim();
+  if (categoryImage) return categoryImage;
+
+  return KRAFT_TASK_PLACEHOLDER_IMAGE;
+}
+
+export function isKraftTaskPlaceholderImage(src: string): boolean {
+  return src === KRAFT_TASK_PLACEHOLDER_IMAGE;
+}
+
 export function deriveActiveJobDisplay(b: BookingLike) {
   const service = b.jobTitle ?? b.serviceCategory?.name ?? b.service?.title ?? "Service";
   const dateRaw =

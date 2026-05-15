@@ -2,10 +2,14 @@
 
 import { useRouter } from "next/navigation";
 import { ChevronLeft, Monitor, Smartphone, Watch } from "lucide-react";
-import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
 import Link from "next/link";
 import TaskerNav from "@/components/shared/taskerNav";
+import { useState } from "react";
+import toast from "react-hot-toast";
+import DeleteAccountModal from "@/components/shared/DeleteAccountModal";
+import { deleteAccount } from "@/lib/api/auth";
+import { useAuthStore } from "@/store/useAuthStore";
 
 const SessionItem = ({ icon: Icon, device, location, time, isCurrent = false }: { 
   icon: any, 
@@ -36,6 +40,25 @@ const SessionItem = ({ icon: Icon, device, location, time, isCurrent = false }: 
 
 const SecurityPage = () => {
   const router = useRouter();
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+
+  const handleDeleteAccount = async (payload: {
+    password?: string;
+    confirmation?: "DELETE_MY_KRAFTIGO_ACCOUNT";
+  }) => {
+    try {
+      await deleteAccount(payload);
+      await useAuthStore.getState().logout();
+      toast.success("Account closed successfully.");
+      router.replace("/user/login");
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message ||
+        "Could not close account. Check active bookings/applications and try again.";
+      toast.error(Array.isArray(message) ? message.join(", ") : message);
+      throw error;
+    }
+  };
 
   return (
     <main className="min-h-screen bg-white">
@@ -108,23 +131,30 @@ const SecurityPage = () => {
           </div>
         </section>
 
-        {/* Delete Account */}
+        {/* Close Account */}
         <section className="space-y-4 pt-8">
            <div className="space-y-1">
-             <h2 className="text-[16px] font-gerat font-bold text-[#1D2939]">Delete your account</h2>
+             <h2 className="text-[16px] font-gerat font-bold text-[#1D2939]">Close your account</h2>
              <p className="text-[14px] font-poppins text-[#667085]">
-               Request to delete your account and data, based on applicable law and our policies
+               Request to close your account and data, based on applicable law and our policies
              </p>
            </div>
            <button 
+             type="button"
+             onClick={() => setDeleteModalOpen(true)}
              className="w-full bg-[#FEF3F2] py-4 rounded-2xl text-[#F04438] font-poppins font-bold text-[15px] hover:bg-red-100 transition-colors"
            >
-             Delete Account
+             Close Account
            </button>
         </section>
 
       </div>
       <TaskerNav />
+      <DeleteAccountModal
+        open={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={handleDeleteAccount}
+      />
     </main>
   );
 };
