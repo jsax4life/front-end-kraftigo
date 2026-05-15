@@ -37,7 +37,7 @@ const ArtisanCard = ({ artisan, onSelect, onViewProfile }: ArtisanCardProps) => 
           openProfile();
         }
       }}
-      className="mx-4 bg-white rounded-2xl border border-gray-200 p-3 sm:p-4 shadow-sm cursor-pointer transition-all hover:border-brand-orange hover:shadow-md hover:bg-[#FFFBF8] active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange/50 focus-visible:ring-offset-2"
+      className="px-3 bg-white cursor-pointer transition-all hover:border-brand-orange hover:shadow-md hover:bg-[#FFFBF8] active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange/50 focus-visible:ring-offset-2"
     >
       <div className="flex gap-3 sm:gap-4">
         <div className="relative shrink-0">
@@ -78,12 +78,12 @@ const ArtisanCard = ({ artisan, onSelect, onViewProfile }: ArtisanCardProps) => 
                 <Image src="/light.svg" alt="light" width={9} height={12} />
               </span>
             </div>
-            <div className="flex flex-col items-center gap-0.5 shrink-0 text-brand-orange pt-0.5">
+            {/* <div className="flex flex-col items-center gap-0.5 shrink-0 text-brand-orange pt-0.5">
               <ChevronRight size={22} strokeWidth={2.5} aria-hidden />
               <span className="text-[10px] font-poppins font-semibold whitespace-nowrap">
                 View profile
               </span>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>

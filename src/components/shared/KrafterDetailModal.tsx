@@ -27,6 +27,7 @@ export interface KrafterDetail {
   responseRate?: number | null;
   averageResponseHours?: number | null;
   yearsWithUs?: number;
+  reviews?:string[];
 }
 
 interface KrafterDetailModalProps {
@@ -89,40 +90,11 @@ const KrafterDetailModal = ({ krafter, onClose, onSelect }: KrafterDetailModalPr
           </div>
         </div>
 
-          {/* Profile Header */}
-          {/* <div className="flex gap-4 mb-5">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap mb-1">
-                {krafter.badge && (
-                  <span className="text-[10px] font-poppins bg-[#014F2A1A] text-[#014F2A] px-2 py-0.5 rounded-sm">
-                    {krafter.badge.replace(/_/g, " ")}
-                  </span>
-                )}
-              </div>
-
-              {krafter.occupationDescription && (
-                <p className="text-[13px] font-poppins text-gray-500 mb-1">{krafter.occupationDescription}</p>
-              )}
-
-              <div className="flex items-center gap-1 mb-2">
-                <StarRating rating={krafter.rating} />
-                <span className="text-[12px] font-poppins text-gray-500 ml-1">
-                  ({krafter.reviewCount} review{krafter.reviewCount !== 1 ? "s" : ""})
-                </span>
-              </div>
-
-              <span className="flex w-fit items-center gap-1.5 text-[#FF6600] text-[11px] bg-[#FF66001A] px-2.5 py-1 rounded-full font-poppins">
-                {krafter.isAvailable ? "Available Now" : "Not Available"}
-                <Image src="/light.svg" alt="light" width={8} height={11} />
-              </span>
-            </div>
-          </div> */}
-
           {/* Stats Row */}
           <div className="flex items-center justify-between relative mb-5 mt-6 py-3">
             <div className="flex-1 text-center">
-              <p className="text-[20px] font-mabry font-bold text-gray-900">{krafter.taskCount}</p>
-              <p className="text-[14px] font-poppins  mt-0.5">Krafts Done</p>
+              <p className="text-[20px] font-mabry font-bold text-gray-900">{krafter.reviewCount}</p>
+              <p className="text-[14px] font-poppins  mt-0.5">Reviews</p>
             </div>
             <div className="w-[3px] h-10 bg-[#D9D9D9] rounded-full"></div>
             <div className="flex-1 text-center">
@@ -153,6 +125,10 @@ const KrafterDetailModal = ({ krafter, onClose, onSelect }: KrafterDetailModalPr
             <p className="font-poppins font-bold text-center">Krafter details</p>
             <div>
               <div className="flex items-center gap-1 mt-2">
+                <p className="font-poppins text-[16px]">No of Krafts done:</p>
+                <p className="font-poppins text-[16px]">{krafter.taskCount}</p>
+              </div>
+              <div className="flex items-center gap-1">
                 <p className="font-poppins text-[16px]">Response rate:</p>
                 <p className="font-poppins text-[16px]">{krafter.responseRate !== null ? krafter.responseRate + "%" : "0%"}</p>
               </div>
@@ -203,6 +179,24 @@ const KrafterDetailModal = ({ krafter, onClose, onSelect }: KrafterDetailModalPr
               </div>
             </div>
           )} 
+
+          {/* Reviews */}
+          {/* {krafter.reviews && krafter.reviews.length > 0 && (
+            <div>
+              <h3 className="text-[16px] font-poppins font-bold text-center mb-2 mt-10">Reviews</h3>
+              <div className="flex flex-wrap gap-2">
+                {krafter.reviews.map((review, i) => (
+                  <div key={i} className="relative w-27 h-27 shrink-0 rounded-xl overflow-hidden bg-gray-100">
+                    <p className="text-[12px] font-poppins">{review}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-center mt-2">
+                <button className="underline text-[#FF6600] font-poppins font-bold">see all</button>
+              </div>
+            </div>
+            )} */}
+          
         </div>
 
         {/* Fixed Bottom CTA */}
