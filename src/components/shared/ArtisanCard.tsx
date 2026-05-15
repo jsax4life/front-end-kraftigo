@@ -11,7 +11,7 @@ interface ArtisanCardProps {
     taskCount: number;
     location: string;
     description: string;
-    distance: number;
+    distance?: number | null;
     pricePerHour: number;
     isNewTasker?: boolean;
     isAvailable?: boolean;
@@ -19,14 +19,17 @@ interface ArtisanCardProps {
   index: number;
   onSelect: (id: string) => void;
   onChat?: (id: string) => void;
+  onViewProfile?: (id: string) => void;
 }
 
-const ArtisanCard = ({ artisan, index, onSelect, onChat }: ArtisanCardProps) => {
-  // Alternate background colors
+const ArtisanCard = ({ artisan, index, onSelect, onViewProfile }: ArtisanCardProps) => {
   const bgColor = index % 2 === 0 ? "bg-white" : "bg-[#F6F6F6]";
 
   return (
-    <div className={`${bgColor} p-3 sm:p-4`}>
+    <div
+      className={`${bgColor} p-3 sm:p-4 cursor-pointer`}
+      onClick={() => onViewProfile?.(artisan.id)}
+    >
       <div className="flex gap-3 sm:gap-4">
         {/* Profile Image */}
         <div className="relative shrink-0">
@@ -53,30 +56,17 @@ const ArtisanCard = ({ artisan, index, onSelect, onChat }: ArtisanCardProps) => 
                   </span>
                 )}
                 {artisan.distance != null && (
-                  <span className="inline-block text-[12px] font-poppins">
+                  <span className="inline-block text-[12px] font-poppins text-gray-400">
                     {typeof artisan.distance === "number" ? artisan.distance.toFixed(1) : artisan.distance}km away
                   </span>
                 )}
               </div>
               <div className="flex items-center gap-2 mt-1">
-                {/* <div className="flex items-center">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      size={14}
-                      className={
-                        i < artisan.rating
-                          ? "fill-blue-500 text-blue-500"
-                          : "text-gray-300"
-                      }
-                    />
-                  ))}
-                </div> */}
                 <span className="text-[12px] text-gray-600 font-poppins">
                   {artisan.taskCount} Krafts
                 </span>
               </div>
-              <span className="inline-block text-[#FF6600] text-xs bg-[#FF66001A] px-2 py-1 rounded-full">
+              <span className="flex w-fit items-center gap-2 text-[#FF6600] text-xs bg-[#FF66001A] px-2 py-1 rounded-full">
                 {artisan.isAvailable ? "Available Now" : "Not Available"}
                 <Image src="/light.svg" alt="light" width={9} height={12} />
               </span>
@@ -92,17 +82,16 @@ const ArtisanCard = ({ artisan, index, onSelect, onChat }: ArtisanCardProps) => 
 
         <div className="flex items-end justify-between gap-3">
           <p className="text-[24px] sm:text-[20px] font-mabry font-semibold">
-            €{artisan.pricePerHour.toFixed(2)} <span className="text-[24px] font-normal text-gray-500">/hr</span>
+            €{artisan.pricePerHour.toFixed(2)}{" "}
+            <span className="text-[24px] font-normal text-gray-500">/hr</span>
           </p>
-          <div className="flex gap-2 flex-1 justify-end max-w-[200px]">
-            <button
-              onClick={() => onSelect(artisan.id)}
-              className="py-4 bg-brand-orange text-white text-[14px] font-poppins font-semibold rounded-xl hover:bg-orange-600 transition-colors"
-              style={{ flex: 2 }}
-            >
-              Select
-            </button>
-          </div>
+          {/* Stop propagation so Select doesn't also open the modal */}
+          <button
+            onClick={(e) => { e.stopPropagation(); onSelect(artisan.id); }}
+            className="py-4 px-14 bg-brand-orange text-white text-[14px] font-poppins font-semibold rounded-xl hover:bg-orange-600 transition-colors"
+          >
+            Select
+          </button>
         </div>
       </div>
     </div>

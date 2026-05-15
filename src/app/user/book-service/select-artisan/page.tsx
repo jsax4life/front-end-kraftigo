@@ -6,6 +6,7 @@ import Image from "next/image";
 import { Check, ChevronDown } from "lucide-react";
 import Button from "@/components/ui/button";
 import ArtisanCard from "@/components/shared/ArtisanCard";
+import KrafterDetailModal, { type KrafterDetail } from "@/components/shared/KrafterDetailModal";
 import ArtisanGridCard from "@/components/shared/ArtisanGridCard";
 import CompareSheet from "@/components/shared/CompareModal";
 import { Application } from "@/types";
@@ -22,10 +23,20 @@ interface Artisan {
   taskCount: number;
   location: string;
   description: string;
-  distance: number;
+  distance?: number | null;
   pricePerHour: number;
   isNewTasker?: boolean;
   isAvailable?: boolean;
+  // Extra fields from recommendation API
+  bio?: string;
+  uniqueSellingPoint?: string;
+  occupationDescription?: string;
+  languagesSpoken?: string[];
+  skillTags?: string[];
+  portfolioImages?: string[];
+  responseRate?: number | null;
+  averageResponseHours?: number | null;
+  yearsWithUs?: number;
 }
 
 function mapRecommendationToArtisan(rawItem: any, index: number): Artisan {
@@ -44,12 +55,22 @@ function mapRecommendationToArtisan(rawItem: any, index: number): Artisan {
     rating: Number(item?.rating ?? item?.reviewsRating ?? 0) || 0,
     reviewCount: Number(item?.reviewCount ?? item?.reviewsCount ?? item?.reviews_count ?? 0) || 0,
     taskCount: Number(item?.completedKrafts ?? item?.completedJobs ?? item?.taskCount ?? item?.tasks_count ?? 0) || 0,
-    location: item?.location ?? item?.city ?? item?.baseCity ?? "New Tasker",
+    location: item?.address ?? item?.location ?? item?.city ?? item?.baseCity ?? "",
     description: item?.description ?? item?.bio ?? item?.proposal_message ?? "",
-    distance: item?.distanceKm,
+    distance: item?.distanceKm ?? null,
     pricePerHour: Number(item?.hourlyRate ?? item?.pricePerHour ?? item?.price_per_hour ?? item?.proposedPrice ?? 0) || 0,
     isNewTasker: item?.isNewTasker ?? item?.is_new ?? false,
     isAvailable: item?.isAvailable ?? false,
+    // Extra fields for detail modal
+    bio: item?.bio ?? item?.description ?? "",
+    uniqueSellingPoint: item?.uniqueSellingPoint ?? null,
+    occupationDescription: item?.occupationDescription ?? null,
+    languagesSpoken: Array.isArray(item?.languagesSpoken) ? item.languagesSpoken : [],
+    skillTags: Array.isArray(item?.skillTags) ? item.skillTags : [],
+    portfolioImages: Array.isArray(item?.portfolioImages) ? item.portfolioImages.filter(Boolean) : [],
+    responseRate: item?.responseRate ?? null,
+    averageResponseHours: item?.averageResponseHours ?? null,
+    yearsWithUs: Number(item?.yearsWithUs ?? 0),
   };
 }
 
@@ -75,6 +96,7 @@ const SelectArtisanPage = () => {
   const [fetchDone, setFetchDone] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [showCompare, setShowCompare] = useState(false);
+  const [selectedKrafter, setSelectedKrafter] = useState<KrafterDetail | null>(null);
 
   const canCompare = artisans.length > 1;
 
@@ -323,6 +345,12 @@ const SelectArtisanPage = () => {
                 index={index}
                 onSelect={handleSelectArtisan}
                 onChat={handleChat}
+                onViewProfile={(id) => {
+                  const raw = artisans.find((a) => a.id === id);
+                  if (!raw) return;
+                  // Find the raw recommendation item to get extra fields
+                  setSelectedKrafter(raw as KrafterDetail);
+                }}
               />
             ))}
           </div>
@@ -377,6 +405,18 @@ const SelectArtisanPage = () => {
           }}
           fromRecommendations={artisansFromApi}
           serviceCategoryId={categoryId || undefined}
+        />
+      )}
+
+      {/* Krafter Detail Modal */}
+      {selectedKrafter && (
+        <KrafterDetailModal
+          krafter={selectedKrafter}
+          onClose={() => setSelectedKrafter(null)}
+          onSelect={(id) => {
+            setSelectedKrafter(null);
+            handleSelectArtisan(id);
+          }}
         />
       )}
     </main>
