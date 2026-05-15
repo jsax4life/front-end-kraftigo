@@ -260,6 +260,7 @@ const CompleteProfileForm = () => {
           bio,
           occupationDescription: trade,
           whereYouLive: location,
+          travelRadiusKm: radius,
           uniqueSellingPoint: uniquePoint,
           languages: languages.map((l) => ({
             name: l,
