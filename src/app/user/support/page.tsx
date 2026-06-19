@@ -22,7 +22,7 @@ const toDisplayStatus = (status: Booking["status"]): "Completed" | "In Progress"
   return "Upcoming";
 };
 
-const helpTopics = [
+const clientFAQs = [
   {
     question: "How do I cancel a booking?",
     answer:
@@ -36,7 +36,7 @@ const helpTopics = [
   {
     question: "How do I request a refund?",
     answer:
-      "Your payment is held securely until the job is marked complete. For instant refunds (no-show or cancelled before the start), the funds are released automatically. For quality disputes, open the booking, tap Request Refund, and explain the issue — if approved, funds are returned to your original payment method within 5–7 business days.",
+      "Your payment is held securely until the job is marked complete. For instant refunds (no-show or cancelled before the start), funds are released automatically. For quality disputes, open the booking, tap Request Refund, and explain the issue — if approved, funds are returned to your original payment method within 5–7 business days.",
   },
   {
     question: "What happens if a Krafter doesn't show up?",
@@ -47,6 +47,34 @@ const helpTopics = [
     question: "How do I update my payment method?",
     answer:
       "Go to Settings → Payment Methods, where you can add a new card, set a default, or remove an old one anytime.",
+  },
+];
+
+const krafterFAQs = [
+  {
+    question: "What happens if a client cancels on me?",
+    answer:
+      "If a client cancels after you've confirmed the job, you may be entitled to a cancellation fee depending on how much notice they gave and whether you'd already started work. Cancellations made well ahead of your scheduled start time are not compensated.",
+  },
+  {
+    question: "How do I get paid?",
+    answer:
+      "Once you mark the job complete and the client confirms (or the review window passes without a dispute), your payment is released from escrow to your linked payout account. Payouts typically land within 2–3 business days.",
+  },
+  {
+    question: "What happens if a client doesn't show up?",
+    answer:
+      "Tap Report Client No-Show on the booking once your scheduled start time has passed. Once confirmed, you'll receive your agreed-upon callout fee and the booking closes — no further action needed on your end.",
+  },
+  {
+    question: "How do I report a problem with a client?",
+    answer:
+      "Open the booking and tap Report an Issue, describing what happened. Our team reviews flagged bookings and may restrict that client's ability to book again while we investigate.",
+  },
+  {
+    question: "How do I update my payout method?",
+    answer:
+      "Go to Settings → Payout Details to update your linked bank account or card. Changes take effect from your next payout cycle.",
   },
 ];
 
@@ -161,11 +189,21 @@ const Page = () => {
         {/* Need Help Banner */}
         <HelpBanner onSendMessage={() => handleOpenChat()} />
 
-        {/* Help Topics */}
-        <div className="space-y-2 pb-8 px-4 sm:px-6 lg:px-8">
-          <h2 className="text-[14px] text-[#667085] font-poppins">Help Topics</h2>
+        {/* Client FAQs */}
+        <div className="space-y-2 pb-6 px-4 sm:px-6 lg:px-8">
+          <h2 className="text-[14px] text-[#667085] font-poppins mb-1">Client — Help Topics</h2>
           <div className="divide-y divide-[#F2F4F7]">
-          {helpTopics.map((topic, i) => (
+            {clientFAQs.map((topic, i) => (
+              <HelpTopicItem key={i} label={topic.question} answer={topic.answer} />
+            ))}
+          </div>
+        </div>
+
+        {/* Krafter FAQs */}
+        <div className="space-y-2 pb-8 px-4 sm:px-6 lg:px-8">
+          <h2 className="text-[14px] text-[#667085] font-poppins mb-1">Krafter — Help Topics</h2>
+          <div className="divide-y divide-[#F2F4F7]">
+            {krafterFAQs.map((topic, i) => (
               <HelpTopicItem key={i} label={topic.question} answer={topic.answer} />
             ))}
           </div>

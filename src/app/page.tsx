@@ -171,15 +171,15 @@ const Page = () => {
             </div>
           </div>
 
-          <div className="flex gap-3 mb-10">
+          <div className="flex gap-3 md:gap-0 mb-10">
             <button
               onClick={() => router.push("/user/createacc")}
               className="cursor-pointer focus:outline-none"
               aria-label="Sign up for an account"
             >
-              <Image src='/annc.svg' alt="announcement" width={300} height={300} className=""/>
+              <Image src='/annc.svg' alt="announcement" width={300} height={300} className="md:w-200"/>
             </button>
-            <Image src='/annc2.svg' alt="announcement" width={70} height={70} className="h-38"/>
+            <Image src='/annc2.svg' alt="announcement" width={100} height={70} className="h-34 md:h-75 md:w-100"/>
           </div>
 
           {/* Categories */}
