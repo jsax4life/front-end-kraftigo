@@ -29,6 +29,6 @@ export const isStrongPassword = (password: string): boolean => {
   return /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&]{8,}$/.test(password);
 };
 
-export const isValidPhoneLength = (phone: string): boolean => {
-  return /^\d{11}$/.test(phone);
+export const isValidPhoneLength = (phone: string, minLength = 7): boolean => {
+  return /^\d+$/.test(phone) && phone.length >= minLength;
 };

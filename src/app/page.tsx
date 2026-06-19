@@ -132,21 +132,21 @@ const Page = () => {
           {/* Avatar & Greeting Section */}
           <div className="flex items-center gap-5 mb-8">
             {/* Avatar with Dashed Border */}
-            <div
+            {/* <div
               className="border-2 border-dashed border-brand-orange rounded-full w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center cursor-pointer shrink-0"
               onClick={() => handleProtectedAction("/user/profile")}
             >
               <div className="relative w-[70px] h-[70px] sm:w-[84px] sm:h-[84px] rounded-full overflow-hidden bg-gray-50 flex items-center justify-center shadow-sm">
                 <User size={32} className="text-gray-300" />
               </div>
-            </div>
+            </div> */}
 
             {/* Greetings and Title */}
             <div className="flex-1">
-              <p className="text-[14px] sm:text-[16px] font-poppins text-[#667085] mb-1">
+              {/* <p className="text-[14px] sm:text-[16px] font-poppins text-[#667085] mb-1">
                 Hello <span className="text-[#1D2939] font-bold">User</span> 👋
-              </p>
-              <h1 className="text-[28px] sm:text-[36px] lg:text-[42px] font-gerat font-[850] leading-tight text-[#1D2939]">
+              </p> */}
+              <h1 className="text-[36px] sm:text-[36px] lg:text-[42px] font-gerat font-[850] leading-8 text-[#1D2939]">
                 What do you <br className="sm:hidden" /> need today?
               </h1>
             </div>
@@ -171,6 +171,17 @@ const Page = () => {
             </div>
           </div>
 
+          <div className="flex gap-3 mb-10">
+            <button
+              onClick={() => router.push("/user/createacc")}
+              className="cursor-pointer focus:outline-none"
+              aria-label="Sign up for an account"
+            >
+              <Image src='/annc.svg' alt="announcement" width={300} height={300} className=""/>
+            </button>
+            <Image src='/annc2.svg' alt="announcement" width={70} height={70} className="h-38"/>
+          </div>
+
           {/* Categories */}
           <div className="mb-8 mt-15">
             <div className="flex items-center justify-between mb-4">
@@ -191,7 +202,8 @@ const Page = () => {
                 const handleCategoryClick = () => {
                   const params = new URLSearchParams({ category: category.name });
                   if (category.id) params.set("categoryId", category.id);
-                  handleProtectedAction(`/user/book-service?${params.toString()}`);
+                  // No auth required to browse categories
+                  router.push(`/user/book-service?${params.toString()}`);
                 };
                 return (
                   <div
@@ -217,6 +229,8 @@ const Page = () => {
                 );
               })}
             </div>
+          </div>
+          <div>
           </div>
 
           {/* Pro's Of The Week */}
@@ -284,7 +298,8 @@ const Page = () => {
                           onClick={() => {
                             const params = new URLSearchParams({ category: category.name });
                             if (category.id) params.set("categoryId", category.id);
-                            handleProtectedAction(`/user/book-service?${params.toString()}`);
+                            // No auth required to browse categories
+                            router.push(`/user/book-service?${params.toString()}`);
                             setShowSearchModal(false);
                           }}
                           className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors"

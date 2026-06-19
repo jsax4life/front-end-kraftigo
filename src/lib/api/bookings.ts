@@ -689,6 +689,19 @@ export const getRecommendations = async (payload: GetRecommendationsPayload): Pr
   return response.data
 }
 
+/**
+ * GET /api/artisans/:id — Fetch full public profile for a single Krafter.
+ * Falls back gracefully if the endpoint doesn't exist on older backend versions.
+ */
+export const fetchKrafterProfile = async (krafterId: string): Promise<any | null> => {
+  try {
+    const response = await api.get(`/api/artisans/${krafterId}`)
+    return response.data
+  } catch {
+    return null
+  }
+}
+
 // ─── Artisan-side booking actions ─────────────────────────────────────────────
 
 /**

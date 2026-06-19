@@ -2,7 +2,7 @@ import { Star } from "lucide-react";
 import Image from "next/image";
 import Button from "@/components/ui/button";
 
-interface ProCardProps {
+export interface ProCardProps {
   name: string;
   rating: number;
   reviews: number;
@@ -12,6 +12,7 @@ interface ProCardProps {
   distance?: number | string;
   image: string;
   badge?: string;
+  onViewProfile?: () => void;
 }
 
 const ProCard = ({
@@ -24,6 +25,7 @@ const ProCard = ({
   distance,
   image,
   badge,
+  onViewProfile,
 }: ProCardProps) => {
   return (
     <div className="bg-[#F6F6F6] rounded-xl p-4 sm:p-5 border border-[#0000001A] w-[95%] sm:w-[80%] lg:w-[48%] shrink-0">
@@ -61,21 +63,8 @@ const ProCard = ({
                 )}
               </div>
               <div className="flex items-center mt-1">
-                {/* <div className="flex items-center">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      size={14}
-                      className={
-                        i < rating
-                          ? "fill-blue-500 text-blue-500"
-                          : "text-gray-300"
-                      }
-                    />
-                  ))}
-                </div> */}
                 <span className="text-[14px] text-gray-600 font-poppins">
-                  {/* ({reviews}) ·  */}{tasks} Krafts
+                  {tasks} Krafts
                 </span>
               </div>
               <span className="text-[#FF6600] text-xs bg-[#FF66001A] px-2 py-1 rounded-full flex items-center gap-1 w-fit">
@@ -95,6 +84,7 @@ const ProCard = ({
           <Button
             variant="primary"
             className="text-[12px] sm:text-[14px] px-4 py-2"
+            onClick={onViewProfile}
           >
             View profile
           </Button>

@@ -12,13 +12,14 @@ import { useEffect } from "react";
 import toast from "react-hot-toast";
 import { User as UserIcon, Home, MapPin, Globe, Hash, Camera, Edit2 } from "lucide-react";
 import { useAddressStore } from "@/store/useAddressStore";
+import { CustomerProfile } from "@/types";
 
 import Header from "@/components/shared/Header";
 
 const PersonalInfoPage = () => {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { customerProfile, fetchCustomerProfile, createOrUpdateCustomerProfile, isLoading } = useProfileStore();
+  const { customerProfile, fetchCustomerProfile, updateCustomerProfile, isLoading } = useProfileStore();
   
 
   const [fullName, setFullName] = useState("");
@@ -39,14 +40,20 @@ const PersonalInfoPage = () => {
 
   useEffect(() => {
     if (customerProfile) {
-      setFullName(customerProfile.firstName + " " + customerProfile.lastName);
+      const first = customerProfile.user?.firstName || user?.firstName || "";
+      const last = customerProfile.user?.lastName || user?.lastName || "";
+      const profileFullName = customerProfile.fullName;
+      
+      setFullName(profileFullName || `${first} ${last}`.trim());
       setPhone(customerProfile.phone);
       setStreet(customerProfile.serviceAddress?.street || "");
       setCity(customerProfile.serviceAddress?.city || "");
       setPostalCode(customerProfile.serviceAddress?.postalCode || "");
       setCountry(customerProfile.serviceAddress?.country || "");
     } else if (user) {
-      setFullName(user.firstName + " " + user.lastName || "");
+      const first = user.firstName || "";
+      const last = user.lastName || "";
+      setFullName(`${first} ${last}`.trim());
       setPhone(user.phone || "");
       
       // Try to parse address from store if it's not a generic message
@@ -65,12 +72,9 @@ const PersonalInfoPage = () => {
 
   const handleSave = async () => {
     try {
-      const [firstName, ...rest] = fullName.trim().split(" ");
-      const lastName = rest.join(" ");
 
-      const profileData = {
-        firstName,
-        lastName,
+      const profileData: Partial<CustomerProfile> = {
+        fullName: fullName.trim(),
         phone,
         serviceAddress: {
           street: street || "N/A",
@@ -89,7 +93,7 @@ const PersonalInfoPage = () => {
         }
       };
       
-      await createOrUpdateCustomerProfile(profileData);
+      await updateCustomerProfile(profileData);
       toast.success("Profile updated successfully!");
       router.back();
     } catch (error) {

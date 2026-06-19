@@ -2,63 +2,71 @@
 
 import React from "react";
 
+// ─── Props ────────────────────────────────────────────────────────────────────
 interface PhoneInputProps {
   label?: string;
   placeholder?: string;
   value: string;
   onChange: (value: string) => void;
+  onDialCodeChange?: (dialCode: string) => void;
   error?: string;
   required?: boolean;
   disabled?: boolean;
   className?: string;
-  maxLength?: number;
-  minLength?: number;
 }
 
+const GERMANY_DIAL_CODE = "+49";
+const MAX_DIGITS = 11;
+
+// ─── Component ────────────────────────────────────────────────────────────────
 const PhoneInput = ({
   label,
-  placeholder = "Phone number",
+  placeholder = "000 000 0000",
   value,
   onChange,
   error,
   required = false,
   disabled = false,
   className = "",
-  minLength = 11,
-  maxLength = 11,
 }: PhoneInputProps) => {
+  const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const digits = e.target.value.replace(/\D/g, "").slice(0, MAX_DIGITS);
+    onChange(digits);
+  };
+
+  const fullNumber = `${GERMANY_DIAL_CODE}${value}`;
+
   return (
-    <div className={`flex flex-col gap-2 ${className}`}>
+    <div className={`flex flex-col gap-2 ${className}`} data-full={fullNumber}>
       {label && (
         <label className="text-[14px] font-mabry text-gray-800">
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
       )}
-      <div className="flex h-13 bg-[#F6F6F6] rounded-xl border border-[#0000001A] overflow-hidden">
-        {/* Country code prefix */}
-        <div className="flex items-center gap-1.5 px-3 border-r border-[#0000001A] shrink-0">
+
+      <div className="relative flex h-13 bg-[#F6F6F6] rounded-xl border border-[#0000001A] overflow-visible">
+        {/* ── Fixed Germany prefix ── */}
+        <div className="flex items-center gap-1.5 px-3 h-full border-r border-[#0000001A] shrink-0">
           <span className="text-lg leading-none">🇩🇪</span>
-          <span className="text-[14px] font-poppins text-gray-700 font-medium">
-            +49
+          <span className="text-[13px] font-poppins text-gray-700 font-medium">
+            {GERMANY_DIAL_CODE}
           </span>
         </div>
 
-        {/* Phone number input */}
+        {/* ── Number input ── */}
         <input
           type="tel"
+          inputMode="numeric"
           placeholder={placeholder}
           value={value}
-          onChange={(e) => {
-            const val = e.target.value.replace(/\D/g, "");
-            onChange(val);
-          }}
+          onChange={handleNumberChange}
           disabled={disabled}
+          maxLength={MAX_DIGITS}
           className="flex-1 h-full px-4 py-2 bg-transparent outline-none text-[14px] font-poppins placeholder:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
-          maxLength={maxLength}
-          minLength={minLength}
         />
       </div>
+
       {error && <span className="text-red-500 text-[12px]">{error}</span>}
     </div>
   );
