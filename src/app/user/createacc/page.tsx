@@ -340,43 +340,6 @@ const Page = () => {
                   about Kraftigo services & products
                 </p>
 
-                <div className="fixed bottom-25">
-                  <Checkbox
-                    checked={formData.termsAccepted}
-                    onChange={(checked: boolean) =>
-                      handleInputChange("termsAccepted", checked)
-                    }
-                    labelNode={
-                      <span className="text-[14px] font-poppins text-gray-700 leading-relaxed">
-                        I agree to the{" "}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setShowTermsModal(true);
-                          }}
-                          className="text-brand-blue underline underline-offset-2 font-semibold hover:opacity-75 transition-opacity"
-                        >
-                          Terms of Use
-                        </button>{" "}
-                        and{" "}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setShowPrivacyModal(true);
-                          }}
-                          className="text-brand-blue underline underline-offset-2 font-semibold hover:opacity-75 transition-opacity"
-                        >
-                          Privacy Policy
-                        </button>
-                      </span>
-                    }
-                  />
-                </div>
-
                 {/* Terms of Use Modal */}
                 <LegalModal
                   isOpen={showTermsModal}
@@ -477,6 +440,45 @@ const Page = () => {
                 >
                   Why do we collect this information?
                 </span>
+              </div>
+            )}
+
+            {currentStep === 3 && (
+              <div>
+                <Checkbox
+                  checked={formData.termsAccepted}
+                  onChange={(checked: boolean) =>
+                    handleInputChange("termsAccepted", checked)
+                  }
+                  labelNode={
+                    <span className="text-[14px] font-poppins text-gray-700 leading-relaxed">
+                      I agree to the{" "}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setShowTermsModal(true);
+                        }}
+                        className="text-brand-blue underline underline-offset-2 font-semibold hover:opacity-75 transition-opacity"
+                      >
+                        Terms of Use
+                      </button>{" "}
+                      and{" "}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setShowPrivacyModal(true);
+                        }}
+                        className="text-brand-blue underline underline-offset-2 font-semibold hover:opacity-75 transition-opacity"
+                      >
+                        Privacy Policy
+                      </button>
+                    </span>
+                  }
+                />
               </div>
             )}
 
