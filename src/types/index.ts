@@ -353,8 +353,8 @@ export interface ArtisanProfile {
 }
 
 export interface CustomerProfile {
-  firstName: string;
-  lastName: string;
+  fullName?: string;
+  user?: User;
   phone: string;
   serviceAddress: {
     street: string;

@@ -138,13 +138,13 @@ const Userabt = () => {
                   value={language}
                   onChange={(val) => setLanguage(val)}
                   options={[
-                    { value: "en", label: "English", image: "/flag-en.svg" },
+                    { value: "en", label: "England", image: "/flag-en.svg" },
                     {
                       value: "de",
-                      label: "German (Deutsch)",
+                      label: "Germany",
                       image: "/flag-de.svg",
                     },
-                    { value: "fr", label: "French", image: "/flag-fr.svg" },
+                    // { value: "fr", label: "French", image: "/flag-fr.svg" },
                   ]}
                   required
                 />
@@ -161,7 +161,7 @@ const Userabt = () => {
                   options={[
                     { value: "EUR", label: "€ EUR" },
                     { value: "GBP", label: "£ GBP" },
-                    { value: "NGN", label: "₦ NGN" },
+                    // { value: "NGN", label: "₦ NGN" },
                   ]}
                   required
                 />

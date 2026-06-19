@@ -50,6 +50,7 @@ const Page = () => {
     lastName: "",
     email: "",
     phone: "",
+    dialCode: "+49",
     password: "",
     confirmPassword: "",
     termsAccepted: false,
@@ -154,10 +155,8 @@ const Page = () => {
       return;
     }
 
-    // Prepare data for backend
-    const formattedPhone = formData.phone.startsWith("+")
-      ? formData.phone
-      : `+49${formData.phone.replace(/^0+/, "")}`;
+    // Prepare data for backend — use the dial code the user actually selected
+    const formattedPhone = `${formData.dialCode}${formData.phone.replace(/^0+/, "")}`;
 
     const registrationData = {
       firstName: formData.firstName,
@@ -295,6 +294,7 @@ const Page = () => {
                   placeholder="000 000 0000"
                   value={formData.phone}
                   onChange={(value) => handleInputChange("phone", value)}
+                  onDialCodeChange={(code) => handleInputChange("dialCode", code)}
                   required
                 />
               </div>
@@ -450,9 +450,9 @@ const Page = () => {
             )}
           </div>
 
-          <button className="fixed bottom-40 right-4 sm:right-6 lg:right-8 w-14 h-14 bg-white rounded-full shadow-lg flex items-center justify-center text-xl font-bold border border-gray-200 hover:shadow-xl transition-shadow">
+          {/* <button className="fixed bottom-40 right-4 sm:right-6 lg:right-8 w-14 h-14 bg-white rounded-full shadow-lg flex items-center justify-center text-xl font-bold border border-gray-200 hover:shadow-xl transition-shadow">
             ?
-          </button>
+          </button> */}
 
           <div className="mt-auto space-y-4">
             {currentStep === 1 && (

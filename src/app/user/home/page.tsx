@@ -13,6 +13,8 @@ import { useAuthPromptStore } from "@/store/useAuthPromptStore";
 import { useHomeStore, normSrc } from "@/store/useHomeStore";
 import { searchServices } from "@/lib/api/services";
 import { useAddressStore } from "@/store/useAddressStore";
+import KrafterDetailModal, { KrafterDetail } from "@/components/shared/KrafterDetailModal";
+import { fetchKrafterProfile } from "@/lib/api/bookings";
 
 // ─── Static fallbacks ─────────────────────────────────────────────────────────
 
@@ -97,6 +99,68 @@ const Page = () => {
   const [searchServiceResults, setSearchServiceResults] = useState<SearchResultRow[]>([]);
   const [isSearchLoading, setIsSearchLoading] = useState(false);
   const [searchRequestError, setSearchRequestError] = useState<string | null>(null);
+  const [selectedKrafter, setSelectedKrafter] = useState<KrafterDetail | null>(null);
+  const [isLoadingKrafterProfile, setIsLoadingKrafterProfile] = useState(false);
+
+  /** Fetch full artisan profile on demand, merge with home data, open modal */
+  const openKrafterModal = async (pro: typeof displayPros[0], raw: any) => {
+    // Start with whatever data the home API gave us
+    const base: KrafterDetail = {
+      id: raw?.krafterId || pro.name,
+      name: pro.name,
+      profileImage: pro.image,
+      badge: pro.badge,
+      rating: pro.rating,
+      reviewCount: pro.reviews,
+      taskCount: pro.tasks,
+      description: raw?.description || pro.description,
+      location: raw?.address || raw?.baseCity || pro.distance || "Germany",
+      pricePerHour: raw?.hourlyRate || parseFloat(pro.price.replace(/[^0-9.]/g, '')) || 0,
+      isAvailable: raw?.isAvailable ?? true,
+      bio: raw?.bio || raw?.description || pro.description,
+      uniqueSellingPoint: raw?.uniqueSellingPoint ?? undefined,
+      occupationDescription: raw?.occupationDescription ?? undefined,
+      languagesSpoken: Array.isArray(raw?.languagesSpoken) ? raw.languagesSpoken : [],
+      skillTags: Array.isArray(raw?.skillTags) ? raw.skillTags : [],
+      portfolioImages: Array.isArray(raw?.portfolioImages) ? raw.portfolioImages.filter(Boolean) : [],
+      responseRate: raw?.responseRate ?? null,
+      averageResponseHours: raw?.averageResponseHours ?? null,
+      yearsWithUs: Number(raw?.yearsWithUs ?? 0),
+      address: raw?.address ?? undefined,
+    };
+    // Open modal immediately with base data
+    setSelectedKrafter(base);
+
+    // Try to enrich with full profile data in the background
+    if (raw?.krafterId) {
+      setIsLoadingKrafterProfile(true);
+      try {
+        const full = await fetchKrafterProfile(raw.krafterId);
+        if (full) {
+          const item = full?.artisan ?? full?.data ?? full;
+          setSelectedKrafter({
+            ...base,
+            profileImage: item?.profilePhotoUrl || item?.avatar || base.profileImage,
+            bio: item?.bio || item?.description || base.bio,
+            uniqueSellingPoint: item?.uniqueSellingPoint ?? base.uniqueSellingPoint,
+            occupationDescription: item?.occupationDescription ?? base.occupationDescription,
+            languagesSpoken: Array.isArray(item?.languagesSpoken) ? item.languagesSpoken : base.languagesSpoken,
+            skillTags: Array.isArray(item?.skillTags) ? item.skillTags : base.skillTags,
+            portfolioImages: Array.isArray(item?.portfolioImages) ? item.portfolioImages.filter(Boolean) : base.portfolioImages,
+            responseRate: item?.responseRate ?? base.responseRate,
+            averageResponseHours: item?.averageResponseHours ?? base.averageResponseHours,
+            yearsWithUs: Number(item?.yearsWithUs ?? base.yearsWithUs),
+            location: item?.address || item?.baseCity || item?.city || base.location,
+            address: item?.address ?? base.address,
+          });
+        }
+      } catch {
+        // Silently keep the base data already shown
+      } finally {
+        setIsLoadingKrafterProfile(false);
+      }
+    }
+  };
 
   // ── Fetch profile (auth only) + home feed (`GET /api/home`) for everyone ───
   useEffect(() => {
@@ -286,7 +350,7 @@ const Page = () => {
           {/* Avatar & Greeting Section */}
           <div className="flex items-center gap-5 mb-8">
             {/* Avatar with Dashed Border */}
-            <div
+            {/* <div
               className="border-2 border-dashed border-brand-orange rounded-full w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center cursor-pointer shrink-0"
               onClick={() => handleProtectedAction("/user/profile")}
             >
@@ -302,14 +366,14 @@ const Page = () => {
                   <User size={32} className="text-gray-300" />
                 )}
               </div>
-            </div>
+            </div> */}
 
             {/* Greetings and Title */}
             <div className="flex-1">
-              <p className="text-[14px] sm:text-[16px] font-poppins text-[#667085] mb-1">
+              {/* <p className="text-[14px] sm:text-[16px] font-poppins text-[#667085] mb-1">
                 Hello <span className="text-[#1D2939] font-bold">{displayName}</span> 👋
-              </p>
-              <h1 className="text-[28px] sm:text-[36px] lg:text-[42px] font-gerat font-[850] leading-tight text-[#1D2939]">
+              </p> */}
+              <h1 className="text-[36px] sm:text-[36px] lg:text-[42px] font-gerat font-[850] leading-tight text-[#1D2939]">
                 What do you <br className="sm:hidden" /> need today?
               </h1>
             </div>
@@ -383,7 +447,7 @@ const Page = () => {
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 rounded-xl" />
                       </div>
                       <p className="text-left text-[12px] sm:text-[14px] font-mabry font-semibold text-gray-800 group-hover:text-brand-orange group-hover:underline group-hover:underline-offset-2 transition-all duration-200">
-                        {category.name}
+                        {category.name.split("/")[0].trim()}
                       </p>
                     </div>
                   );
@@ -411,7 +475,9 @@ const Page = () => {
               ) : displayPros.length > 1 ? (
                 <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
                   <div className="flex gap-4">
-                    {displayPros.map((pro, index) => (
+                    {displayPros.map((pro, index) => {
+                      const raw = prosOfWeek[index] as any;
+                      return (
                       <ProCard
                         key={index}
                         name={pro.name}
@@ -423,13 +489,16 @@ const Page = () => {
                         distance={pro.distance}
                         image={pro.image}
                         badge={pro.badge}
+                        onViewProfile={() => openKrafterModal(pro, raw)}
                       />
-                    ))}
+                    )})}
                   </div>
                 </div>
               ) : (
                 <div>
-                  {displayPros.map((pro, index) => (
+                  {displayPros.map((pro, index) => {
+                    const raw = prosOfWeek[index] as any;
+                    return (
                     <ProCard
                       key={index}
                       name={pro.name}
@@ -441,8 +510,9 @@ const Page = () => {
                       distance={pro.distance}
                       image={pro.image}
                       badge={pro.badge}
+                      onViewProfile={() => openKrafterModal(pro, raw)}
                     />
-                  ))}
+                  )})}
                 </div>
               )}
             </div>
@@ -766,6 +836,17 @@ const Page = () => {
 
       {/* Bottom Navigation */}
       <UserNav />
+
+      {selectedKrafter && (
+        <KrafterDetailModal
+          krafter={selectedKrafter}
+          onClose={() => setSelectedKrafter(null)}
+          onSelect={(id) => {
+            setSelectedKrafter(null);
+            handleProtectedAction("/user/home/custom-kraft");
+          }}
+        />
+      )}
     </main>
   );
 };

@@ -152,13 +152,13 @@ const Page = () => {
               }}
             >
                <div className="absolute inset-0 z-0">
-                   <Image src="/images/pro.jpg" alt="krafter" fill className="object-cover opacity-60 mix-blend-overlay" />
+                   <Image src="/images/prof.jpg" alt="krafter" fill className="object-cover opacity-60 mix-blend-overlay" />
                </div>
                <div className="relative z-10 w-full flex flex-col justify-between h-full">
                   <div className="flex flex-col items-start gap-[20px]">
                       <div className="flex justify-center items-center px-[10px] py-[4px] bg-[#FF6600] rounded-[8px]">
                         <span className="text-[10px] font-poppins text-white leading-[15px]">
-                          {isKrafterEligible ? "Active Krafter" : "Become a Krafter"}
+                          {isKrafterEligible ? "Switch to Krafter" : "Become a Krafter"}
                         </span>
                       </div>
                       <h4 className="text-[20px] font-poppins font-bold uppercase text-[#FFFFE4] leading-[30px] w-[203px]">
