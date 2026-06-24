@@ -3,6 +3,7 @@
 import { X } from "lucide-react";
 import { useState, useEffect } from "react";
 import Button from "@/components/ui/button";
+import { AddressAutocompleteInput } from "@/components/ui/AddressAutocompleteInput";
 
 interface Address {
   id: string;
@@ -275,18 +276,12 @@ const AddressModal = ({
                   </div>
 
                   {/* Address Input */}
-                  <div>
-                    <label className="text-[13px] font-mabry text-gray-600 mb-1 block">
-                      Search for Area, Street Name
-                    </label>
-                    <input
-                      type="text"
-                      value={newAddressValue}
-                      onChange={(e) => setNewAddressValue(e.target.value)}
-                      placeholder="2383 Timber Oak Drive Circuit"
-                      className="w-full p-3 bg-[#F6F6F6] border border-[#0000001A] rounded-xl text-[14px] font-poppins text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-orange"
-                    />
-                  </div>
+                  <AddressAutocompleteInput 
+                    label="Search for Area, Street Name"
+                    placeholder="2383 Timber Oak Drive Circuit"
+                    value={newAddressValue}
+                    onChange={(val) => setNewAddressValue(val)}
+                  />
 
                   <span className="text-[13px] font-poppins flex justify-center text-gray-500 pt-3">
                     or

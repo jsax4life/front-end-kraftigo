@@ -159,8 +159,9 @@ const PersonalInfoPage = () => {
               <Input 
                 label="Phone"
                 value={phone}
-                onChange={(val) => setPhone(val)}
+                onChange={(val) => setPhone(val.replace(/\D/g, '').slice(0, 11))}
                 placeholder="Enter your phone number"
+                type="tel"
               />
             </div>
           </div>
