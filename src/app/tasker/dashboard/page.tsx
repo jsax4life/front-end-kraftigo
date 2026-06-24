@@ -32,6 +32,7 @@ const DashboardContent = () => {
     fetchArtisanProfile,
     profileCompletionSummary,
     fetchKrafterProfileCompletionSummary,
+    fetchKrafterPersonalDetailsStatus,
   } = useProfileStore();
   const { bookings, isLoading, fetchArtisanBookings } = useBookingsStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -54,9 +55,10 @@ const DashboardContent = () => {
     if (!artisanProfile) {
       fetchArtisanProfile();
     }
-    // Fetch checklist summary silently on mount
+    // Fetch checklist summary + personal details (for profile photo in About) silently on mount
     fetchKrafterProfileCompletionSummary();
-  }, [fetchArtisanBookings, fetchArtisanProfile, artisanProfile, fetchKrafterProfileCompletionSummary]);
+    fetchKrafterPersonalDetailsStatus();
+  }, [fetchArtisanBookings, fetchArtisanProfile, artisanProfile, fetchKrafterProfileCompletionSummary, fetchKrafterPersonalDetailsStatus]);
 
   const upcomingTasks = bookings.filter(
     (b) =>

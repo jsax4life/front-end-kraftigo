@@ -3,14 +3,13 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import Input from "@/components/ui/input";
 import Button from "@/components/ui/button";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useProfileStore } from "@/store/useProfileStore";
 import { useEffect } from "react";
 import toast from "react-hot-toast";
-import { User as UserIcon, Home, MapPin, Globe, Hash, Camera, Edit2 } from "lucide-react";
+import { User as UserIcon, Edit2 } from "lucide-react";
 import { useAddressStore } from "@/store/useAddressStore";
 import { CustomerProfile } from "@/types";
 
