@@ -1,7 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Button from "@/components/ui/button";
 
 interface Address {
@@ -36,6 +36,29 @@ const AddressModal = ({
   const [newAddressLabel, setNewAddressLabel] = useState("");
   const [newAddressValue, setNewAddressValue] = useState("");
 
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add("overflow-hidden");
+
+      const preventScroll = (e: Event) => {
+        const target = e.target as HTMLElement;
+        if (target && target.closest(".modal-scrollable-content")) return;
+        e.preventDefault();
+      };
+
+      window.addEventListener("wheel", preventScroll, { passive: false });
+      window.addEventListener("touchmove", preventScroll, { passive: false });
+
+      return () => {
+        document.body.classList.remove("overflow-hidden");
+        window.removeEventListener("wheel", preventScroll);
+        window.removeEventListener("touchmove", preventScroll);
+      };
+    } else {
+      document.body.classList.remove("overflow-hidden");
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleSelectAddress = (addressId: string) => {
@@ -67,7 +90,7 @@ const AddressModal = ({
       onClick={onClose}
     >
       <div 
-        className="bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md max-h-[90vh] overflow-y-auto"
+        className="bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md max-h-[90vh] overflow-y-auto overscroll-contain modal-scrollable-content"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

@@ -21,12 +21,12 @@ const Button = ({
 }: ButtonProps) => {
   // Base styles that apply to all buttons
   const baseStyles =
-    "h-[54px] text-[14px] font-mabry py-4 px-8 rounded-xl transition-all  disabled:cursor-not-allowed";
+    "h-[49px] text-[14px] font-mabry py-4 px-8 rounded-xl transition-all  disabled:cursor-not-allowed";
 
   // Width styles
   const widthStyles = fullWidth
     ? "w-full"
-    : "w-full sm:w-auto sm:min-w-[200px]";
+    : "w-full sm:w-auto sm:min-w-[170px]";
 
   // Variant-specific styles
   const variantStyles = {

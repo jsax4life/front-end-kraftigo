@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import UserNav from "@/components/shared/userNav";
+import Navbar from "@/components/shared/Navbar";
 import SupportHeader from "@/components/support/SupportHeader";
 import KraftStatusCard from "@/components/support/KraftStatusCard";
 import HelpBanner from "@/components/support/HelpBanner";
@@ -127,8 +128,11 @@ const Page = () => {
   };
 
   return (
-    <main className="relative w-full min-h-screen bg-white pb-32">
-      <div className="">
+    <main className="relative w-full min-h-screen bg-white pb-32 md:pb-0">
+      <div className="hidden md:block max-w-4xl mx-auto pt-6 px-4 md:px-0 lg:px-0">
+        <Navbar />
+      </div>
+      <div className="max-w-4xl mx-auto">
         <SupportHeader />
 
         {/* Recent Chats */}

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import UserNav from "@/components/shared/userNav";
+import Navbar from "@/components/shared/Navbar";
 import { 
   User, 
   Lock, 
@@ -116,9 +117,12 @@ const Page = () => {
   };
 
   return (
-    <main className="relative w-full min-h-screen bg-white pb-32">
+    <main className="relative w-full min-h-screen bg-white pb-32 md:pb-0">
+      <div className="hidden md:block max-w-4xl mx-auto pt-6 px-4 md:px-0 lg:px-0">
+        <Navbar />
+      </div>
       
-      <div className="px-[20px] pt-[60px] pb-8 w-full max-w-[430px] mx-auto">
+      <div className="px-[20px] pt-[60px] md:pt-8 pb-8 w-full max-w-[430px] md:max-w-4xl mx-auto">
         <h1 className="text-[20px] font-gerat font-[850] text-[rgba(0,0,0,0.8)] mb-6 tracking-[-0.03em]">
           Profile
         </h1>

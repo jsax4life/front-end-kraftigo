@@ -28,7 +28,7 @@ const ProCard = ({
   onViewProfile,
 }: ProCardProps) => {
   return (
-    <div className="bg-[#F6F6F6] rounded-xl p-4 sm:p-5 border border-[#0000001A] w-[95%] sm:w-[80%] lg:w-[48%] shrink-0">
+    <div className="bg-[#F6F6F6] rounded-xl p-3 sm:p-3 border border-[#0000001A] w-[95%] sm:w-[80%] lg:w-[46%] shrink-0">
       <div className="flex gap-4">
         {/* Pro Image */}
         <div className="relative shrink-0">
@@ -56,11 +56,11 @@ const ProCard = ({
                 )}
                 {distance == undefined || distance == null ? (
                   <p className="text-[11px] text-gray-500 font-poppins truncate min-w-0">
-                    {typeof distance === 'number' ? `${distance} km away` : distance}
+                    {typeof distance === "number"
+                      ? `${distance} km away`
+                      : distance}
                   </p>
-                ) : (
-                  null
-                )}
+                ) : null}
               </div>
               <div className="flex items-center mt-1">
                 <span className="text-[14px] text-gray-600 font-poppins">
@@ -83,7 +83,7 @@ const ProCard = ({
           </p>
           <Button
             variant="primary"
-            className="text-[12px] sm:text-[14px] px-4 py-2"
+            className="text-[12px] sm:text-[14px] px-2 py-1"
             onClick={onViewProfile}
           >
             View profile

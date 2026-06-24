@@ -25,6 +25,29 @@ const Userabt = () => {
   const [currency, setCurrency] = useState("EUR");
 
   useEffect(() => {
+    if (showLanguageModal || showAddressModal) {
+      document.body.classList.add("overflow-hidden");
+
+      const preventScroll = (e: Event) => {
+        const target = e.target as HTMLElement;
+        if (target && target.closest(".modal-scrollable-content")) return;
+        e.preventDefault();
+      };
+
+      window.addEventListener("wheel", preventScroll, { passive: false });
+      window.addEventListener("touchmove", preventScroll, { passive: false });
+
+      return () => {
+        document.body.classList.remove("overflow-hidden");
+        window.removeEventListener("wheel", preventScroll);
+        window.removeEventListener("touchmove", preventScroll);
+      };
+    } else {
+      document.body.classList.remove("overflow-hidden");
+    }
+  }, [showLanguageModal, showAddressModal]);
+
+  useEffect(() => {
     if (isAuthenticated && !customerProfile) {
       fetchCustomerProfile();
     }
@@ -111,11 +134,11 @@ const Userabt = () => {
       {/* Language Modal */}
       {showLanguageModal && (
         <div
-          className="fixed inset-0 bg-black/50 z-60 flex items-end"
+          className="fixed inset-0 bg-black/50 z-60 flex items-end sm:items-start sm:justify-center md:pl-100 md:mt-20 pt-5"
           onClick={() => setShowLanguageModal(false)}
         >
           <div
-            className="bg-white rounded-t-3xl w-full sm:max-w-md mx-auto max-h-[70vh] overflow-y-auto"
+            className="bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-sm mx-auto max-h-[70vh] overflow-y-auto overscroll-contain modal-scrollable-content"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between p-6 border-b border-gray-50">
