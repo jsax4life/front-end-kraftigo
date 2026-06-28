@@ -1,14 +1,15 @@
 "use client";
 
 import Image from "next/image";
-import { Search, ChevronRight, Home, User} from "lucide-react";
+import { Search, ChevronRight, Home } from "lucide-react";
 import Userabt from "@/components/shared/userabt";
 import ProCard from "@/components/ui/proCard";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useAuthPromptStore } from "@/store/useAuthPromptStore";
-
+import Navbar from "@/components/shared/Navbar";
+import Footer from "@/components/shared/Footer";
 
 // ─── Static fallbacks (shown when unauthenticated or API not yet resolved) ────
 
@@ -48,20 +49,20 @@ const STATIC_PROS = [
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const formatScheduledAt = (iso: string) => {
-  try {
-    const date = new Date(iso);
-    return date.toLocaleDateString("en-GB", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return iso;
-  }
-};
+// const formatScheduledAt = (iso: string) => {
+//   try {
+//     const date = new Date(iso);
+//     return date.toLocaleDateString("en-GB", {
+//       day: "numeric",
+//       month: "short",
+//       year: "numeric",
+//       hour: "2-digit",
+//       minute: "2-digit",
+//     });
+//   } catch {
+//     return iso;
+//   }
+// };
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -79,10 +80,10 @@ const Page = () => {
   };
 
   useEffect(() => {
-  if (isAuthenticated) {
-    router.push("/user/home");
-  }
-}, [isAuthenticated, router]);
+    if (isAuthenticated) {
+      router.push("/user/home");
+    }
+  }, [isAuthenticated, router]);
 
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -100,86 +101,116 @@ const Page = () => {
   };
 
   const filteredCategories = displayCategories.filter((c) =>
-    c.name.toLowerCase().includes(searchQuery.toLowerCase())
+    c.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   const filteredPros = displayPros.filter((p) =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase())
+    p.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   return (
-    <main className="relative w-full min-h-screen bg-white pb-10">
+    <main className="relative w-full min-h-screen bg-white pb-10 md:pb-0">
       {/* Page Content */}
-      <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
-        <div className="max-w-4xl mx-auto pt-10">
-          {/* Header with Logo */}
-          <div className="flex justify-center mb-6">
-            <Image
-              src="/craft.svg"
-              alt="kraftigö logo"
-              width={173}
-              height={58}
-              priority
-              className="w-32 sm:w-40 h-auto object-contain"
-            />
-          </div>
-
-          {/* Top Bar: Address & Actions */}
-          <div className="mb-6">
-            <Userabt />
-          </div>
-
-          {/* Avatar & Greeting Section */}
-          <div className="flex items-center gap-5 mb-8">
-            {/* Avatar with Dashed Border */}
-            {/* <div
-              className="border-2 border-dashed border-brand-orange rounded-full w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center cursor-pointer shrink-0"
-              onClick={() => handleProtectedAction("/user/profile")}
-            >
-              <div className="relative w-[70px] h-[70px] sm:w-[84px] sm:h-[84px] rounded-full overflow-hidden bg-gray-50 flex items-center justify-center shadow-sm">
-                <User size={32} className="text-gray-300" />
+      <div className="w-full px-4 md:px-0 lg:px-0 py-6 md:py-0"> 
+        <div className="hidden md:block max-w-4xl mx-auto">
+          <Navbar />
+        </div>
+        <div className="bg-[#FF66001A] h-93.75 md:flex flex-col justify-center hidden">
+          <div className=" max-w-4xl mx-auto w-full">
+            {/* Avatar & Greeting Section */}
+            <div className="flex items-center gap-5 mb-8">
+              {/* Greetings and Title */}
+              <div className="flex-1">
+                <h1 className="text-[36px] sm:text-[36px] lg:text-[42px] font-gerat font-[850] leading-8 text-[#1D2939]">
+                  What do you <br className="sm:hidden" /> need today?
+                </h1>
               </div>
-            </div> */}
+            </div>
 
-            {/* Greetings and Title */}
-            <div className="flex-1">
-              {/* <p className="text-[14px] sm:text-[16px] font-poppins text-[#667085] mb-1">
-                Hello <span className="text-[#1D2939] font-bold">User</span> 👋
-              </p> */}
-              <h1 className="text-[36px] sm:text-[36px] lg:text-[42px] font-gerat font-[850] leading-8 text-[#1D2939]">
-                What do you <br className="sm:hidden" /> need today?
-              </h1>
+            {/* Search Bar section */}
+            <div className="mb-10">
+              <div
+                className="relative shadow-2xl rounded-full cursor-pointer"
+                onClick={() => setShowSearchModal(true)}
+              >
+                <Search
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                  size={20}
+                />
+                <input
+                  type="text"
+                  placeholder="Find a plumber"
+                  className="w-full pl-12 pr-4 py-4 bg-white rounded-full border border-gray-200 focus:outline-none focus:border-brand-cream text-[14px] sm:text-[16px] font-poppins cursor-pointer"
+                  readOnly
+                />
+              </div>
+            </div>
+            <div className="flex flex-col justify-center items-center w-full gap-2">
+              <p className="text-[12px]">Popular Searches</p>
+              <div className="flex items-center gap-2">
+                <span className="bg-[#F6F6F6] rounded-md px-1.5 py-0.5 text-[12px]">
+                  English Tutor
+                </span>
+                <span className="bg-[#F6F6F6] rounded-md px-1.5 py-0.5 text-[12px]">
+                  English Tutor
+                </span>
+                <span className="bg-[#F6F6F6] rounded-md px-1.5 py-0.5 text-[12px]">
+                  English Tutor
+                </span>
+                <span className="bg-[#F6F6F6] rounded-md px-1.5 py-0.5 text-[12px]">
+                  English Tutor
+                </span>
+              </div>
             </div>
           </div>
-
-          {/* Search Bar section */}
-          <div className="mb-10">
-            <div
-              className="relative shadow-2xl rounded-full cursor-pointer"
-              onClick={() => setShowSearchModal(true)}
-            >
-              <Search
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-                size={20}
-              />
-              <input
-                type="text"
-                placeholder="Find a plumber"
-                className="w-full pl-12 pr-4 py-4 rounded-full border border-gray-200 focus:outline-none focus:border-brand-cream text-[14px] sm:text-[16px] font-poppins cursor-pointer"
-                readOnly
+        </div>
+        <div className="max-w-4xl mx-auto pt-10 md:pt-0">
+          <div className="block md:hidden">
+            {/* Header with Logo */}
+            <div className="flex justify-center mb-6">
+              <Image
+                src="/craft.svg"
+                alt="kraftigö logo"
+                width={173}
+                height={58}
+                priority
+                className="w-32 sm:w-40 h-auto object-contain"
               />
             </div>
-          </div>
 
-          <div className="flex gap-3 mb-10">
-            <button
-              onClick={() => router.push("/user/createacc")}
-              className="cursor-pointer focus:outline-none"
-              aria-label="Sign up for an account"
-            >
-              <Image src='/annc.svg' alt="announcement" width={300} height={300} className=""/>
-            </button>
-            <Image src='/annc2.svg' alt="announcement" width={70} height={70} className="h-38"/>
+            {/* Top Bar: Address & Actions */}
+            <div className="mb-6">
+              <Userabt />
+            </div>
+
+            {/* Avatar & Greeting Section */}
+            <div className="flex items-center gap-5 mb-8">
+              {/* Greetings and Title */}
+              <div className="flex-1">
+                <h1 className="text-[36px] sm:text-[36px] lg:text-[42px] font-gerat font-[850] leading-8 text-[#1D2939]">
+                  What do you <br className="sm:hidden" /> need today?
+                </h1>
+              </div>
+            </div>
+
+            {/* Search Bar section */}
+            <div className="mb-10">
+              <div
+                className="relative shadow-2xl rounded-full cursor-pointer"
+                onClick={() => setShowSearchModal(true)}
+              >
+                <Search
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                  size={20}
+                />
+                <input
+                  type="text"
+                  placeholder="Find a plumber"
+                  className="w-full pl-12 pr-4 py-4 rounded-full border border-gray-200 focus:outline-none focus:border-brand-cream text-[14px] sm:text-[16px] font-poppins cursor-pointer"
+                  readOnly
+                />
+              </div>
+            </div>
           </div>
 
           {/* Categories */}
@@ -200,7 +231,9 @@ const Page = () => {
             <div className="grid grid-cols-3 gap-3 sm:gap-4">
               {displayCategories.map((category, index) => {
                 const handleCategoryClick = () => {
-                  const params = new URLSearchParams({ category: category.name });
+                  const params = new URLSearchParams({
+                    category: category.name,
+                  });
                   if (category.id) params.set("categoryId", category.id);
                   // No auth required to browse categories
                   router.push(`/user/book-service?${params.toString()}`);
@@ -211,7 +244,7 @@ const Page = () => {
                     className="cursor-pointer group"
                     onClick={handleCategoryClick}
                   >
-                    <div className="relative rounded-xl overflow-hidden aspect-square mb-2">
+                    <div className="relative rounded-xl overflow-hidden aspect-square mb-2 lg:aspect-auto lg:w-71.25 lg:h-41.25">
                       <Image
                         src={category.image}
                         alt={category.name}
@@ -229,8 +262,6 @@ const Page = () => {
                 );
               })}
             </div>
-          </div>
-          <div>
           </div>
 
           {/* Pro's Of The Week */}
@@ -258,6 +289,9 @@ const Page = () => {
             </div>
           </div>
         </div>
+      </div>
+      <div className="hidden md:block max-w-4xl mx-auto mt-20">
+        <Footer />
       </div>
 
       {/* Search Modal */}
@@ -296,17 +330,27 @@ const Page = () => {
                         <button
                           key={index}
                           onClick={() => {
-                            const params = new URLSearchParams({ category: category.name });
-                            if (category.id) params.set("categoryId", category.id);
+                            const params = new URLSearchParams({
+                              category: category.name,
+                            });
+                            if (category.id)
+                              params.set("categoryId", category.id);
                             // No auth required to browse categories
-                            router.push(`/user/book-service?${params.toString()}`);
+                            router.push(
+                              `/user/book-service?${params.toString()}`,
+                            );
                             setShowSearchModal(false);
                           }}
                           className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors"
                         >
                           <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 relative bg-gray-100 flex items-center justify-center">
                             {category.image ? (
-                              <Image src={category.image} alt={category.name} fill className="object-cover" />
+                              <Image
+                                src={category.image}
+                                alt={category.name}
+                                fill
+                                className="object-cover"
+                              />
                             ) : (
                               <Home size={20} className="text-gray-400" />
                             )}
@@ -318,7 +362,9 @@ const Page = () => {
                       );
                     })}
                     {filteredCategories.length === 0 && (
-                      <p className="text-[14px] text-gray-500 font-poppins px-3 pb-3">No services found.</p>
+                      <p className="text-[14px] text-gray-500 font-poppins px-3 pb-3">
+                        No services found.
+                      </p>
                     )}
                   </div>
                 </div>
@@ -339,7 +385,7 @@ const Page = () => {
                         className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors"
                       >
                         <div className="relative w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-gray-100">
-                           <Image
+                          <Image
                             src={artisan.image}
                             alt={artisan.name}
                             fill
@@ -352,7 +398,9 @@ const Page = () => {
                       </button>
                     ))}
                     {filteredPros.length === 0 && (
-                      <p className="text-[14px] text-gray-500 font-poppins px-3 pb-3">No artisans found.</p>
+                      <p className="text-[14px] text-gray-500 font-poppins px-3 pb-3">
+                        No artisans found.
+                      </p>
                     )}
                   </div>
                   <div className="mt-12 text-center">

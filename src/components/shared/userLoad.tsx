@@ -6,10 +6,12 @@ const UserLoad = () => {
     <main className="relative w-full min-h-screen overflow-hidden bg-white flex items-center justify-center px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-4xl mx-auto text-center space-y-8 sm:space-y-12">
         {/* Animated Logo Loader */}
-        <Loader />
+       <div className="md:-mt-40">
+         <Loader />
+       </div>
 
         {/* Decorative Bottom Image */}
-        <div className="absolute z-0 -bottom-10 left-0 w-full overflow-hidden">
+        <div className="absolute z-0 -bottom-10 md:bottom-0 left-0 w-full overflow-hidden">
           <Image
             src="/bottom.svg"
             alt="decoration"

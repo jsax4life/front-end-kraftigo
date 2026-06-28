@@ -26,19 +26,44 @@ const Page = () => {
     bicSwiftCode: "",
   });
 
+  const [fieldErrors, setFieldErrors] = useState<{ ibanAcctNumber?: string; bicSwiftCode?: string }>({});
+
   useEffect(() => {
     fetchKrafterPayoutStatus().finally(() => setIsLoading(false));
   }, [fetchKrafterPayoutStatus]);
+
+  // ── Validation helpers ────────────────────────────────────────────────────
+
+  const validateIban = (raw: string): string | null => {
+    // raw = value without spaces
+    if (!raw) return null; // empty is handled by presence check
+    if (!/^[A-Z]{2}/.test(raw)) return "IBAN must start with a 2-letter country code (e.g. DE).";
+    if (raw.length !== 22) return `IBAN must be exactly 22 characters (currently ${raw.length}).`;
+    return null;
+  };
+
+  const validateBic = (raw: string): string | null => {
+    if (!raw) return null;
+    if (raw.length !== 8 && raw.length !== 11) return `BIC must be 8 or 11 characters (currently ${raw.length}).`;
+    return null;
+  };
+
+  // ── Input handler ─────────────────────────────────────────────────────────
 
   const handleInputChange = (field: string, value: string | File | null) => {
     let finalValue = value;
     if (typeof value === "string") {
       if (field === "ibanAcctNumber") {
-        // Remove existing spaces, capitalize, then inject space every 4 characters
-        finalValue = value.replace(/\s+/g, "").toUpperCase().replace(/(.{4})/g, "$1 ").trim();
+        // Strip non-alphanumeric, capitalize, hard-cap at 22 raw chars, then space every 4
+        const clean = value.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 22);
+        finalValue = clean.replace(/(.{4})/g, "$1 ").trim();
+        // Clear any existing error as the user edits (errors are only set on submit)
+        if (fieldErrors.ibanAcctNumber) setFieldErrors((prev) => ({ ...prev, ibanAcctNumber: undefined }));
       } else if (field === "bicSwiftCode") {
-        // Typical BIC should just be uppercase
-        finalValue = value.replace(/\s+/g, "").toUpperCase();
+        // Strip non-alphanumeric, capitalize, hard-cap at 11 raw chars
+        const clean = value.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 11);
+        finalValue = clean;
+        if (fieldErrors.bicSwiftCode) setFieldErrors((prev) => ({ ...prev, bicSwiftCode: undefined }));
       }
     }
 
@@ -52,25 +77,37 @@ const Page = () => {
     router.back();
   };
 
+  // ── Submit ────────────────────────────────────────────────────────────────
+
   const handleSubmit = async (isDraft = false) => {
-    // If finishing submission, ensure both are provided.
-    // If drafting, at least one needs to be provided.
-    if (!formData.ibanAcctNumber || !formData.bicSwiftCode) {
-      if (!isDraft) {
-        toast.error("Please fill in both IBAN and BIC to submit.");
-        return;
-      }
-      if (!formData.ibanAcctNumber && !formData.bicSwiftCode) {
-        toast.error("Please enter at least one field to save as a draft.");
-        return;
-      }
+    const rawIban = formData.ibanAcctNumber.replace(/\s+/g, "");
+    const rawBic  = formData.bicSwiftCode.replace(/\s+/g, "");
+
+    // Presence check
+    if (!isDraft && (!rawIban || !rawBic)) {
+      toast.error("Please fill in both IBAN and BIC to submit.");
+      return;
+    }
+    if (isDraft && !rawIban && !rawBic) {
+      toast.error("Please enter at least one field to save as a draft.");
+      return;
+    }
+
+    // Structural validation — run on whichever fields are filled
+    const ibanErr = rawIban ? validateIban(rawIban) : null;
+    const bicErr  = rawBic  ? validateBic(rawBic)   : null;
+
+    if (ibanErr || bicErr) {
+      setFieldErrors({ ibanAcctNumber: ibanErr ?? undefined, bicSwiftCode: bicErr ?? undefined });
+      toast.error("Please fix the errors before continuing.");
+      return;
     }
 
     setIsSubmitting(true);
     try {
       await submitPayoutDetails({
-        iban: formData.ibanAcctNumber.replace(/\s+/g, ""),
-        bic: formData.bicSwiftCode.replace(/\s+/g, ""),
+        iban: rawIban,
+        bic: rawBic,
         submitAsDraft: isDraft,
       });
 
@@ -113,25 +150,30 @@ const Page = () => {
           <p className="text-[16px] font-poppins text-[#2B2F32] mb-8">
             Add your payment information
           </p>
-          <Input
-            label="IBAN"
-            placeholder={payoutStatus?.payout?.ibanMasked || "DE02 1223 1223 1223 1223 1223 1223"}
-            value={formData.ibanAcctNumber}
-            onChange={(value) => {
-              // Country is fixed to Germany in this flow.
-              handleInputChange("ibanAcctNumber", value);
-            }}
-            required
-          />
-          <Input
-            label="BIC"
-            placeholder={payoutStatus?.payout?.bicMasked || "0000 0000"}
-            value={formData.bicSwiftCode}
-            onChange={(value) => {
-              handleInputChange("bicSwiftCode", value);
-            }}
-            required
-          />
+          <div>
+            <Input
+              label="IBAN"
+              placeholder={payoutStatus?.payout?.ibanMasked || "DE02 1223 1223 1223 1223 1223 1223"}
+              value={formData.ibanAcctNumber}
+              onChange={(value) => handleInputChange("ibanAcctNumber", value)}
+              required
+            />
+            {fieldErrors.ibanAcctNumber && (
+              <p className="mt-1.5 text-[12px] font-poppins text-red-500">{fieldErrors.ibanAcctNumber}</p>
+            )}
+          </div>
+          <div>
+            <Input
+              label="BIC"
+              placeholder={payoutStatus?.payout?.bicMasked || "DEUTDEDB"}
+              value={formData.bicSwiftCode}
+              onChange={(value) => handleInputChange("bicSwiftCode", value)}
+              required
+            />
+            {fieldErrors.bicSwiftCode && (
+              <p className="mt-1.5 text-[12px] font-poppins text-red-500">{fieldErrors.bicSwiftCode}</p>
+            )}
+          </div>
         </div>
         <div className="text-center text-[14px] font-poppins mt-auto pb-3">
           <Button

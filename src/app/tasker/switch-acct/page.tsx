@@ -50,45 +50,25 @@ const Page = () => {
   useEffect(() => {
     const fetchNationalities = async () => {
       try {
-        const res = await fetch(
-          "https://restcountries.com/v3.1/all?fields=name,demonyms,cca2",
-          { cache: "force-cache" },
-        );
-        const data: Array<{
-          name: { common: string };
-          cca2: string;
-          demonyms?: { eng?: { m?: string } };
-        }> = await res.json();
+        const res = await fetch("/api/nationalities");
+        const data: Array<{ demonym: string; code: string }> = await res.json();
+
+        if (!Array.isArray(data)) throw new Error("Unexpected response");
 
         const codeMap: Record<string, string> = {};
         const demonyms: string[] = [];
 
-        data.forEach((c) => {
-          const dem = c.demonyms?.eng?.m;
-          if (dem && dem.trim()) {
-            demonyms.push(dem);
-            if (!codeMap[dem]) codeMap[dem] = c.cca2; // e.g. "German" → "DE"
-          }
+        data.forEach(({ demonym, code }) => {
+          demonyms.push(demonym);
+          codeMap[demonym] = code;
         });
 
-        const unique = Array.from(new Set(demonyms)).sort((a, b) =>
-          a.localeCompare(b),
-        );
-
-        setNationalities(unique);
+        setNationalities(demonyms); // already sorted by the API
         setDemonymToCode(codeMap);
       } catch {
-        setNationalities([
-          "American", "Australian", "British", "Canadian", "Chinese",
-          "French", "German", "Ghanaian", "Indian", "Italian",
-          "Japanese", "Nigerian", "Spanish", "Swiss",
-        ]);
-        setDemonymToCode({
-          American: "US", Australian: "AU", British: "GB", Canadian: "CA",
-          Chinese: "CN", French: "FR", German: "DE", Ghanaian: "GH",
-          Indian: "IN", Italian: "IT", Japanese: "JP", Nigerian: "NG",
-          Spanish: "ES", Swiss: "CH",
-        });
+        // Should never happen with static route, but keep a minimal fallback
+        setNationalities(["British", "German", "French", "Nigerian", "Indian", "American"]);
+        setDemonymToCode({ British: "GB", German: "DE", French: "FR", Nigerian: "NG", Indian: "IN", American: "US" });
       } finally {
         setNationalitiesLoading(false);
       }

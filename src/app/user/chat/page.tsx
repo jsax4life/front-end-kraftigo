@@ -6,6 +6,7 @@ import Image from "next/image";
 import { Search, ChevronRight, User as UserIcon, MoreHorizontal } from "lucide-react";
 import toast from "react-hot-toast";
 import UserNav from "@/components/shared/userNav";
+import Navbar from "@/components/shared/Navbar";
 import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { getStoredAccessToken } from "@/lib/axios";
@@ -85,8 +86,11 @@ const ChatPage = () => {
   );
 
   return (
-    <main className="min-h-screen bg-white pb-32">
-      <div className="px-5 pt-16 pb-4">
+    <main className="relative min-h-screen bg-white pb-32 md:pb-0">
+      <div className="hidden md:block max-w-4xl mx-auto pt-6 px-4 md:px-0 lg:px-0">
+        <Navbar />
+      </div>
+      <div className="px-5 pt-16 md:pt-8 pb-4 max-w-4xl mx-auto">
          <div className="flex justify-between items-center mb-6">
             <h1 className="text-[20px] font-gerat font-[850] text-[rgba(0,0,0,0.8)] tracking-[-0.03em]">
                Messages

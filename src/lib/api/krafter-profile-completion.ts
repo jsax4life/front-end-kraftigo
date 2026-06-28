@@ -81,6 +81,7 @@ export interface KrafterPersonalDetailsStatus {
     occupationDescription?: string | null
     languages?: Array<{ code: string; name: string; proficiency: string }>
     whereYouLive?: string | null
+    travelRadiusKm?: number | null
     uniqueSellingPoint?: string | null
     certifications?: Array<{
       name: string
@@ -91,6 +92,18 @@ export interface KrafterPersonalDetailsStatus {
     }>
     portfolioPhotoUrls?: string[]
     portfolioVideoUrl?: string | null
+  }
+  /** Returned alongside personal details — certifications and portfolio media */
+  work?: {
+    certifications: Array<{
+      name: string
+      issuer: string
+      issueDate?: string | null
+      expiryDate?: string | null
+      documentUrl: string
+    }>
+    portfolioPhotoUrls: string[]
+    portfolioVideoUrl: string | null
   }
 }
 

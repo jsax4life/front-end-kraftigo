@@ -4,7 +4,6 @@ import localFont from "next/font/local";
 import { Toaster } from "react-hot-toast";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import "./globals.css";
-import AppWrapper from "@/components/shared/AppWrapper";
 import AuthPromptModal from "@/components/shared/AuthPromptModal";
 import DomainEventsListener from "@/components/shared/DomainEventsListener";
 

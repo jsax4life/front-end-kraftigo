@@ -75,7 +75,7 @@ const UserNav = () => {
   };
 
   return (
-    <nav className="fixed bottom-0 w-full md:max-w-[430px] h-[96px] bg-white border-t border-[#0000001A] z-50 left-1/2 -translate-x-1/2">
+    <nav className="fixed bottom-0 w-full md:hidden h-[96px] bg-white border-t border-[#0000001A] z-50 left-1/2 -translate-x-1/2">
       <div className="flex items-end justify-between px-[20px] pb-[23px] w-full h-full gap-2">
         {navItems.map((item) => {
           const isActive = pathname === item.path || (pathname === "/" && item.path === "/user/home");
