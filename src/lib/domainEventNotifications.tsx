@@ -141,10 +141,10 @@ function EventToastCard(props: {
         <button
           type="button"
           onClick={() => toast.dismiss(t.id)}
-          className="shrink-0 self-start rounded-lg p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
-          aria-label="Dismiss"
+          className="shrink-0 self-start flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-sm transition hover:border-gray-300 hover:bg-gray-100 hover:text-gray-900"
+          aria-label="Dismiss notification"
         >
-          <X size={16} />
+          <X size={16} strokeWidth={2.5} />
         </button>
       </div>
     </div>
@@ -157,6 +157,10 @@ type DomainToastHistoryPayload = {
   bookingId?: string;
 };
 
+/** Collapse identical toasts within a short window (e.g. rapid profile preference saves). */
+const recentToastFingerprints = new Map<string, number>();
+const TOAST_DEDUPE_MS = 4500;
+
 function pushToast(
   tone: Tone,
   icon: ReactNode,
@@ -165,6 +169,14 @@ function pushToast(
   opts?: { duration?: number; actionLabel?: string; onAction?: () => void },
   history?: DomainToastHistoryPayload,
 ) {
+  const fingerprint = `${title}\0${body}`;
+  const now = Date.now();
+  const lastShown = recentToastFingerprints.get(fingerprint);
+  if (lastShown != null && now - lastShown < TOAST_DEDUPE_MS) {
+    return;
+  }
+  recentToastFingerprints.set(fingerprint, now);
+
   toast.custom(
     (t) => (
       <EventToastCard

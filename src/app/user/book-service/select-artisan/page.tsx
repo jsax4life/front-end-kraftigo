@@ -12,6 +12,7 @@ import CompareSheet from "@/components/shared/CompareModal";
 import { Application } from "@/types";
 import { useBookingsStore } from "@/store/useBookingsStore";
 import { useAddressStore } from "@/store/useAddressStore";
+import { formatLocalDateYmd, parseLocalDateYmd } from "@/utils/date";
 
 interface Artisan {
   id: string;
@@ -117,9 +118,15 @@ const SelectArtisanPage = () => {
     const lngParam = parseFloat(longitudeFromUrl || "");
     const lat = Number.isFinite(latParam) ? latParam : currentLatitude ?? 0;
     const lng = Number.isFinite(lngParam) ? lngParam : currentLongitude ?? 0;
-    const preferredDate = dateParam.includes("T")
-      ? new Date(dateParam).toISOString().split("T")[0]
-      : dateParam.slice(0, 10);
+    const preferredDate = (() => {
+      const fromYmd = parseLocalDateYmd(dateParam);
+      if (fromYmd) return formatLocalDateYmd(fromYmd);
+      if (dateParam.includes("T")) {
+        const parsed = new Date(dateParam);
+        if (!Number.isNaN(parsed.getTime())) return formatLocalDateYmd(parsed);
+      }
+      return dateParam.slice(0, 10);
+    })();
 
     getRecommendations({
       serviceCategoryId: categoryId,

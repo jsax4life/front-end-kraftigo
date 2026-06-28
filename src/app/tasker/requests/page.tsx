@@ -5,6 +5,8 @@ import Select from "@/components/ui/select";
 import JobCard from "@/components/ui/JobCard";
 import RequestCard from "@/components/ui/RequestCard";
 import DirectRequestDetailModal from "@/components/shared/DirectRequestDetailModal";
+import ActiveJobModal from "@/components/shared/ActiveJobModal";
+import TaskDetailModal from "@/components/shared/TaskDetailModal";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Input from "@/components/ui/input";
@@ -38,6 +40,21 @@ import type { Booking } from "@/types";
 import toast from "react-hot-toast";
 
 const MARKETPLACE_PAGE_SIZE = 20;
+
+/** Same rule as Schedule: past jobs (negative diff) also qualify. */
+function isWithin24Hours(dateIso: string | null | undefined): boolean {
+  if (!dateIso) return false;
+  const diff = new Date(dateIso).getTime() - Date.now();
+  return diff <= 24 * 60 * 60 * 1000;
+}
+
+function shouldOpenActiveJobModal(booking: Booking): boolean {
+  const status = String(booking.status ?? "").toUpperCase();
+  if (status === "COMPLETED" || status === "EXPIRED" || status === "IN_PROGRESS") {
+    return true;
+  }
+  return isWithin24Hours(booking.scheduled_date);
+}
 
 function formatMarketplaceMoney(value: number | string | null | undefined): string | null {
   if (value == null || value === "") return null;
@@ -178,6 +195,7 @@ const RequestsPage = () => {
   const [assignedError, setAssignedError] = useState<string | null>(null);
   const [assignedTab, setAssignedTab] = useState<KrafterAssignedTabId>("needs_attention");
   const [assignedActionId, setAssignedActionId] = useState<string | null>(null);
+  const [selectedAssignedBooking, setSelectedAssignedBooking] = useState<Booking | null>(null);
 
   const loadAssignedBookings = useCallback(async () => {
     setAssignedLoading(true);
@@ -888,7 +906,16 @@ const RequestsPage = () => {
                 {filteredAssigned.map((booking) => (
                   <li
                     key={booking.id}
-                    className="bg-white p-4 rounded-xl border border-[#0000001A] shadow-sm hover:border-brand-orange/30 transition-colors"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setSelectedAssignedBooking(booking)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setSelectedAssignedBooking(booking);
+                      }
+                    }}
+                    className="bg-white p-4 rounded-xl border border-[#0000001A] shadow-sm hover:border-brand-orange/30 transition-colors cursor-pointer"
                   >
                     <div className="flex items-start justify-between gap-3 mb-2">
                       <h3 className="font-poppins font-bold text-[15px] text-gray-900 line-clamp-2">
@@ -909,7 +936,7 @@ const RequestsPage = () => {
                       <span className="text-brand-orange font-bold text-base font-poppins">
                         {formatAssignedBookingPrice(booking)}
                       </span>
-                      <div className="flex flex-wrap gap-2 justify-end">
+                      <div className="flex flex-wrap gap-2 justify-end" onClick={(e) => e.stopPropagation()}>
                         {booking.status === "CONFIRMED" && (
                           <Button
                             type="button"
@@ -983,6 +1010,27 @@ const RequestsPage = () => {
         minAmount={selectedCounterMinAmount}
         pricingType={selectedCounterPricingType}
       />
+
+      {selectedAssignedBooking &&
+        (shouldOpenActiveJobModal(selectedAssignedBooking) ? (
+          <ActiveJobModal
+            booking={selectedAssignedBooking}
+            onClose={() => setSelectedAssignedBooking(null)}
+            onBookingUpdated={(b) => {
+              setSelectedAssignedBooking(b);
+              void loadAssignedBookings();
+            }}
+          />
+        ) : (
+          <TaskDetailModal
+            booking={selectedAssignedBooking}
+            onClose={() => setSelectedAssignedBooking(null)}
+            onBookingUpdated={(b) => {
+              setSelectedAssignedBooking(b);
+              void loadAssignedBookings();
+            }}
+          />
+        ))}
 
       {/* Bottom Navigation */}
       <TaskerNav />

@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { X, Calendar, MessageCircle } from "lucide-react";
+import { X, Calendar, MessageCircle, ZoomIn } from "lucide-react";
 import type { DirectArtisanBookingRequest } from "@/lib/api/bookings";
 import { isDirectRequestPendingPayment } from "@/lib/directRequestStatus";
 import { buildTaskerMessageCustomerUrlFromDirectRequest } from "@/lib/chatDeepLinks";
+import ImageLightbox from "@/components/shared/ImageLightbox";
 
 function formatPreferredTime(time: string): string {
   if (!time) return "";
@@ -105,6 +107,7 @@ export default function DirectRequestDetailModal({
   isSubmitting = false,
 }: DirectRequestDetailModalProps) {
   const router = useRouter();
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   if (!open || !request) return null;
 
   const customerChatUrl = buildTaskerMessageCustomerUrlFromDirectRequest(request);
@@ -229,23 +232,36 @@ export default function DirectRequestDetailModal({
 
           {request.mediaUrls && request.mediaUrls.length > 0 && (
             <div className="mb-5">
-              <p className="text-[15px] font-poppins font-bold text-gray-900 mb-2">
+              <p className="text-[15px] font-poppins font-bold text-gray-900 mb-1">
                 Photos
               </p>
+              <p className="text-[12px] font-poppins text-gray-500 mb-2">
+                Tap a photo to view full size
+              </p>
               <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-                {request.mediaUrls.map((url) => (
-                  <div
+                {request.mediaUrls.map((url, index) => (
+                  <button
                     key={url}
-                    className="relative w-[88px] h-[88px] shrink-0 rounded-lg overflow-hidden bg-gray-100 border border-gray-200"
+                    type="button"
+                    onClick={() => setLightboxUrl(url)}
+                    className="relative w-[88px] h-[88px] shrink-0 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 group focus:outline-none focus:ring-2 focus:ring-brand-orange"
+                    aria-label={`View photo ${index + 1} full size`}
                   >
                     <Image
                       src={url}
-                      alt=""
+                      alt={`Task photo ${index + 1}`}
                       fill
                       className="object-cover"
                       sizes="88px"
                     />
-                  </div>
+                    <span className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                      <ZoomIn
+                        size={22}
+                        className="text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md"
+                        aria-hidden
+                      />
+                    </span>
+                  </button>
                 ))}
               </div>
             </div>
@@ -307,6 +323,10 @@ export default function DirectRequestDetailModal({
           </button>
         </div>
       </div>
+
+      {lightboxUrl ? (
+        <ImageLightbox src={lightboxUrl} alt="Customer task photo" onClose={() => setLightboxUrl(null)} />
+      ) : null}
     </div>
   );
 }

@@ -255,7 +255,7 @@ const Page = () => {
           <div>
             <h5 className="text-[14px] font-gerat font-bold text-[#1D2939] px-2 mb-4">Account & Support</h5>
             <div className="bg-white border border-[#F2F4F7] rounded-3xl overflow-hidden shadow-sm">
-              <SettingsRow icon={Bell} label="Notifications" onClick={() => {}} />
+              <SettingsRow icon={Bell} label="Notifications" onClick={() => router.push("/tasker/profile/notifications")} />
               <SettingsRow icon={Languages} label="Language" onClick={() => {}} />
               <SettingsRow icon={HelpCircle} label="Help Center" onClick={() => {}} />
               <SettingsRow icon={UserX} label="Close Account" onClick={() => setDeleteModalOpen(true)} />

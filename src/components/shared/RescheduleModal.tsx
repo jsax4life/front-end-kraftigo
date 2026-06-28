@@ -1,13 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, ChevronLeft, ChevronRight, Clock, AlertCircle } from "lucide-react";
 import Image from "next/image";
+import toast from "react-hot-toast";
+import {
+  formatLocalDateYmd,
+  isCalendarDayBeforeToday,
+  isDateTimeTooSoon,
+  isSameLocalDay,
+  minScheduleTimeInputForToday,
+} from "@/utils/date";
 
 interface RescheduleModalProps {
-  booking: any;
+  booking: {
+    artisan?: { image?: string; name?: string; location?: string };
+    service?: string;
+    date?: string;
+    time?: string;
+    timeLabel?: string;
+  };
   onClose: () => void;
-  onConfirm: (newDate: string, newTime: string) => void;
+  onConfirm: (newDateYmd: string, newTime24: string) => void;
 }
 
 const DAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
@@ -26,59 +41,98 @@ const generateCalendar = (year: number, month: number) => {
 };
 
 const RescheduleModal = ({ booking, onClose, onConfirm }: RescheduleModalProps) => {
-  const today = new Date();
+  const today = useMemo(() => new Date(), []);
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
-  const [selectedTime, setSelectedTime] = useState("6:00pm");
+  const [selectedTime, setSelectedTime] = useState("18:00");
 
   const cells = generateCalendar(viewYear, viewMonth);
 
+  const selectedDate =
+    selectedDay != null ? new Date(viewYear, viewMonth, selectedDay) : null;
+  const isSelectedToday = selectedDate ? isSameLocalDay(selectedDate, today) : false;
+  const minTimeToday = minScheduleTimeInputForToday();
+
+  useEffect(() => {
+    if (!selectedDate || !isSelectedToday) return;
+    if (isDateTimeTooSoon(selectedDate, selectedTime)) {
+      setSelectedTime(minTimeToday);
+    }
+  }, [selectedDay, viewMonth, viewYear, isSelectedToday, minTimeToday, selectedDate, selectedTime]);
+
   const prevMonth = () => {
-    if (viewMonth === 0) { setViewMonth(11); setViewYear(viewYear - 1); }
-    else setViewMonth(viewMonth - 1);
-  };
-  const nextMonth = () => {
-    if (viewMonth === 11) { setViewMonth(0); setViewYear(viewYear + 1); }
-    else setViewMonth(viewMonth + 1);
+    const nextMonth = viewMonth === 0 ? 11 : viewMonth - 1;
+    const nextYear = viewMonth === 0 ? viewYear - 1 : viewYear;
+    const lastDay = new Date(nextYear, nextMonth + 1, 0).getDate();
+    if (isCalendarDayBeforeToday(nextYear, nextMonth, lastDay)) return;
+    if (viewMonth === 0) {
+      setViewMonth(11);
+      setViewYear(viewYear - 1);
+    } else {
+      setViewMonth(viewMonth - 1);
+    }
   };
 
-  const newDateLabel = selectedDay
-    ? `${selectedDay}th ${MONTHS[viewMonth].slice(0, 3)}, ${viewYear}, ${selectedTime}`
+  const nextMonth = () => {
+    if (viewMonth === 11) {
+      setViewMonth(0);
+      setViewYear(viewYear + 1);
+    } else {
+      setViewMonth(viewMonth + 1);
+    }
+  };
+
+  const newDateLabel = selectedDate
+    ? `${selectedDate.toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })}, ${selectedTime}`
     : "—";
 
   const handleConfirm = () => {
-    if (!selectedDay) return;
-    onConfirm(newDateLabel, selectedTime);
+    if (!selectedDay || !selectedDate) return;
+    if (isDateTimeTooSoon(selectedDate, selectedTime)) {
+      toast.error("Choose a time at least 30 minutes from now.");
+      return;
+    }
+    onConfirm(formatLocalDateYmd(selectedDate), selectedTime);
   };
 
-  return (
+  const modal = (
     <>
-      <div className="fixed inset-0 z-60 bg-black/40" onClick={onClose} />
-      <div className="fixed bottom-0 left-0 right-0 z-60 bg-white rounded-t-[32px] max-h-[96vh] flex flex-col">
-        {/* Drag handle */}
+      <div
+        className="fixed inset-0 z-[100] bg-black/40"
+        onClick={onClose}
+        aria-hidden
+      />
+      <div
+        className="fixed bottom-0 left-0 right-0 z-[101] bg-white rounded-t-[32px] max-h-[96vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="reschedule-modal-title"
+      >
         <div className="flex justify-center pt-3 pb-1 shrink-0">
           <div className="w-10 h-1 bg-gray-200 rounded-full" />
         </div>
 
-        {/* Header */}
         <div className="flex items-start justify-between px-5 pt-4 pb-3 shrink-0">
           <div>
-            <h2 className="text-[20px] font-gerat font-bold text-black">
+            <h2 id="reschedule-modal-title" className="text-[20px] font-gerat font-bold text-black">
               Reschedule Appointment
             </h2>
             <p className="text-[12px] font-poppins text-gray-500 mt-0.5">
-              Are You Sure You Want To Cancel?<br />
-              Please confirm the details of the booking you wish to cancel.
+              Pick a new date and time for this Kraft.
             </p>
           </div>
-          <button onClick={onClose} className="text-gray-400 mt-1">
+          <button type="button" onClick={onClose} className="text-gray-400 mt-1" aria-label="Close">
             <X size={20} />
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 pb-6">
-          {/* Current Appointment */}
           <p className="text-[12px] font-poppins font-semibold text-black mb-2">
             Current Appointment
           </p>
@@ -98,17 +152,15 @@ const RescheduleModal = ({ booking, onClose, onConfirm }: RescheduleModalProps) 
                 {booking.artisan?.location}
               </p>
               <p className="text-[12px] font-poppins text-gray-500">
-                {booking.date} ({booking.timeLabel})
+                {booking.date} ({booking.timeLabel || booking.time})
               </p>
             </div>
           </div>
 
-          {/* Select new date */}
           <p className="text-[13px] font-poppins font-semibold text-black mb-3">
             Select new date
           </p>
 
-          {/* Day headers */}
           <div className="grid grid-cols-7 mb-1">
             {DAYS.map((d) => (
               <div key={d} className="text-center text-[11px] font-poppins text-gray-400 py-1">
@@ -117,41 +169,41 @@ const RescheduleModal = ({ booking, onClose, onConfirm }: RescheduleModalProps) 
             ))}
           </div>
 
-          {/* Month nav */}
           <div className="flex items-center justify-between mb-2">
-            <button onClick={prevMonth} className="p-1">
+            <button type="button" onClick={prevMonth} className="p-1">
               <ChevronLeft size={18} className="text-gray-500" />
             </button>
             <span className="text-[13px] font-poppins font-semibold text-black">
               {MONTHS[viewMonth]} {viewYear}
             </span>
-            <button onClick={nextMonth} className="p-1">
+            <button type="button" onClick={nextMonth} className="p-1">
               <ChevronRight size={18} className="text-gray-500" />
             </button>
           </div>
 
-          {/* Calendar grid */}
           <div className="grid grid-cols-7 gap-y-1 mb-5">
             {cells.map((day, i) => {
               if (!day) return <div key={i} />;
+              const isPast = isCalendarDayBeforeToday(viewYear, viewMonth, day);
               const isToday =
                 day === today.getDate() &&
                 viewMonth === today.getMonth() &&
                 viewYear === today.getFullYear();
               const isSelected = day === selectedDay;
-              const isHighlighted = [1, 9, 3].includes(day) && !isSelected; // design accent days
               return (
                 <button
                   key={i}
-                  onClick={() => setSelectedDay(day)}
+                  type="button"
+                  disabled={isPast}
+                  onClick={() => !isPast && setSelectedDay(day)}
                   className={`w-8 h-8 mx-auto rounded-full text-[13px] font-poppins font-medium transition-colors ${
-                    isSelected
-                      ? "bg-brand-blue text-white"
-                      : isToday
-                      ? "bg-brand-orange text-white"
-                      : isHighlighted
-                      ? "bg-brand-orange/20 text-brand-orange font-semibold"
-                      : "text-gray-700 hover:bg-gray-100"
+                    isPast
+                      ? "text-gray-300 cursor-not-allowed"
+                      : isSelected
+                        ? "bg-brand-blue text-white"
+                        : isToday
+                          ? "bg-brand-orange text-white"
+                          : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
                   {day}
@@ -160,19 +212,28 @@ const RescheduleModal = ({ booking, onClose, onConfirm }: RescheduleModalProps) 
             })}
           </div>
 
-          {/* Select new time */}
           <p className="text-[13px] font-poppins font-semibold text-black mb-2">
-            Select new Time
+            Select new time
           </p>
-          <div className="flex items-center justify-between border border-gray-200 rounded-xl px-4 py-3 mb-4">
-            <div className="flex items-center gap-2 text-[14px] font-poppins text-gray-700">
-              <Clock size={16} className="text-gray-400" />
-              <span>{selectedTime}</span>
-            </div>
-            <ChevronRight size={16} className="text-gray-400" />
+          <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-4 py-3 mb-4">
+            <Clock size={16} className="text-gray-400 shrink-0" />
+            <input
+              type="time"
+              value={selectedTime}
+              min={isSelectedToday ? minTimeToday : undefined}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (selectedDate && isSelectedToday && v && isDateTimeTooSoon(selectedDate, v)) {
+                  toast.error("Pick a time at least 30 minutes from now.");
+                  setSelectedTime(minTimeToday);
+                  return;
+                }
+                setSelectedTime(v);
+              }}
+              className="flex-1 bg-transparent text-[14px] font-poppins text-gray-700 outline-none"
+            />
           </div>
 
-          {/* Reschedule Policy */}
           <div className="bg-orange-50 border border-orange-100 rounded-xl p-3 mb-5 flex gap-2">
             <AlertCircle size={16} className="text-brand-orange shrink-0 mt-0.5" />
             <div>
@@ -180,32 +241,28 @@ const RescheduleModal = ({ booking, onClose, onConfirm }: RescheduleModalProps) 
                 Reschedule Policy
               </p>
               <p className="text-[11px] font-poppins text-orange-500">
-                Rescheduling 24 hours of the agreed time may incur a €9.99 late notice fee.{" "}
-                <span className="underline cursor-pointer">Learn more</span>
+                Rescheduling within 24 hours of the agreed time may incur a €9.99 late notice fee.
               </p>
             </div>
           </div>
 
-          {/* Old / New Date Summary */}
           <div className="grid grid-cols-2 gap-3 mb-5">
             <div className="bg-gray-50 rounded-xl p-3">
               <p className="text-[10px] font-poppins text-gray-400 mb-1">Old Date</p>
               <div className="flex items-center gap-1.5 text-[12px] font-poppins text-gray-600">
-                <span>📅</span>
                 <span>{booking.date}, {booking.time}</span>
               </div>
             </div>
             <div className="bg-orange-50 rounded-xl p-3">
               <p className="text-[10px] font-poppins text-brand-orange mb-1">New Proposed Date</p>
               <div className="flex items-center gap-1.5 text-[12px] font-poppins text-brand-orange">
-                <span>📅</span>
                 <span>{newDateLabel}</span>
               </div>
             </div>
           </div>
 
-          {/* Confirm Button */}
           <button
+            type="button"
             onClick={handleConfirm}
             disabled={!selectedDay}
             className={`w-full py-4 rounded-2xl text-[15px] font-poppins font-semibold transition-colors ${
@@ -220,6 +277,9 @@ const RescheduleModal = ({ booking, onClose, onConfirm }: RescheduleModalProps) 
       </div>
     </>
   );
+
+  if (typeof document === "undefined") return null;
+  return createPortal(modal, document.body);
 };
 
 export default RescheduleModal;

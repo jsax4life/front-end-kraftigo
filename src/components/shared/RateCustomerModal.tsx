@@ -62,10 +62,14 @@ const RateCustomerModal = ({
     onClose();
   };
 
+  const handleSkip = () => {
+    onClose();
+  };
+
   const firstName = customerName.split(" ")[0];
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 bottom-0 flex items-end justify-center">
+    <div className="fixed inset-0 bg-black/50 z-[120] bottom-0 flex items-end justify-center">
       {/* Outer dashed-border card */}
       <div className="relative bg-white rounded-t-xl w-full max-w-md mx-auto p-4">
         {/* Close button */}
@@ -180,8 +184,8 @@ const RateCustomerModal = ({
               {isSubmitting ? "Submitting..." : "Done"}
             </Button>
 
-            <Button onClick={onClose} variant="secondary" fullWidth disabled={isSubmitting}>
-              Report Issue
+            <Button onClick={handleSkip} variant="secondary" fullWidth disabled={isSubmitting}>
+              Skip for now
             </Button>
           </div>
         </div>

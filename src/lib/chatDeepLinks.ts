@@ -32,6 +32,24 @@ export function buildCustomerMessageKrafterUrl(b: Booking): string | null {
   return `/user/chat?${params.toString()}`;
 }
 
+const CUSTOMER_CHAT_BLOCKED_STATUSES = new Set([
+  "EXPIRED",
+  "CANCELLED",
+  "COMPLETED",
+  "DISPUTED",
+  "DECLINED",
+]);
+
+/** Customer may message assigned Krafter only while the booking is still active. */
+export function canCustomerMessageKrafter(b: Booking): boolean {
+  const status = String(b.status ?? "")
+    .trim()
+    .toUpperCase()
+    .replace(/-/g, "_");
+  if (CUSTOMER_CHAT_BLOCKED_STATUSES.has(status)) return false;
+  return buildCustomerMessageKrafterUrl(b) !== null;
+}
+
 /** Deep-link into tasker Messages with the customer pre-selected. */
 export function buildTaskerMessageCustomerUrlFromDirectRequest(
   req: DirectArtisanBookingRequest,

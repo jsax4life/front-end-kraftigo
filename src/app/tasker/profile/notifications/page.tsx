@@ -1,7 +1,8 @@
 "use client";
 
-import { BellRing } from "lucide-react";
-import Header from "@/components/shared/Header";
+import { useRouter } from "next/navigation";
+import { ChevronLeft, BellRing } from "lucide-react";
+import TaskerNav from "@/components/shared/taskerNav";
 import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
 import type { NotificationKey } from "@/lib/notificationPreferences";
 
@@ -40,7 +41,7 @@ const TOGGLE_META: { key: NotificationKey; label: string; description: string }[
   {
     key: "booking",
     label: "Booking Info",
-    description: "Submit a Kraft request, confirm and cancel bookings.",
+    description: "New requests, confirmations, and booking updates.",
   },
   {
     key: "support",
@@ -55,35 +56,40 @@ const TOGGLE_META: { key: NotificationKey; label: string; description: string }[
   {
     key: "late",
     label: "Late Notifications",
-    description: "Activate notifications if the artisan is delayed more than 5 mins.",
+    description: "Alerts when a job runs past the scheduled time.",
   },
   {
     key: "news",
     label: "Newsletter & Articles",
-    description: "Activate to receive news, products and everything happening in Kraft.",
+    description: "News, products, and everything happening in Kraft.",
   },
 ];
 
-const NotificationsPage = () => {
+const TaskerNotificationsPage = () => {
+  const router = useRouter();
   const { settings, toggle, isLoading, isSaving } = useNotificationPreferences();
 
   return (
-    <main className="min-h-screen bg-[#F9FAFB] flex flex-col">
-      <Header title="Notifications" showLogout={false} />
+    <main className="min-h-screen bg-[#F9FAFB] pb-28">
+      <div className="w-full flex items-center justify-between py-6 px-4 bg-white border-b border-[#F2F4F7]">
+        <button type="button" onClick={() => router.back()} className="p-1 hover:opacity-70 transition-opacity">
+          <ChevronLeft className="w-8 h-8 text-[#1D2939]" strokeWidth={1.5} />
+        </button>
+        <div className="text-center pr-10 flex-1">
+          <h1 className="text-[20px] font-gerat font-bold text-[#1D2939]">Notifications</h1>
+        </div>
+      </div>
 
-      <div className="flex-1 max-w-2xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-10">
-          <h2 className="text-[32px] font-gerat font-[850] text-[#1D2939] leading-tight">Notifications</h2>
+      <div className="max-w-2xl mx-auto w-full px-4 sm:px-6 py-8">
+        <div className="mb-8">
+          <h2 className="text-[28px] font-gerat font-bold text-[#1D2939] leading-tight">Notifications</h2>
           <p className="text-[14px] text-[#667085] font-poppins mt-2">
-            Select what you want to be notified about
+            Choose what you want to be notified about
           </p>
         </div>
 
         <div className="bg-white p-6 rounded-3xl border border-[#F2F4F7] shadow-sm">
-          <h3 className="text-[12px] font-poppins font-bold text-[#98A2B3] uppercase tracking-widest mb-2 ml-1">
-            Preferences
-          </h3>
-          {isLoading && !settings ? (
+          {isLoading ? (
             <p className="text-[13px] font-poppins text-gray-500 py-4">Loading preferences…</p>
           ) : (
             <div className="flex flex-col">
@@ -101,15 +107,17 @@ const NotificationsPage = () => {
           )}
         </div>
 
-        <div className="mt-12 flex items-center gap-3 p-5 bg-orange-50/50 rounded-2xl border border-orange-100">
+        <div className="mt-10 flex items-center gap-3 p-5 bg-orange-50/50 rounded-2xl border border-orange-100">
           <BellRing className="text-brand-orange shrink-0" size={24} />
           <p className="text-[13px] font-poppins text-[#667085]">
-            We&apos;ll only notify you about important updates regarding your krafts even if all toggles are off.
+            Important updates about your jobs may still be sent even when toggles are off.
           </p>
         </div>
       </div>
+
+      <TaskerNav />
     </main>
   );
 };
 
-export default NotificationsPage;
+export default TaskerNotificationsPage;

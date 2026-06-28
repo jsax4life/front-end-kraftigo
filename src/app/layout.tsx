@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Poppins } from "next/font/google";
 import localFont from "next/font/local";
-import { Toaster } from "react-hot-toast";
+import DismissibleToaster from "@/components/shared/DismissibleToaster";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import "./globals.css";
 import AppWrapper from "@/components/shared/AppWrapper";
@@ -74,7 +74,7 @@ export default function RootLayout({
           <GoogleOAuthProvider
             clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}
           >
-            <Toaster
+            <DismissibleToaster
               position="top-right"
               toastOptions={{
                 duration: 8000,
@@ -104,7 +104,7 @@ export default function RootLayout({
           </GoogleOAuthProvider>
         ) : (
           <>
-            <Toaster
+            <DismissibleToaster
               position="top-right"
               toastOptions={{
                 duration: 8000,

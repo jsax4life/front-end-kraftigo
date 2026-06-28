@@ -30,6 +30,11 @@ export interface ResetPasswordPayload {
   password: string;
 }
 
+export interface ChangePasswordPayload {
+  currentPassword: string;
+  newPassword: string;
+}
+
 export interface DeleteAccountPayload {
   password?: string;
   confirmation?: "DELETE_MY_KRAFTIGO_ACCOUNT";
@@ -151,6 +156,14 @@ export const resetPassword = async (
   payload: ResetPasswordPayload,
 ): Promise<{ message: string }> => {
   const response = await api.post("/api/auth/reset-password", payload);
+  return response.data;
+};
+
+/** POST /api/auth/change-password — Authenticated password change (JWT required) */
+export const changePassword = async (
+  payload: ChangePasswordPayload,
+): Promise<{ message: string }> => {
+  const response = await api.post("/api/auth/change-password", payload);
   return response.data;
 };
 

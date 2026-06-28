@@ -11,6 +11,7 @@ import PhotoUploader, { Photo } from "@/components/shared/PhotoUploader";
 import { useAddressStore } from "@/store/useAddressStore";
 import { useBookingsStore } from "@/store/useBookingsStore";
 import toast from "react-hot-toast";
+import { formatLocalDateYmd, isDateTimeTooSoon, isSameLocalDay, minScheduleTimeInputForToday } from "@/utils/date";
 
 const BookServicePage = () => {
   const router = useRouter();
@@ -63,6 +64,16 @@ const BookServicePage = () => {
 
 
 
+  const isSelectedDateToday = formData.selectedDate
+    ? isSameLocalDay(formData.selectedDate, new Date())
+    : false;
+  const minTimeToday = minScheduleTimeInputForToday();
+
+  const isTimeSlotDisabled = (slotValue: string) => {
+    if (slotValue === "Custom" || !formData.selectedDate) return false;
+    return isDateTimeTooSoon(formData.selectedDate, slotValue);
+  };
+
   const timeSlots = [
     { display: "08:00 AM", value: "08:00" },
     { display: "10:00 AM", value: "10:00" },
@@ -83,12 +94,16 @@ const BookServicePage = () => {
       );
       return;
     }
+    if (formData.selectedDate && isDateTimeTooSoon(formData.selectedDate, resolvedTime)) {
+      toast.error("Choose a time at least 30 minutes from now.");
+      return;
+    }
     if (!categoryId.trim()) {
       toast.error("Missing service category. Go back and pick a category.");
       return;
     }
 
-    const preferredDate = formData.selectedDate.toISOString().split("T")[0];
+    const preferredDate = formatLocalDateYmd(formData.selectedDate);
     // Prefer live GPS → selected saved address coords → block if still unavailable
     const selectedAddr = addresses.find((a) => a.id === selectedAddressId);
     let lat =
@@ -163,7 +178,7 @@ const BookServicePage = () => {
         categoryId,
         category: categoryName,
         address: currentAddress,
-        date: formData.selectedDate.toISOString(),
+        date: preferredDate,
         time: resolvedTime,
         taskDetails: formData.taskDetails,
         specialInstructions: formData.specialInstructions,
@@ -312,29 +327,51 @@ const BookServicePage = () => {
             When?
           </h2>
           <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2 pb-4">
-            {timeSlots.map((time) => (
+            {timeSlots.map((time) => {
+              const disabled = isTimeSlotDisabled(time.value);
+              return (
               <button
                 key={time.value}
+                type="button"
+                disabled={disabled}
                 onClick={() => {
+                  if (disabled) return;
                   setFormData({ ...formData, selectedTime: time.value });
                   if (time.value !== "Custom") setCustomTime("");
                 }}
                 className={`py-3 rounded-lg text-[13px] sm:text-[14px] font-poppins font-medium transition-colors ${
-                  formData.selectedTime === time.value
+                  disabled
+                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    : formData.selectedTime === time.value
                     ? "bg-brand-orange text-white"
                     : "bg-[#F6F6F6] text-gray-800 hover:bg-gray-100"
                 }`}
               >
                 {time.display}
               </button>
-            ))}
+            );
+            })}
           </div>
 {formData.selectedTime === "Custom" && (
               <div className="mt-3">
                 <input
                   type="time"
                   value={customTime}
-                  onChange={(e) => setCustomTime(e.target.value)}
+                  min={isSelectedDateToday ? minTimeToday : undefined}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (
+                      formData.selectedDate &&
+                      isSelectedDateToday &&
+                      v &&
+                      isDateTimeTooSoon(formData.selectedDate, v)
+                    ) {
+                      toast.error("Pick a time at least 30 minutes from now.");
+                      setCustomTime(minTimeToday);
+                      return;
+                    }
+                    setCustomTime(v);
+                  }}
                   className="w-full p-3 bg-[#F6F6F6] rounded-xl text-[14px] sm:text-[15px] font-poppins border border-[#0000001A] text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-orange"
                 />
               </div>
@@ -434,7 +471,19 @@ const BookServicePage = () => {
         onClose={() => setShowDatePicker(false)}
         selectedDate={formData.selectedDate}
         onSelectDate={(date) => {
-          setFormData({ ...formData, selectedDate: date });
+          setFormData((prev) => {
+            const resolvedTime =
+              prev.selectedTime === "Custom" ? customTime.trim() : prev.selectedTime;
+            const timeInvalid = Boolean(resolvedTime && isDateTimeTooSoon(date, resolvedTime));
+            return {
+              ...prev,
+              selectedDate: date,
+              ...(timeInvalid ? { selectedTime: "" } : {}),
+            };
+          });
+          if (customTime && isDateTimeTooSoon(date, customTime)) {
+            setCustomTime("");
+          }
         }}
       />
     </main>

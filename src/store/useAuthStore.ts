@@ -10,6 +10,7 @@ import {
   resendVerificationCode,
   forgotPassword,
   resetPassword,
+  changePassword as changePasswordApi,
   loginWithGoogle,
   loginTasker,
   registerTasker,
@@ -34,6 +35,7 @@ interface AuthState {
   resendVerificationCode: (email: string) => Promise<string>
   forgotPassword: (email: string) => Promise<string>
   resetPassword: (payload: ResetPasswordPayload) => Promise<string>
+  changePassword: (currentPassword: string, newPassword: string) => Promise<string>
   loginWithGoogle: (idToken: string) => Promise<void>
   
   // Tasker Actions
@@ -190,6 +192,22 @@ export const useAuthStore = create<AuthState>()(
           } catch (error: any) {
             set({
               error: error.response?.data?.message || 'Failed to reset password',
+              isLoading: false,
+            })
+            throw error
+          }
+        },
+
+        changePassword: async (currentPassword, newPassword) => {
+          set({ isLoading: true, error: null })
+          try {
+            const { message } = await changePasswordApi({ currentPassword, newPassword })
+            await get().logout()
+            set({ isLoading: false })
+            return message
+          } catch (error: any) {
+            set({
+              error: error.response?.data?.message || 'Failed to change password',
               isLoading: false,
             })
             throw error

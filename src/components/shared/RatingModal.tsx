@@ -28,7 +28,6 @@ const RatingModal = ({ artisan, onClose, onDone, isSubmitting = false }: RatingM
   const [hoveredStar, setHoveredStar] = useState(0);
   const [selectedTags, setSelectedTags] = useState<string[]>(["Punctual"]);
   const [review, setReview] = useState("");
-  const [selectedTip, setSelectedTip] = useState("");
 
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) =>
@@ -126,20 +125,21 @@ const RatingModal = ({ artisan, onClose, onDone, isSubmitting = false }: RatingM
           className="w-full h-20 bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-[13px] font-poppins text-gray-700 resize-none focus:outline-none focus:border-brand-orange mb-5"
         />
 
-        {/* Send a tip */}
-        <p className="text-[14px] font-poppins font-bold text-black text-center mb-3">
+        {/* Send a tip — UI placeholder; tipping not enabled yet */}
+        <p className="text-[14px] font-poppins font-bold text-black text-center mb-1">
           Send a tip to {artisan.name}
         </p>
-        <div className="flex gap-2 justify-center mb-6">
+        <p className="text-[12px] font-poppins text-gray-400 text-center mb-3">
+          Tips are coming soon
+        </p>
+        <div className="flex gap-2 justify-center mb-6 opacity-50 pointer-events-none select-none">
           {TIPS.map((tip) => (
             <button
               key={tip}
-              onClick={() => setSelectedTip(tip === selectedTip ? "" : tip)}
-              className={`flex-1 py-2.5 rounded-xl text-[13px] font-poppins font-semibold border transition-colors ${
-                selectedTip === tip
-                  ? "bg-brand-orange text-white border-brand-orange"
-                  : "bg-white text-gray-700 border-gray-200 hover:border-brand-orange"
-              }`}
+              type="button"
+              disabled
+              aria-disabled="true"
+              className="flex-1 py-2.5 rounded-xl text-[13px] font-poppins font-semibold border bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
             >
               {tip}
             </button>
@@ -152,8 +152,7 @@ const RatingModal = ({ artisan, onClose, onDone, isSubmitting = false }: RatingM
         <button
           disabled={isSubmitting}
           onClick={() => {
-            const tipAmount = selectedTip === "Custom" ? 0 : parseInt(selectedTip.replace("€", "")) || 0;
-            onDone(rating, selectedTags, review, tipAmount);
+            onDone(rating, selectedTags, review, 0);
           }}
           className="w-full py-4 bg-brand-orange text-white rounded-2xl text-[15px] font-poppins font-semibold hover:bg-orange-600 transition-colors disabled:opacity-60"
         >
