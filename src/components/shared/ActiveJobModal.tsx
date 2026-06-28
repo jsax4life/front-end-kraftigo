@@ -9,6 +9,7 @@ import PhotoUploader, { Photo } from "@/components/shared/PhotoUploader";
 import Button from "@/components/ui/button";
 import RateCustomerModal from "@/components/shared/RateCustomerModal";
 import { submitReview } from "@/lib/api/reviews";
+import { buildTaskerMessageCustomerUrlFromBooking } from "@/lib/chatDeepLinks";
 import type { Booking } from "@/types";
 import { useBookingsStore } from "@/store/useBookingsStore";
 import { parseBookingMoney } from "@/lib/bookingDisplay";
@@ -164,6 +165,22 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
   const [hasSubmittedReview, setHasSubmittedReview] = useState(false);
   const estimatedHours = 2;
 
+  const buildReviewPayload = (rating: number, tags: string[], feedback: string) => ({
+    bookingId: booking!.id,
+    rating,
+    feedback: feedback.trim() || undefined,
+    selectedTags: tags,
+    highlights: tags,
+    clearInstructions: tags.includes("Clear Instructions") ? 5 : undefined,
+    instructionClarity: tags.includes("Accurate Brief") ? 5 : undefined,
+    respectful: tags.includes("Respectful") ? 5 : undefined,
+    customerCourtesy: tags.includes("Respectful") ? 5 : undefined,
+    safeEnvironment: tags.includes("Safe Environment") ? 5 : undefined,
+    environmentSafety: tags.includes("Safe Environment") ? 5 : undefined,
+    accessPreparedness: tags.includes("On time") ? 5 : undefined,
+    wouldWorkAgain: rating >= 4,
+  });
+
   const workAnchorMsRef = useRef(0);
   const pauseStartedAtRef = useRef<number | null>(null);
   const pausedTotalMsRef = useRef(0);
@@ -258,6 +275,17 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
     }
   };
 
+  const customerChatUrl = buildTaskerMessageCustomerUrlFromBooking(booking);
+
+  const handleMessageCustomer = () => {
+    if (!customerChatUrl) {
+      toast.error("Could not open chat for this customer yet.");
+      return;
+    }
+    onClose();
+    router.push(customerChatUrl);
+  };
+
   const handleCompleteJob = async () => {
     const files = proofPhotos.map((p) => p.file).filter((f): f is File => f instanceof File);
     if (files.length < 1) {
@@ -272,7 +300,6 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
       });
       onBookingUpdated?.(updated);
       if (typeof window !== "undefined") {
-        // Freeze elapsed time at completion so reopening the modal keeps the final timer.
         window.localStorage.setItem(jobWorkDurationStorageKey(booking.id), String(Math.max(0, computeElapsedMs())));
         window.sessionStorage.removeItem(jobWorkStartStorageKey(booking.id));
       }
@@ -293,26 +320,10 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
     if (hasSubmittedReview || isReviewSubmitting) return;
     setIsReviewSubmitting(true);
     try {
-      await submitReview({
-        bookingId: booking.id,
-        rating,
-        feedback: feedback.trim() || undefined,
-        selectedTags: tags,
-        highlights: tags,
-        // Optional structured customer-feedback scores for krafter-side review.
-        clearInstructions: tags.includes("Clear Instructions") ? 5 : undefined,
-        instructionClarity: tags.includes("Accurate Brief") ? 5 : undefined,
-        respectful: tags.includes("Respectful") ? 5 : undefined,
-        customerCourtesy: tags.includes("Respectful") ? 5 : undefined,
-        safeEnvironment: tags.includes("Safe Environment") ? 5 : undefined,
-        environmentSafety: tags.includes("Safe Environment") ? 5 : undefined,
-        accessPreparedness: tags.includes("On time") ? 5 : undefined,
-        wouldWorkAgain: rating >= 4,
-      });
+      await submitReview(buildReviewPayload(rating, tags, feedback));
       setHasSubmittedReview(true);
       toast.success("Review submitted.");
-      onClose();
-      router.push("/tasker/dashboard");
+      setShowRatingModal(false);
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { message?: string } } };
       toast.error(ax.response?.data?.message ?? "Could not submit review. Try again.");
@@ -431,21 +442,21 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
                     </p>
                   </div>
               </div>
-                {phase !== "completed" ? (
+                {phase !== "completed" && !isExpired ? (
                   <button
                     type="button"
-                    onClick={() => router.push("/tasker/chat")}
+                    onClick={handleMessageCustomer}
                     className="w-11 h-11 bg-[#FFE5D9] rounded-full flex items-center justify-center hover:bg-[#FFD5C2] transition-colors"
                   >
                     <MessageCircle size={18} className="text-brand-orange" />
                   </button>
-                ) : (
+                ) : phase === "completed" ? (
                   <div className="w-11 h-11 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none">
                       <path d="M9 16.17 4.83 12 3.41 13.41 9 19l12-12-1.41-1.41z" />
                     </svg>
                   </div>
-                )}
+                ) : null}
               </div>
             </div>
 
@@ -545,7 +556,12 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
             {phase === "in-progress" && (
               <div>
                 <h3 className="text-[15px] font-bold text-gray-900 mb-2">Completion photos (1–3 required)</h3>
-                <PhotoUploader photos={proofPhotos} onChange={setProofPhotos} maxPhotos={3} title="" />
+                <PhotoUploader
+                  photos={proofPhotos}
+                  onChange={setProofPhotos}
+                  maxPhotos={3}
+                  embedded
+                />
               </div>
             )}
 
@@ -628,7 +644,7 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
                     {isActionLoading ? "Completing…" : "Complete job"}
                   </Button>
                   <p className="text-[11px] text-center text-gray-500 font-poppins px-1">
-                    Add 1–3 photos of finished work. This completes the job on the server and notifies the customer.
+                    Add 1–3 photos of finished work. You can rate the customer after completing.
                   </p>
                 </>
               )}

@@ -13,7 +13,7 @@ import {
   upcomingStatusLabel,
   bookingNeedsKrafterSelection,
 } from "@/lib/bookingDisplay";
-import { buildCustomerMessageKrafterUrl } from "@/lib/chatDeepLinks";
+import { buildCustomerMessageKrafterUrl, canCustomerMessageKrafter, getKrafterUserIdFromBooking } from "@/lib/chatDeepLinks";
 import { useBookingsStore } from "@/store/useBookingsStore";
 import CancelModal from "@/components/shared/CancelModal";
 import RescheduleModal from "@/components/shared/RescheduleModal";
@@ -58,7 +58,7 @@ export default function CustomerKraftTaskDetailModal({
   onBookingUpdated,
 }: Props) {
   const router = useRouter();
-  const { cancelBooking, updateBooking, reopenRecommendation, isSubmitting } = useBookingsStore();
+  const { cancelBooking, updateBooking, reviveFromExpired, isSubmitting } = useBookingsStore();
 
   const [enriched, setEnriched] = useState<Booking>(booking);
   const [loading, setLoading] = useState(false);
@@ -124,6 +124,11 @@ export default function CustomerKraftTaskDetailModal({
       String(apiStatus ?? ""),
     );
 
+  const canRescheduleExpired =
+    isExpired && Boolean(b.id) && !needsKrafterSelection && Boolean(getKrafterUserIdFromBooking(b));
+
+  const canReviveExpired = isExpired && Boolean(b.id);
+
   const looseSpecial = readBookingLoose(b, "specialInstructions", "special_instructions");
   const specialExplicit =
     (typeof b.specialInstructions === "string" && b.specialInstructions.trim()
@@ -185,10 +190,10 @@ export default function CustomerKraftTaskDetailModal({
     }
   };
 
-  const handleReopenTask = async () => {
+  const handleReviveTask = async () => {
     if (!b.id) return;
     try {
-      const updated = await reopenRecommendation(b.id);
+      const updated = await reviveFromExpired(b.id);
       onBookingUpdated?.();
       onClose();
       router.push(`/user/book-service/select-artisan?${buildSelectArtisanQuery(updated)}`);
@@ -200,7 +205,9 @@ export default function CustomerKraftTaskDetailModal({
   return (
     <div
       className="fixed inset-0 z-55 flex items-end justify-center bg-black/50 sm:items-center sm:p-4"
-      onClick={onClose}
+      onClick={() => {
+        if (!showReschedule && !showCancel) onClose();
+      }}
       role="presentation"
     >
       <div
@@ -454,7 +461,7 @@ export default function CustomerKraftTaskDetailModal({
               >
                 Choose a Krafter
               </button>
-            ) : canReschedule ? (
+            ) : canReschedule || canRescheduleExpired ? (
               <button
                 type="button"
                 onClick={() => setShowReschedule(true)}
@@ -465,7 +472,7 @@ export default function CustomerKraftTaskDetailModal({
               </button>
             ) : null}
 
-            {!isTerminal && !needsKrafterSelection && buildCustomerMessageKrafterUrl(b) ? (
+            {!isTerminal && canCustomerMessageKrafter(b) ? (
               <button
                 type="button"
                 onClick={() => {
@@ -482,20 +489,29 @@ export default function CustomerKraftTaskDetailModal({
 
             {isExpired && (
               <p className="w-full py-2 text-center text-[12px] font-poppins text-amber-900 bg-amber-50 border border-amber-100 rounded-xl px-3">
-                This booking expired because the scheduled time passed.
+                This booking expired because the scheduled time passed. Reschedule with your Krafter or revive the task to pick a new date.
               </p>
             )}
 
-            {isDeclined && b.id ? (
+            {canReviveExpired ? (
               <button
                 type="button"
-                onClick={handleReopenTask}
+                onClick={handleReviveTask}
+                disabled={isSubmitting}
+                className="w-full py-4 bg-brand-blue text-white rounded-2xl text-[15px] font-poppins font-semibold hover:bg-blue-700 transition-colors disabled:opacity-60"
+              >
+                Revive task
+              </button>
+            ) : isDeclined && b.id ? (
+              <button
+                type="button"
+                onClick={handleReviveTask}
                 disabled={isSubmitting}
                 className="w-full py-4 bg-brand-blue text-white rounded-2xl text-[15px] font-poppins font-semibold hover:bg-blue-700 transition-colors disabled:opacity-60"
               >
                 Reopen Task
               </button>
-            ) : (
+            ) : !isExpired ? (
               <button
                 type="button"
                 onClick={() => {
@@ -506,7 +522,7 @@ export default function CustomerKraftTaskDetailModal({
               >
                 Report issue
               </button>
-            )}
+            ) : null}
 
             {canCustomerCancel ? (
               <button

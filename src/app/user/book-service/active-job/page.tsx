@@ -46,6 +46,7 @@ const ActiveJobContent = () => {
 
   const {
     fetchBookingById,
+    refreshBookingAfterPayment,
     cancelBooking,
     updateBooking,
     reopenRecommendation,
@@ -307,6 +308,15 @@ const ActiveJobContent = () => {
             Confirm payment
           </button>
         )}
+        {!isPaymentPending && apiStatus === "CONFIRMED" && bookingId && (
+          <button
+            type="button"
+            disabled
+            className="w-full py-4 bg-gray-200 text-gray-500 rounded-2xl text-[15px] font-poppins font-semibold cursor-not-allowed"
+          >
+            Payment confirmed
+          </button>
+        )}
         {needsKrafterSelection && bookingId && selectedBooking ? (
           <button
             type="button"
@@ -396,7 +406,10 @@ const ActiveJobContent = () => {
           }
           onClose={() => setShowPaymentConfirm(false)}
           onComplete={() => {
-            void fetchBookingById(bookingId);
+            void (async () => {
+              setShowPaymentConfirm(false);
+              await refreshBookingAfterPayment(bookingId);
+            })();
           }}
         />
       )}

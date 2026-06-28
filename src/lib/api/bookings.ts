@@ -252,8 +252,11 @@ export const mapMarketplaceOpenRowToBooking = (
         }
       : undefined
 
-  const firstMedia =
-    row.mediaUrls && row.mediaUrls.length > 0 ? row.mediaUrls[0] : undefined
+  const mediaRaw = row.mediaUrls ?? loose.media_urls
+  const mediaUrls = Array.isArray(mediaRaw)
+    ? mediaRaw.filter((u): u is string => typeof u === 'string' && u.trim().length > 0)
+    : undefined
+  const firstMedia = mediaUrls?.[0]
 
   return {
     id: row.id,
@@ -269,7 +272,8 @@ export const mapMarketplaceOpenRowToBooking = (
     created_at: row.createdAt,
     updated_at: row.updatedAt,
     title: row.jobTitle,
-    image: cat?.imageUrl ?? firstMedia,
+    image: cat?.imageUrl ?? firstMedia ?? mediaUrls?.[0],
+    ...(mediaUrls && mediaUrls.length > 0 ? { mediaUrls } : {}),
     service,
     hasApplied: row.hasApplied,
     ...(row.offerPricingType != null
@@ -554,6 +558,12 @@ export const reopenRecommendation = async (id: string): Promise<Booking> => {
   return response.data
 }
 
+/** POST /api/bookings/{id}/revive-from-expired — customer revives an expired booking */
+export const reviveFromExpired = async (id: string): Promise<Booking> => {
+  const response = await api.post(`/api/bookings/${id}/revive-from-expired`, {})
+  return normalizeBookingDetailResponse(response.data)
+}
+
 /** Body for proceed-to-payment / confirm when charging a saved Stripe PM (see `frontend-payments.md`). */
 export interface BookingSavedPaymentPayload {
   savedPaymentMethodId: string
@@ -784,6 +794,11 @@ export function mapArtisanAssignedBookingRowToBooking(row: ArtisanAssignedBookin
   const firstMedia =
     row.mediaUrls && row.mediaUrls.length > 0 ? row.mediaUrls[0] : undefined
 
+  const assignedMediaRaw = row.mediaUrls ?? loose.media_urls
+  const assignedMediaUrls = Array.isArray(assignedMediaRaw)
+    ? assignedMediaRaw.filter((u): u is string => typeof u === 'string' && u.trim().length > 0)
+    : undefined
+
   const timeRaw = row.preferredTime?.trim() ?? ''
   const scheduledTime =
     timeRaw.length >= 5 ? timeRaw.slice(0, 5) : timeRaw || undefined
@@ -819,14 +834,14 @@ export function mapArtisanAssignedBookingRowToBooking(row: ArtisanAssignedBookin
     created_at: row.createdAt,
     updated_at: row.updatedAt,
     title: row.jobTitle,
-    image: firstMedia,
+    image: assignedMediaUrls?.[0] ?? firstMedia,
     service,
     jobTitle: row.jobTitle,
     jobDescription: row.jobDescription,
     address: row.address,
     preferredDate: row.preferredDate,
     preferredTime: row.preferredTime,
-    mediaUrls: row.mediaUrls ?? undefined,
+    mediaUrls: assignedMediaUrls ?? undefined,
     artisanId: row.artisanId,
     serviceCategoryId: row.serviceCategoryId,
     createdAt: row.createdAt,
@@ -914,7 +929,14 @@ export const getDirectArtisanBookings = async (): Promise<DirectArtisanBookingRe
   const response = await api.get<DirectArtisanBookingRequest[]>(
     '/api/artisan/bookings/direct-requests',
   )
-  return response.data
+  return response.data.map((row) => {
+    const loose = row as unknown as Record<string, unknown>
+    const mediaRaw = row.mediaUrls ?? loose.media_urls
+    const mediaUrls = Array.isArray(mediaRaw)
+      ? mediaRaw.filter((u): u is string => typeof u === 'string' && u.trim().length > 0)
+      : null
+    return { ...row, mediaUrls }
+  })
 }
 
 /**

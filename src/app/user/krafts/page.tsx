@@ -20,7 +20,7 @@ import {
   isKraftTaskPlaceholderImage,
   parseBookingMoney,
 } from "@/lib/bookingDisplay";
-import { buildCustomerMessageKrafterUrl } from "@/lib/chatDeepLinks";
+import { buildCustomerMessageKrafterUrl, canCustomerMessageKrafter } from "@/lib/chatDeepLinks";
 import BookingPaymentConfirmModal from "@/components/shared/BookingPaymentConfirmModal";
 import { bookingPaymentClientSecret } from "@/lib/bookingPaymentCheckout";
 import { getBookingApplicants } from "@/lib/api/bookings";
@@ -103,6 +103,24 @@ function opensTaskDetailFromUpcomingCard(
   return false;
 }
 
+function opensCompletedTabDetail(status: BookingStatus): boolean {
+  return status === "EXPIRED" || status === "CANCELLED" || status === "DISPUTED";
+}
+
+function handleCompletedTabCardClick(
+  task: Booking,
+  router: ReturnType<typeof useRouter>,
+  setTaskDetailBooking: (b: Booking) => void,
+) {
+  if (task.status === "COMPLETED") {
+    router.push(`/user/book-service/completed-job?id=${task.id}`);
+    return;
+  }
+  if (opensCompletedTabDetail(task.status)) {
+    setTaskDetailBooking(task);
+  }
+}
+
 const KraftsPage = () => {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"upcoming" | "completed">("upcoming");
@@ -114,7 +132,7 @@ const KraftsPage = () => {
   const [paymentModalBooking, setPaymentModalBooking] = useState<Booking | null>(null);
   const [taskDetailBooking, setTaskDetailBooking] = useState<Booking | null>(null);
 
-  const { fetchMyBookings, getUpcomingBookings, getCompletedBookings, bookings, isLoading, error, clearError, lastFetchStatus } =
+  const { fetchMyBookings, refreshBookingAfterPayment, getUpcomingBookings, getCompletedBookings, bookings, isLoading, error, clearError, lastFetchStatus } =
     useBookingsStore();
 
   useEffect(() => {
@@ -402,7 +420,7 @@ const KraftsPage = () => {
                     </button>
                   </div>
                 )}
-                {!bookingNeedsKrafterSelection(task) && buildCustomerMessageKrafterUrl(task) ? (
+                {!canCustomerMessageKrafter(task) ? null : (
                   <div
                     className="px-4 pb-3 pt-0 border-t border-gray-100"
                     onClick={(e) => e.stopPropagation()}
@@ -416,7 +434,7 @@ const KraftsPage = () => {
                       Message Krafter
                     </button>
                   </div>
-                ) : null}
+                )}
               </div>
             );
           })}
@@ -642,18 +660,27 @@ const KraftsPage = () => {
                     const imageAlt = display.artisan.name || title;
                     const taskStatus = task.status;
 
+                    const isCompletedCardClickable =
+                      taskStatus === "COMPLETED" || opensCompletedTabDetail(taskStatus);
+
                     return (
                       <div
                         key={task.id}
                         className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden"
                       >
                         <div
-                          onClick={() =>
-                            taskStatus === "COMPLETED" &&
-                            router.push(`/user/book-service/completed-job?id=${task.id}`)
-                          }
+                          role={isCompletedCardClickable ? "button" : undefined}
+                          tabIndex={isCompletedCardClickable ? 0 : undefined}
+                          onClick={() => handleCompletedTabCardClick(task, router, setTaskDetailBooking)}
+                          onKeyDown={(e) => {
+                            if (!isCompletedCardClickable) return;
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              handleCompletedTabCardClick(task, router, setTaskDetailBooking);
+                            }
+                          }}
                           className={`p-4 flex gap-3 ${
-                            taskStatus === "COMPLETED"
+                            isCompletedCardClickable
                               ? "cursor-pointer hover:border-brand-orange transition-colors"
                               : ""
                           }`}
@@ -672,9 +699,7 @@ const KraftsPage = () => {
                           </div>
                           <KraftTaskThumbnail src={image} alt={imageAlt} />
                         </div>
-                        {taskStatus !== "COMPLETED" &&
-                        !bookingNeedsKrafterSelection(task) &&
-                        buildCustomerMessageKrafterUrl(task) ? (
+                        {canCustomerMessageKrafter(task) ? (
                           <div className="px-4 pb-3 border-t border-gray-100" onClick={(e) => e.stopPropagation()}>
                             <button
                               type="button"
@@ -728,7 +753,15 @@ const KraftsPage = () => {
           }
           onClose={() => setPaymentModalBooking(null)}
           onComplete={() => {
-            void fetchMyBookings();
+            void (async () => {
+              const id = paymentModalBooking?.id;
+              setPaymentModalBooking(null);
+              if (id) {
+                await refreshBookingAfterPayment(id);
+              } else {
+                await fetchMyBookings();
+              }
+            })();
           }}
         />
       )}

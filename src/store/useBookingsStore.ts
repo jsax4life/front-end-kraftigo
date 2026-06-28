@@ -15,6 +15,7 @@ import {
   updateBooking,
   cancelBooking,
   reopenRecommendation as reopenRecommendationApi,
+  reviveFromExpired as reviveFromExpiredApi,
   confirmBooking as confirmBookingApi,
   proceedToPayment as proceedToPaymentApi,
   selectApplicant,
@@ -112,6 +113,9 @@ interface BookingsState {
   updateBooking: (id: string, payload: UpdateBookingPayload) => Promise<Booking>
   cancelBooking: (id: string, payload: CancelBookingPayload) => Promise<void>
   reopenRecommendation: (id: string) => Promise<Booking>
+  reviveFromExpired: (id: string) => Promise<Booking>
+  /** Poll until booking leaves PAYMENT_PENDING after Stripe success. */
+  refreshBookingAfterPayment: (id: string) => Promise<Booking>
   confirmBooking: (
     id: string,
     payload?: BookingSavedPaymentPayload,
@@ -330,6 +334,52 @@ export const useBookingsStore = create<BookingsState>()((set, get) => ({
       })
       throw err
     }
+  },
+
+  reviveFromExpired: async (id) => {
+    set({ isSubmitting: true, error: null })
+    try {
+      const updated = await reviveFromExpiredApi(id)
+      set((state) => ({
+        bookings: state.bookings.map((b) => (b.id === id ? updated : b)),
+        selectedBooking: state.selectedBooking?.id === id ? updated : state.selectedBooking,
+        isSubmitting: false,
+      }))
+      return updated
+    } catch (err: any) {
+      set({
+        error: err.response?.data?.message || 'Failed to revive task',
+        isSubmitting: false,
+      })
+      throw err
+    }
+  },
+
+  refreshBookingAfterPayment: async (id) => {
+    const delays = [0, 800, 1600, 2400, 4000]
+    let latest: Booking | null = null
+    for (const delay of delays) {
+      if (delay > 0) {
+        await new Promise((r) => setTimeout(r, delay))
+      }
+      try {
+        const booking = await getBookingById(id)
+        latest = booking
+        set((state) => ({
+          bookings: state.bookings.map((b) => (b.id === id ? booking : b)),
+          selectedBooking: state.selectedBooking?.id === id ? booking : state.selectedBooking,
+        }))
+        if (booking.status !== 'PAYMENT_PENDING') {
+          return booking
+        }
+      } catch {
+        /* retry */
+      }
+    }
+    if (!latest) {
+      throw new Error('Could not refresh booking after payment')
+    }
+    return latest
   },
 
   confirmBooking: async (id, overrides) => {

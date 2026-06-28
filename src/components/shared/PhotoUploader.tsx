@@ -16,6 +16,8 @@ interface PhotoUploaderProps {
   onChange: (photos: Photo[]) => void;
   maxPhotos?: number;
   title?: string;
+  /** Strip outer section chrome when nested inside another panel/modal. */
+  embedded?: boolean;
 }
 
 export default function PhotoUploader({
@@ -23,6 +25,7 @@ export default function PhotoUploader({
   onChange,
   maxPhotos = 3,
   title,
+  embedded = false,
 }: PhotoUploaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -70,17 +73,25 @@ export default function PhotoUploader({
   const canAddMore = photos.length < maxPhotos;
 
   return (
-    <div className="p-4 sm:p-5 border-b border-[#0000001A]">
+    <div className={embedded ? "" : "p-4 sm:p-5 border-b border-[#0000001A]"}>
+      {embedded ? (
+        <div className="flex justify-end mb-2">
+          <span className="text-[12px] font-poppins text-gray-400">
+            {photos.length}/{maxPhotos}
+          </span>
+        </div>
+      ) : (
       <div className="flex items-center justify-between mb-3">
-        {title && (
+        {title ? (
           <h2 className="text-[20px] sm:text-[22px] font-poppins font-medium">
             {title}
           </h2>
-        )}
-        <span className="text-[12px] font-poppins text-gray-400 ml-auto">
+        ) : null}
+        <span className={`text-[12px] font-poppins text-gray-400 ${title ? "" : "ml-auto"}`}>
           {photos.length}/{maxPhotos}
         </span>
       </div>
+      )}
 
       {/* Limit Error Banner */}
       {limitError && (
@@ -157,7 +168,7 @@ export default function PhotoUploader({
         {photos.map((photo) => (
           <div
             key={photo.id}
-            className="aspect-square bg-gray-200 rounded-xl overflow-hidden relative group"
+            className="aspect-square bg-gray-200 rounded-xl overflow-hidden relative"
           >
             {photo.mediaType === "video" ? (
               <video
@@ -175,10 +186,12 @@ export default function PhotoUploader({
               />
             )}
             <button
+              type="button"
               onClick={() => handleRemove(photo.id)}
-              className="absolute top-2 right-2 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-md hover:bg-red-500 hover:text-white transition-colors opacity-0 group-hover:opacity-100"
+              aria-label="Remove photo"
+              className="absolute top-1.5 right-1.5 z-10 w-7 h-7 bg-black/70 text-white rounded-full flex items-center justify-center shadow-md border border-white/80 hover:bg-red-600 transition-colors"
             >
-              <X size={14} />
+              <X size={16} strokeWidth={2.5} />
             </button>
           </div>
         ))}
