@@ -9,49 +9,52 @@ import { useEffect } from "react";
 const About = () => {
   const { user, isTasker, isUser } = useAuthStore();
   const {
+    personalDetailsStatus,
+    fetchKrafterPersonalDetailsStatus,
     artisanProfile,
-    customerProfile,
     fetchArtisanProfile,
+    customerProfile,
     fetchCustomerProfile,
   } = useProfileStore();
 
   useEffect(() => {
-    if (isTasker() && !artisanProfile) {
-      fetchArtisanProfile();
+    if (isTasker()) {
+      if (!personalDetailsStatus) fetchKrafterPersonalDetailsStatus();
+      if (!artisanProfile) fetchArtisanProfile();
     } else if (isUser() && !customerProfile) {
       fetchCustomerProfile();
     }
   }, [
     isTasker,
     isUser,
+    personalDetailsStatus,
     artisanProfile,
     customerProfile,
+    fetchKrafterPersonalDetailsStatus,
     fetchArtisanProfile,
     fetchCustomerProfile,
   ]);
 
-  // Determine which profile were working with
-  const profile = isTasker()
-    ? artisanProfile
-    : typeof customerProfile === "object"
-      ? customerProfile
-      : null;
-
-  // Get name from profile, fallback to auth user, fallback to "User"
+  // Get name: krafters from personalDetailsStatus, customers from auth user
   const fullName = isTasker()
-    ? artisanProfile?.displayName || artisanProfile?.legalFullName
+    ? personalDetailsStatus?.personal?.displayName ||
+      personalDetailsStatus?.suggestedDisplayName ||
+      (user?.firstName ? `${user.firstName} ${user.lastName || ""}`.trim() : null)
     : customerProfile && typeof customerProfile === "object"
-      ? user?.firstName + " " + user?.lastName
+      ? `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim()
       : null;
 
-  const displayName =
-    (fullName || user?.firstName + " " + user?.lastName)?.split(" ")[0] || "User";
+  const displayName = (fullName || user?.firstName || "User").split(" ")[0];
+
+  // Resolve avatar from whichever source has data — avoids role-string mismatches
   const avatar =
-    (isTasker()
-      ? artisanProfile?.profilePhotoUrl
-      : customerProfile && typeof customerProfile === "object"
-        ? customerProfile.profilePhotoUrl
-        : null) || user?.avatar;
+    personalDetailsStatus?.personal?.profilePhotoUrl ||
+    artisanProfile?.profilePhotoUrl ||
+    (customerProfile && typeof customerProfile === "object"
+      ? customerProfile.profilePhotoUrl
+      : null) ||
+    user?.avatar ||
+    null;
 
   return (
     <div className="w-full px-4 sm:px-6 lg:px-8">

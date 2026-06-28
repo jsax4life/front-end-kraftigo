@@ -95,16 +95,13 @@ const CompleteProfileForm = () => {
   const [apiLanguageList, setApiLanguageList] = useState<string[]>([]);
 
   useEffect(() => {
-    fetch("https://restcountries.com/v3.1/all?fields=languages")
+    fetch("/api/languages")
       .then((res) => res.json())
       .then((data) => {
-        const langs = new Set<string>();
-        data.forEach((country: any) => {
-          if (country.languages) {
-            Object.values(country.languages).forEach((l: any) => langs.add(l));
-          }
-        });
-        setApiLanguageList(Array.from(langs).sort());
+        // API route returns a pre-sorted string[] — just set it directly
+        if (Array.isArray(data)) {
+          setApiLanguageList(data);
+        }
       })
       .catch((err) => console.error("Failed to load languages:", err));
   }, []);

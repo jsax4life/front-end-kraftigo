@@ -7,7 +7,6 @@ import { Camera, X, User as UserIcon, HelpCircle, ChevronLeft } from "lucide-rea
 import Input from "@/components/ui/input";
 import Select from "@/components/ui/select";
 import Button from "@/components/ui/button";
-import api from "@/lib/axios";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useProfileStore } from "@/store/useProfileStore";
 import toast from "react-hot-toast";
@@ -32,10 +31,11 @@ const Page = () => {
   const router = useRouter();
   const { user } = useAuthStore();
   const {
-    artisanProfile,
-    fetchArtisanProfile,
-    createOrUpdateArtisanProfile,
+    personalDetailsStatus,
+    fetchKrafterPersonalDetailsStatus,
+    submitPersonalDetails,
     getUploadUrlForProfilePic,
+    getUploadUrlForPortfolioMedia,
     updateKrafterProfilePhotoUrl,
     isLoading,
   } = useProfileStore();
@@ -55,122 +55,62 @@ const Page = () => {
     documentUrl?: string;
   };
   const [certifications, setCertifications] = useState<CertificationRow[]>([]);
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
   const [isUploadingPhotos, setIsUploadingPhotos] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const profilePhotoInputRef = useRef<HTMLInputElement>(null);
   const MAX_WORK_PHOTOS = 3;
 
-  const hasProfilePhoto = Boolean(artisanProfile?.profilePhotoUrl || user?.avatar);
+  const hasProfilePhoto = Boolean(profilePhotoUrl || user?.avatar);
 
   useEffect(() => {
-    if (!artisanProfile) {
-      fetchArtisanProfile();
-    }
-  }, [artisanProfile, fetchArtisanProfile]);
+    fetchKrafterPersonalDetailsStatus();
+  }, [fetchKrafterPersonalDetailsStatus]);
 
+  // Prefill all fields from GET /api/profile/krafter/complete-profile/personal-details
   useEffect(() => {
-    if (artisanProfile) {
-      setDisplayName(artisanProfile.displayName || artisanProfile.legalFullName || "");
-      setBio(artisanProfile.bio || "");
-      setTrade(artisanProfile.primaryTrade || "");
-      setLocation(artisanProfile.baseCity || "");
-      const p = artisanProfile as any;
-      const nestedProfile = (p.profile && typeof p.profile === "object" ? p.profile : null) as
-        | Record<string, unknown>
-        | null;
-      const nestedVerification =
-        (p.verification && typeof p.verification === "object" ? p.verification : null) as
-          | Record<string, unknown>
-          | null;
-      setUniquePoint(
-        p.uniqueSellingPoint ||
-          p.unique_selling_point ||
-          p.uniquePoint ||
-          p.unique_point ||
-          (nestedProfile?.uniqueSellingPoint as string) ||
-          (nestedProfile?.unique_selling_point as string) ||
-          (nestedVerification?.uniqueSellingPoint as string) ||
-          "",
-      );
-      setLanguages((artisanProfile.languages || []).map(l => l.name));
-      const portfolioRaw =
-        p.portfolioPhotoUrls ??
-        p.portfolio_photo_urls ??
-        p.portfolioPhotos ??
-        p.portfolio_photos ??
-        p.portfolio_images ??
-        p.portfolio ??
-        nestedProfile?.portfolioPhotoUrls ??
-        nestedProfile?.portfolio_photo_urls ??
-        nestedVerification?.portfolioPhotoUrls ??
-        nestedVerification?.portfolio_photo_urls;
-      const portfolio = Array.isArray(portfolioRaw)
-        ? portfolioRaw
-        : typeof portfolioRaw === "string"
-          ? portfolioRaw.split(",")
-          : [];
-      setWorkPhotos(
-        portfolio
-          .map((item: unknown) => {
-            if (typeof item === "string") return item.trim();
-            if (item && typeof item === "object") {
-              const obj = item as {
-                url?: unknown;
-                publicUrl?: unknown;
-                public_url?: unknown;
-                fileUrl?: unknown;
-                imageUrl?: unknown;
-                image_url?: unknown;
-              };
-              const value =
-                obj.url ??
-                obj.publicUrl ??
-                obj.public_url ??
-                obj.fileUrl ??
-                obj.imageUrl ??
-                obj.image_url;
-              return typeof value === "string" ? value.trim() : "";
-            }
-            return "";
-          })
-          .filter((src): src is string => src.length > 0),
-      );
-
-      const certRaw = p.certifications ?? p.certs ?? p.licenses ?? [];
-      const certList: CertificationRow[] = Array.isArray(certRaw)
-        ? certRaw
-            .map((item: unknown): CertificationRow | null => {
-              if (!item || typeof item !== "object") return null;
-              const o = item as Record<string, unknown>;
-              const name = String(o.name ?? o.title ?? "").trim();
-              const issuer = String(o.issuer ?? o.organization ?? "").trim();
-              const issueDate = String(o.issueDate ?? o.issue_date ?? "").trim();
-              const expiryDate = String(o.expiryDate ?? o.expiry_date ?? "").trim();
-              const documentUrl = String(o.documentUrl ?? o.document_url ?? o.url ?? "").trim();
-              if (!name && !issuer && !issueDate && !expiryDate && !documentUrl) return null;
-              return { name, issuer, issueDate, expiryDate, documentUrl };
-            })
-            .filter((c): c is CertificationRow => c !== null)
-        : [];
-      setCertifications(certList);
+    if (personalDetailsStatus?.personal) {
+      const d = personalDetailsStatus.personal;
+      const fallback = personalDetailsStatus.suggestedDisplayName ||
+        (user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : '');
+      setDisplayName(d.displayName || fallback);
+      setBio(d.bio || '');
+      setTrade(d.occupationDescription || '');
+      setLocation(d.whereYouLive || '');
+      setUniquePoint(d.uniqueSellingPoint || '');
+      setLanguages((d.languages || []).map(l => l.name));
+      setProfilePhotoUrl(d.profilePhotoUrl || null);
+      setWorkPhotos(d.portfolioPhotoUrls || []);
+      if (d.certifications) {
+        setCertifications(
+          d.certifications.map(c => ({
+            name: c.name,
+            issuer: c.issuer,
+            issueDate: c.issueDate ?? undefined,
+            expiryDate: c.expiryDate ?? undefined,
+            documentUrl: c.documentUrl,
+          }))
+        );
+      }
     }
-  }, [artisanProfile]);
+  }, [personalDetailsStatus, user]);
 
   const handleSave = async () => {
     try {
-      const profileData = {
-        ...artisanProfile,
+      await submitPersonalDetails({
         displayName,
         bio,
-        primaryTrade: trade,
-        baseCity: location,
+        occupationDescription: trade,
+        whereYouLive: location,
         uniqueSellingPoint: uniquePoint,
         portfolioPhotoUrls: workPhotos,
+        profilePhotoUrl: profilePhotoUrl || undefined,
+        certifications: certifications.length > 0
+          ? certifications
+              .filter((c): c is typeof c & { documentUrl: string } => !!c.documentUrl)
+          : undefined,
         languages: languages.map(l => ({ name: l, code: l.toLowerCase().slice(0, 2), proficiency: 'fluent' })),
-        // Add more mapping here as backend schema expansion allows
-      };
-      
-      await createOrUpdateArtisanProfile(profileData as any);
+      });
       toast.success("Profile updated successfully!");
       router.push("/tasker/profile");
     } catch (error) {
@@ -182,6 +122,14 @@ const Page = () => {
     setLanguages(prev => prev.filter(l => l !== lang));
   };
 
+  const removePortfolioPhoto = (idx: number) => {
+    setWorkPhotos(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const removeCertification = (idx: number) => {
+    setCertifications(prev => prev.filter((_, i) => i !== idx));
+  };
+
   const addLanguage = (lang: string) => {
     if (lang !== "select" && !languages.includes(lang)) {
       setLanguages(prev => [...prev, lang]);
@@ -189,37 +137,17 @@ const Page = () => {
   };
 
   const uploadPortfolioPhoto = async (file: File): Promise<string> => {
-    const mimetype = file.type || "application/octet-stream";
-    const initRes = await api.post<Record<string, unknown>>(
-      "/api/profile/artisan/upload-portfolio",
-      { filename: file.name, mimetype, fileSize: file.size },
-    );
-    const d = (initRes.data ?? {}) as Record<string, unknown> & {
-      uploadUrl?: unknown;
-      publicUrl?: unknown;
-      requiredUploadHeaders?: unknown;
-      url?: unknown;
-      fileUrl?: unknown;
-    };
-    const uploadUrl = typeof d.uploadUrl === "string" ? d.uploadUrl : null;
-    const publicUrl =
-      (typeof d.publicUrl === "string" ? d.publicUrl : null) ||
-      (typeof d.url === "string" ? d.url : null) ||
-      (typeof d.fileUrl === "string" ? d.fileUrl : null);
-    if (!uploadUrl || !publicUrl) throw new Error("Unexpected upload response");
-
-    const putHeaders: Record<string, string> = { "Content-Type": mimetype };
-    if (d.requiredUploadHeaders && typeof d.requiredUploadHeaders === "object") {
-      for (const [k, v] of Object.entries(d.requiredUploadHeaders as Record<string, unknown>)) {
-        if (typeof v === "string" && v.trim()) putHeaders[k] = v;
-      }
-    }
+    const { uploadUrl, publicUrl, requiredUploadHeaders } = await getUploadUrlForPortfolioMedia({
+      filename: file.name,
+      mimetype: file.type || 'application/octet-stream',
+      fileSize: file.size,
+    });
     const putRes = await fetch(uploadUrl, {
-      method: "PUT",
-      headers: putHeaders,
+      method: 'PUT',
+      headers: requiredUploadHeaders,
       body: file,
     });
-    if (!putRes.ok) throw new Error(`Failed upload (HTTP ${putRes.status})`);
+    if (!putRes.ok) throw new Error(`Upload failed (HTTP ${putRes.status})`);
     return publicUrl;
   };
 
@@ -240,23 +168,22 @@ const Page = () => {
 
   const handleProfilePhotoSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    e.target.value = "";
+    e.target.value = '';
     if (!file) return;
     try {
       setIsUploadingAvatar(true);
       const publicUrl = await uploadProfilePhoto(file);
+      setProfilePhotoUrl(publicUrl);
       await updateKrafterProfilePhotoUrl({ profilePhotoUrl: publicUrl });
-      const me = await api.get("/api/profile/artisan/me");
-      useProfileStore.setState({ artisanProfile: me.data });
-      toast.success("Profile photo updated!");
+      toast.success('Profile photo updated!');
     } catch (err: unknown) {
       const msg =
-        err && typeof err === "object" && "response" in err
+        err && typeof err === 'object' && 'response' in err
           ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
           : err instanceof Error
             ? err.message
-            : "Failed to upload profile photo";
-      toast.error(msg || "Failed to upload profile photo");
+            : 'Failed to upload profile photo';
+      toast.error(msg || 'Failed to upload profile photo');
     } finally {
       setIsUploadingAvatar(false);
     }
@@ -312,9 +239,9 @@ const Page = () => {
             aria-label={hasProfilePhoto ? "Change profile photo" : "Add profile photo"}
           >
             <div className="relative w-full h-full rounded-full overflow-hidden">
-              {artisanProfile?.profilePhotoUrl || user?.avatar ? (
+              {profilePhotoUrl || user?.avatar ? (
                 <Image
-                  src={artisanProfile?.profilePhotoUrl || user?.avatar || ""}
+                  src={profilePhotoUrl || user?.avatar || ""}
                   alt="Profile"
                   fill
                   className="object-cover"
@@ -329,7 +256,7 @@ const Page = () => {
                 </div>
               )}
             </div>
-            {isUploadingAvatar && (artisanProfile?.profilePhotoUrl || user?.avatar) && (
+            {isUploadingAvatar && (profilePhotoUrl || user?.avatar) && (
               <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center">
                 <div className="h-8 w-8 animate-spin rounded-full border-2 border-white border-t-transparent" />
               </div>
@@ -382,6 +309,15 @@ const Page = () => {
              {workPhotos.map((src, idx) => (
                <div key={`${src}-${idx}`} className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden group border border-[#EAECF0]">
                   <Image src={src} alt="work" fill className="object-cover" unoptimized />
+                  {/* Always-visible remove button */}
+                  <button
+                    type="button"
+                    onClick={() => removePortfolioPhoto(idx)}
+                    className="absolute top-1.5 right-1.5 z-10 w-6 h-6 bg-black/60 hover:bg-red-500 rounded-full flex items-center justify-center transition-colors"
+                    aria-label="Remove photo"
+                  >
+                    <X size={12} className="text-white" />
+                  </button>
                   <div className="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                     <button
                       type="button"
@@ -418,9 +354,18 @@ const Page = () => {
               {certifications.map((cert, idx) => (
                 <div
                   key={`${cert.name}-${cert.issuer}-${idx}`}
-                  className="rounded-2xl border border-[#EAECF0] bg-[#F9FAFB] p-4"
+                  className="relative rounded-2xl border border-[#EAECF0] bg-[#F9FAFB] p-4"
                 >
-                  <p className="text-[14px] font-poppins font-semibold text-[#1D2939]">
+                  {/* Remove X */}
+                  <button
+                    type="button"
+                    onClick={() => removeCertification(idx)}
+                    className="absolute top-3 right-3 w-6 h-6 bg-red-50 hover:bg-red-100 rounded-full flex items-center justify-center transition-colors group/x"
+                    aria-label="Remove certification"
+                  >
+                    <X size={13} className="text-red-400 group-hover/x:text-red-600 transition-colors" />
+                  </button>
+                  <p className="text-[14px] font-poppins font-semibold text-[#1D2939] pr-8">
                     {cert.name || "Certification"}
                   </p>
                   {cert.issuer && (
