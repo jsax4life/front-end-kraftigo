@@ -244,7 +244,7 @@ const BookServicePage = () => {
             type="button"
             onClick={() => {
               clearRecommendationDraftBooking();
-              router.push("/user/home");
+              router.push("/");
             }}
             className="text-brand-orange text-[12px] sm:text-[14px] font-poppins font-semibold rounded-full hover:underline"
           >

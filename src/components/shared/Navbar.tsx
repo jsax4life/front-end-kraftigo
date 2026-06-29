@@ -33,7 +33,7 @@ const Navbar = () => {
   }, [isMenuOpen]);
 
   const menuItems = [
-    { label: "Home", icon: "/home.svg", href: "/user/home" },
+    { label: "Home", icon: "/home.svg", href: "/" },
     { label: "Krafts", icon: "/task.svg", href: "/user/krafts" },
     { label: "Chat", icon: "/chat.svg", href: "/user/chat" },
     { label: "Support", icon: "/sopport.svg", href: "/user/support" },
@@ -88,7 +88,7 @@ const Navbar = () => {
           {menuItems.map((item, index) => {
             const isActive =
               pathname === item.href ||
-              (pathname === "/" && item.href === "/user/home") ||
+              (pathname === "/" && item.href === "/") ||
               pathname?.startsWith(item.href + "/");
             return (
               <Link

@@ -100,7 +100,7 @@ const Page = () => {
       photos: filePhotos,
     });
 
-    router.push("/user/home/custom-kraft/details");
+    router.push("/user/custom-kraft/details");
   };
 
   const timeSlots = [

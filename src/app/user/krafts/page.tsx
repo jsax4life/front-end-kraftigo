@@ -447,7 +447,7 @@ const KraftsPage = () => {
       <div className="px-4 py-6 max-w-4xl mx-auto w-full">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
-          <button onClick={() => router.push("/user/home")} className="p-1">
+          <button onClick={() => router.push("/")} className="p-1">
             <ArrowLeft size={24} />
           </button>
           <h1 className="text-[28px] font-gerat font-bold">Krafts</h1>

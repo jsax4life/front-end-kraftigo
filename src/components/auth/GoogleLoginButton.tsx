@@ -25,7 +25,7 @@ const GoogleLoginButton = ({ className, variant = "icon" }: GoogleLoginButtonPro
         await loginWithGoogle(tokenResponse.access_token);
         logger.log("Google OAuth successful!");
         toast.success("Login successful! Welcome to Kraftigo.");
-        router.push("/user/home");
+        router.push("/");
       } catch (err: unknown) {
         logger.error("Google OAuth failed:", err);
         toast.error(formatLoginApiError(err, useAuthStore.getState().error));

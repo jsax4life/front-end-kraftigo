@@ -52,7 +52,7 @@ const Page = () => {
           router.replace("/tasker/dashboard");
           return;
         }
-        router.replace("/user/home");
+        router.replace("/");
       })();
     }
   }, [isAuthenticated, router, fetchVerificationStatus]);
@@ -112,7 +112,7 @@ const Page = () => {
         router.replace("/tasker/dashboard");
         return;
       }
-      router.replace("/user/home");
+      router.replace("/");
     } catch (err: unknown) {
       const msg = formatLoginApiError(err, useAuthStore.getState().error);
       toast.error(msg);

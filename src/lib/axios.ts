@@ -230,17 +230,23 @@ api.interceptors.response.use(
             
             // No refresh token available - logout
             processQueue(new Error('No refresh token available'), null)
-            let loginUrl = '/user/login'
+            
             const currentAuthStorage = localStorage.getItem('auth-storage')
-            if (currentAuthStorage) {
-                try {
-                    const { state: pState } = JSON.parse(currentAuthStorage)
-                    const roles = pState?.user?.roles || []
-                    if (roles.includes('TASKER') || roles.includes('tasker') || roles.includes('ARTISAN')) {
-                        loginUrl = '/tasker/login'
-                    }
-                } catch (e) {}
+            
+            // If they are already completely logged out (no auth storage at all),
+            // just reject the promise. Don't aggressively redirect them.
+            if (!currentAuthStorage) {
+                return Promise.reject(error)
             }
+
+            let loginUrl = '/user/login'
+            try {
+                const { state: pState } = JSON.parse(currentAuthStorage)
+                const roles = pState?.user?.roles || []
+                if (roles.includes('TASKER') || roles.includes('tasker') || roles.includes('ARTISAN')) {
+                    loginUrl = '/tasker/login'
+                }
+            } catch (e) {}
             
             localStorage.removeItem('auth-storage')
             updateCachedToken(null)

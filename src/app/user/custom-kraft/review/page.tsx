@@ -47,7 +47,7 @@ const Page = () => {
   // ─── Guard: redirect back if no draft exists ────────────────────────────
   useEffect(() => {
     if (!selectedKraft) {
-      router.replace("/user/home/custom-kraft/description");
+      router.replace("/user/custom-kraft/description");
     }
   }, [selectedKraft, router]);
 
@@ -100,7 +100,7 @@ const Page = () => {
     }
     try {
       await publishKraft(selectedKraft.id);
-      router.push("/user/home/custom-kraft/finished");
+      router.push("/user/custom-kraft/finished");
     } catch (err) {
       if (isSavedPaymentMethodRequiredError(err)) {
         toast.error(SAVED_PAYMENT_METHOD_REQUIRED_TOAST, { duration: 6500 });
