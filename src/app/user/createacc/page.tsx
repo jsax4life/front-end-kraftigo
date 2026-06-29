@@ -34,6 +34,7 @@ const Page = () => {
     registerUser,
     verifyEmail,
     resendVerificationCode,
+    loginUser,
     isLoading,
     error,
     clearError,
@@ -200,9 +201,12 @@ const Page = () => {
       await verifyEmail(formData.email, otpCode);
       logger.log("Email verified successfully!");
 
-      toast.success("Email verified successfully! Redirecting to login...");
+      // Seamlessly log the user in since we have their credentials
+      await loginUser(formData.email, formData.password);
 
-      router.push("/user/login?verified=true");
+      toast.success("Registration complete! Welcome to Kraftigo.");
+
+      router.push("/");
     } catch (err: any) {
       logger.error("Verification failed:", err);
 
@@ -374,7 +378,7 @@ const Page = () => {
                 </p>
 
                 {/* Verification Code Inputs */}
-                <div className="flex gap-2 sm:gap-3 justify-center mb-6">
+                <div className="flex gap-2 sm:gap-3 justify-center md:mt-24 mb-6">
                   {verificationCode.map((digit, index) => (
                     <input
                       key={index}
