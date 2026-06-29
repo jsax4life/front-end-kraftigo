@@ -28,7 +28,7 @@ const ProCard = ({
   onViewProfile,
 }: ProCardProps) => {
   return (
-    <div className="bg-[#F6F6F6] rounded-xl p-3 sm:p-3 border border-[#0000001A] w-[95%] sm:w-[80%] lg:w-[46%] shrink-0">
+    <div className="bg-[#F6F6F6] rounded-xl p-3 sm:p-3 border border-[#0000001A] w-[95%] sm:w-[80%] lg:w-[46%] shrink-0 flex flex-col h-full">
       <div className="flex gap-4">
         {/* Pro Image */}
         <div className="relative shrink-0">
@@ -75,8 +75,8 @@ const ProCard = ({
           </div>
         </div>
       </div>
-      <div className="mt-3">
-        <p className="mb-3">{description}</p>
+      <div className="mt-auto pt-3 flex flex-col justify-end">
+        <p className="mb-3 text-[13px] sm:text-[14px] text-gray-700 font-poppins line-clamp-2 min-h-[40px]">{description || " "}</p>
         <div className="flex items-center justify-between gap-3">
           <p className="text-[20px] sm:text-[20px] font-mabry font-semibold">
             {price}

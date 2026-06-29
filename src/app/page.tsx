@@ -206,7 +206,7 @@ const Page = () => {
 
   // ── Derived display values ──────────────────────────────────────────────────
   const displayName = user?.firstName || "User";
-  const avatar = user?.avatar;
+  const avatar = customerProfile?.profilePhotoUrl || user?.avatar;
 
   /** Categories from `GET /api/home` (curated, dynamic); IDs must match service categories for book-service. */
   const displayCategories =

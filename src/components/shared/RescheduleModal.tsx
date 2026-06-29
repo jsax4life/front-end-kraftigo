@@ -12,6 +12,7 @@ import {
   isSameLocalDay,
   minScheduleTimeInputForToday,
 } from "@/utils/date";
+import TimePickerModal, { formatTime12h } from "@/components/shared/TimePickerModal";
 
 interface RescheduleModalProps {
   booking: {
@@ -46,6 +47,7 @@ const RescheduleModal = ({ booking, onClose, onConfirm }: RescheduleModalProps) 
   const [viewMonth, setViewMonth] = useState(today.getMonth());
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [selectedTime, setSelectedTime] = useState("18:00");
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   const cells = generateCalendar(viewYear, viewMonth);
 
@@ -215,24 +217,16 @@ const RescheduleModal = ({ booking, onClose, onConfirm }: RescheduleModalProps) 
           <p className="text-[13px] font-poppins font-semibold text-black mb-2">
             Select new time
           </p>
-          <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-4 py-3 mb-4">
+          <button 
+            type="button"
+            onClick={() => setShowTimePicker(true)}
+            className="flex items-center gap-2 border border-gray-200 rounded-xl px-4 py-3 mb-4 w-full text-left bg-white focus:outline-none focus:border-brand-orange"
+          >
             <Clock size={16} className="text-gray-400 shrink-0" />
-            <input
-              type="time"
-              value={selectedTime}
-              min={isSelectedToday ? minTimeToday : undefined}
-              onChange={(e) => {
-                const v = e.target.value;
-                if (selectedDate && isSelectedToday && v && isDateTimeTooSoon(selectedDate, v)) {
-                  toast.error("Pick a time at least 30 minutes from now.");
-                  setSelectedTime(minTimeToday);
-                  return;
-                }
-                setSelectedTime(v);
-              }}
-              className="flex-1 bg-transparent text-[14px] font-poppins text-gray-700 outline-none"
-            />
-          </div>
+            <span className="flex-1 text-[14px] font-poppins text-gray-700">
+              {formatTime12h(selectedTime) || "Select a time"}
+            </span>
+          </button>
 
           <div className="bg-orange-50 border border-orange-100 rounded-xl p-3 mb-5 flex gap-2">
             <AlertCircle size={16} className="text-brand-orange shrink-0 mt-0.5" />
@@ -275,6 +269,20 @@ const RescheduleModal = ({ booking, onClose, onConfirm }: RescheduleModalProps) 
           </button>
         </div>
       </div>
+
+      <TimePickerModal
+        isOpen={showTimePicker}
+        onClose={() => setShowTimePicker(false)}
+        selectedTime={selectedTime}
+        onSelectTime={(time) => {
+          if (selectedDate && isSelectedToday && time && isDateTimeTooSoon(selectedDate, time)) {
+            toast.error("Pick a time at least 30 minutes from now.");
+            setSelectedTime(minTimeToday);
+          } else {
+            setSelectedTime(time);
+          }
+        }}
+      />
     </>
   );
 

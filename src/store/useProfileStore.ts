@@ -202,8 +202,10 @@ export const useProfileStore = create<ProfileState>((set) => ({
   updateCustomerProfile: async (profile) => {
     set({ isLoading: true, error: null })
     try {
-      const response = await api.put('/api/profile/customer', profile)
-      set({ customerProfile: response.data, isLoading: false })
+      await api.put('/api/profile/customer', profile)
+      // The PUT endpoint returns {} on success, so we fetch the updated profile
+      const fetchRes = await api.get('/api/profile/customer/me')
+      set({ customerProfile: fetchRes.data, isLoading: false })
     } catch (error: any) {
       set({
         error: error.response?.data?.message || 'Failed to update customer profile',

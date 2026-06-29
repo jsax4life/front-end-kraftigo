@@ -1,15 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Input from "@/components/ui/input";
+import { AddressAutocompleteInput } from "@/components/ui/AddressAutocompleteInput";
 import Button from "@/components/ui/button";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useProfileStore } from "@/store/useProfileStore";
-import { useEffect } from "react";
 import toast from "react-hot-toast";
-import { User as UserIcon, Edit2 } from "lucide-react";
+import { User as UserIcon, Edit2, Camera } from "lucide-react";
 import { useAddressStore } from "@/store/useAddressStore";
 import { CustomerProfile } from "@/types";
 
@@ -18,7 +18,7 @@ import Header from "@/components/shared/Header";
 const PersonalInfoPage = () => {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { customerProfile, fetchCustomerProfile, updateCustomerProfile, isLoading } = useProfileStore();
+  const { customerProfile, fetchCustomerProfile, updateCustomerProfile, isLoading, getUploadUrlForProfilePic } = useProfileStore();
   
 
   const [fullName, setFullName] = useState("");
@@ -28,6 +28,9 @@ const PersonalInfoPage = () => {
   const [city, setCity] = useState("");
   const [postalCode, setPostalCode] = useState("");
   const [country, setCountry] = useState("");
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
+  const profilePhotoInputRef = useRef<HTMLInputElement>(null);
 
   const { currentAddress } = useAddressStore();
 
@@ -81,7 +84,7 @@ const PersonalInfoPage = () => {
           postalCode: postalCode || "00000",
           country: country || "Germany"
         },
-        profilePhotoUrl: customerProfile?.profilePhotoUrl || user?.avatar,
+        profilePhotoUrl: profilePhotoUrl || customerProfile?.profilePhotoUrl || user?.avatar,
         languagePreference: customerProfile?.languagePreference || "en",
         notificationPreferences: customerProfile?.notificationPreferences || {
           email: true,
@@ -97,6 +100,36 @@ const PersonalInfoPage = () => {
       router.back();
     } catch (error) {
       toast.error("Failed to update profile");
+    }
+  };
+
+  const handleProfilePhotoSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (e.target) e.target.value = '';
+    if (!file) return;
+    try {
+      setIsUploadingAvatar(true);
+      const { uploadUrl, publicUrl, requiredUploadHeaders } = await getUploadUrlForProfilePic({
+        filename: file.name,
+        mimetype: file.type || "image/jpeg",
+        fileSize: file.size,
+      });
+      
+      const response = await fetch(uploadUrl, {
+        method: "PUT",
+        body: file,
+        headers: requiredUploadHeaders,
+      });
+      if (!response.ok) throw new Error("Profile photo upload failed");
+      
+      setProfilePhotoUrl(publicUrl);
+      
+      await updateCustomerProfile({ profilePhotoUrl: publicUrl });
+      toast.success('Profile photo updated!');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to upload profile photo');
+    } finally {
+      setIsUploadingAvatar(false);
     }
   };
 
@@ -116,23 +149,46 @@ const PersonalInfoPage = () => {
 
         {/* Avatar Edit */}
         <div className="flex justify-center flex-col items-center mb-4">
-          <div className="relative border-2 border-dashed border-brand-orange rounded-full w-28 h-28 flex items-center justify-center shrink-0">
+          <input
+            ref={profilePhotoInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleProfilePhotoSelected}
+          />
+          <button 
+            type="button"
+            disabled={isUploadingAvatar}
+            onClick={() => {
+              if (!isUploadingAvatar) profilePhotoInputRef.current?.click();
+            }}
+            className="relative border-2 border-dashed border-brand-orange rounded-full w-28 h-28 flex items-center justify-center shrink-0 disabled:opacity-70 disabled:cursor-wait group"
+          >
             <div className="relative w-[100px] h-[100px] rounded-full overflow-hidden bg-gray-50 flex items-center justify-center shadow-lg">
-              {customerProfile?.profilePhotoUrl || user?.avatar ? (
+              {profilePhotoUrl || customerProfile?.profilePhotoUrl || user?.avatar ? (
                 <Image 
-                  src={customerProfile?.profilePhotoUrl || user?.avatar || ""} 
+                  src={profilePhotoUrl || customerProfile?.profilePhotoUrl || user?.avatar || ""} 
                   alt="Profile" 
                   fill 
                   className="object-cover"
                 />
               ) : (
-                <UserIcon size={48} className="text-gray-300" />
+                isUploadingAvatar ? (
+                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-orange border-t-transparent" />
+                ) : (
+                  <UserIcon size={48} className="text-gray-300" />
+                )
               )}
             </div>
-            <button className="absolute bottom-0 right-0 bg-brand-orange text-white p-2.5 rounded-full shadow-lg border-4 border-white hover:bg-orange-600 transition-all">
-              <Edit2 size={16} />
-            </button>
-          </div>
+            {isUploadingAvatar && (profilePhotoUrl || customerProfile?.profilePhotoUrl || user?.avatar) && (
+              <div className="absolute inset-0 rounded-[100px] bg-black/40 flex items-center justify-center m-1">
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              </div>
+            )}
+            <div className="absolute bottom-0 right-0 bg-brand-orange text-white p-2.5 rounded-full shadow-lg border-4 border-white hover:bg-orange-600 transition-all pointer-events-none">
+              <Camera size={16} />
+            </div>
+          </button>
         </div>
 
         {/* Form Sections */}
@@ -169,11 +225,24 @@ const PersonalInfoPage = () => {
           <div className="bg-white p-6 rounded-2xl border border-[#F2F4F7] shadow-sm">
             <h3 className="text-[12px] font-poppins font-bold text-[#98A2B3] uppercase tracking-widest mb-6">Service Address</h3>
             <div className="space-y-5">
-              <Input 
+              <AddressAutocompleteInput 
                 label="Street"
                 value={street}
-                onChange={(val) => setStreet(val)}
-                placeholder="Street address"
+                onChange={setStreet}
+                onSelectSuggestion={(s) => {
+                  const parsedStreet = s.street || s.label.split(',')[0];
+                  // Prevent duplication if the user only searched for a city
+                  if (parsedStreet === s.city) {
+                    setStreet("");
+                  } else {
+                    setStreet(parsedStreet);
+                  }
+                  setCity(s.city || "");
+                  setPostalCode(s.postcode || "");
+                  setCountry("Germany");
+                }}
+                placeholder="Search for your address..."
+                inputClassName="w-full px-4 py-3 bg-[#F9FAFB] border border-[#EAECF0] rounded-xl text-[14px] text-[#1D2939] focus:outline-none focus:border-[#FF6600] focus:ring-1 focus:ring-[#FF6600] transition-colors"
               />
               <div className="grid grid-cols-2 gap-4">
                 <Input 
