@@ -300,7 +300,7 @@ const Page = () => {
           className="fixed inset-0 bg-[#C0C0C0] z-60"
           onClick={() => setShowSearchModal(false)}
         >
-          <div className="p-4 pt-6" onClick={(e) => e.stopPropagation()}>
+          <div className="p-4 pt-6 max-w-4xl mx-auto w-full" onClick={(e) => e.stopPropagation()}>
             <div className="relative mb-6">
               <Search
                 className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"

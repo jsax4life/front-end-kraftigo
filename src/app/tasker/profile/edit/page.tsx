@@ -218,7 +218,7 @@ const Page = () => {
         <div className="w-10"></div> {/* Spacer for balance */}
       </div>
 
-      <div className="px-4 py-8 space-y-12 max-w-2xl mx-auto pb-32">
+      <div className="px-4 py-8 space-y-12 max-w-4xl mx-auto pb-32">
         
         {/* Avatar Section — presigned upload + PATCH /api/profile/krafter/profile-photo */}
         <div className="flex flex-col items-center">

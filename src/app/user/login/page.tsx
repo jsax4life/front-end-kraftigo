@@ -88,7 +88,7 @@ const Page = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     } else {
-      router.back();
+      router.push('/')
     }
   };
 
@@ -124,7 +124,7 @@ const Page = () => {
       {isLoading ? (
         <Loader />
       ) : (
-        <div className="w-full max-w-2xl mx-auto min-h-screen flex flex-col py-8">
+        <div className="w-full max-w-4xl mx-auto min-h-screen flex flex-col py-8">
           <div className="flex items-center justify-between mb-8">
             <button
               onClick={handleBack}

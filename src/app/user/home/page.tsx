@@ -738,7 +738,7 @@ const Page = () => {
           onClick={() => setShowSearchModal(false)}
         >
           <div
-            className="flex flex-col flex-1 min-h-0 p-4 pt-6"
+            className="flex flex-col flex-1 min-h-0 p-4 pt-6 max-w-4xl mx-auto w-full"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="relative mb-6 shrink-0">

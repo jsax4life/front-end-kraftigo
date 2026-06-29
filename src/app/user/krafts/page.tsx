@@ -444,7 +444,7 @@ const KraftsPage = () => {
 
   return (
     <main className="relative w-full min-h-screen bg-white pb-24">
-      <div className="px-4 py-6">
+      <div className="px-4 py-6 max-w-4xl mx-auto w-full">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
           <button onClick={() => router.push("/user/home")} className="p-1">

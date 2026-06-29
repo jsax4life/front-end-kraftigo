@@ -133,7 +133,7 @@ function DiditReturnContent() {
         }}
       />
 
-      <div className="relative z-10 mx-auto max-w-[430px]">
+      <div className="relative z-10 mx-auto max-w-4xl">
         <h1 className="text-center font-gerat text-[24px] font-[850] tracking-[-0.03em] text-[rgba(0,0,0,0.88)]">
           Identity verification
         </h1>

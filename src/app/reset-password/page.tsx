@@ -67,7 +67,7 @@ const ResetPasswordContent = () => {
       {isLoading ? (
         <Loader />
       ) : (
-        <div className="w-full max-w-2xl mx-auto min-h-screen flex flex-col py-8">
+        <div className="w-full max-w-4xl mx-auto min-h-screen flex flex-col py-8">
           <div className="flex items-center justify-between mb-8">
             <button
               onClick={handleBack}

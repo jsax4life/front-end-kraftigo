@@ -80,7 +80,7 @@ const TaskerNotificationsPage = () => {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto w-full px-4 sm:px-6 py-8">
+      <div className="max-w-4xl mx-auto w-full px-4 sm:px-6 py-8">
         <div className="mb-8">
           <h2 className="text-[28px] font-gerat font-bold text-[#1D2939] leading-tight">Notifications</h2>
           <p className="text-[14px] text-[#667085] font-poppins mt-2">

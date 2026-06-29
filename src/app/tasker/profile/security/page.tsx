@@ -73,7 +73,7 @@ const SecurityPage = () => {
         </div>
       </div>
 
-      <div className="px-5 py-8 space-y-10 max-w-2xl mx-auto pb-32">
+      <div className="px-5 py-8 space-y-10 max-w-4xl mx-auto pb-32">
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-[16px] font-gerat font-bold text-[#1D2939]">Password</h2>

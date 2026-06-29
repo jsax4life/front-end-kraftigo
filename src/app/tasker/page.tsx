@@ -23,7 +23,7 @@ const Page = () => {
       {isLoading ? (
         <TaskerLoad />
       ) : (
-        <div className="relative w-full max-w-md lg:max-w-4xl mx-auto min-h-screen flex flex-col py-8 px-6">
+        <div className="relative w-full max-w-4xl mx-auto min-h-screen flex flex-col py-8 px-6">
           {/* Logo */}
           <div className="flex justify-center mb-8 relative z-20 mt-10">
             <Image

@@ -104,7 +104,7 @@ const PersonalInfoPage = () => {
     <main className="min-h-screen bg-white flex flex-col">
       <Header title="Personal Information" showLogout={false} />
 
-      <div className="flex-1 space-y-8 max-w-2xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+      <div className="flex-1 space-y-8 max-w-4xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         <div>
           <h2 className="text-[28px] font-gerat font-bold text-[#1D2939]">
             Hi {fullName.split(' ')[0] || "User"}
