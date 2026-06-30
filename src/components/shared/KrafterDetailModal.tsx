@@ -60,7 +60,7 @@ const KrafterDetailModal = ({ krafter, onClose, onSelect }: KrafterDetailModalPr
       <div className="fixed inset-0 z-50 bg-black/50" onClick={onClose} />
 
       {/* Bottom Sheet */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white  max-h-[100vh] flex flex-col shadow-2xl">
+      <div className="fixed bottom-0 left-0 right-0 mx-auto z-50 bg-white max-h-[100vh] w-full max-w-4xl flex flex-col shadow-2xl md:rounded-t-[32px]">
         {/* Drag Handle */}
         <div className="flex justify-center pt-3 pb-1 shrink-0">
           <div className="w-10 h-1 bg-gray-200 rounded-full" />

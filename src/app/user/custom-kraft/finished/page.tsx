@@ -22,7 +22,7 @@ const Page = () => {
   // Guard: if somehow landed here without a kraft, go home
   useEffect(() => {
     if (!selectedKraft) {
-      router.replace("/user/home");
+      router.replace("/");
     }
   }, [selectedKraft, router]);
 
@@ -161,7 +161,7 @@ const Page = () => {
             className="w-full"
             onClick={() => {
               clearSelectedKraft();
-              router.push("/user/home");
+              router.push("/");
             }}
           >
             Go back home

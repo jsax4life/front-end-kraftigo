@@ -6,9 +6,9 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import toast from "react-hot-toast";
 import ProgressStepper from "../components/ProgressStepper";
-import PaymentFlowModal from "../../../../../components/shared/PaymentFlowModal";
+import PaymentFlowModal from "@/components/shared/PaymentFlowModal";
 import { usePaymentStore } from "@/store/usePaymentStore";
-import Input from "../../../../../components/ui/input";
+import Input from "@/components/ui/input";
 import { useCustomKraftsStore } from "@/store/useCustomKraftsStore";
 import { useAddressStore } from "@/store/useAddressStore";
 import { useServicesStore } from "@/store/useServicesStore";
@@ -47,7 +47,7 @@ const Page = () => {
   // ─── Guard: redirect back if no draft exists ────────────────────────────
   useEffect(() => {
     if (!selectedKraft) {
-      router.replace("/user/home/custom-kraft/description");
+      router.replace("/user/custom-kraft/description");
     }
   }, [selectedKraft, router]);
 
@@ -100,7 +100,7 @@ const Page = () => {
     }
     try {
       await publishKraft(selectedKraft.id);
-      router.push("/user/home/custom-kraft/finished");
+      router.push("/user/custom-kraft/finished");
     } catch (err) {
       if (isSavedPaymentMethodRequiredError(err)) {
         toast.error(SAVED_PAYMENT_METHOD_REQUIRED_TOAST, { duration: 6500 });

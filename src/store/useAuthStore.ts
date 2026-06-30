@@ -18,6 +18,7 @@ import {
   logoutAllDevices,
 } from '@/lib/api/auth'
 import { useDomainNotificationHistoryStore } from '@/store/useDomainNotificationHistoryStore'
+import { useAddressStore } from '@/store/useAddressStore'
 
 interface AuthState {
   // State
@@ -61,6 +62,7 @@ export const useAuthStore = create<AuthState>()(
       // Helper to clear auth state
       const clearAuthState = () => {
         updateCachedToken(null) // Clear axios cache
+        useAddressStore.getState().clearAddresses() // Clear address storage on logout
         set({
           user: null,
           accessToken: null,

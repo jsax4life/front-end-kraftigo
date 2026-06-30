@@ -1,8 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useGoogleLogin } from "@react-oauth/google";
+import { GoogleLogin } from "@react-oauth/google";
 import { useAuthStore } from "@/store/useAuthStore";
 import { formatLoginApiError } from "@/lib/authApiErrors";
 import { logger } from "@/utils/logger";
@@ -17,47 +16,43 @@ const GoogleLoginButton = ({ className, variant = "icon" }: GoogleLoginButtonPro
   const router = useRouter();
   const { loginWithGoogle, isLoading } = useAuthStore();
 
-  const googleLogin = useGoogleLogin({
-    flow: "implicit",
-    onSuccess: async (tokenResponse: any) => {
-      logger.log("Google OAuth initiated");
-      try {
-        await loginWithGoogle(tokenResponse.access_token);
-        logger.log("Google OAuth successful!");
-        toast.success("Login successful! Welcome to Kraftigo.");
-        router.push("/user/home");
-      } catch (err: unknown) {
-        logger.error("Google OAuth failed:", err);
-        toast.error(formatLoginApiError(err, useAuthStore.getState().error));
-      }
-    },
-    onError: () => {
-      logger.error("Google OAuth error");
-      toast.error("Google sign-in failed. Please try again.");
-    },
-  });
+  const handleSuccess = async (credentialResponse: any) => {
+    logger.log("Google OAuth initiated");
+    if (!credentialResponse.credential) {
+      toast.error("Google login failed to return credential");
+      return;
+    }
+    
+    try {
+      // credentialResponse.credential contains the JWT idToken
+      await loginWithGoogle(credentialResponse.credential);
+      logger.log("Google OAuth successful!");
+      toast.success("Login successful! Welcome to Kraftigo.");
+      router.push("/");
+    } catch (err: unknown) {
+      logger.error("Google OAuth failed:", err);
+      toast.error(formatLoginApiError(err, useAuthStore.getState().error));
+    }
+  };
 
-  if (variant === "full") {
-    return (
-      <button
-        onClick={() => googleLogin()}
-        disabled={isLoading}
-        className={`w-full py-4 bg-white border border-gray-200 rounded-2xl flex items-center justify-center gap-3 hover:bg-gray-50 transition-all shadow-sm disabled:opacity-50 font-poppins font-semibold text-black ${className}`}
-      >
-        <Image src="/google.svg" alt="Google" width={24} height={24} />
-        Continue with Google
-      </button>
-    );
-  }
+  const handleError = () => {
+    logger.error("Google OAuth error");
+    toast.error("Google sign-in failed. Please try again.");
+  };
 
   return (
-    <button
-      onClick={() => googleLogin()}
-      disabled={isLoading}
-      className={`w-14 h-14 bg-white border border-[#0000001A] rounded-xl flex items-center justify-center hover:bg-gray-50 transition-all shadow-sm disabled:opacity-50 ${className}`}
-    >
-      <Image src="/google.svg" alt="Google" width={24} height={24} />
-    </button>
+    <div className={`flex items-center justify-center ${isLoading ? 'opacity-50 pointer-events-none' : ''} ${className || ''}`}>
+      <GoogleLogin
+        onSuccess={handleSuccess}
+        onError={handleError}
+        type={variant === "icon" ? "icon" : "standard"}
+        theme="outline"
+        size="large"
+        shape={variant === "full" ? "rectangular" : "circle"}
+        text="continue_with"
+        logo_alignment="center"
+      />
+    </div>
   );
 };
 

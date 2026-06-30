@@ -3,12 +3,15 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { Check, MapPin, Plus } from "lucide-react";
+import { Check, MapPin, Plus, Clock } from "lucide-react";
 import Button from "@/components/ui/button";
 import AddressModal from "@/components/shared/AddressModal";
 import DatePickerModal from "@/components/shared/DatePickerModal";
+import TimePickerModal, { formatTime12h } from "@/components/shared/TimePickerModal";
 import PhotoUploader, { Photo } from "@/components/shared/PhotoUploader";
 import { useAddressStore } from "@/store/useAddressStore";
+import { useAuthStore } from "@/store/useAuthStore";
+import { useAuthPromptStore } from "@/store/useAuthPromptStore";
 import { useBookingsStore } from "@/store/useBookingsStore";
 import toast from "react-hot-toast";
 import { formatLocalDateYmd, isDateTimeTooSoon, isSameLocalDay, minScheduleTimeInputForToday } from "@/utils/date";
@@ -20,6 +23,9 @@ const BookServicePage = () => {
   const categoryName = searchParams.get("category") || "Service";
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState("home");
+
+  const { isAuthenticated } = useAuthStore();
+  const { openPrompt } = useAuthPromptStore();
 
   // Use address store
   const {
@@ -60,9 +66,8 @@ const BookServicePage = () => {
     consentAcknowledged: false,
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [customTime, setCustomTime] = useState("");
-
-
 
   const isSelectedDateToday = formData.selectedDate
     ? isSameLocalDay(formData.selectedDate, new Date())
@@ -84,6 +89,11 @@ const BookServicePage = () => {
   ];
 
   const handleNext = async () => {
+    if (!isAuthenticated) {
+      openPrompt();
+      return;
+    }
+
     const resolvedTime =
       formData.selectedTime === "Custom" ? customTime.trim() : formData.selectedTime;
     if (!formData.selectedDate || !resolvedTime || !formData.taskDetails) {
@@ -189,8 +199,10 @@ const BookServicePage = () => {
 
   // Load saved addresses from backend on mount
   useEffect(() => {
-    loadAddresses();
-  }, [loadAddresses]);
+    if (isAuthenticated) {
+      loadAddresses();
+    }
+  }, [loadAddresses, isAuthenticated]);
 
   return (
     <main className="min-h-screen bg-white">
@@ -224,7 +236,7 @@ const BookServicePage = () => {
             type="button"
             onClick={() => {
               clearRecommendationDraftBooking();
-              router.push("/user/home");
+              router.push("/");
             }}
             className="text-brand-orange text-[12px] sm:text-[14px] font-poppins font-semibold rounded-full hover:underline"
           >
@@ -278,7 +290,7 @@ const BookServicePage = () => {
           >
             <Plus size={16} className="text-gray-600" />
             <span className="text-[14px] sm:text-[15px] font-poppins text-gray-600">
-              Add new location
+              Select location
             </span>
           </button>
         </div>
@@ -332,28 +344,16 @@ const BookServicePage = () => {
             );
             })}
           </div>
-{formData.selectedTime === "Custom" && (
+          {formData.selectedTime === "Custom" && (
               <div className="mt-3">
-                <input
-                  type="time"
-                  value={customTime}
-                  min={isSelectedDateToday ? minTimeToday : undefined}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    if (
-                      formData.selectedDate &&
-                      isSelectedDateToday &&
-                      v &&
-                      isDateTimeTooSoon(formData.selectedDate, v)
-                    ) {
-                      toast.error("Pick a time at least 30 minutes from now.");
-                      setCustomTime(minTimeToday);
-                      return;
-                    }
-                    setCustomTime(v);
-                  }}
-                  className="w-full p-3 bg-[#F6F6F6] rounded-xl text-[14px] sm:text-[15px] font-poppins border border-[#0000001A] text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-orange"
-                />
+                <button
+                  type="button"
+                  onClick={() => setShowTimePicker(true)}
+                  className="w-full p-3 bg-[#F6F6F6] rounded-xl text-[14px] sm:text-[15px] font-poppins border border-[#0000001A] text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-orange text-left flex justify-between items-center"
+                >
+                  <span>{formatTime12h(customTime) || "Select a time"}</span>
+                  <Clock size={16} className="text-gray-500" />
+                </button>
               </div>
             )}
         </div>
@@ -463,6 +463,26 @@ const BookServicePage = () => {
           });
           if (customTime && isDateTimeTooSoon(date, customTime)) {
             setCustomTime("");
+          }
+        }}
+      />
+
+      {/* Time Picker Modal */}
+      <TimePickerModal
+        isOpen={showTimePicker}
+        onClose={() => setShowTimePicker(false)}
+        selectedTime={customTime}
+        onSelectTime={(time) => {
+          if (
+            formData.selectedDate &&
+            isSelectedDateToday &&
+            time &&
+            isDateTimeTooSoon(formData.selectedDate, time)
+          ) {
+            toast.error("Pick a time at least 30 minutes from now.");
+            setCustomTime(minTimeToday);
+          } else {
+            setCustomTime(time);
           }
         }}
       />

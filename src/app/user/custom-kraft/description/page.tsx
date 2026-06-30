@@ -1,12 +1,13 @@
 "use client";
 
-import { ArrowLeft, Plus, ChevronDown } from "lucide-react";
+import { ArrowLeft, Plus, ChevronDown, Clock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import PhotoUploader, { Photo } from "@/components/shared/PhotoUploader";
 import ProgressStepper from "../components/ProgressStepper";
 import DatePickerModal from "@/components/shared/DatePickerModal";
+import TimePickerModal, { formatTime12h } from "@/components/shared/TimePickerModal";
 import { useCustomKraftsStore } from "@/store/useCustomKraftsStore";
 import { useServicesStore } from "@/store/useServicesStore";
 
@@ -41,6 +42,7 @@ const Page = () => {
   const [selectedTime, setSelectedTime] = useState("");
   const [customTime, setCustomTime] = useState("");
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   // ─── Load categories on mount ───────────────────────────────────────────────
   useEffect(() => {
@@ -100,7 +102,7 @@ const Page = () => {
       photos: filePhotos,
     });
 
-    router.push("/user/home/custom-kraft/details");
+    router.push("/user/custom-kraft/details");
   };
 
   const timeSlots = [
@@ -247,12 +249,14 @@ const Page = () => {
             {/* Custom Time Input (shown when 'Custom' is selected) */}
             {selectedTime === "Custom" && (
               <div className="mt-3">
-                <input
-                  type="time"
-                  value={customTime}
-                  onChange={(e) => setCustomTime(e.target.value)}
-                  className="w-full p-3 bg-[#F6F6F6] rounded-xl text-[14px] sm:text-[15px] font-poppins border border-[#0000001A] text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-orange"
-                />
+                <button
+                  type="button"
+                  onClick={() => setShowTimePicker(true)}
+                  className="w-full p-3 bg-[#F6F6F6] rounded-xl text-[14px] sm:text-[15px] font-poppins border border-[#0000001A] text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-orange text-left flex justify-between items-center"
+                >
+                  <span>{formatTime12h(customTime) || "Select a time"}</span>
+                  <Clock size={16} className="text-gray-500" />
+                </button>
               </div>
             )}
           </div>
@@ -274,6 +278,14 @@ const Page = () => {
         onClose={() => setShowDatePicker(false)}
         selectedDate={selectedDate}
         onSelectDate={(date) => setSelectedDate(date)}
+      />
+
+      {/* Time Picker Modal */}
+      <TimePickerModal
+        isOpen={showTimePicker}
+        onClose={() => setShowTimePicker(false)}
+        selectedTime={customTime}
+        onSelectTime={(time) => setCustomTime(time)}
       />
     </div>
   );

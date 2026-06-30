@@ -327,7 +327,7 @@ const EarningsPage = () => {
         </div>
       </div>
 
-      <div className="px-5 py-8 space-y-8 max-w-2xl mx-auto pb-32">
+      <div className="px-5 py-8 space-y-8 max-w-4xl mx-auto pb-32">
         <section className="bg-white rounded-3xl p-6 border border-[#EAECF0] shadow-sm">
           <div className="flex items-center justify-between gap-3">
             <div className="space-y-1 min-w-0">

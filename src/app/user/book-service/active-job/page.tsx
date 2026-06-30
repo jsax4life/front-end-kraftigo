@@ -146,7 +146,7 @@ const ActiveJobContent = () => {
           </button>
           <h1 className="text-[22px] font-gerat font-bold">{displayData.service}</h1>
         </div>
-        <button onClick={() => router.push("/user/home")} className="p-1">
+        <button onClick={() => router.push("/")} className="p-1">
           <X size={20} className="text-gray-400" />
         </button>
       </div>

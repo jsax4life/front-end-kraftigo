@@ -65,7 +65,7 @@ const Page = () => {
   // ─── Guard: redirect back if neither pending nor saved draft exists ───────────
   useEffect(() => {
     if (!pendingDraftData && !selectedKraft) {
-      router.replace("/user/home/custom-kraft/description");
+      router.replace("/user/custom-kraft/description");
     }
   }, [pendingDraftData, selectedKraft, router]);
 
@@ -85,12 +85,12 @@ const Page = () => {
     if (pendingDraftData) {
       // ── First pass: merge Step 2 into pending data — Budget page creates the draft
       setPendingDraftData({ ...pendingDraftData, ...step2Fields });
-      router.push("/user/home/custom-kraft/budget");
+      router.push("/user/custom-kraft/budget");
     } else if (selectedKraft) {
       // ── Returning to update an existing draft
       try {
         await updateStep2(selectedKraft.id, step2Fields);
-        router.push("/user/home/custom-kraft/budget");
+        router.push("/user/custom-kraft/budget");
       } catch {
         // error handled by useEffect above
       }

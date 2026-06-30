@@ -157,7 +157,7 @@ const Page = () => {
               // ignore
             }
             // Hard switch to customer home screen
-            window.location.assign("/user/home");
+            window.location.assign("/");
           }}
           className="px-3 py-1.5 rounded-full border border-[#EAECF0] text-[12px] font-poppins font-semibold text-[#344054] hover:bg-gray-50"
         >

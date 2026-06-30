@@ -71,7 +71,7 @@ const Page = () => {
   // ─── Guard: redirect back if no draft or pending data ────────────────────────
   useEffect(() => {
     if (!pendingDraftData && !selectedKraft) {
-      router.replace("/user/home/custom-kraft/description");
+      router.replace("/user/custom-kraft/description");
     }
   }, [pendingDraftData, selectedKraft, router]);
 
@@ -131,7 +131,7 @@ const Page = () => {
         // ── Returning to update an existing draft
         await updateStep3(selectedKraft.id, buildStep3Fields());
       }
-      router.push("/user/home/custom-kraft/review");
+      router.push("/user/custom-kraft/review");
     } catch {
       // error handled by useEffect above
     }
