@@ -69,6 +69,7 @@ export interface HomeProOfWeek {
   hourlyRate: number;
   badges: string[];
   distanceKm: number;
+  distanceLabel?: string | null;
   description: string;
 }
 
@@ -76,6 +77,8 @@ export interface HomeUpcomingKrafter {
   id: string;
   displayName: string;
   profilePhotoUrl: string;
+  distanceKm?: number | null;
+  distanceLabel?: string | null;
 }
 
 export interface HomeUpcomingBooking {

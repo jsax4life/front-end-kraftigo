@@ -2,6 +2,7 @@
 
 import React from "react";
 import Image from 'next/image'
+import { MapPin, ChevronRight } from "lucide-react";
 
 export const PendingApprovalBanner = () => {
     return (
@@ -16,6 +17,40 @@ export const PendingApprovalBanner = () => {
                 Est 24-48h
             </p>
         </div>
+    );
+};
+
+interface UpdateLocationBannerProps {
+    onUpdate: () => void;
+}
+
+export const UpdateLocationBanner: React.FC<UpdateLocationBannerProps> = ({
+    onUpdate,
+}) => {
+    return (
+        <button
+            type="button"
+            onClick={onUpdate}
+            className="w-full text-left bg-[#FFF4ED] rounded-xl p-4 cursor-pointer hover:bg-[#FFE8D9] transition-colors border border-[#FFD6BA] group"
+        >
+            <div className="flex items-start gap-3">
+                <div className="mt-0.5 shrink-0 rounded-full bg-brand-orange/10 p-2 text-brand-orange">
+                    <MapPin size={18} strokeWidth={2} />
+                </div>
+                <div className="flex-1 min-w-0">
+                    <h3 className="text-[16px] font-gerat font-bold text-[#1D2939] mb-1">
+                        Update your location
+                    </h3>
+                    <p className="text-[13px] font-poppins text-[#475467] leading-relaxed">
+                        Add your city or address so customers see how far you are and you can see distances on jobs.
+                    </p>
+                    <span className="inline-flex items-center gap-1 mt-3 text-[13px] font-poppins font-semibold text-brand-orange group-hover:gap-2 transition-all">
+                        Update location
+                        <ChevronRight size={16} />
+                    </span>
+                </div>
+            </div>
+        </button>
     );
 };
 

@@ -1,4 +1,5 @@
 import type { Application } from "@/types";
+import { readDistanceFields } from "@/utils/distance";
 
 type LooseRecord = Record<string, unknown>;
 
@@ -77,6 +78,8 @@ export function mapBookingApplicationRowToApplication(
     (typeof r.notes === "string" && r.notes) ||
     "";
 
+  const distanceFields = readDistanceFields(r, artisan);
+
   return {
     id: String(applicationId),
     job_id: bookingId,
@@ -95,5 +98,7 @@ export function mapBookingApplicationRowToApplication(
     image: avatar,
     description: bio || message,
     is_top_pro: Boolean(artisan.isTopPro ?? artisan.is_top_pro),
+    distance: distanceFields.distanceKm,
+    distanceLabel: distanceFields.distanceLabel,
   };
 }

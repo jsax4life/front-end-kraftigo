@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { CircleEllipsis } from "lucide-react";
+import { DistanceBadge } from "@/components/ui/DistanceBadge";
 
 interface JobCardProps {
   id: string;
@@ -26,6 +27,8 @@ interface JobCardProps {
   priceBadgeLabel?: string;
   /** Small line under the title (e.g. status · listing price · date). */
   metaLine?: string;
+  /** e.g. "2km away" from API `distanceLabel`. */
+  distanceLabel?: string | null;
   /** Optional note under the description (e.g. application message). */
   noteLine?: string;
   onSendOffer?: (jobId: string) => void;
@@ -47,6 +50,7 @@ const JobCard = ({
   forceViewKraft = false,
   priceBadgeLabel,
   metaLine,
+  distanceLabel,
   noteLine,
   onSendOffer,
   onBookmark,
@@ -92,6 +96,9 @@ const JobCard = ({
             </svg>
             <span>{location}</span>
           </div>
+          {distanceLabel ? (
+            <DistanceBadge label={distanceLabel} size="sm" />
+          ) : null}
           {bidsCount > 0 && (
             <div className="flex items-center gap-1 text-brand-orange">
               <svg

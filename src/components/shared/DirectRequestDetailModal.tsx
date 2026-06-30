@@ -8,6 +8,8 @@ import type { DirectArtisanBookingRequest } from "@/lib/api/bookings";
 import { isDirectRequestPendingPayment } from "@/lib/directRequestStatus";
 import { buildTaskerMessageCustomerUrlFromDirectRequest } from "@/lib/chatDeepLinks";
 import ImageLightbox from "@/components/shared/ImageLightbox";
+import { formatDistanceDisplay, readDistanceFields } from "@/utils/distance";
+import { DistanceBadge } from "@/components/ui/DistanceBadge";
 
 function formatPreferredTime(time: string): string {
   if (!time) return "";
@@ -124,6 +126,7 @@ export default function DirectRequestDetailModal({
   ]
     .filter(Boolean)
     .join(" ");
+  const distanceText = formatDistanceDisplay(readDistanceFields(request));
 
   return (
     <div
@@ -189,6 +192,11 @@ export default function DirectRequestDetailModal({
                 {request.address}
               </span>
             </div>
+            {distanceText && (
+              <div className="flex justify-end mb-2">
+                <DistanceBadge label={distanceText} size="sm" align="right" />
+              </div>
+            )}
             <div className="relative rounded-xl overflow-hidden border border-[#0000001A]">
               <Image
                 src="/images/map.png"

@@ -27,28 +27,21 @@ import {
 } from "@/lib/durationHours";
 
 /** Last resort when no coordinates from the booking URL chain or address store */
-const FALLBACK_LAT = 52.52;
-const FALLBACK_LNG = 13.4;
+import { resolveTaskCoordinates } from "@/lib/taskLocation";
 
 function resolveBookingCoordinates(
   searchParams: URLSearchParams,
   storeLat: number | null,
   storeLng: number | null,
 ): { latitude: number; longitude: number } {
-  const qLat = parseFloat(searchParams.get("latitude") || "");
-  const qLng = parseFloat(searchParams.get("longitude") || "");
-  if (Number.isFinite(qLat) && Number.isFinite(qLng)) {
-    return { latitude: qLat, longitude: qLng };
-  }
-  if (
-    storeLat != null &&
-    storeLng != null &&
-    Number.isFinite(storeLat) &&
-    Number.isFinite(storeLng)
-  ) {
-    return { latitude: storeLat, longitude: storeLng };
-  }
-  return { latitude: FALLBACK_LAT, longitude: FALLBACK_LNG };
+  const resolved = resolveTaskCoordinates({
+    urlLat: searchParams.get("latitude"),
+    urlLng: searchParams.get("longitude"),
+    storeLat,
+    storeLng,
+  });
+  if (resolved) return resolved;
+  throw new Error("Missing valid job coordinates");
 }
 
 /** After `select-krafter`, pass server pricing through to confirmation via query params. */
@@ -180,11 +173,20 @@ const Page = () => {
         durationHours = clampDurationHours(Number(estimatedHoursInput));
       }
 
-      const { latitude, longitude } = resolveBookingCoordinates(
-        searchParams,
-        currentLatitude,
-        currentLongitude,
-      );
+      let latitude: number;
+      let longitude: number;
+      try {
+        ({ latitude, longitude } = resolveBookingCoordinates(
+          searchParams,
+          currentLatitude,
+          currentLongitude,
+        ));
+      } catch {
+        toast.error(
+          "Missing job location coordinates. Go back and select your address from the suggestions list.",
+        );
+        return;
+      }
       logger.log("Booking coordinates", { latitude, longitude });
 
       // Convert time to HH:mm format (remove AM/PM if present)

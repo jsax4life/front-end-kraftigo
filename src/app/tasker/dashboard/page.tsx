@@ -19,10 +19,12 @@ import {
 import {
   PendingApprovalBanner,
   ProfileCompletionWidget,
+  UpdateLocationBanner,
 } from "@/components/shared/DashboardWidgets";
 import FinishProfileModal from "@/components/shared/FinishProfileModal";
 import { useProfileStore } from "@/store/useProfileStore";
 import { startDiditKycSession, getVerificationMyStatus, hasOpenDiditKycSession } from "@/lib/api/verification";
+import { hasKrafterProfileCoords } from "@/lib/taskLocation";
 
 const DashboardContent = () => {
   const router = useRouter();
@@ -52,13 +54,14 @@ const DashboardContent = () => {
 
   useEffect(() => {
     fetchArtisanBookings();
-    if (!artisanProfile) {
-      fetchArtisanProfile();
-    }
+    fetchArtisanProfile();
     // Fetch checklist summary + personal details (for profile photo in About) silently on mount
     fetchKrafterProfileCompletionSummary();
     fetchKrafterPersonalDetailsStatus();
-  }, [fetchArtisanBookings, fetchArtisanProfile, artisanProfile, fetchKrafterProfileCompletionSummary, fetchKrafterPersonalDetailsStatus]);
+  }, [fetchArtisanBookings, fetchArtisanProfile, fetchKrafterProfileCompletionSummary, fetchKrafterPersonalDetailsStatus]);
+
+  const needsLocationUpdate =
+    artisanProfile != null && !hasKrafterProfileCoords(artisanProfile);
 
   const upcomingTasks = bookings.filter(
     (b) =>
@@ -200,6 +203,12 @@ const DashboardContent = () => {
               totalSteps={totalSteps}
               completedSteps={completedSteps}
               onClick={() => setIsModalOpen(true)}
+            />
+          )}
+
+          {needsLocationUpdate && (
+            <UpdateLocationBanner
+              onUpdate={() => router.push("/tasker/profile/edit?focus=location")}
             />
           )}
 

@@ -81,6 +81,8 @@ export interface KrafterPersonalDetailsStatus {
     occupationDescription?: string | null
     languages?: Array<{ code: string; name: string; proficiency: string }>
     whereYouLive?: string | null
+    latitude?: number | null
+    longitude?: number | null
     travelRadiusKm?: number | null
     uniqueSellingPoint?: string | null
     certifications?: Array<{
@@ -107,6 +109,29 @@ export interface KrafterPersonalDetailsStatus {
   }
 }
 
+export type KrafterWorkCertification = NonNullable<
+  KrafterPersonalDetailsStatus['work']
+>['certifications'][number]
+
+/** Portfolio + certifications live under `work`; older responses may nest them on `personal`. */
+export function getKrafterWorkMediaFromStatus(
+  status: KrafterPersonalDetailsStatus | null | undefined,
+): {
+  certifications: KrafterWorkCertification[]
+  portfolioPhotoUrls: string[]
+  portfolioVideoUrl: string | null
+} {
+  const work = status?.work
+  const personal = status?.personal
+  return {
+    certifications: work?.certifications ?? personal?.certifications ?? [],
+    portfolioPhotoUrls:
+      work?.portfolioPhotoUrls ?? personal?.portfolioPhotoUrls ?? [],
+    portfolioVideoUrl:
+      work?.portfolioVideoUrl ?? personal?.portfolioVideoUrl ?? null,
+  }
+}
+
 /** PATCH /api/profile/krafter/profile-photo — URL only, after presigned upload (same rules as personal-details profilePhotoUrl) */
 export interface KrafterProfilePhotoUpdatePayload {
   profilePhotoUrl: string
@@ -120,6 +145,8 @@ export interface KrafterPersonalDetailsSubmitPayload {
   occupationDescription?: string
   languages?: Array<{ code: string; name: string; proficiency: string }>
   whereYouLive?: string
+  latitude?: number
+  longitude?: number
   uniqueSellingPoint?: string
   certifications?: Array<{
     name: string

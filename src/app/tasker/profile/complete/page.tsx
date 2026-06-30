@@ -21,6 +21,9 @@ import PhotoUploader, { Photo } from "@/components/shared/PhotoUploader";
 import ServiceRadius from "@/components/ui/serviceRadius";
 import { getServiceSkillGroups, type ServiceSkillGroup } from "@/lib/api/services";
 import { SearchCombobox } from "@/components/ui/SearchCombobox";
+import { AddressAutocompleteInput } from "@/components/ui/AddressAutocompleteInput";
+import { resolveKrafterLocationCoords } from "@/lib/geoapify";
+import { getKrafterWorkMediaFromStatus } from "@/lib/api/krafter-profile-completion";
 
 const Tag = ({ label, onRemove }: { label: string; onRemove: () => void }) => (
   <div className="flex items-center gap-1.5 bg-[#F6F6F6] text-[#667085] px-3 py-1.5 rounded-lg border border-[#0000001A]">
@@ -71,6 +74,10 @@ const CompleteProfileForm = () => {
   const [bio, setBio] = useState("");
   const [trade, setTrade] = useState("");
   const [location, setLocation] = useState("");
+  const [locationCoords, setLocationCoords] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
   const [uniquePoint, setUniquePoint] = useState("");
   const [languages, setLanguages] = useState<string[]>([]);
   const [photos, setPhotos] = useState<Photo[]>([]);
@@ -140,21 +147,34 @@ const CompleteProfileForm = () => {
       setBio(data.bio || "");
       setTrade(data.occupationDescription || "");
       setLocation(data.whereYouLive || "");
+      if (
+        typeof data.latitude === "number" &&
+        typeof data.longitude === "number" &&
+        Number.isFinite(data.latitude) &&
+        Number.isFinite(data.longitude)
+      ) {
+        setLocationCoords({ latitude: data.latitude, longitude: data.longitude });
+      }
       setUniquePoint(data.uniqueSellingPoint || "");
       if (data.languages) {
         setLanguages(data.languages.map((l) => l.name));
       }
       setProfilePhotoUrl(data.profilePhotoUrl || null);
-      if (data.certifications) {
-        setCertifications(data.certifications);
+
+      const workMedia = getKrafterWorkMediaFromStatus(personalDetailsStatus);
+      if (workMedia.certifications.length > 0) {
+        setCertifications(workMedia.certifications);
       }
-      // Set existing photos into the uploader state...
       const mappedPhotos: Photo[] = [];
-      data.portfolioPhotoUrls?.forEach((url, i) => {
+      workMedia.portfolioPhotoUrls.forEach((url, i) => {
         mappedPhotos.push({ id: `photo-ext-${i}`, src: url, mediaType: "image" });
       });
-      if (data.portfolioVideoUrl) {
-         mappedPhotos.push({ id: `video-ext`, src: data.portfolioVideoUrl, mediaType: "video" });
+      if (workMedia.portfolioVideoUrl) {
+        mappedPhotos.push({
+          id: `video-ext`,
+          src: workMedia.portfolioVideoUrl,
+          mediaType: "video",
+        });
       }
       setPhotos(mappedPhotos);
     }
@@ -252,11 +272,22 @@ const CompleteProfileForm = () => {
           }
         }
 
+        const resolvedCoords = await resolveKrafterLocationCoords(
+          location,
+          locationCoords,
+        );
+
         const payload = {
           displayName,
           bio,
           occupationDescription: trade,
           whereYouLive: location,
+          ...(resolvedCoords
+            ? {
+                latitude: resolvedCoords.latitude,
+                longitude: resolvedCoords.longitude,
+              }
+            : {}),
           travelRadiusKm: radius,
           uniqueSellingPoint: uniquePoint,
           languages: languages.map((l) => ({
@@ -448,12 +479,31 @@ const CompleteProfileForm = () => {
                   ))}
                 </div>
               </div>
-              <Input
-                label="Where do you Live?"
-                placeholder="e.g Bern, Germany"
-                value={location}
-                onChange={setLocation}
-              />
+              <div className="space-y-2">
+                <AddressAutocompleteInput
+                  label="Where do you Live?"
+                  placeholder="e.g. Bern, Germany"
+                  value={location}
+                  onChange={(val) => {
+                    setLocation(val);
+                    setLocationCoords(null);
+                  }}
+                  onSelectSuggestion={(suggestion) => {
+                    setLocation(suggestion.label);
+                    if (
+                      suggestion.latitude != null &&
+                      suggestion.longitude != null &&
+                      Number.isFinite(suggestion.latitude) &&
+                      Number.isFinite(suggestion.longitude)
+                    ) {
+                      setLocationCoords({
+                        latitude: suggestion.latitude,
+                        longitude: suggestion.longitude,
+                      });
+                    }
+                  }}
+                />
+              </div>
               <ServiceRadius radius={radius} setRadius={setRadius} />
               <div className="space-y-2">
                 <div className="flex items-center justify-between">

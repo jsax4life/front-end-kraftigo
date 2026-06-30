@@ -9,6 +9,8 @@ import Button from "../ui/button";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import PhotoUploader, { type Photo } from "@/components/shared/PhotoUploader";
+import { formatDistanceDisplay, readDistanceFields } from "@/utils/distance";
+import { DistanceBadge } from "@/components/ui/DistanceBadge";
 
 interface TaskDetailModalProps {
   booking: Booking | null;
@@ -77,6 +79,7 @@ export default function TaskDetailModal({
   const isInProgress = booking.status === "IN_PROGRESS";
   const isExpired = booking.status === "EXPIRED";
   const displayTitle = booking.title || booking.service?.title || "Craft";
+  const distanceText = formatDistanceDisplay(readDistanceFields(booking));
 
   return (
     <div
@@ -208,6 +211,11 @@ export default function TaskDetailModal({
               {booking.location}
             </p>
           </div>
+          {distanceText && (
+            <div className="flex justify-end mb-2">
+              <DistanceBadge label={distanceText} size="sm" align="right" />
+            </div>
+          )}
           {/* Map */}
           <div className="relative rounded-2xl overflow-hidden h-44 bg-gray-100">
             <Image
