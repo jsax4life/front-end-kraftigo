@@ -13,6 +13,8 @@ import { buildTaskerMessageCustomerUrlFromBooking } from "@/lib/chatDeepLinks";
 import type { Booking } from "@/types";
 import { useBookingsStore } from "@/store/useBookingsStore";
 import { parseBookingMoney } from "@/lib/bookingDisplay";
+import { formatDistanceDisplay, readDistanceFields } from "@/utils/distance";
+import { DistanceBadge } from "@/components/ui/DistanceBadge";
 
 type JobPhase = "not-started" | "in-progress" | "completed";
 
@@ -583,6 +585,14 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
                   <h3 className="text-[15px] font-bold text-gray-900">Job location</h3>
                   <p className="text-[13px] text-gray-500 text-right max-w-[55%] leading-tight">{booking.location}</p>
                 </div>
+                {(() => {
+                  const d = formatDistanceDisplay(readDistanceFields(booking));
+                  return d ? (
+                    <div className="flex justify-end mb-2">
+                      <DistanceBadge label={d} size="sm" align="right" />
+                    </div>
+                  ) : null;
+                })()}
                 <div className="relative rounded-xl overflow-hidden h-40">
                   <Image src="/images/map.png" alt="Job location map" fill className="object-cover" />
                   <span className="absolute bottom-3 left-3 bg-brand-orange text-white px-3 py-1.5 rounded-full text-[12px] font-medium shadow">

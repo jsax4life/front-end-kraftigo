@@ -130,30 +130,10 @@ const BookServicePage = () => {
           : null;
 
     if (lat === null || lng === null) {
-      const addressToGeocode = currentAddress || selectedAddr?.address;
-      if (addressToGeocode && addressToGeocode !== "Add your location") {
-        try {
-          toast.loading("Geocoding address...", { id: "geocode" });
-          const geoResponse = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(addressToGeocode)}&format=json&limit=1`, {
-            headers: { "User-Agent": "Krafitgo/1.0" },
-          });
-          const geoData = await geoResponse.json();
-          if (geoData && geoData.length > 0) {
-            lat = parseFloat(geoData[0].lat);
-            lng = parseFloat(geoData[0].lon);
-            toast.dismiss("geocode");
-          } else {
-            toast.error("Could not find coordinates for this address.", { id: "geocode" });
-            return;
-          }
-        } catch (e) {
-          toast.error("Geocoding failed. Please try another address.", { id: "geocode" });
-          return;
-        }
-      } else {
-        toast.error("Could not determine your location. Please select or add an address first.");
-        return;
-      }
+      toast.error(
+        "Please pick your job address from the suggestions list (or use current location) so we can calculate distance to Krafters.",
+      );
+      return;
     }
 
     const mediaFiles = formData.photos
@@ -454,8 +434,8 @@ const BookServicePage = () => {
           selectAddress(addressId);
           setShowAddressModal(false);
         }}
-        onAddNewAddress={({ label, address }) => {
-          addAddress({ label, address });
+        onAddNewAddress={({ label, address, latitude, longitude }) => {
+          addAddress({ label, address, latitude, longitude });
           setShowAddressModal(false);
         }}
         onUseCurrentLocation={async () => {

@@ -2,12 +2,15 @@
 
 import { useState, useRef, useEffect, ReactNode } from "react";
 import { Search } from "lucide-react";
+import { parseGeoapifyLatLon } from "@/lib/geoapify";
 
 export interface AddressSuggestion {
   label: string;
   street: string;
   postcode: string;
   city: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 interface AddressAutocompleteInputProps {
@@ -79,7 +82,14 @@ export function AddressAutocompleteInput({
             const cleanLabel = [street, cityPart].filter(Boolean).join(", ");
             const label = cleanLabel || r.formatted || query;
             
-            return { label, street, postcode, city };
+            const coords = parseGeoapifyLatLon(r as Record<string, unknown>);
+            return {
+              label,
+              street,
+              postcode,
+              city,
+              ...(coords ?? {}),
+            };
           });
 
         const seen = new Set<string>();

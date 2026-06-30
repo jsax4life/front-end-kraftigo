@@ -13,6 +13,7 @@ import {
   upcomingStatusLabel,
   bookingNeedsKrafterSelection,
 } from "@/lib/bookingDisplay";
+import { DistanceBadge } from "@/components/ui/DistanceBadge";
 import { buildCustomerMessageKrafterUrl, canCustomerMessageKrafter, getKrafterUserIdFromBooking } from "@/lib/chatDeepLinks";
 import { useBookingsStore } from "@/store/useBookingsStore";
 import CancelModal from "@/components/shared/CancelModal";
@@ -279,6 +280,13 @@ export default function CustomerKraftTaskDetailModal({
               <p className="text-[14px] font-poppins font-bold text-black mb-1">
                 {displayData.artisan.name}
               </p>
+              {displayData.krafterDistanceLabel && !needsKrafterSelection && (
+                <DistanceBadge
+                  label={displayData.krafterDistanceLabel}
+                  size="sm"
+                  className="mb-2"
+                />
+              )}
               {needsKrafterSelection && (
                 <p className="text-[12px] font-poppins text-gray-500 mb-2">
                   Choose a Krafter to send your request and continue booking.

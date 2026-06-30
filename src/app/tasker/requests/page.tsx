@@ -11,6 +11,8 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Input from "@/components/ui/input";
 import Button from "@/components/ui/button";
+import { formatDistanceDisplay, readDistanceFields } from "@/utils/distance";
+import { DistanceBadge } from "@/components/ui/DistanceBadge";
 import MarketplaceKraftDetailModal from "@/components/shared/MarketplaceKraftDetailModal";
 import MarketplaceNegotiationModal, {
   type MarketplaceNegotiationFormValues,
@@ -722,6 +724,7 @@ const RequestsPage = () => {
           ) : (
             bookings.map((booking) => {
               const price = booking.price ?? 0;
+              const distanceLabel = formatDistanceDisplay(readDistanceFields(booking));
               return (
               <JobCard
                 key={booking.id}
@@ -733,6 +736,7 @@ const RequestsPage = () => {
                   "Marketplace Task"
                 }
                 location={booking.location || booking.address || "Location not specified"}
+                distanceLabel={distanceLabel}
                 bidsCount={0}
                 description={
                   booking.jobDescription ||
@@ -790,6 +794,7 @@ const RequestsPage = () => {
               const price = Number(booking.price ?? 0);
               const offerLabel = formatMarketplaceMoney(booking.price);
               const metaLine = buildMarketplaceApplicationMetaLine(booking);
+              const distanceLabel = formatDistanceDisplay(readDistanceFields(booking));
               return (
                 <JobCard
                   key={booking.marketplaceApplicationId ?? booking.id}
@@ -801,6 +806,7 @@ const RequestsPage = () => {
                     "Marketplace application"
                   }
                   location={booking.location || booking.address || "Location not specified"}
+                  distanceLabel={distanceLabel}
                   bidsCount={0}
                   description={
                     booking.jobDescription ||
@@ -855,6 +861,7 @@ const RequestsPage = () => {
                     description={request.jobDescription}
                     proposedPriceLabel={formatDirectRequestPrice(request.proposedPrice)}
                     statusBadge={directRequestStatusBadgeLabel(request.status)}
+                    distanceLabel={formatDistanceDisplay(readDistanceFields(request))}
                     onViewRequest={() => setDetailRequest(request)}
                   />
                 ))}
@@ -929,9 +936,12 @@ const RequestsPage = () => {
                       {booking.scheduled_date}
                       {booking.scheduled_time ? ` · ${booking.scheduled_time}` : ""}
                     </p>
-                    <p className="text-sm text-gray-600 font-poppins line-clamp-2 mb-3">
-                      {booking.location || "—"}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-2 mb-3">
+                      <p className="text-sm text-gray-600 font-poppins line-clamp-2 flex-1 min-w-0">
+                        {booking.location || "—"}
+                      </p>
+                      <DistanceBadge size="xs" sources={[booking]} />
+                    </div>
                     <div className="flex flex-wrap items-center gap-2 justify-between">
                       <span className="text-brand-orange font-bold text-base font-poppins">
                         {formatAssignedBookingPrice(booking)}

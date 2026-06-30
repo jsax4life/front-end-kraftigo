@@ -1,4 +1,5 @@
 import React from "react";
+import { DistanceBadge } from "@/components/ui/DistanceBadge";
 
 interface RequestCardProps {
   jobTitle: string;
@@ -6,6 +7,7 @@ interface RequestCardProps {
   proposedPriceLabel: string;
   /** Optional status flag (e.g. `PAYMENT_PENDING` after you accepted, awaiting customer card). */
   statusBadge?: string | null;
+  distanceLabel?: string | null;
   onViewRequest: () => void;
 }
 
@@ -14,6 +16,7 @@ const RequestCard = ({
   description,
   proposedPriceLabel,
   statusBadge,
+  distanceLabel,
   onViewRequest,
 }: RequestCardProps) => {
   return (
@@ -30,6 +33,9 @@ const RequestCard = ({
               </span>
             ) : null}
           </div>
+          {distanceLabel ? (
+            <DistanceBadge label={distanceLabel} size="sm" className="mt-1" />
+          ) : null}
         </div>
         <div className="text-right shrink-0">
           <div className="text-brand-orange font-bold text-lg font-poppins">

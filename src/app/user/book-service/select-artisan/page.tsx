@@ -13,6 +13,8 @@ import { Application } from "@/types";
 import { useBookingsStore } from "@/store/useBookingsStore";
 import { useAddressStore } from "@/store/useAddressStore";
 import { formatLocalDateYmd, parseLocalDateYmd } from "@/utils/date";
+import { readDistanceFields } from "@/utils/distance";
+import { resolveTaskCoordinates } from "@/lib/taskLocation";
 
 interface Artisan {
   id: string;
@@ -25,6 +27,7 @@ interface Artisan {
   location: string;
   description: string;
   distance?: number | null;
+  distanceLabel?: string | null;
   pricePerHour: number;
   isNewTasker?: boolean;
   isAvailable?: boolean;
@@ -41,11 +44,27 @@ interface Artisan {
 }
 
 function mapRecommendationToArtisan(rawItem: any, index: number): Artisan {
-  const item = rawItem?.artisan ?? rawItem?.data ?? rawItem; // Extract if wrapped
-  const id = String(item?.krafterId ?? item?.id ?? item?.artisanId ?? item?.artisan_id ?? index + 1);
+  // BE: compare/recommend cards are flat — distance + krafter fields at top level.
+  const nested = rawItem?.artisan ?? rawItem?.data ?? null;
+  const item = nested ?? rawItem;
+  const distance = readDistanceFields(rawItem);
+  const id = String(
+    rawItem?.krafterId ??
+      item?.krafterId ??
+      item?.id ??
+      item?.artisanId ??
+      item?.artisan_id ??
+      index + 1,
+  );
   return {
     id,
-    name: item?.displayName ?? item?.fullName ?? item?.name ?? item?.artisanName ?? "Krafter",
+    name:
+      rawItem?.displayName ??
+      item?.displayName ??
+      item?.fullName ??
+      item?.name ??
+      item?.artisanName ??
+      "Krafter",
     profileImage: item?.profilePhotoUrl ?? item?.avatar ?? item?.profileImage ?? "/images/pro.jpg",
     badge: (() => {
       const raw = item?.badges?.[0] ?? (item?.badge ?? null);
@@ -53,13 +72,32 @@ function mapRecommendationToArtisan(rawItem: any, index: number): Artisan {
       const upper = String(raw).toUpperCase().replace(/_/g, " ");
       return upper;
     })(),
-    rating: Number(item?.rating ?? item?.reviewsRating ?? 0) || 0,
-    reviewCount: Number(item?.reviewCount ?? item?.reviewsCount ?? item?.reviews_count ?? 0) || 0,
-    taskCount: Number(item?.completedKrafts ?? item?.completedJobs ?? item?.taskCount ?? item?.tasks_count ?? 0) || 0,
+    rating: Number(rawItem?.rating ?? item?.rating ?? item?.reviewsRating ?? 0) || 0,
+    reviewCount:
+      Number(rawItem?.reviewCount ?? item?.reviewCount ?? item?.reviewsCount ?? item?.reviews_count ?? 0) ||
+      0,
+    taskCount:
+      Number(
+        rawItem?.completedKrafts ??
+          item?.completedKrafts ??
+          item?.completedJobs ??
+          item?.taskCount ??
+          item?.tasks_count ??
+          0,
+      ) || 0,
     location: item?.address ?? item?.location ?? item?.city ?? item?.baseCity ?? "",
     description: item?.description ?? item?.bio ?? item?.proposal_message ?? "",
-    distance: item?.distanceKm ?? null,
-    pricePerHour: Number(item?.hourlyRate ?? item?.pricePerHour ?? item?.price_per_hour ?? item?.proposedPrice ?? 0) || 0,
+    distance: distance.distanceKm,
+    distanceLabel: distance.distanceLabel,
+    pricePerHour:
+      Number(
+        rawItem?.hourlyRate ??
+          item?.hourlyRate ??
+          item?.pricePerHour ??
+          item?.price_per_hour ??
+          item?.proposedPrice ??
+          0,
+      ) || 0,
     isNewTasker: item?.isNewTasker ?? item?.is_new ?? false,
     isAvailable: item?.isAvailable ?? false,
     // Extra fields for detail modal
@@ -98,6 +136,14 @@ const SelectArtisanPage = () => {
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [showCompare, setShowCompare] = useState(false);
   const [selectedKrafter, setSelectedKrafter] = useState<KrafterDetail | null>(null);
+  const [coordsError, setCoordsError] = useState<string | null>(null);
+
+  const taskCoords = resolveTaskCoordinates({
+    urlLat: latitudeFromUrl,
+    urlLng: longitudeFromUrl,
+    storeLat: currentLatitude,
+    storeLng: currentLongitude,
+  });
 
   const canCompare = artisans.length > 1;
 
@@ -114,10 +160,17 @@ const SelectArtisanPage = () => {
       return;
     }
 
-    const latParam = parseFloat(latitudeFromUrl || "");
-    const lngParam = parseFloat(longitudeFromUrl || "");
-    const lat = Number.isFinite(latParam) ? latParam : currentLatitude ?? 0;
-    const lng = Number.isFinite(lngParam) ? lngParam : currentLongitude ?? 0;
+    if (!taskCoords) {
+      setCoordsError(
+        "We need your job location coordinates to show Krafter distance. Go back and pick your address from the suggestions list.",
+      );
+      setArtisans([]);
+      setArtisansFromApi(false);
+      setFetchDone(true);
+      return;
+    }
+
+    setCoordsError(null);
     const preferredDate = (() => {
       const fromYmd = parseLocalDateYmd(dateParam);
       if (fromYmd) return formatLocalDateYmd(fromYmd);
@@ -132,8 +185,8 @@ const SelectArtisanPage = () => {
       serviceCategoryId: categoryId,
       jobTitle: categoryName,
       jobDescription: taskDetails,
-      latitude: lat,
-      longitude: lng,
+      latitude: taskCoords.latitude,
+      longitude: taskCoords.longitude,
       preferredDate,
       preferredTime: timeParam,
       limit: 16,
@@ -158,10 +211,8 @@ const SelectArtisanPage = () => {
     taskDetails,
     dateParam,
     timeParam,
-    latitudeFromUrl,
-    longitudeFromUrl,
-    currentLatitude,
-    currentLongitude,
+    taskCoords?.latitude,
+    taskCoords?.longitude,
     getRecommendations,
   ]);
 
@@ -180,6 +231,12 @@ const SelectArtisanPage = () => {
       params.set("artisanBadge", selected.badge ?? "");
       params.set("pricePerHour", selected.pricePerHour.toString());
       params.set("artisanKrafts", selected.taskCount.toString());
+      if (selected.distanceLabel) {
+        params.set("distanceLabel", selected.distanceLabel);
+      }
+      if (selected.distance != null && Number.isFinite(selected.distance)) {
+        params.set("distanceKm", String(selected.distance));
+      }
     }
     router.push(`/user/book-service/verifyDetails?${params.toString()}`);
   };
@@ -198,6 +255,7 @@ const SelectArtisanPage = () => {
     image: artisan.profileImage,
     description: artisan.description,
     distance: artisan.distance,
+    distanceLabel: artisan.distanceLabel,
     is_top_pro: artisan.badge === "TOP PRO",
   }));
   const handleChat = (artisanId: string) => {
@@ -333,7 +391,13 @@ const SelectArtisanPage = () => {
           </div>
         )}
 
-        {!isLoading && fetchDone && artisans.length === 0 && (
+        {!isLoading && fetchDone && coordsError && (
+          <div className="flex flex-col items-center justify-center py-16 text-center px-4">
+            <p className="text-[16px] font-poppins font-semibold text-gray-600">{coordsError}</p>
+          </div>
+        )}
+
+        {!isLoading && fetchDone && !coordsError && artisans.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 text-center px-4">
             <p className="text-[16px] font-poppins font-semibold text-gray-400">No Krafters found</p>
             <p className="text-[13px] font-poppins text-gray-300 mt-1">
@@ -344,7 +408,7 @@ const SelectArtisanPage = () => {
 
         {/* Artisan Cards - List View */}
         {!isLoading && viewMode === "list" && artisans.length > 0 && (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {artisans.map((artisan, index) => (
               <ArtisanCard
                 key={artisan.id}
@@ -412,6 +476,8 @@ const SelectArtisanPage = () => {
           }}
           fromRecommendations={artisansFromApi}
           serviceCategoryId={categoryId || undefined}
+          taskLatitude={taskCoords?.latitude}
+          taskLongitude={taskCoords?.longitude}
         />
       )}
 

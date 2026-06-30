@@ -1,4 +1,5 @@
 import type { BookingStatus } from "@/types";
+import { formatDistanceDisplay, readDistanceFields } from "@/utils/distance";
 
 /** Shape returned by `GET /api/bookings/my` and `GET /api/bookings/:id` (camelCase + relations). */
 export type BookingLike = {
@@ -63,6 +64,10 @@ export type BookingLike = {
   duration_hours?: number | string | null;
   latitude?: string | number | null;
   longitude?: string | number | null;
+  distanceKm?: number | null;
+  distanceLabel?: string | null;
+  krafterDistanceKm?: number | null;
+  krafterDistanceLabel?: string | null;
 };
 
 /** Parse API money fields that may be `number`, numeric `string`, or empty `""`. */
@@ -233,6 +238,7 @@ export function deriveActiveJobDisplay(b: BookingLike) {
   const artisanName = artisanDisplayName(b);
   const loc = String(b.address ?? b.serviceAddress ?? b.location ?? "—") || "—";
   const needsKrafterSelection = bookingNeedsKrafterSelection(b);
+  const krafterDistanceLabel = formatDistanceDisplay(readDistanceFields(b));
 
   const image =
     b.artisan?.avatar ??
@@ -337,8 +343,10 @@ export function deriveActiveJobDisplay(b: BookingLike) {
       name: artisanNameLine,
       location: loc,
       image,
+      distanceLabel: needsKrafterSelection ? null : krafterDistanceLabel,
     },
     jobLocation: loc,
+    krafterDistanceLabel: needsKrafterSelection ? null : krafterDistanceLabel,
     kraftDetails: kraftDetails || "—",
     priceBreakdown: {
       rows: priceRows,

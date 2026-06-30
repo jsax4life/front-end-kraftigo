@@ -1,6 +1,7 @@
 import { Star } from "lucide-react";
 import Image from "next/image";
 import Button from "@/components/ui/button";
+import { DistanceBadge } from "@/components/ui/DistanceBadge";
 
 export interface ProCardProps {
   name: string;
@@ -54,13 +55,16 @@ const ProCard = ({
                     {badge}
                   </span>
                 )}
-                {distance == undefined || distance == null ? (
-                  <p className="text-[11px] text-gray-500 font-poppins truncate min-w-0">
-                    {typeof distance === "number"
-                      ? `${distance} km away`
-                      : distance}
-                  </p>
-                ) : null}
+                {distance != null && distance !== "" && (
+                  <DistanceBadge
+                    size="xs"
+                    label={
+                      typeof distance === "number"
+                        ? `${distance} km away`
+                        : String(distance)
+                    }
+                  />
+                )}
               </div>
               <div className="flex items-center mt-1">
                 <span className="text-[14px] text-gray-600 font-poppins">

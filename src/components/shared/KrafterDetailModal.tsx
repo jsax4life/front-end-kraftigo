@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import { X, Star, MapPin, Clock, Languages, Briefcase } from "lucide-react";
+import { formatDistanceDisplay, readDistanceFields } from "@/utils/distance";
+import { DistanceBadge } from "@/components/ui/DistanceBadge";
 
 export interface KrafterDetail {
   id: string;
@@ -14,6 +16,7 @@ export interface KrafterDetail {
   description: string;
   location: string;
   distance?: number | null;
+  distanceLabel?: string | null;
   pricePerHour: number;
   isAvailable?: boolean;
   // Extra fields from recommendation API
@@ -49,6 +52,8 @@ const StarRating = ({ rating }: { rating: number }) => (
 );
 
 const KrafterDetailModal = ({ krafter, onClose, onSelect }: KrafterDetailModalProps) => {
+  const distanceText = formatDistanceDisplay(readDistanceFields(krafter));
+
   return (
     <>
       {/* Backdrop */}
@@ -76,6 +81,9 @@ const KrafterDetailModal = ({ krafter, onClose, onSelect }: KrafterDetailModalPr
 
         <div className="flex flex-col items-center gap-2">
             <h2 className="text-[24px] font-poppins font-bold text-gray-900">{krafter.name}</h2>
+            {distanceText && (
+              <DistanceBadge label={distanceText} size="sm" align="center" />
+            )}
             <div className="flex justify-center items-center gap-4 relative">
               <Image
                   src={krafter.profileImage || "/images/pro.jpg"}

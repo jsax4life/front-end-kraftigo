@@ -199,6 +199,12 @@ export interface Booking {
   expiration_reason?: string | null;
   /** @deprecated Alias for legacy readers; prefer `conversationId`. */
   chatConversationId?: string | null;
+  /** Great-circle distance to assigned Krafter / task (when API provides it). */
+  distanceKm?: number | null;
+  distanceLabel?: string | null;
+  /** Backward-compatible aliases on booking detail. */
+  krafterDistanceKm?: number | null;
+  krafterDistanceLabel?: string | null;
 }
 
 // ─── Reviews ──────────────────────────────────────────────────────────────────
@@ -285,6 +291,8 @@ export interface Application {
   description: string;
   is_top_pro?: boolean;
   created_at?: string;
+  distance?: number | null;
+  distanceLabel?: string | null;
 }
 
 /** JSON body for `POST /api/profile/artisan/url` (URL-based media, no multipart). */
@@ -332,6 +340,8 @@ export interface ArtisanProfile {
   }[];
   baseCity: string;
   postalCode: string;
+  latitude?: number | null;
+  longitude?: number | null;
   travelRadiusKm: number;
   primaryTrade: string;
   secondarySkills: string[];

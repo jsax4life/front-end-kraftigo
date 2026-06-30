@@ -11,6 +11,8 @@ import type { Booking } from "@/types";
 import TaskerNav from "@/components/shared/taskerNav";
 import toast from "react-hot-toast";
 import { buildTaskerMessageCustomerUrlFromBooking } from "@/lib/chatDeepLinks";
+import { formatDistanceDisplay, readDistanceFields } from "@/utils/distance";
+import { DistanceBadge } from "@/components/ui/DistanceBadge";
 
 function formatDisplayDate(iso: string) {
   const d = new Date(iso);
@@ -236,6 +238,7 @@ export default function MarketplaceKraftDetailPanel({
   const showApplicationStatusBlock = Boolean(readOnlyApplication && applicationStatusPillLabel);
   const suppressMarketplaceActions = readOnlyApplication || Boolean(booking.hasApplied);
   const customerChatUrl = buildTaskerMessageCustomerUrlFromBooking(booking);
+  const distanceText = formatDistanceDisplay(readDistanceFields(booking));
 
   const handleOfferSubmit = async (values: {
     amount: string;
@@ -378,6 +381,11 @@ export default function MarketplaceKraftDetailPanel({
                 {derived.locationLine}
               </p>
             </div>
+            {distanceText && (
+              <div className="flex justify-end mb-2">
+                <DistanceBadge label={distanceText} size="sm" align="right" />
+              </div>
+            )}
             <div className="relative rounded-2xl overflow-hidden h-44 bg-gray-100">
               <Image src="/images/map.png" alt="Map" fill className="object-cover" />
               <span className="absolute bottom-3 left-3 bg-brand-orange text-white text-[12px] font-semibold px-3 py-1.5 rounded-full shadow font-poppins">

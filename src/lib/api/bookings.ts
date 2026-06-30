@@ -1,4 +1,5 @@
 import api from '@/lib/axios'
+import { readDistanceFields } from '@/utils/distance'
 import { readDmConversationIdFromBooking } from '@/lib/bookingChat'
 import type { Booking, Service, ServiceCategory } from '@/types'
 
@@ -70,6 +71,9 @@ export interface SelectKrafterPayload {
 export interface CompareKraftersPayload {
   krafterIds: string[]
   serviceCategoryId: string
+  /** Task origin — required for distance in compare results. */
+  latitude: number
+  longitude: number
 }
 
 export interface CreateBookingForRecommendationPayload {
@@ -196,6 +200,8 @@ export interface MarketplaceOpenBookingRow {
   completedAt?: string | null
   serviceCategory?: MarketplaceOpenServiceCategory
   hasApplied: boolean
+  distanceKm?: number | null
+  distanceLabel?: string | null
 }
 
 export interface GetOpenMarketplaceTasksResponse {
@@ -257,6 +263,7 @@ export const mapMarketplaceOpenRowToBooking = (
     ? mediaRaw.filter((u): u is string => typeof u === 'string' && u.trim().length > 0)
     : undefined
   const firstMedia = mediaUrls?.[0]
+  const distance = readDistanceFields(loose)
 
   return {
     id: row.id,
@@ -301,6 +308,8 @@ export const mapMarketplaceOpenRowToBooking = (
       : {}),
     ...(expiredAt ? { expiredAt } : {}),
     ...(expirationReason ? { expirationReason } : {}),
+    ...(distance.distanceKm != null ? { distanceKm: distance.distanceKm } : {}),
+    ...(distance.distanceLabel ? { distanceLabel: distance.distanceLabel } : {}),
   }
 }
 
@@ -402,6 +411,7 @@ export function normalizeBookingDetailResponse(data: unknown): Booking {
 
   const serviceCategory = (r.serviceCategory ?? r.service_category) as Booking['serviceCategory']
   const customer = r.customer as Booking['customer']
+  const distance = readDistanceFields(r)
 
   const merged: Booking = {
     ...(r as unknown as Booking),
@@ -456,6 +466,8 @@ export function normalizeBookingDetailResponse(data: unknown): Booking {
     mediaUrls,
     customer: customer ?? undefined,
     serviceCategory: serviceCategory ?? undefined,
+    ...(distance.distanceKm != null ? { distanceKm: distance.distanceKm } : {}),
+    ...(distance.distanceLabel ? { distanceLabel: distance.distanceLabel } : {}),
   }
 
   const chatDmId = readDmConversationIdFromBooking(merged)
@@ -753,6 +765,8 @@ export interface ArtisanAssignedBookingRow {
   workDurationSeconds?: number | string | null
   /** Chat thread UUID when API enriches this row. */
   conversationId?: string | null
+  distanceKm?: number | null
+  distanceLabel?: string | null
 }
 
 function parseMoneyField(value: string | null | undefined): number | undefined {
@@ -820,6 +834,8 @@ export function mapArtisanAssignedBookingRowToBooking(row: ArtisanAssignedBookin
     created_at: row.createdAt,
   }
 
+  const distance = readDistanceFields(loose)
+
   return {
     id: row.id,
     service_id: row.serviceListingId || row.serviceCategoryId,
@@ -862,6 +878,8 @@ export function mapArtisanAssignedBookingRowToBooking(row: ArtisanAssignedBookin
       : {}),
     ...(expiredAt ? { expiredAt } : {}),
     ...(expirationReason ? { expirationReason } : {}),
+    ...(distance.distanceKm != null ? { distanceKm: distance.distanceKm } : {}),
+    ...(distance.distanceLabel ? { distanceLabel: distance.distanceLabel } : {}),
   }
 }
 
@@ -922,6 +940,8 @@ export interface DirectArtisanBookingRequest {
   completedAt?: string | null
   /** Chat thread UUID when API enriches this row. */
   conversationId?: string | null
+  distanceKm?: number | null
+  distanceLabel?: string | null
 }
 
 /** GET /api/artisan/bookings/direct-requests — all direct booking requests for the current artisan */

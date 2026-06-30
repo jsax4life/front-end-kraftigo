@@ -27,6 +27,8 @@ import KrafterDetailModal, {
 import { fetchKrafterProfile } from "@/lib/api/bookings";
 import Navbar from "@/components/shared/Navbar";
 import Footer from "@/components/shared/Footer";
+import { formatDistanceDisplay, readDistanceFields } from "@/utils/distance";
+import { DistanceBadge } from "@/components/ui/DistanceBadge";
 
 // ─── Static fallbacks ─────────────────────────────────────────────────────────
 
@@ -231,7 +233,10 @@ const Page = () => {
           tasks: p.completedKrafts,
           description: p.description,
           price: `€${p.hourlyRate.toFixed(2)}/hr`,
-          distance: `${p.distanceKm} Km away`,
+          distance:
+            p.distanceLabel ??
+            formatDistanceDisplay(readDistanceFields(p)) ??
+            (p.distanceKm != null ? `${p.distanceKm} km away` : undefined),
           image: normSrc(p.profilePhotoUrl) ?? "/images/pro.jpg",
           badge: p.badges[0] ? p.badges[0].replace(/_/g, " ") : undefined,
         }))
@@ -264,6 +269,7 @@ const Page = () => {
         isAvailable?: boolean;
         hourlyRate?: number;
         distanceKm?: number;
+        distanceLabel?: string | null;
       }
     >();
     for (const svc of searchServiceResults) {
@@ -313,6 +319,10 @@ const Page = () => {
         distanceKm:
           typeof svc.distanceKm === "number" && Number.isFinite(svc.distanceKm)
             ? svc.distanceKm
+            : undefined,
+        distanceLabel:
+          typeof svc.distanceLabel === "string" && svc.distanceLabel.trim()
+            ? svc.distanceLabel.trim()
             : undefined,
       });
     }
@@ -673,9 +683,15 @@ const Page = () => {
                             {booking.jobTitle}
                           </h3>
                           <div className="space-y-1 text-[14px] sm:text-[13px] text-gray-700 font-poppins">
-                            <div className="flex items-start gap-2">
-                              <MapPin size={14} className="text-gray-500" />
+                            <div className="flex items-start gap-2 flex-wrap">
+                              <MapPin size={14} className="text-gray-500 shrink-0 mt-0.5" />
                               <span>{booking.addressSummary}</span>
+                              {booking.krafter ? (
+                                <DistanceBadge
+                                  size="xs"
+                                  sources={[booking.krafter]}
+                                />
+                              ) : null}
                             </div>
                             <div className="flex items-start gap-2">
                               <Image
@@ -944,10 +960,12 @@ const Page = () => {
                               </p>
                               <p className="text-[12px] font-poppins text-gray-500 truncate">
                                 {artisan.categoryName || "Krafter"}
-                                {artisan.distanceKm != null
-                                  ? ` · ${artisan.distanceKm.toFixed(1)} km away`
-                                  : ""}
                               </p>
+                              <DistanceBadge
+                                size="xs"
+                                sources={[artisan]}
+                                className="mt-1"
+                              />
                               <p className="text-[12px] font-poppins text-gray-600 mt-0.5">
                                 {artisan.rating != null
                                   ? `★ ${artisan.rating.toFixed(1)}`

@@ -24,6 +24,10 @@ import { TermsContent } from "@/components/ui/TermsContent";
 import { PrivacyContent } from "@/components/ui/PrivacyContent";
 import toast from "react-hot-toast";
 import { SearchCombobox } from "@/components/ui/SearchCombobox";
+import {
+  parseGeoapifyLatLon,
+  resolveKrafterLocationCoords,
+} from "@/lib/geoapify";
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -79,7 +83,14 @@ const Page = () => {
 
   // ── Street address autocomplete (Photon / OpenStreetMap — Germany only) ───
   const [streetSuggestions, setStreetSuggestions] = useState<
-    { label: string; street: string; postcode: string; city: string }[]
+    {
+      label: string;
+      street: string;
+      postcode: string;
+      city: string;
+      latitude?: number;
+      longitude?: number;
+    }[]
   >([]);
   const [streetLoading, setStreetLoading] = useState(false);
   const [streetOpen, setStreetOpen] = useState(false);
@@ -101,6 +112,7 @@ const Page = () => {
   const searchStreet = (query: string) => {
     setStreetQuery(query);
     handleInputChange("streetNo", query);
+    setFormData((prev) => ({ ...prev, addressLatitude: null, addressLongitude: null }));
     if (streetDebounce.current) clearTimeout(streetDebounce.current);
     if (query.trim().length < 3) {
       setStreetSuggestions([]);
@@ -129,7 +141,14 @@ const Page = () => {
             const label =
               r.formatted ??
               [street, postcode, city].filter(Boolean).join(", ");
-            return { label, street, postcode, city };
+            const coords = parseGeoapifyLatLon(r);
+            return {
+              label,
+              street,
+              postcode,
+              city,
+              ...(coords ?? {}),
+            };
           });
         // Deduplicate by label
         const seen = new Set<string>();
@@ -154,6 +173,8 @@ const Page = () => {
     street: string;
     postcode: string;
     city: string;
+    latitude?: number;
+    longitude?: number;
   }) => {
     setStreetQuery(s.street);
     setFormData((prev) => ({
@@ -161,6 +182,10 @@ const Page = () => {
       streetNo: s.street,
       postCode: s.postcode || prev.postCode,
       city: s.city || prev.city,
+      addressLatitude:
+        s.latitude != null && Number.isFinite(s.latitude) ? s.latitude : null,
+      addressLongitude:
+        s.longitude != null && Number.isFinite(s.longitude) ? s.longitude : null,
     }));
     setStreetOpen(false);
     setStreetSuggestions([]);
@@ -177,6 +202,8 @@ const Page = () => {
     streetNo: "",
     postCode: "",
     city: "",
+    addressLatitude: null as number | null,
+    addressLongitude: null as number | null,
   });
 
   // Prefill from onboarding status on mount
@@ -297,10 +324,34 @@ const Page = () => {
 
   const handleSubmit = async () => {
     try {
+      const addressText = [formData.streetNo, formData.postCode, formData.city]
+        .filter(Boolean)
+        .join(", ");
+      const pickerCoords =
+        formData.addressLatitude != null &&
+        formData.addressLongitude != null &&
+        Number.isFinite(formData.addressLatitude) &&
+        Number.isFinite(formData.addressLongitude)
+          ? {
+              latitude: formData.addressLatitude,
+              longitude: formData.addressLongitude,
+            }
+          : null;
+      const resolvedCoords = await resolveKrafterLocationCoords(
+        addressText,
+        pickerCoords,
+      );
+
       await saveKrafterAddress({
         street: formData.streetNo,
         postalCode: formData.postCode,
         city: formData.city,
+        ...(resolvedCoords
+          ? {
+              latitude: resolvedCoords.latitude,
+              longitude: resolvedCoords.longitude,
+            }
+          : {}),
       });
       router.push("/tasker/dashboard");
     } catch {

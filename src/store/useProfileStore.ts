@@ -120,7 +120,7 @@ interface ProfileState {
   ) => Promise<KrafterGenericUploadResponse>
 }
 
-export const useProfileStore = create<ProfileState>((set) => ({
+export const useProfileStore = create<ProfileState>((set, get) => ({
   artisanProfile: null,
   customerProfile: null,
   isLoading: false,
@@ -423,6 +423,7 @@ export const useProfileStore = create<ProfileState>((set) => ({
     try {
       const newSummary = await submitKrafterPersonalDetails(payload)
       const newPersonalStatus = await getKrafterPersonalDetailsStatus()
+      await get().fetchArtisanProfile()
       set({
         profileCompletionSummary: newSummary,
         personalDetailsStatus: newPersonalStatus,
