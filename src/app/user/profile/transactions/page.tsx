@@ -2,33 +2,33 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Filter } from "lucide-react";
-import Header from "@/components/shared/Header";
+import { ArrowLeft, Download, ChevronDown, Calendar, FileText } from "lucide-react";
 import { getMyPayments } from "@/lib/api/payments";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import type { Payment } from "@/types";
+import Image from "next/image";
 
 const statusStyles: Record<string, string> = {
-  HELD: "bg-orange-50 text-brand-orange border-orange-100",
-  PENDING: "bg-orange-50 text-brand-orange border-orange-100",
-  ESCROWED: "bg-orange-50 text-brand-orange border-orange-100",
-  RELEASED: "bg-green-50 text-[#00A651] border-green-100",
-  REFUNDED: "bg-red-50 text-[#F04438] border-red-100",
+  HELD: "bg-[#EEF0FF] text-[#5A64FF]",
+  PENDING: "bg-[#EEF0FF] text-[#5A64FF]",
+  ESCROWED: "bg-[#EEF0FF] text-[#5A64FF]",
+  RELEASED: "bg-[#FFF4ED] text-[#FF6600]",
+  REFUNDED: "bg-[#98A2B3] text-white",
+  CANCELLED: "bg-[#FEECEB] text-[#F04438]",
 };
 
 const statusLabel: Record<string, string> = {
-  HELD: "Held",
-  PENDING: "Pending",
-  ESCROWED: "Escrowed",
-  RELEASED: "Paid",
+  HELD: "Upcoming",
+  PENDING: "Upcoming",
+  ESCROWED: "Upcoming",
+  RELEASED: "Completed",
   REFUNDED: "Refunded",
+  CANCELLED: "Cancelled",
 };
 
 const readPaymentId = (p: Payment) => String(p.id ?? "");
-const readContextId = (p: Payment) =>
-  String((p as any).booking_id ?? (p as any).contextId ?? (p as any).context_id ?? "");
 const readContextType = (p: Payment) =>
-  String((p as any).contextType ?? (p as any).context_type ?? "PAYMENT");
+  String((p as any).contextType ?? (p as any).context_type ?? "PAYMENT").replace(/_/g, " ");
 const readCreatedAt = (p: Payment) =>
   String((p as any).created_at ?? (p as any).createdAt ?? "");
 const readCurrency = (p: Payment) =>
@@ -43,7 +43,6 @@ const TransactionsPage = () => {
   const router = useRouter();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     getMyPayments()
@@ -54,101 +53,135 @@ const TransactionsPage = () => {
 
   const formatDate = (iso: string) => {
     try {
-      return new Date(iso).toLocaleDateString("en-GB", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return iso;
+      const day = d.getDate();
+      const suffix =
+        ["th", "st", "nd", "rd"][
+          day % 10 > 3 ? 0 : day % 100 - (day % 10) !== 10 ? day % 10 : 0
+        ] || "th";
+      const month = d.toLocaleDateString("en-GB", { month: "short" });
+      const year = d.getFullYear();
+      const time = d.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
       });
+      return `${day}${suffix} ${month}, ${year}, ${time}`;
     } catch {
       return iso;
     }
   };
 
   const formatAmount = (amount: number, currency: string) =>
-    new Intl.NumberFormat("en-GB", { style: "currency", currency }).format(amount);
-
-  const filteredPayments = payments.filter((p) =>
-    readContextId(p).toLowerCase().includes(searchQuery.toLowerCase()) ||
-    readPaymentId(p).toLowerCase().includes(searchQuery.toLowerCase())
-  );
+    new Intl.NumberFormat("en-US", { style: "currency", currency }).format(amount);
 
   return (
-    <main className="min-h-screen bg-[#F9FAFB] flex flex-col">
-      <Header title="Transaction History" showLogout={false} />
-
-      <div className="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-10">
-          <h2 className="text-[32px] font-gerat font-[850] text-[#1D2939] leading-tight">
-            Transactions
-          </h2>
-          <p className="text-[14px] text-[#667085] font-poppins mt-2">
-            View and manage your payment history
-          </p>
-        </div>
-
-        {/* Search & Filter */}
-        <div className="flex gap-3 mb-10">
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#98A2B3]" size={20} />
-            <input
-              type="text"
-              placeholder="Search transactions"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-4 rounded-2xl border border-[#F2F4F7] bg-white focus:outline-none focus:border-brand-orange text-[14px] font-poppins shadow-sm"
-            />
-          </div>
-          <button className="w-14 h-[58px] bg-white border border-[#F2F4F7] rounded-2xl flex items-center justify-center shadow-sm text-[#667085] hover:bg-gray-50 transition-all">
-            <Filter size={20} />
+    <main className="min-h-screen bg-white flex flex-col">
+      <div className="max-w-4xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
+        {/* Top App Bar */}
+        <div className="flex items-center justify-between mb-8">
+          <button
+            onClick={() => router.back()}
+            className="text-[#1D2939] hover:bg-gray-100 p-2 -ml-2 rounded-full transition-colors"
+          >
+            <ArrowLeft size={24} />
+          </button>
+          <button className="text-[#1D2939] hover:bg-gray-100 p-2 -mr-2 rounded-full transition-colors">
+            <Download size={24} />
           </button>
         </div>
 
+        {/* Title */}
+        <h1 className="text-[20px] sm:text-[24px] font-poppins font-bold text-[#1D2939] mb-6">
+          Transaction History
+        </h1>
+
+        {/* Filter Dropdowns */}
+        <div className="flex gap-3 mb-8">
+          <button className="bg-[#FF6600] text-white px-4 py-2.5 rounded-xl text-[13px] font-poppins font-medium flex items-center justify-between gap-2 shadow-sm min-w-[120px]">
+            Last 30 Days <ChevronDown size={16} />
+          </button>
+          <button className="bg-[#F9FAFB] border border-[#EAECF0] text-[#1D2939] px-4 py-2.5 rounded-xl text-[13px] font-poppins font-medium flex items-center justify-between gap-2 min-w-[120px]">
+            All services <ChevronDown size={16} />
+          </button>
+        </div>
+
+        {/* Transactions List */}
         {isLoading ? (
           <div className="flex justify-center py-20">
             <LoadingSpinner size="lg" />
           </div>
-        ) : filteredPayments.length === 0 ? (
+        ) : payments.length === 0 ? (
           <div className="text-center py-20">
-            <p className="text-[#667085] font-poppins">
-              {searchQuery ? "No transactions found matching your search." : "No transactions yet."}
-            </p>
+            <p className="text-[#667085] font-poppins">No transactions yet.</p>
           </div>
         ) : (
           <div className="space-y-4">
-            <h3 className="text-[12px] font-poppins font-bold text-[#98A2B3] uppercase tracking-widest ml-1 mb-2">
-              Recent Transactions
-            </h3>
-            {filteredPayments.map((p) => (
-              <div
-                key={readPaymentId(p)}
-                onClick={() => router.push(`/user/profile/receipt?id=${readPaymentId(p)}`)}
-                className="bg-white p-5 rounded-2xl border border-[#F2F4F7] shadow-sm flex gap-4 items-center hover:border-brand-orange transition-all cursor-pointer group"
-              >
-                <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 relative bg-gray-50 border border-[#F2F4F7] flex items-center justify-center">
-                  <span className="text-[10px] font-poppins font-bold text-gray-400 text-center px-1 leading-tight">
-                    {readPaymentId(p).slice(-6).toUpperCase()}
-                  </span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-start mb-1.5">
-                    <h3 className="text-[15px] font-gerat font-bold text-[#1D2939] truncate pr-2">
-                      {readContextType(p).replaceAll("_", " ")} #{readContextId(p).slice(-8).toUpperCase() || "—"}
-                    </h3>
-                    <span className="text-[16px] font-poppins font-bold text-[#1D2939] shrink-0">
-                      {formatAmount(readAmount(p), readCurrency(p))}
-                    </span>
+            {payments.map((p) => {
+              const isRefunded = p.status === "REFUNDED";
+              const title = readContextType(p).toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+              
+              return (
+                <div
+                  key={readPaymentId(p)}
+                  onClick={() => router.push(`/user/profile/receipt?id=${readPaymentId(p)}`)}
+                  className="bg-[#F9FAFB] p-4 rounded-xl border border-[#EAECF0] flex gap-4 items-start hover:border-gray-300 transition-all cursor-pointer"
+                >
+                  {/* Icon Block */}
+                  <div
+                    className={`w-[48px] h-[48px] rounded-xl flex items-center justify-center shrink-0 ${
+                      isRefunded ? "bg-[#E4E7EC]" : "bg-[#FFEFE5]"
+                    }`}
+                  >
+                  <Image
+                                src="/card.svg"
+                                alt="cardimg"
+                                width={70}
+                                height={70}
+                                className="w-20 h-20"
+                              />
                   </div>
-                  <div className="flex justify-between items-center">
-                    <p className="text-[12px] text-[#667085] font-poppins font-medium">
-                      {formatDate(readCreatedAt(p))}
-                    </p>
-                    <span className={`text-[10px] font-bold px-3 py-1 rounded-full border ${statusStyles[p.status] ?? "bg-gray-50 text-gray-500 border-gray-100"}`}>
-                      {statusLabel[p.status] ?? p.status}
-                    </span>
+
+                  <div className="flex-1 min-w-0">
+                    {/* Top Row: Title & Amount */}
+                    <div className="flex justify-between items-start mb-1">
+                      <h3
+                        className={`text-[14px] sm:text-[15px] font-poppins font-bold truncate pr-2 ${
+                          isRefunded ? "text-gray-500 line-through" : "text-[#1D2939]"
+                        }`}
+                      >
+                        {title || "Service"} Booking
+                      </h3>
+                      <span
+                        className={`text-[14px] sm:text-[15px] font-mabry font-bold shrink-0 ${
+                          isRefunded ? "text-gray-500" : "text-[#1D2939]"
+                        }`}
+                      >
+                        {formatAmount(readAmount(p), readCurrency(p))}
+                      </span>
+                    </div>
+
+                    {/* Middle Row: Date */}
+                    <div className="flex items-center gap-1.5 text-[#667085] mb-2 text-[12px] font-poppins">
+                      <Calendar size={14} />
+                      <span className={isRefunded ? "text-gray-400" : ""}>{formatDate(readCreatedAt(p))}</span>
+                    </div>
+
+                    {/* Bottom Row: Status Badge */}
+                    <div>
+                      <span
+                        className={`inline-block px-2.5 py-0.5 rounded-md text-[10px] font-poppins font-semibold ${
+                          statusStyles[p.status] ?? "bg-gray-100 text-gray-500"
+                        }`}
+                      >
+                        {statusLabel[p.status] ?? p.status}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

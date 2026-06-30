@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import { useState, useEffect } from "react";
 import Button from "@/components/ui/button";
 import { AddressAutocompleteInput } from "@/components/ui/AddressAutocompleteInput";
+import toast from "react-hot-toast";
 
 interface Address {
   id: string;
@@ -79,17 +80,19 @@ const AddressModal = ({
   };
 
   const handleAddNew = () => {
-    if (newAddressLabel && newAddressValue && onAddNewAddress) {
-      onAddNewAddress({
-        label: newAddressLabel,
-        address: newAddressValue,
-        ...(newAddressCoords
-          ? {
-              latitude: newAddressCoords.latitude,
-              longitude: newAddressCoords.longitude,
-            }
-          : {}),
-      });
+    if (newAddressValue) {
+      if (!newAddressCoords) {
+        toast.error("Please pick an address from the dropdown suggestions.");
+        return;
+      }
+      if (onAddNewAddress) {
+        onAddNewAddress({
+          label: newAddressLabel.trim() || newAddressValue.split(',')[0],
+          address: newAddressValue,
+          latitude: newAddressCoords.latitude,
+          longitude: newAddressCoords.longitude,
+        });
+      }
       setNewAddressLabel("");
       setNewAddressValue("");
       setNewAddressCoords(null);
@@ -228,54 +231,7 @@ const AddressModal = ({
           {/* Add New Address Form */}
           {showAddNewForm && (
             <>
-              <div>
-                <h3 className="text-[14px] font-poppins font-semibold text-gray-900 mb-3">
-                  Saved Addresses
-                </h3>
-                <div className="space-y-3">
-                  {savedAddresses.map((addr) => (
-                    <div
-                      key={addr.id}
-                      className="relative group bg-[#F6F6F6] p-4 border border-[#0000001A] rounded-xl hover:bg-gray-100 transition-colors"
-                    >
-                      {/* Delete Button */}
-                      {onRemoveAddress && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onRemoveAddress(addr.id);
-                          }}
-                          className="absolute top-2 right-2 p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors z-10"
-                          title="Remove address"
-                        >
-                          <X size={16} />
-                        </button>
-                      )}
-
-                      <label className="flex items-start gap-3 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="address"
-                          value={addr.id}
-                          checked={selectedAddress === addr.id}
-                          onChange={(e) => handleSelectAddress(e.target.value)}
-                          className="mt-0.5 w-5 h-5 accent-black cursor-pointer"
-                        />
-                        <div className="flex-1 pr-6">
-                          <p className="text-[14px] font-poppins font-semibold text-gray-900">
-                            {addr.label}
-                          </p>
-                          <p className="text-[13px] text-gray-600 font-poppins">
-                            {addr.address}
-                          </p>
-                        </div>
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="bg-[#F6F6F6] border border-[#0000001A] p-4 rounded-xl">
+              <div className="bg-[#F6F6F6] border border-[#0000001A] p-4 rounded-xl mt-4">
                 <h3 className="text-[14px] font-poppins font-semibold text-gray-900 mb-3">
                   Add New Address
                 </h3>

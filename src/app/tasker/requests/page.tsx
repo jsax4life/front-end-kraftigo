@@ -518,6 +518,7 @@ const RequestsPage = () => {
 
   return (
     <main className="relative w-full min-h-screen bg-white pb-24">
+      <div className="max-w-4xl mx-auto w-full">
       {/* Header */}
       <div className="px-4 pt-4 pb-2">
         <button className="mb-4" onClick={() => router.back()}>
@@ -988,6 +989,7 @@ const RequestsPage = () => {
           </section>
         </div>
       )}
+      </div>
 
       <MarketplaceKraftDetailModal
         open={marketplaceKraftDetailOpen != null}

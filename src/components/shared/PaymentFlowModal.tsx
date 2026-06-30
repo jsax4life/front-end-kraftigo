@@ -86,7 +86,7 @@ const StripeCardForm = ({
   };
 
   return (
-    <div className="relative bg-white w-full h-[90vh] rounded-t-2xl p-4 sm:p-6 pb-8 flex flex-col">
+    <div className="relative bg-white w-full max-w-4xl h-[90vh] rounded-t-2xl sm:rounded-2xl p-4 sm:p-6 pb-8 flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-[18px] sm:text-[20px] font-poppins font-bold">
@@ -261,7 +261,8 @@ const PaymentFlowModal = ({ onClose }: PaymentFlowModalProps) => {
   };
 
   return (
-    <div className="fixed inset-0 z-100 bg-white flex flex-col animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-100 bg-black/50 flex items-end sm:items-center justify-center animate-in fade-in duration-200">
+      <div className="w-full max-w-4xl h-full sm:max-h-[90vh] bg-white sm:rounded-2xl flex flex-col relative sm:shadow-xl overflow-hidden">
       {/* Header */}
       <div className="px-4 py-6">
         <button
@@ -407,15 +408,16 @@ const PaymentFlowModal = ({ onClose }: PaymentFlowModalProps) => {
           </div>
         </div>
       )}
+      </div>
 
       {/* ── Add Payment Method Bottom Sheet ── */}
       {showAddMethod && (
-        <div className="fixed inset-0 z-110 flex flex-col justify-end animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-110 flex items-end sm:items-center justify-center animate-in fade-in duration-200">
           <div
             className="absolute inset-0 bg-black/40"
             onClick={() => setShowAddMethod(false)}
           />
-          <div className="relative bg-white w-full h-[90vh] rounded-t-2xl p-4 sm:p-6 pb-8 animate-in slide-in-from-bottom-full duration-300">
+          <div className="relative bg-white w-full max-w-4xl h-[90vh] rounded-t-2xl sm:rounded-2xl p-4 sm:p-6 pb-8 animate-in slide-in-from-bottom-full duration-300">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-[18px] sm:text-[20px] font-poppins font-bold">
                 Add a Payment Method
@@ -465,7 +467,7 @@ const PaymentFlowModal = ({ onClose }: PaymentFlowModalProps) => {
 
       {/* ── Stripe Card Entry Bottom Sheet ── */}
       {showStripeCard && clientSecret && (
-        <div className="fixed inset-0 z-120 flex flex-col justify-end animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-120 flex items-end sm:items-center justify-center animate-in fade-in duration-200">
           <div
             className="absolute inset-0 bg-black/40"
             onClick={() => {
