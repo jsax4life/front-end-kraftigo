@@ -6,6 +6,7 @@ import { Check, Minus, Plus } from "lucide-react";
 import { useState } from "react";
 import Button from "@/components/ui/button";
 import toast from "react-hot-toast";
+import { DistanceBadge } from "@/components/ui/DistanceBadge";
 import {
   clampDurationHours,
   parseDurationHoursParam,
@@ -31,6 +32,8 @@ const Page = () => {
   const artisanImage = searchParams.get("artisanImage") || "";
   const artisanBadge = searchParams.get("artisanBadge") || "";
   const pricePerHour = parseFloat(searchParams.get("pricePerHour") || "0") || 0;
+  const artisanDistanceLabel = searchParams.get("distanceLabel");
+  const artisanDistanceKm = searchParams.get("distanceKm");
 
   const [bookingHours, setBookingHours] = useState(() =>
     parseDurationHoursParam(searchParams.get("hours")),
@@ -126,7 +129,7 @@ const Page = () => {
               {categoryName}
             </h1>
             {!isPublic && artisanName && (
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex flex-wrap items-center gap-2 mb-2">
                 <span className="text-[13px] sm:text-[14px] font-poppins font-semibold text-gray-900">
                   {artisanName}
                 </span>
@@ -135,6 +138,11 @@ const Page = () => {
                     {artisanBadge}
                   </span>
                 )}
+                <DistanceBadge
+                  size="sm"
+                  label={artisanDistanceLabel}
+                  sources={artisanDistanceKm ? [{ distanceKm: artisanDistanceKm }] : undefined}
+                />
               </div>
             )}
             <p className="text-[13px] sm:text-[14px] text-gray-700 font-poppins">

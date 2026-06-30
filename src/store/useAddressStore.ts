@@ -35,12 +35,12 @@ interface AddressStore {
   selectAddress: (id: string) => void;
   getCurrentLocation: () => Promise<void>;
 
-  // Helper to get location data for booking
   getBookingLocationData: () => {
     address: string;
     latitude: number | null;
     longitude: number | null;
   };
+  clearAddresses: () => void;
 }
 
 function formatGermanAddress(nominatimAddress: Record<string, string>): string {
@@ -428,17 +428,51 @@ export const useAddressStore = create<AddressStore>()(
           longitude: state.currentLongitude,
         };
       },
+
+      clearAddresses: () => {
+        set({
+          addresses: [],
+          selectedAddressId: null,
+          currentAddress: "Add your location",
+          currentLatitude: null,
+          currentLongitude: null,
+        });
+      },
     }),
     {
       name: "krafitgo-address-store", // localStorage key
       // Only persist the data, not loading state
-      partialize: (state) => ({
-        addresses: state.addresses,
-        selectedAddressId: state.selectedAddressId,
-        currentAddress: state.currentAddress,
-        currentLatitude: state.currentLatitude,
-        currentLongitude: state.currentLongitude,
-      }),
+      partialize: (state) => {
+        let isAuthenticated = false;
+        try {
+          const authStorage = localStorage.getItem("auth-storage");
+          if (authStorage) {
+            const parsed = JSON.parse(authStorage);
+            isAuthenticated = !!parsed.state?.isAuthenticated;
+          }
+        } catch (e) {
+          // Ignore parsing errors
+        }
+
+        if (!isAuthenticated) {
+          // Return default state to clear or prevent saving to local storage
+          return {
+            addresses: [],
+            selectedAddressId: null,
+            currentAddress: "Add your location",
+            currentLatitude: null,
+            currentLongitude: null,
+          };
+        }
+
+        return {
+          addresses: state.addresses,
+          selectedAddressId: state.selectedAddressId,
+          currentAddress: state.currentAddress,
+          currentLatitude: state.currentLatitude,
+          currentLongitude: state.currentLongitude,
+        };
+      },
     },
   ),
 );

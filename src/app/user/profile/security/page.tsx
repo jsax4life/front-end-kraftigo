@@ -51,7 +51,7 @@ const SecurityPage = () => {
     <main className="min-h-screen bg-[#F9FAFB] flex flex-col">
       <Header title="Security" showLogout={false} />
 
-      <div className="flex-1 max-w-2xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+      <div className="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-10">
           <h2 className="text-[32px] font-gerat font-[850] text-[#1D2939] leading-tight">
             Security

@@ -7,6 +7,7 @@ import Image from "next/image";
 import toast from "react-hot-toast";
 import CompareSheet from "./CompareModal";
 import type { Application, Booking } from "@/types";
+import { DistanceBadge } from "@/components/ui/DistanceBadge";
 import { getBookingApplicants } from "@/lib/api/bookings";
 import {
   isPendingBookingApplication,
@@ -246,21 +247,29 @@ const OffersModal = ({ booking, onClose, onMarketplacePaymentReady }: OffersModa
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-1 mt-0.5">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star
-                        key={star}
-                        size={12}
-                        className={
-                          star <= app.rating
-                            ? "text-brand-orange fill-brand-orange"
-                            : "text-gray-300 fill-gray-300"
-                        }
-                      />
-                    ))}
-                    <span className="text-[12px] font-poppins text-gray-500 ml-1">
-                      ({app.reviews_count} Reviews) &nbsp; {app.tasks_count} Krafts
-                    </span>
+                  <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          size={12}
+                          className={
+                            star <= app.rating
+                              ? "text-brand-orange fill-brand-orange"
+                              : "text-gray-300 fill-gray-300"
+                          }
+                        />
+                      ))}
+                      <span className="text-[12px] font-poppins text-gray-500 ml-1">
+                        ({app.reviews_count} Reviews) &nbsp; {app.tasks_count} Krafts
+                      </span>
+                    </div>
+                    <DistanceBadge
+                      size="xs"
+                      sources={[
+                        { distanceKm: app.distance, distanceLabel: app.distanceLabel },
+                      ]}
+                    />
                   </div>
                 </div>
               </div>

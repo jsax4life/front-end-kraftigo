@@ -17,6 +17,7 @@ import {
 } from "@/lib/customerBookingCancel";
 import BookingPaymentConfirmModal from "@/components/shared/BookingPaymentConfirmModal";
 import { bookingPaymentClientSecret } from "@/lib/bookingPaymentCheckout";
+import { DistanceBadge } from "@/components/ui/DistanceBadge";
 
 // ─── Fallback mock for when no real booking ID is provided ───────────────────
 const MOCK_BOOKING = {
@@ -30,6 +31,7 @@ const MOCK_BOOKING = {
     image: "/images/pro.jpg",
   },
   jobLocation: "123 Maple Street",
+  krafterDistanceLabel: null as string | null,
   kraftDetails:
     "I need someone with six years of experience cleaning houses, whose priority is to bring a good service and leave everything very clean✨.",
   priceBreakdown: { rows: [], total: null as number | null },
@@ -144,7 +146,7 @@ const ActiveJobContent = () => {
           </button>
           <h1 className="text-[22px] font-gerat font-bold">{displayData.service}</h1>
         </div>
-        <button onClick={() => router.push("/user/home")} className="p-1">
+        <button onClick={() => router.push("/")} className="p-1">
           <X size={20} className="text-gray-400" />
         </button>
       </div>
@@ -200,6 +202,13 @@ const ActiveJobContent = () => {
           <p className="text-[14px] font-poppins font-bold text-black mb-1">
             {displayData.artisan.name}
           </p>
+          {displayData.krafterDistanceLabel && !needsKrafterSelection && (
+            <DistanceBadge
+              label={displayData.krafterDistanceLabel}
+              size="sm"
+              className="mb-2"
+            />
+          )}
           {needsKrafterSelection && (
             <p className="text-[12px] font-poppins text-gray-500 mb-2">
               Choose a Krafter to send your request and continue booking.

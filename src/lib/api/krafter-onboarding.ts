@@ -39,6 +39,8 @@ export interface KrafterAddressPayload {
   street: string
   postalCode: string
   city: string
+  latitude?: number
+  longitude?: number
 }
 
 // ─── API functions ────────────────────────────────────────────────────────────

@@ -104,7 +104,7 @@ export default function KrafterKycWelcomePage() {
         }}
       />
 
-      <div className="relative z-10 mx-auto flex min-h-screen max-w-[430px] flex-col px-5 pb-10 pt-14">
+      <div className="relative z-10 mx-auto flex min-h-screen max-w-4xl flex-col px-5 pb-10 pt-14">
         <button
           type="button"
           onClick={() => router.push("/user/profile")}

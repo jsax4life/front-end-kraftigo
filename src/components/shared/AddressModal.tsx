@@ -17,7 +17,12 @@ interface AddressModalProps {
   savedAddresses: Address[]; 
   selectedAddressId?: string;
   onSelectAddress?: (addressId: string) => void; 
-  onAddNewAddress?: (params: { label: string; address: string }) => void;
+  onAddNewAddress?: (params: {
+    label: string;
+    address: string;
+    latitude?: number;
+    longitude?: number;
+  }) => void;
   onUseCurrentLocation?: () => void;
   onRemoveAddress?: (addressId: string) => void;
 }
@@ -36,6 +41,10 @@ const AddressModal = ({
   const [showAddNewForm, setShowAddNewForm] = useState(false);
   const [newAddressLabel, setNewAddressLabel] = useState("");
   const [newAddressValue, setNewAddressValue] = useState("");
+  const [newAddressCoords, setNewAddressCoords] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -71,9 +80,19 @@ const AddressModal = ({
 
   const handleAddNew = () => {
     if (newAddressLabel && newAddressValue && onAddNewAddress) {
-      onAddNewAddress({ label: newAddressLabel, address: newAddressValue });
+      onAddNewAddress({
+        label: newAddressLabel,
+        address: newAddressValue,
+        ...(newAddressCoords
+          ? {
+              latitude: newAddressCoords.latitude,
+              longitude: newAddressCoords.longitude,
+            }
+          : {}),
+      });
       setNewAddressLabel("");
       setNewAddressValue("");
+      setNewAddressCoords(null);
       setShowAddNewForm(false);
     }
   };
@@ -280,7 +299,24 @@ const AddressModal = ({
                     label="Search for Area, Street Name"
                     placeholder="2383 Timber Oak Drive Circuit"
                     value={newAddressValue}
-                    onChange={(val) => setNewAddressValue(val)}
+                    onChange={(val) => {
+                      setNewAddressValue(val);
+                      setNewAddressCoords(null);
+                    }}
+                    onSelectSuggestion={(suggestion) => {
+                      setNewAddressValue(suggestion.label);
+                      if (
+                        suggestion.latitude != null &&
+                        suggestion.longitude != null &&
+                        Number.isFinite(suggestion.latitude) &&
+                        Number.isFinite(suggestion.longitude)
+                      ) {
+                        setNewAddressCoords({
+                          latitude: suggestion.latitude,
+                          longitude: suggestion.longitude,
+                        });
+                      }
+                    }}
                   />
 
                   <span className="text-[13px] font-poppins flex justify-center text-gray-500 pt-3">

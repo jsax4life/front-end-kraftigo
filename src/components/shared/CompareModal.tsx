@@ -6,6 +6,8 @@ import Image from "next/image";
 import toast from "react-hot-toast";
 import { Application } from "@/types";
 import { useBookingsStore } from "@/store/useBookingsStore";
+import { formatDistanceDisplay, readDistanceFields } from "@/utils/distance";
+import { DistanceBadge } from "@/components/ui/DistanceBadge";
 
 interface CompareSheetProps {
   allArtisans: Application[];
@@ -14,6 +16,8 @@ interface CompareSheetProps {
   /** When true and two Krafters are selected, call POST /api/bookings/compare-krafters */
   fromRecommendations?: boolean;
   serviceCategoryId?: string;
+  taskLatitude?: number;
+  taskLongitude?: number;
 }
 
 // ─── Empty Slot Placeholder ───────────────────────────────────────────────────
@@ -179,6 +183,7 @@ function mapCompareItemToApplication(item: any, fallback: Application): Applicat
   const image = item?.avatar ?? item?.image ?? item?.profilePhotoUrl ?? fallback.image;
   const price =
     item?.price ?? (item?.pricePerHour != null ? `€${item.pricePerHour}/hr` : fallback.price);
+  const distance = readDistanceFields(item);
   return {
     ...fallback,
     id: String(id),
@@ -190,6 +195,8 @@ function mapCompareItemToApplication(item: any, fallback: Application): Applicat
     reviews_count: Number(item?.reviewsCount ?? item?.reviews_count ?? fallback.reviews_count) || 0,
     tasks_count: Number(item?.completedJobs ?? item?.tasks_count ?? fallback.tasks_count) || 0,
     description: item?.bio ?? item?.description ?? item?.reviewSnippet ?? fallback.description,
+    distance: distance.distanceKm ?? fallback.distance,
+    distanceLabel: distance.distanceLabel ?? fallback.distanceLabel,
   };
 }
 
@@ -200,6 +207,8 @@ const CompareSheet = ({
   onSelect,
   fromRecommendations = false,
   serviceCategoryId,
+  taskLatitude,
+  taskLongitude,
 }: CompareSheetProps) => {
   const { compareKrafters } = useBookingsStore();
   const [slots, setSlots] = useState<[Application | null, Application | null]>([
@@ -220,7 +229,11 @@ const CompareSheet = ({
       !fromRecommendations ||
       !serviceCategoryId ||
       !slots[0]?.artisan_id ||
-      !slots[1]?.artisan_id
+      !slots[1]?.artisan_id ||
+      taskLatitude == null ||
+      taskLongitude == null ||
+      !Number.isFinite(taskLatitude) ||
+      !Number.isFinite(taskLongitude)
     ) {
       setComparisonFromApi(null);
       return;
@@ -228,7 +241,12 @@ const CompareSheet = ({
     const krafterIds = [slots[0].artisan_id, slots[1].artisan_id];
     setCompareLoading(true);
     setComparisonFromApi(null);
-    compareKrafters({ krafterIds, serviceCategoryId })
+    compareKrafters({
+      krafterIds,
+      serviceCategoryId,
+      latitude: taskLatitude,
+      longitude: taskLongitude,
+    })
       .then((data) => {
         setComparisonFromApi(data);
       })
@@ -244,6 +262,8 @@ const CompareSheet = ({
     serviceCategoryId,
     slots[0]?.artisan_id,
     slots[1]?.artisan_id,
+    taskLatitude,
+    taskLongitude,
     compareKrafters,
   ]);
 
@@ -379,6 +399,31 @@ const CompareSheet = ({
                     </div>
                   ) : null
                 )}
+              </div>
+
+              {/* Distance */}
+              <div className="bg-[#F6F6F6] mb-2">
+                <CompareRow label="Distance">
+                  {displaySlots.map((a, i) =>
+                    a ? (
+                      <div key={i} className="flex justify-center">
+                        {(() => {
+                          const d = formatDistanceDisplay(
+                            readDistanceFields({
+                              distanceKm: a.distance,
+                              distanceLabel: a.distanceLabel,
+                            }),
+                          );
+                          return d ? (
+                            <DistanceBadge label={d} size="sm" align="center" />
+                          ) : (
+                            <p className="text-[15px] font-poppins text-gray-700">—</p>
+                          );
+                        })()}
+                      </div>
+                    ) : null
+                  )}
+                </CompareRow>
               </div>
 
               {/* Hourly Rate */}

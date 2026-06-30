@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { DistanceBadge } from "@/components/ui/DistanceBadge";
 
 interface ArtisanGridCardProps {
   artisan: {
@@ -11,6 +12,8 @@ interface ArtisanGridCardProps {
     taskCount: number;
     location: string;
     description: string;
+    distance?: number | null;
+    distanceLabel?: string | null;
     pricePerHour: number;
     isNewTasker?: boolean;
     isAvailable?: boolean;
@@ -20,7 +23,7 @@ interface ArtisanGridCardProps {
 
 const ArtisanGridCard = ({ artisan, onSelect }: ArtisanGridCardProps) => {
   return (
-    <div className="bg-white">
+    <div className="rounded-xl border border-[#E4E7EC] bg-white overflow-hidden hover:border-brand-orange/60 hover:shadow-sm transition-all">
       {/* Profile Image with Badge */}
       <div className="relative">
         <Image
@@ -28,7 +31,7 @@ const ArtisanGridCard = ({ artisan, onSelect }: ArtisanGridCardProps) => {
           alt={artisan.name}
           width={400}
           height={400}
-          className="w-full h-48 object-cover rounded-xl"
+          className="w-full h-48 object-cover"
         />
         {/* Availability Badge */}
         {artisan.isAvailable ? (
@@ -44,18 +47,24 @@ const ArtisanGridCard = ({ artisan, onSelect }: ArtisanGridCardProps) => {
       </div>
 
       {/* Card Content */}
-      <div className="p-1 mt-1">
-        {/* Name and Badge */}
-        <div className="flex items-center gap-2 mb-2">
-          <h3 className="text-[15px] font-poppins font-semibold">{artisan.name}</h3>
+      <div className="p-3">
+        <div className="flex items-center gap-1.5 mb-2 min-w-0 flex-nowrap overflow-hidden">
+          <h3 className="text-[14px] font-poppins font-semibold text-[#1D2939] truncate min-w-0 shrink">
+            {artisan.name}
+          </h3>
           {artisan.badge && (
-            <span className="text-[10px] font-poppins bg-[#014F2A1A] text-[#014F2A] px-1 py-0.5">
+            <span className="shrink-0 whitespace-nowrap text-[9px] font-poppins font-semibold uppercase tracking-wide bg-[#014F2A1A] text-[#014F2A] px-1.5 py-0.5 rounded">
               {artisan.badge.replace(/_/g, " ")}
             </span>
           )}
+          <DistanceBadge
+            size="xs"
+            className="shrink-0"
+            sources={[
+              { distanceKm: artisan.distance, distanceLabel: artisan.distanceLabel },
+            ]}
+          />
         </div>
-
-
         {/* Rating and Reviews */}
         <div className="flex items-center gap-1 mb-1">
           {/* <span className="text-[14px] font-poppins font-semibold">

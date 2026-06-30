@@ -28,7 +28,7 @@ function runStoredAction(action: DomainNotificationFeedAction, bookingId?: strin
     const id = typeof bookingId === "string" ? bookingId.trim() : "";
     window.location.assign(id ? `/tasker/schedule?openJob=${encodeURIComponent(id)}` : "/tasker/schedule");
   }
-  else if (action === "home") window.location.assign("/user/home");
+  else if (action === "home") window.location.assign("/");
 }
 
 type Props = {

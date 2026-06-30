@@ -103,7 +103,7 @@ const ReceiptPage = () => {
                 <Download size={18} />
                 Download Receipt
              </Button>
-             <Button variant="primary" fullWidth onClick={() => router.push("/user/home")} className="flex items-center justify-center gap-2">
+             <Button variant="primary" fullWidth onClick={() => router.push("/")} className="flex items-center justify-center gap-2">
                 <Repeat size={18} />
                 Book this Kraft again
              </Button>

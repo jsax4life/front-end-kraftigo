@@ -23,6 +23,8 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { deleteAccount } from "@/lib/api/auth";
 import DeleteAccountModal from "@/components/shared/DeleteAccountModal";
+import { UpdateLocationBanner } from "@/components/shared/DashboardWidgets";
+import { hasKrafterProfileCoords } from "@/lib/taskLocation";
 
 const SimpleLineChart = () => {
   return (
@@ -98,12 +100,13 @@ const Page = () => {
   const { fetchArtisanBookings, getCompletedBookings } = useBookingsStore();
 
   useEffect(() => {
-    if (!artisanProfile) {
-      fetchArtisanProfile();
-    }
+    fetchArtisanProfile();
     fetchVerificationStatus();
     fetchArtisanBookings();
-  }, [artisanProfile, fetchArtisanProfile, fetchVerificationStatus, fetchArtisanBookings]);
+  }, [fetchArtisanProfile, fetchVerificationStatus, fetchArtisanBookings]);
+
+  const needsLocationUpdate =
+    artisanProfile != null && !hasKrafterProfileCoords(artisanProfile);
 
   const displayName = artisanProfile?.displayName || artisanProfile?.legalFullName || (user?.firstName ? `${user.firstName} ${user.lastName}` : "User");
   const avatar = artisanProfile?.profilePhotoUrl || user?.avatar;
@@ -154,7 +157,7 @@ const Page = () => {
               // ignore
             }
             // Hard switch to customer home screen
-            window.location.assign("/user/home");
+            window.location.assign("/");
           }}
           className="px-3 py-1.5 rounded-full border border-[#EAECF0] text-[12px] font-poppins font-semibold text-[#344054] hover:bg-gray-50"
         >
@@ -182,6 +185,12 @@ const Page = () => {
             </div>
           </div>
         </div>
+
+        {needsLocationUpdate && (
+          <UpdateLocationBanner
+            onUpdate={() => router.push("/tasker/profile/edit?focus=location")}
+          />
+        )}
 
         {/* Weekly Earnings Card */}
         <div className="bg-[#F9FAFB] rounded-3xl p-6 border border-[#EAECF0]">

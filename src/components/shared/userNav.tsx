@@ -25,7 +25,7 @@ const UserNav = () => {
       name: "Home",
       icon: "/home.svg",
       activeIcon: "/home.svg",
-      path: "/user/home",
+      path: "/",
     },
     {
       name: "Krafts",
@@ -55,7 +55,7 @@ const UserNav = () => {
 
   const handleNavClick = (path: string) => {
     // If user is not authenticated, only allow home
-    if (!isAuthenticated && path !== "/user/home" && path !== "/") {
+    if (!isAuthenticated && path !== "/" && path !== "/") {
       openPrompt();
     } else {
       if (path === "/user/profile") {
@@ -78,7 +78,7 @@ const UserNav = () => {
     <nav className="fixed bottom-0 w-full md:hidden h-[96px] bg-white border-t border-[#0000001A] z-50 left-1/2 -translate-x-1/2">
       <div className="flex items-end justify-between px-[20px] pb-[23px] w-full h-full gap-2">
         {navItems.map((item) => {
-          const isActive = pathname === item.path || (pathname === "/" && item.path === "/user/home");
+          const isActive = pathname === item.path || (pathname === "/" && item.path === "/");
           return (
             <button
               key={item.name}

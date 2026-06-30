@@ -1,15 +1,19 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { Camera, X, User as UserIcon, HelpCircle, ChevronLeft } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Camera, X, User as UserIcon, HelpCircle, ChevronLeft, MapPin } from "lucide-react";
 import Input from "@/components/ui/input";
 import Select from "@/components/ui/select";
 import Button from "@/components/ui/button";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useProfileStore } from "@/store/useProfileStore";
 import toast from "react-hot-toast";
+import { AddressAutocompleteInput } from "@/components/ui/AddressAutocompleteInput";
+import { resolveKrafterLocationCoords } from "@/lib/geoapify";
+import { hasKrafterProfileCoords } from "@/lib/taskLocation";
+import { getKrafterWorkMediaFromStatus } from "@/lib/api/krafter-profile-completion";
 
 const Tag = ({ label, onRemove }: { label: string, onRemove: () => void }) => (
   <div className="flex items-center gap-1.5 bg-[#F6F6F6] text-[#667085] px-3 py-1.5 rounded-lg border border-[#0000001A] group">
@@ -27,10 +31,14 @@ const SectionTitle = ({ label, desc }: { label: string, desc?: string }) => (
   </div>
 );
 
-const Page = () => {
+const PageContent = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const focusLocation = searchParams.get("focus") === "location";
   const { user } = useAuthStore();
   const {
+    artisanProfile,
+    fetchArtisanProfile,
     personalDetailsStatus,
     fetchKrafterPersonalDetailsStatus,
     submitPersonalDetails,
@@ -44,6 +52,10 @@ const Page = () => {
   const [bio, setBio] = useState("");
   const [trade, setTrade] = useState("");
   const [location, setLocation] = useState("");
+  const [locationCoords, setLocationCoords] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
   const [uniquePoint, setUniquePoint] = useState("");
   const [languages, setLanguages] = useState<string[]>([]);
   const [workPhotos, setWorkPhotos] = useState<string[]>([]);
@@ -59,13 +71,30 @@ const Page = () => {
   const [isUploadingPhotos, setIsUploadingPhotos] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const profilePhotoInputRef = useRef<HTMLInputElement>(null);
+  const locationSectionRef = useRef<HTMLDivElement>(null);
   const MAX_WORK_PHOTOS = 3;
+
+  const needsLocationUpdate =
+    artisanProfile != null && !hasKrafterProfileCoords(artisanProfile);
+  const highlightLocation = focusLocation || needsLocationUpdate;
 
   const hasProfilePhoto = Boolean(profilePhotoUrl || user?.avatar);
 
   useEffect(() => {
     fetchKrafterPersonalDetailsStatus();
-  }, [fetchKrafterPersonalDetailsStatus]);
+    fetchArtisanProfile();
+  }, [fetchKrafterPersonalDetailsStatus, fetchArtisanProfile]);
+
+  useEffect(() => {
+    if (!highlightLocation || !locationSectionRef.current) return;
+    const timer = window.setTimeout(() => {
+      locationSectionRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 150);
+    return () => window.clearTimeout(timer);
+  }, [highlightLocation, personalDetailsStatus]);
 
   // Prefill all fields from GET /api/profile/krafter/complete-profile/personal-details
   useEffect(() => {
@@ -77,13 +106,23 @@ const Page = () => {
       setBio(d.bio || '');
       setTrade(d.occupationDescription || '');
       setLocation(d.whereYouLive || '');
+      if (
+        typeof d.latitude === "number" &&
+        typeof d.longitude === "number" &&
+        Number.isFinite(d.latitude) &&
+        Number.isFinite(d.longitude)
+      ) {
+        setLocationCoords({ latitude: d.latitude, longitude: d.longitude });
+      }
       setUniquePoint(d.uniqueSellingPoint || '');
       setLanguages((d.languages || []).map(l => l.name));
       setProfilePhotoUrl(d.profilePhotoUrl || null);
-      setWorkPhotos(d.portfolioPhotoUrls || []);
-      if (d.certifications) {
+
+      const workMedia = getKrafterWorkMediaFromStatus(personalDetailsStatus);
+      setWorkPhotos(workMedia.portfolioPhotoUrls);
+      if (workMedia.certifications.length > 0) {
         setCertifications(
-          d.certifications.map(c => ({
+          workMedia.certifications.map(c => ({
             name: c.name,
             issuer: c.issuer,
             issueDate: c.issueDate ?? undefined,
@@ -97,11 +136,33 @@ const Page = () => {
 
   const handleSave = async () => {
     try {
+      const resolvedCoords = await resolveKrafterLocationCoords(
+        location,
+        locationCoords,
+      );
+
+      if (highlightLocation && !resolvedCoords) {
+        toast.error(
+          "Please search for your city or area and pick a suggestion from the list.",
+        );
+        locationSectionRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+        return;
+      }
+
       await submitPersonalDetails({
         displayName,
         bio,
         occupationDescription: trade,
         whereYouLive: location,
+        ...(resolvedCoords
+          ? {
+              latitude: resolvedCoords.latitude,
+              longitude: resolvedCoords.longitude,
+            }
+          : {}),
         uniqueSellingPoint: uniquePoint,
         portfolioPhotoUrls: workPhotos,
         profilePhotoUrl: profilePhotoUrl || undefined,
@@ -218,7 +279,7 @@ const Page = () => {
         <div className="w-10"></div> {/* Spacer for balance */}
       </div>
 
-      <div className="px-4 py-8 space-y-12 max-w-2xl mx-auto pb-32">
+      <div className="px-4 py-8 space-y-12 max-w-4xl mx-auto pb-32">
         
         {/* Avatar Section — presigned upload + PATCH /api/profile/krafter/profile-photo */}
         <div className="flex flex-col items-center">
@@ -435,12 +496,63 @@ const Page = () => {
               </div>
             </div>
 
-            <Input 
-              label="Where do you Live?"
-              placeholder="e.g Bern, Germany"
-              value={location}
-              onChange={setLocation}
-            />
+            <div
+              ref={locationSectionRef}
+              className={`rounded-2xl p-5 scroll-mt-24 transition-colors ${
+                highlightLocation
+                  ? "bg-[#FFF4ED] border-2 border-brand-orange/40"
+                  : "bg-[#F9FAFB] border border-[#EAECF0]"
+              }`}
+            >
+              <div className="flex items-start gap-3 mb-4">
+                <div className="shrink-0 rounded-full bg-brand-orange/10 p-2 text-brand-orange">
+                  <MapPin size={18} strokeWidth={2} />
+                </div>
+                <div>
+                  <h3 className="text-[16px] font-gerat font-bold text-[#1D2939] leading-tight">
+                    Your location
+                  </h3>
+                  <p className="text-[13px] text-[#667085] font-poppins mt-1 leading-relaxed">
+                    {needsLocationUpdate
+                      ? "We need your city or address to show distances on jobs and help customers find nearby Krafters."
+                      : "Update where you are based so job and customer distances stay accurate."}
+                  </p>
+                </div>
+              </div>
+
+              <AddressAutocompleteInput
+                label="City or area"
+                placeholder="Search city, postcode, or street — then pick a result"
+                value={location}
+                onChange={(val) => {
+                  setLocation(val);
+                  setLocationCoords(null);
+                }}
+                onSelectSuggestion={(suggestion) => {
+                  setLocation(suggestion.label);
+                  if (
+                    suggestion.latitude != null &&
+                    suggestion.longitude != null &&
+                    Number.isFinite(suggestion.latitude) &&
+                    Number.isFinite(suggestion.longitude)
+                  ) {
+                    setLocationCoords({
+                      latitude: suggestion.latitude,
+                      longitude: suggestion.longitude,
+                    });
+                  }
+                }}
+              />
+              {locationCoords ? (
+                <p className="mt-2 text-[12px] font-poppins text-green-700">
+                  Location selected — tap Save at the bottom when you are done.
+                </p>
+              ) : location.trim() ? (
+                <p className="mt-2 text-[12px] font-poppins text-[#B54708]">
+                  Pick a suggestion from the dropdown so we can save your coordinates.
+                </p>
+              ) : null}
+            </div>
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -479,5 +591,11 @@ const Page = () => {
     </main>
   );
 };
+
+const Page = () => (
+  <Suspense fallback={<main className="min-h-screen bg-white" />}>
+    <PageContent />
+  </Suspense>
+);
 
 export default Page;

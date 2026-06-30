@@ -100,7 +100,7 @@ const ConfirmationContent = () => {
   const handleViewDetails = () => {
     // Navigate to tasks page
     console.log("View Kraft Details");
-    router.push("/user/home");
+    router.push("/");
   };
 
   return (
