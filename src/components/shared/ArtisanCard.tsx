@@ -37,7 +37,7 @@ const ArtisanCard = ({ artisan, onSelect, onViewProfile }: ArtisanCardProps) => 
           openProfile();
         }
       }}
-      className="px-3 bg-white cursor-pointer transition-all hover:border-brand-orange hover:shadow-md hover:bg-[#FFFBF8] active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange/50 focus-visible:ring-offset-2"
+      className="px-3 bg-white cursor-pointer transition-all hover:border-brand-orange hover:shadow-md hover:bg-[#FFFBF8] active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange/50 focus-visible:ring-offset-2 flex flex-col h-full"
     >
       <div className="flex gap-3 sm:gap-4">
         <div className="relative shrink-0">
@@ -88,9 +88,9 @@ const ArtisanCard = ({ artisan, onSelect, onViewProfile }: ArtisanCardProps) => 
         </div>
       </div>
 
-      <div className="mt-3">
-        <p className="text-[15px] sm:text-[13px] text-gray-700 font-poppins mb-3 line-clamp-2">
-          {artisan.description}
+      <div className="mt-auto pt-3 flex flex-col justify-end">
+        <p className="text-[15px] sm:text-[13px] text-gray-700 font-poppins mb-3 line-clamp-2 min-h-[44px] sm:min-h-[39px]">
+          {artisan.description || " "}
         </p>
 
         <div className="flex items-end justify-between gap-3">

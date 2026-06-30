@@ -29,7 +29,7 @@ const Page = () => {
           return;
         }
 
-        router.replace("/user/home");
+        router.replace("/");
       })();
     } else {
       // Per user request: redirect to login if not authenticated or if an error happens

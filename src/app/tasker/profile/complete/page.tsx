@@ -352,7 +352,7 @@ const CompleteProfileForm = () => {
         </span>
       </div>
 
-      <div className="px-5 py-3 max-w-2xl mx-auto space-y-10">
+      <div className="px-5 py-3 max-w-4xl mx-auto space-y-10">
         {step === 4 && (
           <div className="space-y-10 animate-in fade-in slide-in-from-right-4 duration-300">
             <div>
@@ -693,7 +693,7 @@ const CompleteProfileForm = () => {
           </div>
         )}
 
-                <div className="fixed bottom-0 left-0 right-0 p-6 bg-white border-t border-[#F2F4F7] flex flex-col gap-3 max-w-2xl mx-auto z-40">
+                <div className="fixed bottom-0 left-0 right-0 p-6 bg-white border-t border-[#F2F4F7] flex flex-col gap-3 max-w-4xl mx-auto z-40">
           <Button
             variant="primary"
             fullWidth

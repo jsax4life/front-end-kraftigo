@@ -30,13 +30,13 @@ const Page = () => {
   const handleCategoryClick = (categoryId: string, categoryName: string) => {
     // Navigate directly to booking page with category info
     console.log("Navigate to booking for category:", categoryId, categoryName);
-    handleProtectedAction(`/user/book-service?categoryId=${categoryId}&category=${encodeURIComponent(categoryName)}`);
+    router.push(`/user/book-service?categoryId=${categoryId}&category=${encodeURIComponent(categoryName)}`);
   };
 
   const handleCustomKraft = () => {
     // Navigate to custom kraft request page
     console.log("Request custom kraft");
-    handleProtectedAction("/user/home/custom-kraft");
+    handleProtectedAction("/user/custom-kraft");
   };
 
   return (
@@ -69,7 +69,7 @@ const Page = () => {
         </div>
 
         {/* Categories List */}
-        <div className="space-y-0 border-t border-[#0000001A]">
+        <div className="space-y-0">
           {isLoading ? (
             <div className="py-8 text-center">
               <p className="text-[15px] font-poppins text-gray-500">

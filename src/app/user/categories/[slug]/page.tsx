@@ -67,7 +67,7 @@ const Page = () => {
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Category not found</h1>
           <button
-            onClick={() => router.push("/user/home/categories")}
+            onClick={() => router.push("/user/categories")}
             className="text-brand-orange hover:underline"
           >
             Back to Categories

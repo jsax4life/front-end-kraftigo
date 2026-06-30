@@ -229,7 +229,7 @@ export function showDomainEventNotification(raw: unknown): void {
     window.location.assign(target);
   };
   const goHome = () => {
-    if (typeof window !== "undefined") window.location.assign("/user/home");
+    if (typeof window !== "undefined") window.location.assign("/");
   };
   const goTaskerEarnings = () => {
     if (typeof window !== "undefined") window.location.assign("/tasker/profile/earnings");

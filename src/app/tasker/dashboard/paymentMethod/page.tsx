@@ -130,7 +130,7 @@ const Page = () => {
 
   return (
     <div className="relative w-full min-h-screen bg-white flex items-center justify-center px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-2xl mx-auto min-h-screen flex flex-col py-8">
+      <div className="w-full max-w-4xl mx-auto min-h-screen flex flex-col py-8">
         <div className="space-y-6">
           <div className="flex items-center justify-between mb-5">
             <button

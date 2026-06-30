@@ -63,7 +63,7 @@ const Page = () => {
 
   const displayName = user?.firstName + " " + user?.lastName || "User";
   const email = user?.email || "";
-  const avatar = user?.avatar;
+  const avatar = customerProfile?.profilePhotoUrl || user?.avatar;
   const { verificationState, kycStatus } = getVerificationWire(verificationStatus);
 
   // Treat user as an existing Krafter when internal docs are submitted (pending/approved) and KYC is approved.
@@ -122,7 +122,7 @@ const Page = () => {
         <Navbar />
       </div>
       
-      <div className="px-[20px] pt-[60px] md:pt-8 pb-8 w-full max-w-[430px] md:max-w-4xl mx-auto">
+      <div className="px-[20px] pt-[60px] md:pt-8 pb-8 w-full max-w-4xl mx-auto">
         <h1 className="text-[20px] font-gerat font-[850] text-[rgba(0,0,0,0.8)] mb-6 tracking-[-0.03em]">
           Profile
         </h1>
