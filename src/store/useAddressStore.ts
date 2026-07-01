@@ -4,9 +4,10 @@ import toast from "react-hot-toast";
 import { logger } from "@/utils/logger";
 import type { Address } from "@/types";
 import {
-  createAddress,
+  findOrCreateAddress,
   getAddresses,
   getAddressById,
+  normalizeAddressRecord,
 } from "@/lib/api/addresses";
 
 interface AddressStore {
@@ -32,7 +33,7 @@ interface AddressStore {
     externalPlaceId?: string;
   }) => Promise<Address | null>;
   removeAddress: (id: string) => void;
-  selectAddress: (id: string) => void;
+  selectAddress: (id: string) => Promise<void>;
   getCurrentLocation: () => Promise<void>;
 
   getBookingLocationData: () => {
@@ -71,6 +72,21 @@ function formatGermanAddress(nominatimAddress: Record<string, string>): string {
   return "";
 }
 
+function parseStoredCoord(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const n = typeof value === "number" ? value : parseFloat(String(value));
+  return Number.isFinite(n) ? n : null;
+}
+
+function coordsFromAddress(
+  address: Pick<Address, "latitude" | "longitude"> | null | undefined,
+): { latitude: number | null; longitude: number | null } {
+  return {
+    latitude: parseStoredCoord(address?.latitude),
+    longitude: parseStoredCoord(address?.longitude),
+  };
+}
+
 export const useAddressStore = create<AddressStore>()(
   persist(
     (set, get) => ({
@@ -87,15 +103,7 @@ export const useAddressStore = create<AddressStore>()(
         try {
           const backendAddresses = await getAddresses();
 
-          const normalised = backendAddresses.map((addr) => ({
-            ...addr,
-            address:
-              addr.address ||
-              addr.fullAddress ||
-              addr.label ||
-              "Unnamed Location",
-            label: addr.label || "Unnamed Location",
-          }));
+          const normalised = backendAddresses.map(normalizeAddressRecord);
 
           set((state) => {
             let selectedAddressId = state.selectedAddressId;
@@ -108,8 +116,17 @@ export const useAddressStore = create<AddressStore>()(
               const first = normalised[0];
               selectedAddressId = first.id;
               currentAddress = first.address;
-              currentLatitude = first.latitude ?? null;
-              currentLongitude = first.longitude ?? null;
+              const firstCoords = coordsFromAddress(first);
+              currentLatitude = firstCoords.latitude;
+              currentLongitude = firstCoords.longitude;
+            } else if (selectedAddressId) {
+              const selected = normalised.find((a) => a.id === selectedAddressId);
+              if (selected) {
+                currentAddress = selected.address;
+                const selectedCoords = coordsFromAddress(selected);
+                currentLatitude = selectedCoords.latitude;
+                currentLongitude = selectedCoords.longitude;
+              }
             }
 
             return {
@@ -131,15 +148,7 @@ export const useAddressStore = create<AddressStore>()(
       reloadAddressById: async (id: string) => {
         try {
           const addr = await getAddressById(id);
-          const normalised: Address = {
-            ...addr,
-            address:
-              addr.address ||
-              addr.fullAddress ||
-              addr.label ||
-              "Unnamed Location",
-            label: addr.label || "Unnamed Location",
-          };
+          const normalised = normalizeAddressRecord(addr);
 
           set((state) => {
             const idx = state.addresses.findIndex((a) => a.id === id);
@@ -160,10 +169,10 @@ export const useAddressStore = create<AddressStore>()(
                 ? normalised.address
                 : state.currentAddress,
               currentLatitude: isSelected
-                ? (normalised.latitude ?? null)
+                ? coordsFromAddress(normalised).latitude
                 : state.currentLatitude,
               currentLongitude: isSelected
-                ? (normalised.longitude ?? null)
+                ? coordsFromAddress(normalised).longitude
                 : state.currentLongitude,
             };
           });
@@ -209,8 +218,7 @@ export const useAddressStore = create<AddressStore>()(
         }
 
         try {
-          // Persist to backend — server returns a stable UUID as `id`
-          savedAddress = await createAddress({
+          const { address: saved, created } = await findOrCreateAddress({
             fullAddress: address,
             label: label || "Unnamed Location",
             latitude: finalLat,
@@ -220,14 +228,29 @@ export const useAddressStore = create<AddressStore>()(
             country,
             externalPlaceId,
           });
+          savedAddress = saved;
 
-          // Normalise: ensure `address` field (used by UI) is always set
-          if (!savedAddress.address) {
-            savedAddress = {
-              ...savedAddress,
-              address: savedAddress.fullAddress ?? address,
+          set((state) => {
+            const idx = state.addresses.findIndex((a) => a.id === saved.id);
+            const addresses =
+              idx === -1
+                ? [...state.addresses, saved]
+                : state.addresses.map((a, i) => (i === idx ? saved : a));
+
+            return {
+              addresses,
+              selectedAddressId: saved.id,
+              currentAddress: saved.address,
+              currentLatitude: finalLat ?? parseStoredCoord(saved.latitude),
+              currentLongitude: finalLng ?? parseStoredCoord(saved.longitude),
             };
-          }
+          });
+
+          logger.log(created ? "New address saved:" : "Reused existing address:", saved);
+          toast.success(
+            created ? "Address added successfully!" : "Using your saved address",
+          );
+          return saved;
         } catch (err) {
           logger.warn("Backend save failed, using local address ID:", err);
           // Graceful fallback — create a local address so the UI keeps working
@@ -243,32 +266,41 @@ export const useAddressStore = create<AddressStore>()(
             country,
             externalPlaceId,
           };
+
+          set((state) => ({
+            addresses: [...state.addresses, savedAddress!],
+            selectedAddressId: savedAddress!.id,
+            currentAddress: savedAddress!.address,
+            currentLatitude: finalLat ?? null,
+            currentLongitude: finalLng ?? null,
+          }));
+
+          toast.success("Address added successfully!");
+          return savedAddress;
         }
-
-        set((state) => ({
-          addresses: [...state.addresses, savedAddress!],
-          selectedAddressId: savedAddress!.id,
-          currentAddress: savedAddress!.address,
-          currentLatitude: finalLat ?? null,
-          currentLongitude: finalLng ?? null,
-        }));
-
-        logger.log("New address saved:", savedAddress);
-        toast.success("Address added successfully!");
-        return savedAddress;
       },
 
-      selectAddress: (id: string) => {
-        const address = get().addresses.find((addr) => addr.id === id);
-        if (address) {
-          set({
-            selectedAddressId: id,
-            currentAddress: address.address,
-            currentLatitude: address.latitude || null,
-            currentLongitude: address.longitude || null,
-          });
-          logger.log("Address selected:", address);
+      selectAddress: async (id: string) => {
+        let address = get().addresses.find((addr) => addr.id === id);
+        if (!address) return;
+
+        let { latitude, longitude } = coordsFromAddress(address);
+
+        if (latitude == null || longitude == null) {
+          const reloaded = await get().reloadAddressById(id);
+          if (reloaded) {
+            address = reloaded;
+            ({ latitude, longitude } = coordsFromAddress(reloaded));
+          }
         }
+
+        set({
+          selectedAddressId: id,
+          currentAddress: address.address,
+          currentLatitude: latitude,
+          currentLongitude: longitude,
+        });
+        logger.log("Address selected:", address);
       },
 
       removeAddress: (id: string) => {
@@ -422,10 +454,19 @@ export const useAddressStore = create<AddressStore>()(
 
       getBookingLocationData: () => {
         const state = get();
+        const selected = state.addresses.find(
+          (a) => a.id === state.selectedAddressId,
+        );
+        const fromSelected = coordsFromAddress(selected);
+        const fromCurrent = {
+          latitude: parseStoredCoord(state.currentLatitude),
+          longitude: parseStoredCoord(state.currentLongitude),
+        };
+
         return {
-          address: state.currentAddress,
-          latitude: state.currentLatitude,
-          longitude: state.currentLongitude,
+          address: selected?.address ?? state.currentAddress,
+          latitude: fromSelected.latitude ?? fromCurrent.latitude,
+          longitude: fromSelected.longitude ?? fromCurrent.longitude,
         };
       },
 

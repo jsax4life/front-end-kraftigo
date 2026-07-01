@@ -29,6 +29,13 @@ export function isSameLocalDay(a: Date, b: Date): boolean {
   );
 }
 
+/** Add calendar days in local timezone (does not mutate the input). */
+export function addLocalDays(date: Date, days: number): Date {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
 export function startOfLocalDay(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }

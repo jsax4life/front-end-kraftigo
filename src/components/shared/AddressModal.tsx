@@ -49,6 +49,16 @@ const AddressModal = ({
 
   useEffect(() => {
     if (isOpen) {
+      setSelectedAddress(selectedAddressId);
+      setShowAddNewForm(false);
+      setNewAddressLabel("");
+      setNewAddressValue("");
+      setNewAddressCoords(null);
+    }
+  }, [isOpen, selectedAddressId]);
+
+  useEffect(() => {
+    if (isOpen) {
       document.body.classList.add("overflow-hidden");
 
       const preventScroll = (e: Event) => {
@@ -102,9 +112,10 @@ const AddressModal = ({
 
   const handleDone = () => {
     if (selectedAddress && onSelectAddress) {
-      onSelectAddress(selectedAddress); // Only pass addressId
+      onSelectAddress(selectedAddress);
+    } else {
+      onClose();
     }
-    onClose();
   };
 
   return (

@@ -1,5 +1,6 @@
 import type { BookingStatus } from "@/types";
 import { formatDistanceDisplay, readDistanceFields } from "@/utils/distance";
+import { appendFlexibleScheduleToUrlParams, formatFlexibleScheduleLabel } from "@/lib/flexibleSchedule";
 
 /** Shape returned by `GET /api/bookings/my` and `GET /api/bookings/:id` (camelCase + relations). */
 export type BookingLike = {
@@ -27,6 +28,8 @@ export type BookingLike = {
   location?: string;
   preferredDate?: string;
   preferredTime?: string;
+  preferredDateEnd?: string;
+  additionalPreferredDates?: string[];
   scheduledDate?: string;
   scheduledTime?: string;
   scheduled_date?: string;
@@ -186,6 +189,13 @@ export function buildSelectArtisanQuery(b: BookingLike): string {
     params.set("longitude", String(lng));
   }
 
+  appendFlexibleScheduleToUrlParams(params, {
+    ...(b.preferredDateEnd ? { preferredDateEnd: b.preferredDateEnd } : {}),
+    ...(b.additionalPreferredDates?.length
+      ? { additionalPreferredDates: b.additionalPreferredDates }
+      : {}),
+  });
+
   return params.toString();
 }
 
@@ -213,10 +223,18 @@ export function isKraftTaskPlaceholderImage(src: string): boolean {
 
 export function deriveActiveJobDisplay(b: BookingLike) {
   const service = b.jobTitle ?? b.serviceCategory?.name ?? b.service?.title ?? "Service";
+  const preferredDate = b.preferredDate ?? b.scheduledDate ?? b.scheduled_date;
+  const preferredTime = b.preferredTime ?? b.scheduledTime ?? b.scheduled_time;
+  const flexLabel = formatFlexibleScheduleLabel(
+    preferredDate,
+    preferredTime,
+    b.preferredDateEnd,
+    b.additionalPreferredDates,
+  );
   const dateRaw =
-    b.preferredDate ?? b.scheduledDate ?? b.scheduled_date ?? b.createdAt ?? b.created_at ?? "";
-  let date = "—";
-  if (dateRaw) {
+    preferredDate ?? b.createdAt ?? b.created_at ?? "";
+  let date = flexLabel !== "—" ? flexLabel.split(" at ")[0] : "—";
+  if (date === "—" && dateRaw) {
     const iso = /^\d{4}-\d{2}-\d{2}$/.test(String(dateRaw)) ? `${dateRaw}T12:00:00` : String(dateRaw);
     const d = new Date(iso);
     if (!isNaN(d.getTime())) {
@@ -227,7 +245,7 @@ export function deriveActiveJobDisplay(b: BookingLike) {
       });
     }
   }
-  const timeRaw = b.preferredTime ?? b.scheduledTime ?? b.scheduled_time ?? "";
+  const timeRaw = typeof preferredTime === "string" ? preferredTime : "";
   const time =
     typeof timeRaw === "string" && timeRaw.length > 0
       ? timeRaw.length >= 5

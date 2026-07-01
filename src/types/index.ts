@@ -142,6 +142,10 @@ export interface Booking {
   address?: string;
   preferredDate?: string;
   preferredTime?: string;
+  /** Inclusive range end when customer offered a date range (≥ preferredDate). */
+  preferredDateEnd?: string;
+  /** Extra non-contiguous preferred days (max 14, each ≥ preferredDate). */
+  additionalPreferredDates?: string[];
   mediaUrls?: string[];
   artisan?: {
     avatar?: string;
@@ -222,6 +226,35 @@ export interface Review {
 }
 
 // ─── Payments ─────────────────────────────────────────────────────────────────
+export interface PaymentKrafterSummary {
+  displayName?: string;
+  profilePhotoUrl?: string;
+  rating?: number;
+  reviewCount?: number;
+  completedKrafts?: number;
+  badges?: string[];
+}
+
+export interface PaymentBreakdownLineItem {
+  label: string;
+  amount: number;
+}
+
+export interface PaymentReceiptBreakdown {
+  lineItems?: PaymentBreakdownLineItem[];
+  serviceFee?: number;
+  discountLabel?: string | null;
+  discountAmount?: number | null;
+  totalPaid?: number;
+}
+
+export interface PaymentTimelineEvent {
+  label?: string;
+  status?: string;
+  at?: string;
+  timestamp?: string;
+}
+
 export interface Payment {
   id: string;
   booking_id?: string;
@@ -238,6 +271,17 @@ export interface Payment {
   createdAt?: string;
   updatedAt?: string;
   updated_at?: string;
+  /** Receipt summary (GET /api/payments/my) */
+  transactionReference?: string;
+  statusLabel?: string;
+  transactionDate?: string;
+  totalPaid?: number;
+  jobTitle?: string;
+  scheduledAt?: string;
+  krafter?: PaymentKrafterSummary;
+  /** Full receipt (GET /api/payments/:id) */
+  breakdown?: PaymentReceiptBreakdown;
+  timeline?: PaymentTimelineEvent[];
 }
 
 // ─── Disputes ─────────────────────────────────────────────────────────────────

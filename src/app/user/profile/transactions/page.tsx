@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Download, ChevronDown, Calendar, FileText } from "lucide-react";
+import { ArrowLeft, Download, ChevronDown, Calendar } from "lucide-react";
 import { getMyPayments } from "@/lib/api/payments";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import type { Payment } from "@/types";
@@ -17,7 +17,7 @@ const statusStyles: Record<string, string> = {
   CANCELLED: "bg-[#FEECEB] text-[#F04438]",
 };
 
-const statusLabel: Record<string, string> = {
+const legacyStatusLabel: Record<string, string> = {
   HELD: "Upcoming",
   PENDING: "Upcoming",
   ESCROWED: "Upcoming",
@@ -27,17 +27,15 @@ const statusLabel: Record<string, string> = {
 };
 
 const readPaymentId = (p: Payment) => String(p.id ?? "");
-const readContextType = (p: Payment) =>
-  String((p as any).contextType ?? (p as any).context_type ?? "PAYMENT").replace(/_/g, " ");
-const readCreatedAt = (p: Payment) =>
-  String((p as any).created_at ?? (p as any).createdAt ?? "");
-const readCurrency = (p: Payment) =>
-  String((p as any).currency ?? "EUR").toUpperCase();
-const readAmount = (p: Payment) => {
-  const value = Number((p as any).amount ?? 0);
-  if (!Number.isFinite(value)) return 0;
-  return value;
+const readTransactionDate = (p: Payment) =>
+  p.transactionDate ?? p.created_at ?? p.createdAt ?? "";
+const readCurrency = (p: Payment) => String(p.currency ?? "EUR").toUpperCase();
+const readTotalPaid = (p: Payment) => {
+  const value = Number(p.totalPaid ?? p.amount ?? 0);
+  return Number.isFinite(value) ? value : 0;
 };
+const readStatusLabel = (p: Payment) =>
+  p.statusLabel ?? legacyStatusLabel[p.status] ?? p.status;
 
 const TransactionsPage = () => {
   const router = useRouter();
@@ -79,7 +77,6 @@ const TransactionsPage = () => {
   return (
     <main className="min-h-screen bg-white flex flex-col">
       <div className="max-w-4xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
-        {/* Top App Bar */}
         <div className="flex items-center justify-between mb-8">
           <button
             onClick={() => router.back()}
@@ -92,12 +89,10 @@ const TransactionsPage = () => {
           </button>
         </div>
 
-        {/* Title */}
         <h1 className="text-[20px] sm:text-[24px] font-poppins font-bold text-[#1D2939] mb-6">
           Transaction History
         </h1>
 
-        {/* Filter Dropdowns */}
         <div className="flex gap-3 mb-8">
           <button className="bg-[#FF6600] text-white px-4 py-2.5 rounded-xl text-[13px] font-poppins font-medium flex items-center justify-between gap-2 shadow-sm min-w-[120px]">
             Last 30 Days <ChevronDown size={16} />
@@ -107,7 +102,6 @@ const TransactionsPage = () => {
           </button>
         </div>
 
-        {/* Transactions List */}
         {isLoading ? (
           <div className="flex justify-center py-20">
             <LoadingSpinner size="lg" />
@@ -120,62 +114,78 @@ const TransactionsPage = () => {
           <div className="space-y-4">
             {payments.map((p) => {
               const isRefunded = p.status === "REFUNDED";
-              const title = readContextType(p).toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
-              
+              const title = p.jobTitle?.trim() || "Service booking";
+              const krafterName = p.krafter?.displayName;
+
               return (
                 <div
                   key={readPaymentId(p)}
                   onClick={() => router.push(`/user/profile/receipt?id=${readPaymentId(p)}`)}
                   className="bg-[#F9FAFB] p-4 rounded-xl border border-[#EAECF0] flex gap-4 items-start hover:border-gray-300 transition-all cursor-pointer"
                 >
-                  {/* Icon Block */}
                   <div
-                    className={`w-[48px] h-[48px] rounded-xl flex items-center justify-center shrink-0 ${
+                    className={`w-[48px] h-[48px] rounded-xl flex items-center justify-center shrink-0 overflow-hidden ${
                       isRefunded ? "bg-[#E4E7EC]" : "bg-[#FFEFE5]"
                     }`}
                   >
-                  <Image
-                                src="/card.svg"
-                                alt="cardimg"
-                                width={70}
-                                height={70}
-                                className="w-20 h-20"
-                              />
+                    {p.krafter?.profilePhotoUrl ? (
+                      <Image
+                        src={p.krafter.profilePhotoUrl}
+                        alt={krafterName ?? "Krafter"}
+                        width={48}
+                        height={48}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Image
+                        src="/card.svg"
+                        alt="Transaction"
+                        width={70}
+                        height={70}
+                        className="w-20 h-20"
+                      />
+                    )}
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    {/* Top Row: Title & Amount */}
                     <div className="flex justify-between items-start mb-1">
                       <h3
                         className={`text-[14px] sm:text-[15px] font-poppins font-bold truncate pr-2 ${
                           isRefunded ? "text-gray-500 line-through" : "text-[#1D2939]"
                         }`}
                       >
-                        {title || "Service"} Booking
+                        {title}
                       </h3>
                       <span
                         className={`text-[14px] sm:text-[15px] font-mabry font-bold shrink-0 ${
                           isRefunded ? "text-gray-500" : "text-[#1D2939]"
                         }`}
                       >
-                        {formatAmount(readAmount(p), readCurrency(p))}
+                        {formatAmount(readTotalPaid(p), readCurrency(p))}
                       </span>
                     </div>
 
-                    {/* Middle Row: Date */}
+                    {krafterName && (
+                      <p className="text-[12px] text-[#667085] font-poppins mb-1 truncate">
+                        {krafterName}
+                        {p.krafter?.rating != null ? ` · ${p.krafter.rating.toFixed(1)}★` : ""}
+                      </p>
+                    )}
+
                     <div className="flex items-center gap-1.5 text-[#667085] mb-2 text-[12px] font-poppins">
                       <Calendar size={14} />
-                      <span className={isRefunded ? "text-gray-400" : ""}>{formatDate(readCreatedAt(p))}</span>
+                      <span className={isRefunded ? "text-gray-400" : ""}>
+                        {formatDate(readTransactionDate(p))}
+                      </span>
                     </div>
 
-                    {/* Bottom Row: Status Badge */}
                     <div>
                       <span
                         className={`inline-block px-2.5 py-0.5 rounded-md text-[10px] font-poppins font-semibold ${
                           statusStyles[p.status] ?? "bg-gray-100 text-gray-500"
                         }`}
                       >
-                        {statusLabel[p.status] ?? p.status}
+                        {readStatusLabel(p)}
                       </span>
                     </div>
                   </div>

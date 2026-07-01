@@ -7,6 +7,9 @@ import { Check, MapPin, Plus, Clock } from "lucide-react";
 import Button from "@/components/ui/button";
 import AddressModal from "@/components/shared/AddressModal";
 import DatePickerModal from "@/components/shared/DatePickerModal";
+import FlexibleScheduleSection, {
+  createInitialFlexibleScheduleState,
+} from "@/components/shared/FlexibleScheduleSection";
 import TimePickerModal, { formatTime12h } from "@/components/shared/TimePickerModal";
 import PhotoUploader, { Photo } from "@/components/shared/PhotoUploader";
 import { useAddressStore } from "@/store/useAddressStore";
@@ -15,6 +18,12 @@ import { useAuthPromptStore } from "@/store/useAuthPromptStore";
 import { useBookingsStore } from "@/store/useBookingsStore";
 import toast from "react-hot-toast";
 import { formatLocalDateYmd, isDateTimeTooSoon, isSameLocalDay, minScheduleTimeInputForToday } from "@/utils/date";
+import {
+  appendFlexibleScheduleToUrlParams,
+  buildFlexibleSchedulePayload,
+  validateFlexibleScheduleState,
+  type FlexibleScheduleState,
+} from "@/lib/flexibleSchedule";
 
 const BookServicePage = () => {
   const router = useRouter();
@@ -32,13 +41,12 @@ const BookServicePage = () => {
     addresses,
     selectedAddressId,
     currentAddress,
-    currentLatitude,
-    currentLongitude,
     selectAddress,
     addAddress,
     removeAddress,
     getCurrentLocation,
     loadAddresses,
+    getBookingLocationData,
   } = useAddressStore();
 
   const {
@@ -68,6 +76,9 @@ const BookServicePage = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [customTime, setCustomTime] = useState("");
+  const [flexSchedule, setFlexSchedule] = useState<FlexibleScheduleState>(
+    createInitialFlexibleScheduleState,
+  );
 
   const isSelectedDateToday = formData.selectedDate
     ? isSameLocalDay(formData.selectedDate, new Date())
@@ -108,26 +119,20 @@ const BookServicePage = () => {
       toast.error("Choose a time at least 30 minutes from now.");
       return;
     }
+    const flexError = validateFlexibleScheduleState(formData.selectedDate, flexSchedule);
+    if (flexError) {
+      toast.error(flexError);
+      return;
+    }
     if (!categoryId.trim()) {
       toast.error("Missing service category. Go back and pick a category.");
       return;
     }
 
-    const preferredDate = formatLocalDateYmd(formData.selectedDate);
-    // Prefer live GPS → selected saved address coords → block if still unavailable
-    const selectedAddr = addresses.find((a) => a.id === selectedAddressId);
-    let lat =
-      currentLatitude != null && Number.isFinite(currentLatitude)
-        ? currentLatitude
-        : selectedAddr?.latitude != null && Number.isFinite(selectedAddr.latitude)
-          ? selectedAddr.latitude
-          : null;
-    let lng =
-      currentLongitude != null && Number.isFinite(currentLongitude)
-        ? currentLongitude
-        : selectedAddr?.longitude != null && Number.isFinite(selectedAddr.longitude)
-          ? selectedAddr.longitude
-          : null;
+    const schedule = buildFlexibleSchedulePayload(formData.selectedDate, flexSchedule);
+    const preferredDate = schedule.preferredDate;
+    const { address: bookingAddress, latitude: lat, longitude: lng } =
+      getBookingLocationData();
 
     if (lat === null || lng === null) {
       toast.error(
@@ -155,11 +160,15 @@ const BookServicePage = () => {
         jobTitle: categoryName,
         jobDescription,
         media: mediaFiles.length > 0 ? mediaFiles : undefined,
-        address: currentAddress,
+        address: bookingAddress,
         latitude: lat,
         longitude: lng,
         preferredDate,
         preferredTime: resolvedTime,
+        ...(schedule.preferredDateEnd ? { preferredDateEnd: schedule.preferredDateEnd } : {}),
+        ...(schedule.additionalPreferredDates?.length
+          ? { additionalPreferredDates: schedule.additionalPreferredDates }
+          : {}),
       });
 
       setPendingPublishMediaFiles(mediaFiles);
@@ -167,7 +176,7 @@ const BookServicePage = () => {
       const params = new URLSearchParams({
         categoryId,
         category: categoryName,
-        address: currentAddress,
+        address: bookingAddress,
         date: preferredDate,
         time: resolvedTime,
         taskDetails: formData.taskDetails,
@@ -178,6 +187,7 @@ const BookServicePage = () => {
       // a different source (e.g. address store geocoded later) and diverge from the booking.
       params.set("latitude", String(lat));
       params.set("longitude", String(lng));
+      appendFlexibleScheduleToUrlParams(params, schedule);
       router.push(`/user/book-service/select-artisan?${params.toString()}`);
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { message?: string } } };
@@ -313,6 +323,12 @@ const BookServicePage = () => {
           </button>
         </div>
 
+        <FlexibleScheduleSection
+          primaryDate={formData.selectedDate}
+          state={flexSchedule}
+          onChange={setFlexSchedule}
+        />
+
         {/* When? */}
         <div className="p-4 sm:p-5 border-b border-[#0000001A]">
           <h2 className="text-[20px] sm:text-[22px] font-poppins font-medium mb-3">
@@ -431,8 +447,9 @@ const BookServicePage = () => {
         savedAddresses={addresses}
         selectedAddressId={selectedAddressId || ""}
         onSelectAddress={(addressId) => {
-          selectAddress(addressId);
-          setShowAddressModal(false);
+          void selectAddress(addressId).then(() => {
+            setShowAddressModal(false);
+          });
         }}
         onAddNewAddress={({ label, address, latitude, longitude }) => {
           addAddress({ label, address, latitude, longitude });

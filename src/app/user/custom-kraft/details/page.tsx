@@ -241,8 +241,9 @@ const Page = () => {
         savedAddresses={addresses}
         selectedAddressId={selectedAddressId || ""}
         onSelectAddress={(addressId) => {
-          selectAddress(addressId);
-          setShowAddressModal(false);
+          void selectAddress(addressId).then(() => {
+            setShowAddressModal(false);
+          });
         }}
         onAddNewAddress={({ label, address }) => {
           addAddress({ label, address });

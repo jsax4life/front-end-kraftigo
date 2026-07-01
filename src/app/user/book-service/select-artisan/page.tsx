@@ -15,6 +15,7 @@ import { useAddressStore } from "@/store/useAddressStore";
 import { formatLocalDateYmd, parseLocalDateYmd } from "@/utils/date";
 import { readDistanceFields } from "@/utils/distance";
 import { resolveTaskCoordinates } from "@/lib/taskLocation";
+import { readFlexibleScheduleFromUrlParams } from "@/lib/flexibleSchedule";
 
 interface Artisan {
   id: string;
@@ -189,6 +190,7 @@ const SelectArtisanPage = () => {
       longitude: taskCoords.longitude,
       preferredDate,
       preferredTime: timeParam,
+      ...readFlexibleScheduleFromUrlParams(searchParams),
       limit: 16,
     })
       .then((list) => {

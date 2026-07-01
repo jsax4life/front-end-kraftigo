@@ -1,9 +1,16 @@
 import api from '@/lib/axios'
 import { readDistanceFields } from '@/utils/distance'
 import { readDmConversationIdFromBooking } from '@/lib/bookingChat'
+import {
+  appendFlexibleScheduleToFormData,
+  parseAdditionalPreferredDatesFromBooking,
+  type FlexibleScheduleFields,
+} from '@/lib/flexibleSchedule'
 import type { Booking, Service, ServiceCategory } from '@/types'
 
-export interface CreateBookingPayload {
+export type { FlexibleScheduleFields }
+
+export interface CreateBookingPayload extends FlexibleScheduleFields {
   serviceCategoryId: string
   serviceListingId?: string
   artisanId?: string
@@ -24,6 +31,10 @@ export interface UpdateBookingPayload {
   scheduled_time?: string
   location?: string
   notes?: string
+  preferredDate?: string
+  preferredTime?: string
+  preferredDateEnd?: string
+  additionalPreferredDates?: string[]
 }
 
 /** POST /api/bookings/:id/cancel — JSON body */
@@ -76,7 +87,7 @@ export interface CompareKraftersPayload {
   longitude: number
 }
 
-export interface CreateBookingForRecommendationPayload {
+export interface CreateBookingForRecommendationPayload extends FlexibleScheduleFields {
   serviceCategoryId: string
   serviceListingId?: string
   jobTitle: string
@@ -90,7 +101,7 @@ export interface CreateBookingForRecommendationPayload {
   proposedPrice?: number
 }
 
-export interface PublishToMarketplacePayload {
+export interface PublishToMarketplacePayload extends FlexibleScheduleFields {
   /** Optional: links publish to an existing recommendation draft from create-for-recommendation */
   recommendationBookingId?: string
   serviceCategoryId: string
@@ -127,7 +138,7 @@ export interface PublishToMarketplacePayload {
   specialInstructions?: string
 }
 
-export interface GetRecommendationsPayload {
+export interface GetRecommendationsPayload extends FlexibleScheduleFields {
   serviceCategoryId: string
   serviceListingId?: string
   jobTitle: string
@@ -329,6 +340,7 @@ export const createBooking = async (payload: CreateBookingPayload): Promise<Book
   formData.append('preferredDate', payload.preferredDate)
   formData.append('preferredTime', payload.preferredTime)
   if (payload.proposedPrice !== undefined) formData.append('proposedPrice', String(payload.proposedPrice))
+  appendFlexibleScheduleToFormData(formData, payload)
 
   if (payload.media && payload.media.length > 0) {
     payload.media.forEach((file) => {
@@ -383,6 +395,10 @@ export function normalizeBookingDetailResponse(data: unknown): Booking {
   const jobDescription = pickStr('jobDescription', 'job_description')
   const preferredDate = pickStr('preferredDate', 'preferred_date')
   const preferredTime = pickStr('preferredTime', 'preferred_time')
+  const preferredDateEnd = pickStr('preferredDateEnd', 'preferred_date_end')
+  const additionalPreferredDates = parseAdditionalPreferredDatesFromBooking(
+    r.additionalPreferredDates ?? r.additional_preferred_dates,
+  )
   const address = pickStr('address', 'location')
   const location = pickStr('location', 'address')
   const id = pickStr('id') ?? String(r.id ?? '')
@@ -429,6 +445,8 @@ export function normalizeBookingDetailResponse(data: unknown): Booking {
     address: address ?? location,
     preferredDate,
     preferredTime,
+    ...(preferredDateEnd ? { preferredDateEnd } : {}),
+    ...(additionalPreferredDates ? { additionalPreferredDates } : {}),
     proposedPrice: proposedPrice as Booking['proposedPrice'],
     ...(proposedPricingType ? { proposedPricingType: proposedPricingType as Booking['proposedPricingType'] } : {}),
     ...(proposedDurationHours !== undefined && proposedDurationHours !== null
@@ -571,8 +589,11 @@ export const reopenRecommendation = async (id: string): Promise<Booking> => {
 }
 
 /** POST /api/bookings/{id}/revive-from-expired — customer revives an expired booking */
-export const reviveFromExpired = async (id: string): Promise<Booking> => {
-  const response = await api.post(`/api/bookings/${id}/revive-from-expired`, {})
+export const reviveFromExpired = async (
+  id: string,
+  payload?: FlexibleScheduleFields,
+): Promise<Booking> => {
+  const response = await api.post(`/api/bookings/${id}/revive-from-expired`, payload ?? {})
   return normalizeBookingDetailResponse(response.data)
 }
 
@@ -633,6 +654,7 @@ export const createBookingForRecommendation = async (payload: CreateBookingForRe
   formData.append('preferredDate', payload.preferredDate)
   formData.append('preferredTime', payload.preferredTime)
   if (payload.proposedPrice !== undefined) formData.append('proposedPrice', String(payload.proposedPrice))
+  appendFlexibleScheduleToFormData(formData, payload)
 
   if (payload.media && payload.media.length > 0) {
     payload.media.forEach((file) => {
@@ -667,6 +689,7 @@ export const publishToMarketplace = async (payload: PublishToMarketplacePayload)
   formData.append('preferredDate', payload.preferredDate)
   formData.append('preferredTime', payload.preferredTime)
   if (payload.proposedPrice !== undefined) formData.append('proposedPrice', String(payload.proposedPrice))
+  appendFlexibleScheduleToFormData(formData, payload)
   if (payload.offerAmount !== undefined) formData.append('offerAmount', String(payload.offerAmount))
   formData.append('offerPricingType', payload.offerPricingType)
   const offerHours =

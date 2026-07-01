@@ -28,6 +28,7 @@ import {
 
 /** Last resort when no coordinates from the booking URL chain or address store */
 import { resolveTaskCoordinates } from "@/lib/taskLocation";
+import { readFlexibleScheduleFromUrlParams } from "@/lib/flexibleSchedule";
 
 function resolveBookingCoordinates(
   searchParams: URLSearchParams,
@@ -216,6 +217,8 @@ const Page = () => {
       const taskDetails = searchParams.get("taskDetails") || "";
       const specialInstructionsRaw = searchParams.get("specialInstructions") || "";
 
+      const flexSchedule = readFlexibleScheduleFromUrlParams(searchParams);
+
       // Construct payload for API in the format backend expects
       const basePayload = {
         serviceCategoryId: searchParams.get("categoryId") || "",
@@ -225,10 +228,15 @@ const Page = () => {
         address: address,
         latitude: latitude,
         longitude: longitude,
-        preferredDate: new Date(date).toISOString().split("T")[0], // YYYY-MM-DD format
+        preferredDate:
+          /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : new Date(date).toISOString().split("T")[0],
         preferredTime: formattedTime, // HH:mm format
         ...(artisanId && !isPublic ? { artisanId } : {}),
         ...(!isPublic ? { proposedPrice: hourlyRate * durationHours } : {}),
+        ...(flexSchedule.preferredDateEnd ? { preferredDateEnd: flexSchedule.preferredDateEnd } : {}),
+        ...(flexSchedule.additionalPreferredDates?.length
+          ? { additionalPreferredDates: flexSchedule.additionalPreferredDates }
+          : {}),
       };
 
       let pricingFromSelection: Booking | undefined;

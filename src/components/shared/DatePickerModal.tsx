@@ -9,6 +9,8 @@ interface DatePickerModalProps {
   onClose: () => void;
   selectedDate?: Date;
   onSelectDate?: (date: Date) => void;
+  /** Earliest selectable day (inclusive). Defaults to today. */
+  minDate?: Date;
 }
 
 const DatePickerModal = ({
@@ -16,6 +18,7 @@ const DatePickerModal = ({
   onClose,
   selectedDate,
   onSelectDate,
+  minDate,
 }: DatePickerModalProps) => {
   const [currentDate, setCurrentDate] = useState(selectedDate || new Date());
   const [selectedDay, setSelectedDay] = useState<number | null>(
@@ -88,7 +91,7 @@ const DatePickerModal = ({
     const firstDay = getFirstDayOfMonth(currentDate);
     const days = [];
     
-    const todayStart = new Date();
+    const todayStart = minDate ? new Date(minDate) : new Date();
     todayStart.setHours(0, 0, 0, 0);
 
     // Empty cells for days before the first day of month
