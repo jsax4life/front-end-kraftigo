@@ -57,25 +57,29 @@ function MarketplaceKraftDetailContent() {
   if (loadError || !booking) {
     return (
       <main className="min-h-screen bg-white pb-24 px-4 pt-6">
-        <button type="button" onClick={() => router.back()} className="mb-4 flex items-center gap-2 text-gray-700">
-          <ArrowLeft size={20} />
-          Back
-        </button>
-        <p className="text-center text-gray-600 font-poppins py-12">{loadError ?? "Kraft not found."}</p>
+        <div className="max-w-4xl mx-auto w-full">
+          <button type="button" onClick={() => router.back()} className="mb-4 flex items-center gap-2 text-gray-700">
+            <ArrowLeft size={20} />
+            Back
+          </button>
+          <p className="text-center text-gray-600 font-poppins py-12">{loadError ?? "Kraft not found."}</p>
+        </div>
         <TaskerNav />
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-white">
-      <MarketplaceKraftDetailPanel
-        booking={booking}
-        bookingId={bookingId}
-        onDismiss={() => router.back()}
-        onApplied={() => router.push("/tasker/requests")}
-        showTaskerNav
-      />
+    <main className="min-h-screen bg-white relative">
+      <div className="max-w-4xl mx-auto w-full">
+        <MarketplaceKraftDetailPanel
+          booking={booking}
+          bookingId={bookingId}
+          onDismiss={() => router.back()}
+          onApplied={() => router.push("/tasker/requests")}
+          showTaskerNav
+        />
+      </div>
     </main>
   );
 }

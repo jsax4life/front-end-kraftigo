@@ -441,13 +441,13 @@ const Page = () => {
                   English Tutor
                 </span>
                 <span className="bg-[#F6F6F6] rounded-md px-1.5 py-0.5 text-[12px]">
-                  English Tutor
+                  House Cleaning
                 </span>
                 <span className="bg-[#F6F6F6] rounded-md px-1.5 py-0.5 text-[12px]">
-                  English Tutor
+                  Gardening
                 </span>
                 <span className="bg-[#F6F6F6] rounded-md px-1.5 py-0.5 text-[12px]">
-                  English Tutor
+                  Painting
                 </span>
               </div>
             </div>
@@ -749,10 +749,12 @@ const Page = () => {
       {showSearchModal && (
         <div
           className="fixed inset-0 bg-[#C0C0C0] z-60 flex flex-col overflow-hidden"
+          style={{ animation: "searchScrimIn 280ms ease forwards" }}
           onClick={() => setShowSearchModal(false)}
         >
           <div
             className="flex flex-col flex-1 min-h-0 p-4 pt-6 max-w-4xl mx-auto w-full"
+            style={{ animation: "searchSheetIn 380ms cubic-bezier(0.32, 0.72, 0, 1) forwards" }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="relative mb-6 shrink-0">
@@ -766,8 +768,17 @@ const Page = () => {
                 autoFocus
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-4 rounded-full border-2 border-brand-orange bg-white focus:outline-none focus:border-brand-orange text-[14px] sm:text-[16px] font-poppins shadow-lg"
+                className="w-full pl-12 pr-12 py-4 rounded-full border-2 border-brand-orange bg-white focus:outline-none focus:border-brand-orange text-[14px] sm:text-[16px] font-poppins shadow-lg"
               />
+              <button
+                onClick={() => setShowSearchModal(false)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label="Close search"
+              >
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                  <path d="M1 1l16 16M17 1L1 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              </button>
             </div>
 
             {/* Conditional Content - Show Results or Recents */}
@@ -1012,7 +1023,7 @@ const Page = () => {
                 // Recents Section
                 <div className="bg-white rounded-2xl p-4 shadow-lg border border-[#0000001A]">
                   <h3 className="text-[12px] font-poppins font-semibold mb-3 text-[#00000066]">
-                    Recents
+                    {recentSearches.length > 0 ? "Recents" : "Popular Searches"}
                   </h3>
                   <div>
                     {recentSearches.length > 0 ? (
@@ -1033,9 +1044,24 @@ const Page = () => {
                         </button>
                       ))
                     ) : (
-                      <p className="text-[14px] text-gray-500 font-poppins px-3 pb-3">
-                        No recent searches.
-                      </p>
+                      <>
+                        {["Cleaning", "Home repairs", "Gardening"].map((term, index) => (
+                          <button
+                            key={index}
+                            onClick={() => {
+                              setSearchQuery(term);
+                            }}
+                            className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors"
+                          >
+                            <div className="bg-gray-100 text-gray-500 w-10 h-10 rounded-lg flex items-center justify-center shrink-0">
+                              <Search size={20} />
+                            </div>
+                            <span className="text-[14px] font-poppins text-gray-800">
+                              {term}
+                            </span>
+                          </button>
+                        ))}
+                      </>
                     )}
                   </div>
                   <div className="mt-12 text-center">

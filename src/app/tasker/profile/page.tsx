@@ -145,7 +145,8 @@ const Page = () => {
 
   return (
     <main className="relative w-full min-h-screen bg-white pb-32">
-      {/* Header */}
+      <div className="max-w-4xl mx-auto w-full">
+        {/* Header */}
       <div className="pt-8 px-6 mb-6 flex items-center justify-between gap-3">
         <h1 className="text-[28px] font-gerat font-bold text-[#1D2939]">Profile</h1>
         <button
@@ -279,6 +280,7 @@ const Page = () => {
             Log out
           </button>
         </div>
+      </div>
       </div>
 
       <TaskerNav />

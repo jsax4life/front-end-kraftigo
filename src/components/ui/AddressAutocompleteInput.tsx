@@ -122,9 +122,12 @@ export function AddressAutocompleteInput({
   return (
     <div ref={containerRef} className="relative w-full">
       {label && (
-        <label className="text-[13px] font-mabry text-gray-600 mb-1 block">
+        <div>
+          <label className="text-[13px] font-mabry text-gray-600 mb-1 block">
           {label}
         </label>
+        <p className="text-[7px] font-poppins text-brand-orange -mt-2 mb-1">Only availble for  germany</p>
+        </div>
       )}
       <div className="relative">
         {icon}
