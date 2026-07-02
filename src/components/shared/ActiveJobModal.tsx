@@ -342,7 +342,7 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
         onClick={onClose}
       >
         <div
-          className="relative bg-white rounded-t-xl w-full max-w-md mx-auto max-h-[94vh] overflow-y-auto"
+          className="relative bg-white rounded-t-xl w-full max-w-md mx-auto max-h-[calc(100vh-80px)] overflow-y-auto pb-20"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="bg-white px-5 pt-5 pb-4 border-b border-gray-100">
