@@ -233,10 +233,7 @@ const Page = () => {
           tasks: p.completedKrafts,
           description: p.description,
           price: `€${p.hourlyRate.toFixed(2)}/hr`,
-          distance:
-            p.distanceLabel ??
-            formatDistanceDisplay(readDistanceFields(p)) ??
-            (p.distanceKm != null ? `${p.distanceKm} km away` : undefined),
+          distance: formatDistanceDisplay(readDistanceFields(p)) ?? undefined,
           image: normSrc(p.profilePhotoUrl) ?? "/images/pro.jpg",
           badge: p.badges[0] ? p.badges[0].replace(/_/g, " ") : undefined,
         }))
@@ -654,94 +651,96 @@ const Page = () => {
           ) : null}
 
           {/* Upcoming Bookings */}
-          <div className="mb-6">
-            <h2 className="text-[18px] sm:text-[20px] font-gerat font-bold mb-4">
-              Upcoming
-            </h2>
+          {isAuthenticated && (
+            <div className="mb-6">
+              <h2 className="text-[18px] sm:text-[20px] font-gerat font-bold mb-4">
+                Upcoming
+              </h2>
 
-            {isLoading && !hasFetched ? (
-              // Skeleton
-              <div className="animate-pulse bg-gray-100 rounded-xl h-28" />
-            ) : upcoming.length > 0 ? (
-              <div className="flex flex-col gap-3">
-                {[...upcoming]
-                  .sort(
-                    (a, b) =>
-                      new Date(a.scheduledAt || 0).getTime() -
-                      new Date(b.scheduledAt || 0).getTime(),
-                  )
-                  .slice(0, 1)
-                  .map((booking) => (
-                    <div
-                      key={booking.bookingId}
-                      className="bg-[#FF66001A] rounded-xl p-2 sm:p-5 border border-[#0000001A]"
-                    >
-                      <div className="flex gap-4">
-                        {/* Booking Details */}
-                        <div className="flex-1">
-                          <h3 className="text-[16px] sm:text-[14px] font-poppins font-bold mb-2">
-                            {booking.jobTitle}
-                          </h3>
-                          <div className="space-y-1 text-[14px] sm:text-[13px] text-gray-700 font-poppins">
-                            <div className="flex items-start gap-2 flex-wrap">
-                              <MapPin size={14} className="text-gray-500 shrink-0 mt-0.5" />
-                              <span>{booking.addressSummary}</span>
-                              {booking.krafter ? (
-                                <DistanceBadge
-                                  size="xs"
-                                  sources={[booking.krafter]}
+              {isLoading && !hasFetched ? (
+                // Skeleton
+                <div className="animate-pulse bg-gray-100 rounded-xl h-28" />
+              ) : upcoming.length > 0 ? (
+                <div className="flex flex-col gap-3">
+                  {[...upcoming]
+                    .sort(
+                      (a, b) =>
+                        new Date(a.scheduledAt || 0).getTime() -
+                        new Date(b.scheduledAt || 0).getTime(),
+                    )
+                    .slice(0, 1)
+                    .map((booking) => (
+                      <div
+                        key={booking.bookingId}
+                        className="bg-[#FF66001A] rounded-xl p-2 sm:p-5 border border-[#0000001A]"
+                      >
+                        <div className="flex gap-4">
+                          {/* Booking Details */}
+                          <div className="flex-1">
+                            <h3 className="text-[16px] sm:text-[14px] font-poppins font-bold mb-2">
+                              {booking.jobTitle}
+                            </h3>
+                            <div className="space-y-1 text-[14px] sm:text-[13px] text-gray-700 font-poppins">
+                              <div className="flex items-start gap-2 flex-wrap">
+                                <MapPin size={14} className="text-gray-500 shrink-0 mt-0.5" />
+                                <span>{booking.addressSummary}</span>
+                                {booking.krafter ? (
+                                  <DistanceBadge
+                                    size="xs"
+                                    sources={[booking.krafter]}
+                                  />
+                                ) : null}
+                              </div>
+                              <div className="flex items-start gap-2">
+                                <Image
+                                  src="/taskerCal.svg"
+                                  alt="calendar"
+                                  width={15}
+                                  height={15}
                                 />
-                              ) : null}
-                            </div>
-                            <div className="flex items-start gap-2">
-                              <Image
-                                src="/taskerCal.svg"
-                                alt="calendar"
-                                width={15}
-                                height={15}
-                              />
-                              <span>
-                                {formatScheduledAt(booking.scheduledAt)}
-                              </span>
+                                <span>
+                                  {formatScheduledAt(booking.scheduledAt)}
+                                </span>
+                              </div>
                             </div>
                           </div>
-                        </div>
 
-                        {/* Krafter Photo (optional until a Krafter is assigned) */}
-                        <div className="relative w-[75px] h-[75px] sm:w-[100px] sm:h-[100px] rounded-xl overflow-hidden shrink-0">
-                          <Image
-                            src={
-                              normSrc(booking.krafter?.profilePhotoUrl) ??
-                              "/images/pro.jpg"
-                            }
-                            alt={booking.krafter?.displayName ?? "Krafter"}
-                            fill
-                            className="object-cover"
-                          />
+                          {/* Krafter Photo (optional until a Krafter is assigned) */}
+                          <div className="relative w-[75px] h-[75px] sm:w-[100px] sm:h-[100px] rounded-xl overflow-hidden shrink-0">
+                            <Image
+                              src={
+                                normSrc(booking.krafter?.profilePhotoUrl) ??
+                                "/images/pro.jpg"
+                              }
+                              alt={booking.krafter?.displayName ?? "Krafter"}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
                         </div>
                       </div>
+                    ))}
+                </div>
+              ) : (
+                // Empty state — no upcoming bookings
+                <div className="bg-[#FF66001A] rounded-xl p-4 sm:p-5 border border-[#0000001A]">
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <h3 className="text-[16px] sm:text-[14px] font-poppins font-bold mb-2">
+                        No upcoming bookings
+                      </h3>
+                      <p className="text-[12px] sm:text-[13px] text-gray-600 font-poppins">
+                        Book a service to see your upcoming appointments here.
+                      </p>
                     </div>
-                  ))}
-              </div>
-            ) : (
-              // Empty state — no upcoming bookings
-              <div className="bg-[#FF66001A] rounded-xl p-4 sm:p-5 border border-[#0000001A]">
-                <div className="flex gap-4">
-                  <div className="flex-1">
-                    <h3 className="text-[16px] sm:text-[14px] font-poppins font-bold mb-2">
-                      No upcoming bookings
-                    </h3>
-                    <p className="text-[12px] sm:text-[13px] text-gray-600 font-poppins">
-                      Book a service to see your upcoming appointments here.
-                    </p>
-                  </div>
-                  <div className="w-[88px] h-[88px] rounded-xl bg-gray-200 shrink-0 flex items-center justify-center">
-                    <Plus size={28} className="text-gray-400" />
+                    <div className="w-[88px] h-[88px] rounded-xl bg-gray-200 shrink-0 flex items-center justify-center">
+                      <Plus size={28} className="text-gray-400" />
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
