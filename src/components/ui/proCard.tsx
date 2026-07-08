@@ -55,7 +55,7 @@ const ProCard = ({
                     {badge}
                   </span>
                 )}
-                <div className="-ml-2">
+                <div className="-ml-2 -mt-0.5">
                   {distance != null && distance !== "" && (
                   <DistanceBadge
                     size="xs"

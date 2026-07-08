@@ -124,14 +124,14 @@ const Page = () => {
       {isLoading ? (
         <Loader />
       ) : (
-        <div className="w-full max-w-4xl mx-auto min-h-screen flex flex-col py-8">
+        <div className="w-full max-w-3xl mx-auto min-h-screen flex flex-col py-8">
           <div className="flex items-center justify-between mb-8">
             <button
               onClick={handleBack}
               className="text-2xl hover:opacity-70 transition-opacity"
             >
               <ArrowLeft />
-            </button>
+            </button> 
           </div>
 
           <div className="flex-1 overflow-y-auto">

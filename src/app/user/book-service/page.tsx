@@ -30,6 +30,7 @@ const BookServicePage = () => {
   const searchParams = useSearchParams();
   const categoryId = searchParams.get("categoryId") || "";
   const categoryName = searchParams.get("category") || "Service";
+  const preselectedArtisanId = searchParams.get("artisanId") || "";
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState("home");
 
@@ -187,6 +188,7 @@ const BookServicePage = () => {
       // a different source (e.g. address store geocoded later) and diverge from the booking.
       params.set("latitude", String(lat));
       params.set("longitude", String(lng));
+      if (preselectedArtisanId) params.set("artisanId", preselectedArtisanId);
       appendFlexibleScheduleToUrlParams(params, schedule);
       router.push(`/user/book-service/select-artisan?${params.toString()}`);
     } catch (err: unknown) {
@@ -422,7 +424,7 @@ const BookServicePage = () => {
           </div>
         </div>
 
-        <div className="pt-8 sm:pt-12 lg:pt-16 pb-10">
+        <div className="flex items-center  gap-4  pt-8 sm:pt-12 lg:pt-16 pb-10">
           <Button
             variant="primary"
             fullWidth
@@ -436,6 +438,14 @@ const BookServicePage = () => {
             className="py-4 text-[16px] sm:text-[17px] max-w-md mx-auto disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? "Saving…" : "Next"}
+          </Button>
+          <Button
+            variant="outline"
+            fullWidth
+            onClick={() => router.push("/")}
+            className="py-4 text-[16px] sm:text-[17px] max-w-md mx-auto "
+          >
+            Cancel
           </Button>
         </div>
       </div>

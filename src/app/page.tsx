@@ -394,10 +394,11 @@ const Page = () => {
                   </h1>
                 </div>
               </div>
-              <div
+              {isAuthenticated && (
+                <div
                 className="border-2 border-dashed border-brand-orange rounded-full w-20 h-20  flex items-center justify-center cursor-pointer shrink-0"
                 onClick={() => handleProtectedAction("/user/profile")}
-              >
+                 >
                 <div className="relative w-17.5 h-17.5 rounded-full overflow-hidden bg-gray-50 flex items-center justify-center shadow-sm">
                   {avatar ? (
                     <Image
@@ -411,6 +412,7 @@ const Page = () => {
                   )}
                 </div>
               </div>
+              )}
             </div>
 
             {/* Search Bar section */}
@@ -433,19 +435,20 @@ const Page = () => {
             </div>
             <div className="flex flex-col justify-center items-center w-full gap-2">
               <p className="text-[12px]">Popular Searches</p>
-              <div className="flex items-center gap-2">
-                <span className="bg-[#F6F6F6] rounded-md px-1.5 py-0.5 text-[12px]">
-                  English Tutor
-                </span>
-                <span className="bg-[#F6F6F6] rounded-md px-1.5 py-0.5 text-[12px]">
-                  House Cleaning
-                </span>
-                <span className="bg-[#F6F6F6] rounded-md px-1.5 py-0.5 text-[12px]">
-                  Gardening
-                </span>
-                <span className="bg-[#F6F6F6] rounded-md px-1.5 py-0.5 text-[12px]">
-                  Painting
-                </span>
+              <div className="flex items-center gap-2 flex-wrap justify-center">
+                {displayCategories.slice(0, 4).map((category) => {
+                  const params = new URLSearchParams({ category: category.name });
+                  if (category.id) params.set("categoryId", category.id);
+                  return (
+                    <button
+                      key={category.id || category.name}
+                      onClick={() => router.push(`/user/book-service?${params.toString()}`)}
+                      className="bg-[#F6F6F6] rounded-md px-1.5 py-0.5 text-[12px] hover:bg-brand-orange hover:text-white transition-colors cursor-pointer"
+                    >
+                      {category.name.split("/")[0].trim()}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -590,7 +593,7 @@ const Page = () => {
           {(isLoading && !hasFetched) || displayPros.length > 0 ? (
             <div className="mb-8">
               <h2 className="text-[20px] sm:text-[20px] font-poppins font-semibold mb-4">
-                Pro&apos;s Of The Week
+                Krafter&apos;s near you
               </h2>
 
               {isLoading && !hasFetched ? (
@@ -1094,7 +1097,7 @@ const Page = () => {
           onClose={() => setSelectedKrafter(null)}
           onSelect={(id) => {
             setSelectedKrafter(null);
-            handleProtectedAction("/user/custom-kraft");
+            handleProtectedAction(`/user/book-service?artisanId=${encodeURIComponent(id)}`);
           }}
         />
       )}
