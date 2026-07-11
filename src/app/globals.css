@@ -68,3 +68,30 @@ body {
     transform: translateY(0);
   }
 }
+
+/* ── Google Translate — hide default toolbar ── */
+/* Hide the top bar that appears when a page is translated */
+.goog-te-banner-frame,
+.goog-te-balloon-frame,
+#goog-gt-tt,
+.goog-te-balloon-frame,
+.goog-tooltip,
+.goog-tooltip:hover {
+  display: none !important;
+}
+
+/* Prevent the body top-margin shift that Google Translate adds */
+body {
+  top: 0 !important;
+}
+
+/* Hide the combo-box select element (we use our own UI) */
+.goog-te-gadget,
+.goog-te-combo {
+  display: none !important;
+}
+
+/* Ensure translated pages don't show the "Translated by Google" bar */
+.skiptranslate {
+  display: none !important;
+}

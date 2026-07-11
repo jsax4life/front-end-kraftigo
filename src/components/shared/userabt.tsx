@@ -13,6 +13,7 @@ import AddressModal from "./AddressModal";
 import { useAddressStore } from "@/store/useAddressStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useAuthPromptStore } from "@/store/useAuthPromptStore";
+import { switchLanguage, getActiveLanguage } from "@/lib/googleTranslate";
 
 const Userabt = () => {
   const router = useRouter();
@@ -21,8 +22,13 @@ const Userabt = () => {
   const { customerProfile, fetchCustomerProfile } = useProfileStore();
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
-  const [language, setLanguage] = useState("de");
+  const [language, setLanguage] = useState("en");
   const [currency, setCurrency] = useState("EUR");
+
+  // Sync language state with any active Google Translate cookie on mount
+  useEffect(() => {
+    setLanguage(getActiveLanguage());
+  }, []);
 
   useEffect(() => {
     if (showLanguageModal || showAddressModal) {
@@ -135,7 +141,7 @@ const Userabt = () => {
       {/* Language Modal */}
       {showLanguageModal && (
         <div
-          className="fixed inset-0 bg-black/50 z-60 flex items-end sm:items-start sm:justify-center md:pl-100 md:mt-20 pt-5"
+          className="fixed inset-0 bg-black/50 z-60 flex items-end sm:items-start sm:justify-center md:pl-100 md:mt-25 pt-5"
           onClick={() => setShowLanguageModal(false)}
         >
           <div
@@ -160,15 +166,20 @@ const Userabt = () => {
                 <ImageSelect
                   placeholder="Select Language"
                   value={language}
-                  onChange={(val) => setLanguage(val)}
+                  onChange={(val) => {
+                    setLanguage(val);
+                    switchLanguage(val);
+                  }}
                   options={[
-                    { value: "en", label: "England", image: "/flag-en.svg" },
-                    {
-                      value: "de",
-                      label: "Germany",
-                      image: "/flag-de.svg",
-                    },
+                    { value: "en", label: "English", image: "/flag-en.svg" },
+                    { value: "de", label: "German", image: "/flag-de.svg" },
                     // { value: "fr", label: "French", image: "/flag-fr.svg" },
+                    // { value: "es", label: "Spanish", image: "/flag-en.svg" },
+                    // { value: "it", label: "Italian", image: "/flag-en.svg" },
+                    // { value: "nl", label: "Dutch", image: "/flag-en.svg" },
+                    // { value: "pt", label: "Portuguese", image: "/flag-en.svg" },
+                    // { value: "ar", label: "Arabic", image: "/flag-en.svg" },
+                    // { value: "tr", label: "Turkish", image: "/flag-en.svg" },
                   ]}
                   required
                 />
