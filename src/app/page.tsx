@@ -474,23 +474,25 @@ const Page = () => {
             {/* Avatar & Greeting Section */}
             <div className="flex flex-col items-start gap-5 mb-8">
               {/* Avatar with Dashed Border */}
-              <div
+              {isAuthenticated && (
+                <div
               className="border-2 border-dashed border-brand-orange rounded-full w-17 h-17  flex items-center justify-center cursor-pointer shrink-0"
               onClick={() => handleProtectedAction("/user/profile")}
-            >
-              <div className="relative w-[60px] h-[60px]  rounded-full overflow-hidden bg-gray-50 flex items-center justify-center shadow-sm">
-                {avatar ? (
-                  <Image
-                    src={avatar}
-                    alt="profile"
-                    fill
-                    className="object-cover"
-                  />
-                ) : (
-                  <User size={32} className="text-gray-300" />
-                )}
+              >
+                <div className="relative w-[60px] h-[60px]  rounded-full overflow-hidden bg-gray-50 flex items-center justify-center shadow-sm">
+                  {avatar ? (
+                    <Image
+                      src={avatar}
+                      alt="profile"
+                      fill
+                      className="object-cover"
+                    />
+                  ) : (
+                    <User size={32} className="text-gray-300" />
+                  )}
+                </div>
               </div>
-            </div>
+              )}
 
               {/* Greetings and Title */}
               <div className="flex-1">

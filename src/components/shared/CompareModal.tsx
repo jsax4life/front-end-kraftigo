@@ -22,8 +22,8 @@ interface CompareSheetProps {
 
 // ─── Empty Slot Placeholder ───────────────────────────────────────────────────
 const EmptySlot = ({ onPick }: { onPick: () => void }) => (
-  <div className="flex flex-col items-center gap-3 pb-10">
-    <div className="w-full aspect-4/3 bg-gray-100 rounded-2xl " />
+  <div className="flex flex-col items-center gap-3 pb-10 px-3 sm:px-8 ">
+    <div className="w-full aspect-5/3 bg-gray-100 rounded-2xl " />
     <p className="text-[13px] font-poppins text-gray-500 text-center">
       Select a Krafter to compare
     </p>
@@ -44,8 +44,8 @@ const FilledSlot = ({
   artisan: Application;
   onRemove: () => void;
 }) => (
-  <div className="flex flex-col items-center gap-2">
-      <div className="relative w-full aspect-4/3 rounded-2xl overflow-hidden bg-gray-100">
+  <div className="flex flex-col items-center gap-2 px-3 sm:px-8">
+      <div className="relative w-full aspect-5/3 rounded-2xl overflow-hidden bg-gray-100">
       <Image
         src={artisan.image}
         alt={artisan.artisan_name}
@@ -105,7 +105,7 @@ const ArtisanPicker = ({
   onPick: (a: Application) => void;
   onClose: () => void;
 }) => (
-  <div className="fixed inset-0 z-70 bg-white flex flex-col">
+  <div className="fixed inset-0 z-70 bg-white flex flex-col fixed bottom-0 md:bottom-auto md:top-1/2 left-0 md:left-1/2 right-0 md:right-auto md:-translate-x-1/2 md:-translate-y-1/2 z-60 bg-white  md:rounded-[32px] max-h-[92vh] md:h-[60vh] w-full md:max-w-[600px]">
     <div className="flex items-center justify-between px-5 pt-6 pb-4 border-b border-gray-100">
       <h2 className="text-[18px] font-gerat font-bold">Select a Krafter</h2>
       <button onClick={onClose}>
@@ -318,14 +318,14 @@ const CompareSheet = ({
       <div className="fixed inset-0 z-60 bg-black/40" onClick={onClose} />
 
       {/* Sheet */}
-      <div className="fixed bottom-0 left-0 right-0 z-60 bg-white rounded-t-[32px] max-h-[92vh] flex flex-col px-5">
+      <div className="fixed bottom-0 md:bottom-auto md:top-1/2 left-0 md:left-1/2 right-0 md:right-auto md:-translate-x-1/2 md:-translate-y-1/2 z-60 bg-white rounded-t-[32px] md:rounded-[32px] max-h-[92vh] md:h-[90vh] w-full md:max-w-[600px] flex flex-col  md:px-0 shadow-2xl overflow-hidden">
         {/* Drag handle */}
-        <div className="flex justify-center pt-3 pb-1 shrink-0">
+        <div className="flex justify-center pt-3 pb-1 shrink-0 md:hidden">
           <div className="w-10 h-1 bg-gray-200 rounded-full" />
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 mt-0 sm:mt-7 shrink-0">
           <h2 className="text-[22px] font-gerat font-bold text-black">
             Compare Krafters
           </h2>
@@ -335,7 +335,7 @@ const CompareSheet = ({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto  pb-8">
+        <div className="flex-1 overflow-y-auto pb-8">
           {!showFullCompare ? (
             /* ── Empty / Partial State ── */
             <div className="grid grid-cols-2 gap-4 mt-2">
@@ -363,14 +363,14 @@ const CompareSheet = ({
               <div className="grid grid-cols-2 gap-4 mb-6">
                 {displaySlots.map((artisan, idx) =>
                   artisan ? (
-                    <div key={idx} className="flex flex-col items-center text-center px-5">
-                      <div className="relative w-full aspect-square rounded-2xl overflow-hidden mb-3 bg-gray-100">
+                    <div key={idx} className="flex flex-col items-center text-center sm:px-5">
+                      <div className="relative rounded-2xl overflow-hidden mb-3 bg-gray-100">
                         <Image
                           src={artisan.image}
                           alt={artisan.artisan_name}
                           width={200}
                           height={200}
-                          className="w-full h-full object-cover"
+                          className="w-[137px] h-[137px] object-cover"
                         />
                         <button
                           onClick={() => removeSlot(idx as 0 | 1)}
@@ -493,7 +493,7 @@ const CompareSheet = ({
               </CompareRow>
 
               {/* Select Buttons */}
-              <div className="grid grid-cols-2 gap-3 mt-4">
+              <div className="grid grid-cols-2 gap-3 mt-4 px-2 sm:px-8">
                 {displaySlots.map((artisan, i) =>
                   artisan ? (
                     <button

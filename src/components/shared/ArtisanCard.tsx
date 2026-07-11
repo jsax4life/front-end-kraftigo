@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { Star } from "lucide-react";
 import { DistanceBadge } from "@/components/ui/DistanceBadge";
 
 interface ArtisanCardProps {
@@ -12,6 +13,8 @@ interface ArtisanCardProps {
     taskCount: number;
     location: string;
     description: string;
+    bio?: string;
+    skillTags?: string[];
     distance?: number | null;
     distanceLabel?: string | null;
     pricePerHour: number;
@@ -24,86 +27,134 @@ interface ArtisanCardProps {
   onViewProfile?: (id: string) => void;
 }
 
-const ArtisanCard = ({ artisan, onSelect, onViewProfile }: ArtisanCardProps) => {
+const ArtisanCard = ({ artisan, index, onSelect, onViewProfile }: ArtisanCardProps) => {
   const openProfile = () => onViewProfile?.(artisan.id);
+
+  // Fallback skills if not provided by backend
+  const skills = artisan.skillTags && artisan.skillTags.length > 0 
+    ? artisan.skillTags 
+    : ["Gardening", "Gardening", "Gardening", "Gardening"];
+
+  const isEven = index % 2 === 0;
+  const bgColorClass = isEven ? "bg-white sm:bg-[#F9FAFB]" : "bg-[#F9FAFB] border border-[#0000001A] md:border-none rounded-none sm:rounded-md";
 
   return (
     <div
-      role="button"
-      tabIndex={0}
-      onClick={openProfile}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          openProfile();
-        }
-      }}
-      className="rounded-xl border border-[#E4E7EC] bg-white p-4 sm:p-5 cursor-pointer transition-all hover:border-brand-orange/60 hover:shadow-sm hover:bg-[#FFFBF8] active:scale-[0.995] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange/50 focus-visible:ring-offset-2 flex flex-col h-full"
+      className={`${bgColorClass} rounded-md p-4 sm:p-5 transition-all hover:shadow-sm flex flex-col gap-3 sm:gap-6 w-full relative group`}
     >
-      <div className="flex gap-3 sm:gap-4">
-        <div className="relative shrink-0">
+      {/* Top Section (Image + Main Info) */}
+      <div className="flex flex-row gap-3 sm:gap-4 w-full">
+        {/* Image Section */}
+        <div className="shrink-0">
           <Image
             src={artisan.profileImage || "/images/pro.jpg"}
             alt={artisan.name}
-            width={80}
-            height={80}
-            className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover border border-[#F2F4F7]"
+            width={181}
+            height={181}
+            className="w-[80px] h-[80px] sm:w-[181px] sm:h-[181px] rounded-[12px] sm:rounded-[16px] object-cover border border-[#0000001A]"
           />
         </div>
 
-        <div className="flex-1 min-w-0">
-          <div className="mb-2">
-            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-nowrap overflow-hidden">
-              <h3 className="text-[16px] sm:text-[17px] font-gerat font-bold text-[#1D2939] truncate min-w-0 shrink">
+        {/* Content Section (Right of Image) */}
+        <div className="flex flex-col flex-1 min-w-0 justify-start">
+          {/* Top Row: Name, Badge, Distance */}
+          <div className="flex items-start justify-between gap-2 w-full">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-[14px] sm:text-[16px]  font-poppins font-bold text-[#2F2C2C]">
                 {artisan.name}
               </h3>
               {artisan.badge && (
-                <span className="shrink-0 whitespace-nowrap text-[10px] font-poppins font-semibold uppercase tracking-wide bg-[#014F2A1A] text-[#014F2A] px-2 py-0.5 rounded">
+                <span className="bg-[#E2EBE5] text-[#014F2A] px-2 py-0.5 rounded text-[9px] sm:text-[11px] font-poppins font-semibold uppercase">
                   {artisan.badge.replace(/_/g, " ")}
                 </span>
               )}
-              <DistanceBadge
-                size="xs"
-                className="shrink-0"
-                sources={[
-                  { distanceKm: artisan.distance, distanceLabel: artisan.distanceLabel },
-                ]}
-              />
             </div>
-            <div className="flex items-center gap-2 mt-1.5">
-              <span className="text-[12px] text-gray-600 font-poppins">
-                {artisan.taskCount} Krafts
-              </span>
+            <div className="text-[13px] font-poppins text-[#2F2C2C] shrink-0 mt-0.5">
+              {artisan.distanceLabel || (artisan.distance ? `${artisan.distance} miles away` : "")}
             </div>
-            <span className="inline-flex w-fit items-center gap-2 text-[#FF6600] text-xs bg-[#FF66001A] px-2 py-1 rounded-full mt-1.5">
-              {artisan.isAvailable ? "Available Now" : "Not Available"}
-              <Image src="/light.svg" alt="light" width={9} height={12} />
+          </div>
+
+          {/* Second Row: Stars, Reviews, Krafts */}
+          <div className="flex items-center gap-2 mt-1 sm:mt-1.5 flex-wrap">
+            {/* <div className="flex items-center gap-0.5">
+              {[1, 2, 3, 4].map((s) => (
+                <svg key={s} width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-blue-600">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+              ))}
+            </div> */}
+            {/* <span className="text-[14px] font-poppins text-[#2F2C2C]">
+              ({artisan.reviewCount || 23})
+            </span> */}
+            <span className="text-[14px] font-poppins text-[#2F2C2C]">
+              {artisan.taskCount || 72} Krafts
             </span>
+          </div>
+
+          {/* Third Row: Available Badge */}
+          <div className="mt-1.5 sm:mt-1">
+            <span className="inline-flex w-fit items-center gap-1.5 text-[#FB5D00] text-[11px] font-poppins font-medium bg-[#FFF0E5] px-2.5 py-1 rounded-md">
+              {artisan.isAvailable ? "Available Now" : "Available"}
+              <Image src="/light.svg" alt="light" width={8} height={11} className="mt-0.5" />
+            </span>
+          </div>
+
+          {/* Desktop Bio */}
+          <p className="hidden sm:block mt-4 text-[14px] font-poppins text-[#2F2C2C] leading-relaxed line-clamp-3">
+            {artisan.bio || artisan.description || "I have six years of experience cleaning houses. My priority is to bring a good service and leave everything very clean✨. I am a reliable person, I will ensure that y..."}
+          </p>
+
+          {/* Desktop Skills */}
+          <div className="hidden sm:block mt-6">
+            <p className="text-[14px] font-poppins font-bold text-[#2F2C2C] mb-2.5">Skills</p>
+            <div className="flex flex-wrap gap-2.5">
+              {skills.slice(0, 4).map((skill, idx) => (
+                <span 
+                  key={idx} 
+                  className="border border-[#FF6600] text-[#FF6600] bg-[#FF66001A] text-[14px] font-poppins px-3.5 py-1.5 rounded-full"
+                >
+                  {skill}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="mt-auto pt-3 border-t border-[#F2F4F7] flex flex-col justify-end">
-        <p className="text-[15px] sm:text-[13px] text-gray-700 font-poppins mb-3 line-clamp-2 min-h-[44px] sm:min-h-[39px]">
-          {artisan.description || " "}
-        </p>
+      {/* Mobile Bio */}
+      <p className="sm:hidden mt-1 text-[14px] font-poppins text-[#2F2C2C] leading-relaxed line-clamp-3">
+        {artisan.bio || artisan.description || "I have six years of experience cleaning houses. My priority is to bring a good service and leave everything very clean✨. I am a reliable person, I will ensure that y..."}
+      </p>
 
-        <div className="flex items-end justify-between gap-3">
-          <p className="text-[24px] sm:text-[20px] font-mabry font-semibold">
-            €{artisan.pricePerHour.toFixed(2)}{" "}
-            <span className="text-[24px] font-normal text-gray-500">/hr</span>
-          </p>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onSelect(artisan.id);
-            }}
-            className="py-4 px-14 bg-brand-orange text-white text-[14px] font-poppins font-semibold rounded-xl hover:bg-orange-600 transition-colors shrink-0"
-          >
-            Select
-          </button>
+      {/* Mobile Skills */}
+      <div className="sm:hidden mt-2">
+        <p className="text-[15px] font-poppins font-bold text-[#2F2C2C] mb-2.5">Skills</p>
+        <div className="flex flex-wrap gap-2">
+          {skills.slice(0, 4).map((skill, idx) => (
+            <span 
+              key={idx} 
+              className="border border-[#FF6600] text-[#FF6600] bg-[#FF66001A] text-[13px] font-poppins px-3.5 py-1 rounded-full"
+            >
+              {skill}
+            </span>
+          ))}
         </div>
+      </div>
+
+      {/* Bottom Row (Full Width) */}
+      <div className="mt-3 sm:mt-auto pt-2 sm:pt-4 flex items-center justify-between w-full gap-4">
+        <div className="text-[24px] sm:text-[20px] font-mabry font-bold text-[#2F2C2C] shrink-0">
+          ${artisan.pricePerHour.toFixed(2)}<span className="text-[16px] font-mabry">/hr</span>
+        </div>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            openProfile();
+          }}
+          className="flex-1 max-w-[220px] bg-[#FB5D00] text-white py-3.5 sm:py-3 rounded-[12px] font-poppins font-semibold text-[15px] hover:bg-[#e55500] transition-colors text-center shrink-0"
+        >
+          Veiw Profile
+        </button>
       </div>
     </div>
   );
