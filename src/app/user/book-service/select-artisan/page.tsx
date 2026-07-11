@@ -127,6 +127,7 @@ const SelectArtisanPage = () => {
   const taskDetails = searchParams.get("taskDetails") || "";
   const latitudeFromUrl = searchParams.get("latitude") ?? "";
   const longitudeFromUrl = searchParams.get("longitude") ?? "";
+  const preselectedArtisanId = searchParams.get("artisanId") || "";
 
   const { getRecommendations, isLoading } = useBookingsStore();
   const { currentLatitude, currentLongitude } = useAddressStore();
@@ -242,6 +243,22 @@ const SelectArtisanPage = () => {
     }
     router.push(`/user/book-service/verifyDetails?${params.toString()}`);
   };
+
+  // Auto-select krafter when arriving from a specific profile (e.g. home page "Book" button)
+  const [autoSelected, setAutoSelected] = useState(false);
+  useEffect(() => {
+    if (!preselectedArtisanId || autoSelected || !fetchDone) return;
+    // If the recommended list includes this artisan, select them automatically
+    const match = artisans.find((a) => a.id === preselectedArtisanId);
+    if (match) {
+      setAutoSelected(true);
+      handleSelectArtisan(preselectedArtisanId);
+    } else if (artisans.length > 0 || !preselectedArtisanId) {
+      // Artisan not in recommendation list — let user pick manually
+      setAutoSelected(true);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preselectedArtisanId, fetchDone, artisans]);
 
   const mappedArtisans: Application[] = artisans.map((artisan) => ({
     id: artisan.id.toString(),

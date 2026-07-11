@@ -126,7 +126,7 @@ export function AddressAutocompleteInput({
           <label className="text-[13px] font-mabry text-gray-600 mb-1 block">
           {label}
         </label>
-        <p className="text-[7px] font-poppins text-brand-orange -mt-2 mb-1">Only availble for  germany</p>
+        
         </div>
       )}
       <div className="relative">
@@ -145,6 +145,9 @@ export function AddressAutocompleteInput({
           </div>
         )}
       </div>
+        {value.trim().length > 0 && ( 
+          <p className="text-[8.5px] font-poppins text-brand-orange mt-1 ml-1">Only availble for germany</p>
+        )}
 
       {open && suggestions.length > 0 && (
         <ul className="absolute z-50 w-full bg-white border border-[#EAECF0] rounded-xl shadow-xl max-h-56 overflow-y-auto mt-1 py-1">

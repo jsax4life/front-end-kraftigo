@@ -87,7 +87,7 @@ export default function TaskDetailModal({
       onClick={onClose}
     >
       <div
-        className="relative bg-white rounded-t-xl w-full max-w-md mx-auto max-h-[92vh] overflow-y-auto pb-10"
+        className="relative bg-white rounded-t-xl w-full max-w-md mx-auto max-h-[calc(100vh-80px)] overflow-y-auto pb-20"
         onClick={(e) => e.stopPropagation()}
       >
         {/* ── Header ── */}

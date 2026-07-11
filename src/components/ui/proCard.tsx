@@ -46,8 +46,8 @@ const ProCard = ({
         <div className="flex-1">
           <div className="flex items-start justify-between mb-2">
             <div className="space-y-1">
-              <div className="flex flex-row items-center gap-1.5 min-w-0 overflow-hidden">
-                <h3 className="text-[15px] sm:text-[16px] font-poppins font-bold whitespace-nowrap shrink-0">
+              <div className="flex flex-row items-center gap-1 min-w-0 overflow-hidden">
+                <h3 className="text-[14px] sm:text-[16px] font-poppins font-bold whitespace-nowrap shrink-0">
                   {name}
                 </h3>
                 {badge && (
@@ -55,16 +55,18 @@ const ProCard = ({
                     {badge}
                   </span>
                 )}
-                {distance != null && distance !== "" && (
+                <div className="-ml-2 -mt-0.5">
+                  {distance != null && distance !== "" && (
                   <DistanceBadge
                     size="xs"
                     label={
                       typeof distance === "number"
-                        ? `${distance} km away`
+                        ? `${distance}miles away`
                         : String(distance)
                     }
                   />
                 )}
+                </div>
               </div>
               <div className="flex items-center mt-1">
                 <span className="text-[14px] text-gray-600 font-poppins">
