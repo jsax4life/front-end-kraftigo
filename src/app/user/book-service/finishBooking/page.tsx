@@ -355,7 +355,7 @@ const Page = () => {
     <div className="min-h-screen bg-white pb-8">
       {/* Header */}
       <div className="bg-[#FFF0F0] pb-4">
-        <div className="max-w-4xl mx-auto px-4 sm:px-8 lg:px-8 py-6 flex items-center justify-between">
+        <div className="max-w-4xl mx-auto px-4 sm:px-0 py-6 flex items-center justify-between">
           <div className="flex items-center gap-1 sm:gap-2">
             <span className="w-9 h-9 bg-brand-orange rounded-full flex items-center justify-center">
               <Check size={20} className="text-white" />
@@ -380,7 +380,7 @@ const Page = () => {
             Back
           </button>
         </div>
-        <h2 className="text-[18px] sm:text-[20px] font-poppins font-semibold px-4 sm:px-8 lg:px-8 max-w-4xl mx-auto">
+        <h2 className="text-[18px] sm:text-[20px] font-poppins font-semibold px-4 sm:px-0 max-w-4xl mx-auto">
           {isPublic
             ? "Post Your Task"
             : hasPaymentMethods()
@@ -390,7 +390,7 @@ const Page = () => {
       </div>
 
       {/* Service Info */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div className="max-w-4xl mx-auto px-4 sm:px-0 py-4">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-2">
@@ -447,7 +447,7 @@ const Page = () => {
 
 
       {/* Price Breakdown */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 border-t border-[#0000001A]">
+      <div className="max-w-4xl mx-auto px-4 sm:px-0 py-4 border-t border-[#0000001A]">
         <h3 className="text-[18px] sm:text-[20px] font-poppins font-semibold mb-4">
           Price Breakdown
         </h3>
@@ -505,7 +505,7 @@ const Page = () => {
       </div>
 
       {/* Promo Code */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 -mt-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-0 py-8 -mt-8">
         <div className="flex items-center gap-1 relative">
           <Input
             placeholder="Promo Code"
@@ -519,7 +519,7 @@ const Page = () => {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 border-t border-[#0000001A]">
+      <div className="max-w-4xl mx-auto px-4 sm:px-0 py-6 border-t border-[#0000001A]">
         <h3 className="text-[18px] sm:text-[20px] font-poppins font-semibold mb-4">
           Payment Options
         </h3>
@@ -658,7 +658,7 @@ const Page = () => {
       </div>
 
       {/* Terms and Confirm Button */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 border-t border-[#0000001A] mt-3">
+      <div className="max-w-4xl mx-auto px-4 sm:px-0 py-6 border-t border-[#0000001A] mt-3">
         {isPublic ? (
           <p className="text-[11px] sm:text-[12px] font-poppins text-gray-600 text-center mb-4">
             By clicking &apos;Post Public Task&apos;, you agree to Kraftigos

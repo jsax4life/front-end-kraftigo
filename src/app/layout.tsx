@@ -6,6 +6,7 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import "./globals.css";
 import AuthPromptModal from "@/components/shared/AuthPromptModal";
 import DomainEventsListener from "@/components/shared/DomainEventsListener";
+import GoogleTranslateInit from "@/components/shared/GoogleTranslateInit";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -99,6 +100,7 @@ export default function RootLayout({
             />
             <AuthPromptModal />
             <DomainEventsListener />
+            <GoogleTranslateInit />
             <main className="w-full min-h-screen bg-white">{children}</main>
           </GoogleOAuthProvider>
         ) : (
@@ -117,6 +119,7 @@ export default function RootLayout({
             />
             <AuthPromptModal />
             <DomainEventsListener />
+            <GoogleTranslateInit />
             <main className="w-full min-h-screen bg-white">{children}</main>
           </>
         )}

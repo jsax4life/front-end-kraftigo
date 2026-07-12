@@ -68,3 +68,43 @@ body {
     transform: translateY(0);
   }
 }
+
+/* ── Google Translate — hide ALL default UI ── */
+
+/* Hide every Google Translate element — banners, tooltips, iframes, gadget */
+.goog-te-banner-frame,
+.goog-te-balloon-frame,
+.goog-te-balloon-frame *,
+.goog-te-ftab-float,
+.goog-te-menu-value,
+.goog-te-gadget,
+.goog-te-gadget *,
+.goog-te-gadget-simple,
+.goog-te-combo,
+.goog-logo-link,
+.goog-te-spinner,
+#goog-gt-tt,
+#goog-gt-,
+.goog-tooltip,
+.goog-tooltip:hover,
+.goog-tooltip-content,
+.skiptranslate,
+iframe.skiptranslate,
+iframe[name="google_translate_frame"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Prevent the body top shift Google Translate injects */
+body {
+  top: 0 !important;
+  position: static !important;
+}
+
+/* Catch the hidden mount-point container we added */
+#google_translate_element,
+#google_translate_element * {
+  display: none !important;
+}

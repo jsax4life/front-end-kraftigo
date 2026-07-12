@@ -124,7 +124,7 @@ const Page = () => {
     <div className="min-h-screen bg-white pb-8">
       {/* Header */}
       <div className="bg-[#FFF0F0]">
-        <div className="max-w-4xl mx-auto px-4 sm:px-8 lg:px-8 py-6 flex items-center justify-between">
+        <div className="max-w-4xl mx-auto px-4 sm:px-0 py-6 flex items-center justify-between">
           <div className="flex items-center gap-1 sm:gap-2">
             <span className="w-9 h-9 bg-brand-orange rounded-full flex items-center justify-center cursor-pointer hover:bg-orange-600 transition-colors">
               <Check size={20} className="text-white" />
@@ -151,7 +151,7 @@ const Page = () => {
         </div>
 
         {/* Service Info */}
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-4">
+        <div className="max-w-4xl mx-auto px-4 sm:px-0 pb-4">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
               <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-2">

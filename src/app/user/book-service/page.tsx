@@ -17,7 +17,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { useAuthPromptStore } from "@/store/useAuthPromptStore";
 import { useBookingsStore } from "@/store/useBookingsStore";
 import toast from "react-hot-toast";
-import { formatLocalDateYmd, isDateTimeTooSoon, isSameLocalDay, minScheduleTimeInputForToday } from "@/utils/date";
+import { isDateTimeTooSoon, isSameLocalDay, minScheduleTimeInputForToday } from "@/utils/date";
 import {
   appendFlexibleScheduleToUrlParams,
   buildFlexibleSchedulePayload,
@@ -32,7 +32,6 @@ const BookServicePage = () => {
   const categoryName = searchParams.get("category") || "Service";
   const preselectedArtisanId = searchParams.get("artisanId") || "";
   const [showAddressModal, setShowAddressModal] = useState(false);
-  const [selectedAddress, setSelectedAddress] = useState("home");
 
   const { isAuthenticated } = useAuthStore();
   const { openPrompt } = useAuthPromptStore();
@@ -219,8 +218,8 @@ const BookServicePage = () => {
   return (
     <main className="min-h-screen bg-white">
       {/* Header */}
-      <div className="bg-[#FFF0F0] rounded-bl-xl rounded-br-xl">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-7 flex items-center justify-between">
+      <div className="bg-[#FF66001A] rounded-bl-xl rounded-br-xl">
+        <div className="max-w-4xl mx-auto px-4 sm:px-0 py-7 flex items-center justify-between">
           <div className="flex items-center gap-1 sm:gap-2">
             <span
               onClick={() => router.back()}
@@ -257,17 +256,20 @@ const BookServicePage = () => {
         </div>
 
         {/* Service Header */}
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-3 mb-4">
+        <div className="max-w-4xl mx-auto px-4 sm:px-0 pb-3 mb-4">
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-1">
                 {categoryName}
               </h1>
-              <p className="text-[14px] sm:text-[15px] text-gray-600 font-poppins">
-                Select a location
+              <p className="text-[14px] sm:text-[15px] text-gray-600 font-poppins truncate max-w-[280px] sm:max-w-sm">
+                {currentAddress || "Select a location"}
               </p>
               <p className="text-[14px] sm:text-[15px] text-gray-600 font-poppins">
-                Select a date
+                {formData.selectedDate 
+                  ? `${formatDate(formData.selectedDate)}${formData.selectedTime ? ` at ${formData.selectedTime}` : ''}`
+                  : "Select a date"
+                }
               </p>
             </div>
             <Image
@@ -281,7 +283,7 @@ const BookServicePage = () => {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
+      <div className="max-w-4xl mx-auto px-4 sm:px-0 space-y-4">
         {/* Enter Your Address */}
         <div className="p-4 sm:p-5 border-b border-[#0000001A]">
           <h2 className="text-[20px] sm:text-[22px] font-poppins font-medium mb-3">

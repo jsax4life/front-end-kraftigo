@@ -59,15 +59,15 @@ const KrafterDetailModal = ({ krafter, onClose, onSelect }: KrafterDetailModalPr
       {/* Backdrop */}
       <div className="fixed inset-0 z-50 bg-black/50" onClick={onClose} />
 
-      {/* Bottom Sheet */}
-      <div className="fixed bottom-0 left-0 right-0 mx-auto z-50 bg-white max-h-[100vh] w-full max-w-4xl flex flex-col shadow-2xl md:rounded-t-[32px]">
+      {/* Modal Container */}
+      <div className="fixed bottom-0 md:bottom-auto md:top-1/2 left-0 md:left-1/2 right-0 md:right-auto md:-translate-x-1/2 md:-translate-y-1/2 mx-auto z-50 bg-white max-h-[100vh] md:h-[90vh] md:max-h-[90vh] w-full max-w-4xl md:max-w-[600px] flex flex-col shadow-2xl  md:rounded-[32px] overflow-hidden">
         {/* Drag Handle */}
-        <div className="flex justify-center pt-3 pb-1 shrink-0">
+        <div className="flex justify-center pt-3 pb-1 shrink-0 md:hidden">
           <div className="w-10 h-1 bg-gray-200 rounded-full" />
         </div>
 
         {/* Close button */}
-        <div className="flex justify-end px-4 pt-1 shrink-0">
+        <div className="flex justify-end px-6 pt-4 shrink-0">
           <button
             onClick={onClose}
             className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
@@ -220,7 +220,7 @@ const KrafterDetailModal = ({ krafter, onClose, onSelect }: KrafterDetailModalPr
             </div>
             <button
               onClick={() => { onSelect(krafter.id); onClose(); }}
-              className="w-[200px] h-12 bg-brand-orange text-white text-[15px] font-poppins font-semibold rounded-lg hover:bg-orange-600 transition-colors"
+              className="w-[200px] h-12 bg-brand-orange text-white text-[15px] font-poppins font-semibold rounded-lg hover:bg-orange-600 transition-colors cursor-pointer"
             >
               Book Krafter
             </button>
