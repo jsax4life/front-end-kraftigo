@@ -237,7 +237,7 @@ const Page = () => {
           image: normSrc(p.profilePhotoUrl) ?? "/images/pro.jpg",
           badge: p.badges[0] ? p.badges[0].replace(/_/g, " ") : undefined,
         }))
-      : STATIC_PROS;
+      : isAuthenticated ? [] : STATIC_PROS;
 
   // ── Handlers ────────────────────────────────────────────────────────────────
   const handleProtectedAction = (path: string) => {
@@ -525,9 +525,24 @@ const Page = () => {
             </div>
           </div>
           {isAuthenticated && (
-            <div className="flex gap-6 pt-3">
-              <Image src="/annc.svg" alt="banner1" width={400} height={186} />
-              <Image src="/annc2.svg" alt="banner2" width={450} height={186} />
+            <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0 pt-3">
+              <div className="flex gap-6 w-max">
+                <Image 
+                  src="/annc.svg" 
+                  alt="banner1" 
+                  width={400} 
+                  height={186} 
+                  className="shrink-0 cursor-pointer transition-transform hover:scale-[1.02]" 
+                  onClick={() => router.push("/tasker/createacc")}
+                />
+                <Image 
+                  src="/annc2.svg" 
+                  alt="banner2" 
+                  width={450} 
+                  height={186} 
+                  className="shrink-0" 
+                />
+              </div>
             </div>
           )}
 
@@ -592,7 +607,7 @@ const Page = () => {
           </div>
 
           {/* Pro's Of The Week */}
-          {(isLoading && !hasFetched) || displayPros.length > 0 ? (
+          {(isLoading && !hasFetched) || (isAuthenticated ? displayPros.length > 1 : displayPros.length > 0) ? (
             <div className="mb-8">
               <h2 className="text-[20px] sm:text-[20px] font-poppins font-semibold mb-4">
                 Krafter&apos;s near you
