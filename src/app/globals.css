@@ -108,3 +108,14 @@ body {
 #google_translate_element * {
   display: none !important;
 }
+
+/* Keep Stripe card fields visible (iframes must not inherit translate/hide rules) */
+.StripeElement,
+.StripeElement iframe,
+.__PrivateStripeElement,
+.__PrivateStripeElement iframe {
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+  pointer-events: auto !important;
+}

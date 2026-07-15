@@ -2,10 +2,10 @@
 
 import { ArrowLeft, X, ChevronRight, Lock } from "lucide-react";
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Elements,
-  PaymentElement,
+  CardElement,
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
@@ -16,6 +16,16 @@ import stripePromise from "@/lib/stripe";
 interface PaymentFlowModalProps {
   onClose: () => void;
 }
+
+const CARD_ELEMENT_STYLE = {
+  base: {
+    fontSize: "16px",
+    color: "#111827",
+    fontFamily: "'Poppins', sans-serif",
+    "::placeholder": { color: "#9ca3af" },
+  },
+  invalid: { color: "#EF4444" },
+} as const;
 
 // ─── Inner form — must be a child of <Elements> ────────────────────────────────
 interface StripeCardFormProps {
@@ -33,9 +43,20 @@ const StripeCardForm = ({
   const elements = useElements();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [nameOnCard, setNameOnCard] = useState("");
+  const [elementReady, setElementReady] = useState(false);
+
+  const handleCardReady = useCallback(() => {
+    setElementReady(true);
+  }, []);
 
   const handleDone = async () => {
     if (!stripe || !elements) return;
+
+    const card = elements.getElement(CardElement);
+    if (!card) {
+      toast.error("Card field is not ready yet. Please wait a moment.");
+      return;
+    }
 
     if (!nameOnCard.trim()) {
       toast.error("Please enter the name on card");
@@ -44,26 +65,19 @@ const StripeCardForm = ({
 
     setIsSubmitting(true);
     try {
-      const { error: submitError } = await elements.submit();
-      if (submitError) {
-        toast.error(submitError.message ?? "Check card details");
-        return;
-      }
-
       const returnUrl =
         typeof window !== "undefined" ? window.location.href : "";
 
-      const { error, setupIntent } = await stripe.confirmSetup({
-        elements,
+      const { error, setupIntent } = await stripe.confirmCardSetup(
         clientSecret,
-        confirmParams: {
-          return_url: returnUrl,
-          payment_method_data: {
+        {
+          payment_method: {
+            card,
             billing_details: { name: nameOnCard.trim() },
           },
+          return_url: returnUrl,
         },
-        redirect: "if_required",
-      });
+      );
 
       if (error) {
         toast.error(error.message ?? "Card setup failed");
@@ -85,14 +99,17 @@ const StripeCardForm = ({
     }
   };
 
+  const saveDisabled = !stripe || !elementReady || isSubmitting;
+
   return (
-    <div className="relative bg-white w-full max-w-4xl h-[90vh] rounded-t-2xl sm:rounded-2xl p-4 sm:p-6 pb-8 flex flex-col">
+    <div className="relative bg-white w-full max-w-4xl h-[90vh] rounded-t-2xl sm:rounded-2xl p-4 sm:p-6 pb-8 flex flex-col notranslate">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-[18px] sm:text-[20px] font-poppins font-bold">
           Add Payment Method
         </h3>
         <button
+          type="button"
           onClick={onCancel}
           className="text-gray-400 hover:text-gray-600 p-2 -mr-2"
         >
@@ -101,8 +118,13 @@ const StripeCardForm = ({
       </div>
 
       {/* Form */}
-      <div className="flex-1 overflow-y-auto no-scrollbar space-y-6">
-        {/* Name on card (Kept custom to match your UI) */}
+      <div className="flex-1 overflow-y-auto space-y-6">
+        {!stripe && (
+          <p className="text-[12px] font-poppins text-gray-500">
+            Connecting to Stripe…
+          </p>
+        )}
+
         <div>
           <label className="block text-[14px] font-poppins font-bold text-gray-900 mb-2">
             Name on Card
@@ -116,14 +138,20 @@ const StripeCardForm = ({
           />
         </div>
 
-        {/* 3. USE PaymentElement instead of CardElement */}
         <div>
           <label className="block text-[14px] font-poppins font-bold text-gray-900 mb-2">
             Card Details
           </label>
-          {/* Note: Removed the custom border from this div, as the appearance API handles it now */}
-          <div className="w-full">
-            <PaymentElement options={{ layout: "tabs" }} />
+          {!elementReady && stripe && (
+            <p className="text-[12px] font-poppins text-gray-500 mb-2">
+              Loading card field…
+            </p>
+          )}
+          <div className="min-h-[52px] rounded-xl border border-gray-200 bg-[#FAFAFA] px-3 py-4 focus-within:border-brand-orange transition-colors">
+            <CardElement
+              options={{ style: CARD_ELEMENT_STYLE }}
+              onReady={handleCardReady}
+            />
           </div>
           <p className="text-[12px] font-poppins text-gray-400 mt-4 flex items-center gap-1">
             <Lock size={12} />
@@ -135,9 +163,10 @@ const StripeCardForm = ({
       {/* Done Button */}
       <div className="mt-4 pt-2">
         <button
+          type="button"
           className="w-full bg-brand-orange hover:bg-orange-600 text-white font-poppins text-[16px] py-3.5 rounded-xl transition-colors disabled:opacity-60"
           onClick={handleDone}
-          disabled={!stripe || isSubmitting}
+          disabled={saveDisabled}
         >
           {isSubmitting ? "Saving card…" : "Save Card"}
         </button>
@@ -164,6 +193,17 @@ const PaymentFlowModal = ({ onClose }: PaymentFlowModalProps) => {
   const [showAddPaypal, setShowAddPaypal] = useState(false);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [isOpeningCard, setIsOpeningCard] = useState(false);
+  const [stripeReady, setStripeReady] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    stripePromise.then((stripe) => {
+      if (!cancelled) setStripeReady(stripe !== null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Load saved methods on mount
   useEffect(() => {
@@ -234,31 +274,14 @@ const PaymentFlowModal = ({ onClose }: PaymentFlowModalProps) => {
     );
   };
 
-  // 4. STRIPE APPEARANCE CONFIGURATION (Matches your Tailwind UI)
-  const stripeOptions = {
-    clientSecret: clientSecret || "",
-    appearance: {
-      theme: "stripe" as const,
-      variables: {
-        fontFamily: "'Poppins', sans-serif",
-        colorPrimary: "#f97316", // brand-orange
-        colorBackground: "#FAFAFA", // matches your bg-[#FAFAFA]
-        colorText: "#111827",
-        colorDanger: "#EF4444",
-        borderRadius: "12px", // rounded-xl
-      },
-      rules: {
-        ".Input": {
-          border: "1px solid #E5E7EB", // border-gray-200
-          padding: "16px", // p-4
-          boxShadow: "none",
-        },
-        ".Input:focus": {
-          border: "1px solid #f97316", // focus-within:border-brand-orange
-        },
-      },
-    },
-  };
+  const stripeOptions = clientSecret
+    ? { clientSecret }
+    : undefined;
+
+  const stripeConfigError =
+    stripeReady === false
+      ? "Stripe is not configured. Add NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY to your environment."
+      : null;
 
   return (
     <div className="fixed inset-0 z-100 bg-black/50 flex items-end sm:items-center justify-center animate-in fade-in duration-200">
@@ -475,21 +498,30 @@ const PaymentFlowModal = ({ onClose }: PaymentFlowModalProps) => {
               setClientSecret(null);
             }}
           />
-          {/* 5. APPLY STRIPE OPTIONS HERE */}
-          <Elements
-            key={clientSecret}
-            stripe={stripePromise}
-            options={stripeOptions}
-          >
-            <StripeCardForm
-              clientSecret={clientSecret}
-              onSuccess={handleCardSuccess}
-              onCancel={() => {
-                setShowStripeCard(false);
-                setClientSecret(null);
-              }}
-            />
-          </Elements>
+          <div className="relative w-full max-w-4xl pointer-events-auto animate-in slide-in-from-bottom-full duration-300 sm:slide-in-from-bottom-0">
+            {stripeConfigError ? (
+              <div className="relative bg-white w-full max-w-4xl rounded-t-2xl sm:rounded-2xl p-6">
+                <p className="text-[14px] font-poppins text-red-600">
+                  {stripeConfigError}
+                </p>
+              </div>
+            ) : (
+              <Elements
+                key={clientSecret}
+                stripe={stripePromise}
+                options={stripeOptions}
+              >
+                <StripeCardForm
+                  clientSecret={clientSecret}
+                  onSuccess={handleCardSuccess}
+                  onCancel={() => {
+                    setShowStripeCard(false);
+                    setClientSecret(null);
+                  }}
+                />
+              </Elements>
+            )}
+          </div>
         </div>
       )}
     </div>
