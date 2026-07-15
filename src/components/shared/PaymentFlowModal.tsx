@@ -80,7 +80,14 @@ const StripeCardForm = ({
       );
 
       if (error) {
-        toast.error(error.message ?? "Card setup failed");
+        const isMissingIntent =
+          error.code === "resource_missing" ||
+          (error.message ?? "").toLowerCase().includes("no such setupintent");
+        toast.error(
+          isMissingIntent
+            ? "Stripe keys don’t match. Your app’s publishable key must be from the same Stripe account (and test/live mode) as the API’s secret key."
+            : (error.message ?? "Card setup failed"),
+        );
         return;
       }
 
@@ -274,13 +281,13 @@ const PaymentFlowModal = ({ onClose }: PaymentFlowModalProps) => {
     );
   };
 
-  const stripeOptions = clientSecret
-    ? { clientSecret }
-    : undefined;
+  // CardElement + confirmCardSetup only needs the publishable key here; the
+  // SetupIntent clientSecret is used at confirm time (same account as backend).
+  const stripeOptions = undefined;
 
   const stripeConfigError =
     stripeReady === false
-      ? "Stripe is not configured. Add NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY to your environment."
+      ? "Stripe is not configured. Add NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY to your environment (same Stripe account + mode as the API secret key)."
       : null;
 
   return (

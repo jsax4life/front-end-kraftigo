@@ -187,6 +187,11 @@ export const getPaymentById = async (id: string): Promise<Payment> => {
   return normalizePaymentResponse(response.data)
 }
 
+function isSetupIntentClientSecret(value: string): boolean {
+  // Stripe SetupIntent secrets look like `seti_…_secret_…` (not bare `seti_…` ids).
+  return value.startsWith('seti_') && value.includes('_secret_')
+}
+
 /** POST /api/payments/cards — returns Stripe SetupIntent `clientSecret` (optional `setupIntentId`). */
 export const saveCard = async (payload?: SaveCardPayload): Promise<SetupIntentResponse> => {
   const headers: Record<string, string> = {}
@@ -195,13 +200,25 @@ export const saveCard = async (payload?: SaveCardPayload): Promise<SetupIntentRe
   }
 
   const response = await api.post('/api/payments/cards', {}, { headers })
-  const data = response.data ?? {}
+  const raw = response.data ?? {}
+  const data =
+    raw && typeof raw === 'object' && 'payment' in raw && raw.payment && typeof raw.payment === 'object'
+      ? (raw.payment as Record<string, unknown>)
+      : raw && typeof raw === 'object' && 'data' in raw && raw.data && typeof raw.data === 'object'
+        ? (raw.data as Record<string, unknown>)
+        : (raw as Record<string, unknown>)
+
   const clientSecret =
     (typeof data.clientSecret === 'string' && data.clientSecret) ||
     (typeof data.client_secret === 'string' && data.client_secret) ||
     ''
   if (!clientSecret) {
     throw new Error('Invalid SetupIntent response: missing clientSecret')
+  }
+  if (!isSetupIntentClientSecret(clientSecret)) {
+    throw new Error(
+      'Invalid SetupIntent client secret from server. Expected seti_…_secret_… — check backend Stripe keys match the frontend publishable key.',
+    )
   }
   const setupIntentId =
     (typeof data.setupIntentId === 'string' && data.setupIntentId) ||
