@@ -19,15 +19,11 @@ import {
 import { useAuthStore } from "@/store/useAuthStore";
 import { useProfileStore } from "@/store/useProfileStore";
 import { deleteAccount } from "@/lib/api/auth";
-import {
-  getVerificationWire,
-  shouldRedirectToDiditKyc,
-  shouldRouteToKrafterProfileOnboarding,
-} from "@/lib/api/verification";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { ProfileInfoSkeleton } from "@/components/shared/Skeletons";
 import DeleteAccountModal from "@/components/shared/DeleteAccountModal";
+import KrafterCtaBanner from "@/components/shared/KrafterCtaBanner";
 
 const SettingsItem = ({ icon: Icon, label, onClick, showBorder = true }: { icon: any, label: string, onClick: () => void, showBorder?: boolean }) => (
   <button 
@@ -51,52 +47,18 @@ const SectionHeader = ({ label }: { label: string }) => (
 const Page = () => {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { customerProfile, fetchCustomerProfile, isLoading, verificationStatus, fetchVerificationStatus } = useProfileStore();
+  const { customerProfile, fetchCustomerProfile, isLoading } = useProfileStore();
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
   useEffect(() => {
     if (!customerProfile) {
       fetchCustomerProfile();
     }
-    fetchVerificationStatus();
-  }, [customerProfile, fetchCustomerProfile, fetchVerificationStatus]);
+  }, [customerProfile, fetchCustomerProfile]);
 
   const displayName = user?.firstName + " " + user?.lastName || "User";
   const email = user?.email || "";
   const avatar = customerProfile?.profilePhotoUrl || user?.avatar;
-  const { verificationState, kycStatus } = getVerificationWire(verificationStatus);
-
-  // Treat user as an existing Krafter when internal docs are submitted (pending/approved) and KYC is approved.
-  const isKrafterEligible =
-    kycStatus === "APPROVED" &&
-    (verificationState === "PENDING" || verificationState === "APPROVED");
-
-  const taskerBannerTitle = isKrafterEligible
-    ? "GO TO KRAFTER DASHBOARD"
-    : "EARN MONEY BY COMPLETING KRAFTS";
-  const taskerButtonLabel = isKrafterEligible ? "Switch to Krafter" : "Become a Krafter";
-  
-  const handleTaskerAction = () => {
-    if (isKrafterEligible) {
-      // User is already a Krafter – switch back to Krafter screens.
-      try {
-        window.localStorage.removeItem("kraftigo_profile_mode");
-      } catch {
-        // ignore
-      }
-      router.push("/tasker/dashboard");
-      return;
-    }
-    if (shouldRedirectToDiditKyc(verificationStatus)) {
-      router.push("/krafter/kyc-welcome");
-      return;
-    }
-    if (shouldRouteToKrafterProfileOnboarding(verificationStatus)) {
-      router.push("/krafter/profile-completion");
-      return;
-    }
-    router.push("/krafter/verification");
-  };
 
   const handleDeleteAccount = async (payload: {
     password?: string;
@@ -148,34 +110,7 @@ const Page = () => {
                </div>
             </div>
 
-            <div 
-              className="flex flex-col justify-center items-start p-[16px] gap-[10px] w-full h-[151px] rounded-[12px] relative overflow-hidden cursor-pointer"
-              onClick={handleTaskerAction}
-              style={{
-                  background: "linear-gradient(84.38deg, #FF6600 0.35%, rgba(0, 0, 255, 0.2) 19.08%, rgba(255, 102, 0, 0.26) 64.6%, rgba(0, 0, 255, 0) 99.58%)"
-              }}
-            >
-               <div className="absolute inset-0 z-0">
-                   <Image src="/images/prof.jpg" alt="krafter" fill className="object-cover opacity-60 mix-blend-overlay" />
-               </div>
-               <div className="relative z-10 w-full flex flex-col justify-between h-full">
-                  <div className="flex flex-col items-start gap-[20px]">
-                      <div className="flex justify-center items-center px-[10px] py-[4px] bg-[#FF6600] rounded-[8px]">
-                        <span className="text-[10px] font-poppins text-white leading-[15px]">
-                          {isKrafterEligible ? "Switch to Krafter" : "Become a Krafter"}
-                        </span>
-                      </div>
-                      <h4 className="text-[20px] font-poppins font-bold uppercase text-[#FFFFE4] leading-[30px] w-[203px]">
-                         {taskerBannerTitle}
-                      </h4>
-                  </div>
-                  <div className="absolute right-0 bottom-0 text-white flex items-end justify-end h-full">
-                      <button className="flex justify-center items-center px-[14.7px] py-[11px] bg-white rounded-[10px]">
-                         <span className="text-[11.46px] font-poppins text-black truncate whitespace-nowrap">{taskerButtonLabel}</span>
-                      </button>
-                  </div>
-               </div>
-            </div>
+            <KrafterCtaBanner className="w-full h-[151px]" />
           </div>
         )}
 

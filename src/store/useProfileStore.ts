@@ -43,6 +43,8 @@ import {
   type KrafterGenericUploadResponse,
 } from '@/lib/api/krafter-profile-completion'
 
+let verificationSilentFetch: Promise<void> | null = null
+
 interface ProfileState {
   artisanProfile: ArtisanProfile | null
   customerProfile: CustomerProfile | null
@@ -62,6 +64,8 @@ interface ProfileState {
   // Verification Actions
   verificationStatus: VerificationMyStatus | null
   fetchVerificationStatus: () => Promise<void>
+  /** Same as fetchVerificationStatus but does not toggle global `isLoading` (safe for banners/background refresh). */
+  fetchVerificationStatusSilent: () => Promise<void>
   submitVerification: (formData: FormData) => Promise<void>
   submitArtisanProfileUrl: (payload: ArtisanProfileUrlSubmitPayload) => Promise<void>
 
@@ -227,6 +231,26 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
         error: error.response?.data?.message || 'Failed to fetch verification status',
         isLoading: false,
       })
+    }
+  },
+
+  fetchVerificationStatusSilent: async () => {
+    if (verificationSilentFetch) {
+      await verificationSilentFetch
+      return
+    }
+    verificationSilentFetch = (async () => {
+      try {
+        const data = await getVerificationMyStatus()
+        set({ verificationStatus: data })
+      } catch {
+        /* banners / home can ignore — CTA falls back to "Become a Krafter" */
+      }
+    })()
+    try {
+      await verificationSilentFetch
+    } finally {
+      verificationSilentFetch = null
     }
   },
 

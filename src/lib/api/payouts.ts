@@ -8,6 +8,14 @@ export function emitWalletSummaryInvalidate(): void {
   window.dispatchEvent(new CustomEvent(WALLET_SUMMARY_INVALIDATE_EVENT));
 }
 
+/** Emitted on `ARTISAN_STRIPE_CONNECTED` / `ARTISAN_STRIPE_ONBOARDING_COMPLETED`; Payouts screens re-fetch `account-status`. */
+export const PAYOUT_ACCOUNT_STATUS_INVALIDATE_EVENT = "kraftigo:payout-account-status-invalidate";
+
+export function emitPayoutAccountStatusInvalidate(): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(PAYOUT_ACCOUNT_STATUS_INVALIDATE_EVENT));
+}
+
 export type WalletDailyEarning = {
   date: string;
   dayLabel: string;
@@ -160,7 +168,115 @@ export async function getWalletSummary(): Promise<ArtisanWalletSummary> {
   return normalizeWalletSummary(data);
 }
 
-/** POST /api/payouts/withdraw — JWT, ARTISAN; no body. */
-export async function postPayoutWithdraw(): Promise<void> {
-  await api.post("/api/payouts/withdraw");
+// ─── Stripe Connect payout account ─────────────────────────────────────────
+
+/** `GET /api/payouts/account-status` → `accountStatus`. */
+export type PayoutAccountStatusValue = "PENDING" | "RESTRICTED" | "ACTIVE" | "DISABLED";
+
+/** `GET /api/payouts/account-status` — JWT, ARTISAN. */
+export type PayoutAccountStatus = {
+  connected: boolean;
+  stripeAccountId: string | null;
+  chargesEnabled: boolean;
+  payoutsEnabled: boolean;
+  detailsSubmitted: boolean;
+  onboardingCompleted: boolean;
+  requirementsDue: string[];
+  accountStatus: PayoutAccountStatusValue;
+  canWithdraw: boolean;
+  availableForWithdrawal: number;
+  currency: string;
+  lastSyncedAt: string | null;
+};
+
+function normalizePayoutAccountStatus(data: unknown): PayoutAccountStatus {
+  const raw = data && typeof data === "object" ? (data as Record<string, unknown>) : {};
+  const requirementsDueRaw = raw.requirementsDue;
+  const accountStatusRaw = typeof raw.accountStatus === "string" ? raw.accountStatus : "PENDING";
+  return {
+    connected: raw.connected === true,
+    stripeAccountId: pickStr(raw, "stripeAccountId", "stripe_account_id"),
+    chargesEnabled: raw.chargesEnabled === true,
+    payoutsEnabled: raw.payoutsEnabled === true,
+    detailsSubmitted: raw.detailsSubmitted === true,
+    onboardingCompleted: raw.onboardingCompleted === true,
+    requirementsDue: Array.isArray(requirementsDueRaw)
+      ? requirementsDueRaw.filter((x): x is string => typeof x === "string")
+      : [],
+    accountStatus: (["PENDING", "RESTRICTED", "ACTIVE", "DISABLED"].includes(accountStatusRaw)
+      ? accountStatusRaw
+      : "PENDING") as PayoutAccountStatusValue,
+    canWithdraw: raw.canWithdraw === true,
+    availableForWithdrawal: pickNum(raw, "availableForWithdrawal", "available_for_withdrawal"),
+    currency: pickStr(raw, "currency", "currency_code") ?? "EUR",
+    lastSyncedAt: pickStr(raw, "lastSyncedAt", "last_synced_at"),
+  };
+}
+
+export async function getPayoutAccountStatus(): Promise<PayoutAccountStatus> {
+  const { data } = await api.get<unknown>("/api/payouts/account-status");
+  return normalizePayoutAccountStatus(data);
+}
+
+/** Shared response shape for `connect-account` and `refresh-onboarding`. */
+export type PayoutOnboardingLink = {
+  onboardingUrl: string;
+  stripeAccountId: string;
+  /** Unix seconds — Stripe Account Links are single-use and short-lived. */
+  expiresAt: number;
+  /** `true` the first time (new Connect account); `false` on subsequent calls for the same in-progress account. */
+  created: boolean;
+};
+
+function normalizePayoutOnboardingLink(data: unknown): PayoutOnboardingLink {
+  const raw = data && typeof data === "object" ? (data as Record<string, unknown>) : {};
+  return {
+    onboardingUrl: pickStr(raw, "onboardingUrl", "onboarding_url") ?? "",
+    stripeAccountId: pickStr(raw, "stripeAccountId", "stripe_account_id") ?? "",
+    expiresAt: pickNum(raw, "expiresAt", "expires_at"),
+    created: raw.created === true,
+  };
+}
+
+/** `POST /api/payouts/connect-account` — JWT, ARTISAN; no body. 400 if onboarding already complete. */
+export async function connectPayoutAccount(): Promise<PayoutOnboardingLink> {
+  const { data } = await api.post<unknown>("/api/payouts/connect-account");
+  return normalizePayoutOnboardingLink(data);
+}
+
+/** `POST /api/payouts/refresh-onboarding` — JWT, ARTISAN; no body. 400 if no Connect account exists yet. */
+export async function refreshPayoutOnboarding(): Promise<PayoutOnboardingLink> {
+  const { data } = await api.post<unknown>("/api/payouts/refresh-onboarding");
+  return normalizePayoutOnboardingLink(data);
+}
+
+/** `POST /api/payouts/withdraw` response — JWT, ARTISAN; no body. */
+export type PayoutWithdrawResult = {
+  transferId: string;
+  amount: number;
+  currency: string;
+  payoutIds: string[];
+};
+
+function normalizePayoutWithdrawResult(data: unknown): PayoutWithdrawResult {
+  const raw = data && typeof data === "object" ? (data as Record<string, unknown>) : {};
+  const payoutIdsRaw = raw.payoutIds;
+  return {
+    transferId: pickStr(raw, "transferId", "transfer_id") ?? "",
+    amount: pickNum(raw, "amount", "amount"),
+    currency: pickStr(raw, "currency", "currency_code") ?? "EUR",
+    payoutIds: Array.isArray(payoutIdsRaw)
+      ? payoutIdsRaw.filter((x): x is string => typeof x === "string")
+      : [],
+  };
+}
+
+/**
+ * `POST /api/payouts/withdraw` — JWT, ARTISAN; no body.
+ * Backend always re-verifies balance/hold/Stripe eligibility server-side — always attempt the
+ * call and handle the error rather than relying on cached `account-status` / `wallet-summary`.
+ */
+export async function postPayoutWithdraw(): Promise<PayoutWithdrawResult> {
+  const { data } = await api.post<unknown>("/api/payouts/withdraw");
+  return normalizePayoutWithdrawResult(data);
 }

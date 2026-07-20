@@ -444,6 +444,10 @@ export interface Conversation {
   isLocked: boolean;
   contextType?: string;
   contextId?: string;
+  /** Human-readable Kraft / booking label when API provides it. */
+  jobTitle?: string;
+  bookingTitle?: string;
+  contextLabel?: string;
   createdAt?: string;
   updatedAt?: string;
 }

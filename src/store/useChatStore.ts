@@ -12,6 +12,10 @@ import {
   unwrapMessageResponse,
 } from '@/lib/chatMessaging'
 import { normalizeConversationListItem } from '@/lib/conversationFromApi'
+import {
+  findActiveConversationForParticipant,
+  findConversationForBooking,
+} from '@/lib/chatInbox'
 import { useAuthStore } from '@/store/useAuthStore'
 
 function conversationListRoomId(conv: Pick<Conversation, 'id' | 'conversationId'>): string {
@@ -46,6 +50,7 @@ interface ChatState {
    */
   refreshAfterKrafterOrApplicantSelection: (opts?: {
     otherParticipantId?: string | null;
+    bookingId?: string | null;
   }) => Promise<void>
   fetchConversationById: (id: string) => Promise<void>
   fetchMessages: (id: string, cursor?: string) => Promise<void>
@@ -61,6 +66,16 @@ interface ChatState {
   clearError: () => void
   /** Mark a conversation room as having recent peer activity (socket / inbound message). */
   touchPeerActivityInRoom: (conversationRoomId: string) => void
+
+  /**
+   * Resolve the chat room for a booking (preferred for Kraft-scoped messaging).
+   */
+  ensureChatConversationForBooking: (params: {
+    bookingId: string;
+    otherUserId?: string;
+    displayName?: string;
+    displayAvatar?: string;
+  }) => Promise<Conversation | null>
 
   /**
    * Resolve a real conversation id for deep links (never use the other user’s id as `conversationId`).
@@ -114,12 +129,92 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   refreshAfterKrafterOrApplicantSelection: async (opts) => {
     await get().fetchConversations({ silent: true })
+    const bid = opts?.bookingId?.trim()
+    if (bid) {
+      const byBooking = findConversationForBooking(get().conversations, bid)
+      if (byBooking) {
+        get().setCurrentConversation(byBooking)
+        return
+      }
+      const resolved = await get().ensureChatConversationForBooking({
+        bookingId: bid,
+        otherUserId: opts?.otherParticipantId?.trim() || undefined,
+      })
+      if (resolved) {
+        get().setCurrentConversation(resolved)
+        return
+      }
+    }
     const pid = opts?.otherParticipantId?.trim()
     if (!pid) return
-    const match = get().conversations.find((c) => c.otherParticipant?.id === pid)
+    const match = findActiveConversationForParticipant(get().conversations, pid)
     if (match) {
       get().setCurrentConversation(match)
     }
+  },
+
+  ensureChatConversationForBooking: async ({
+    bookingId,
+    otherUserId,
+    displayName,
+    displayAvatar,
+  }) => {
+    const bid = bookingId.trim()
+    if (!bid) return null
+
+    const fallbackAvatar = displayAvatar?.trim() || '/images/pro.jpg'
+    const fallbacks = {
+      otherUserId: otherUserId?.trim() || '',
+      displayName: displayName?.trim() || 'User',
+      displayAvatar: fallbackAvatar,
+    }
+
+    const upsertList = (conv: Conversation) => {
+      const room = String(conv.id ?? conv.conversationId ?? '').trim()
+      if (!room) return
+      set((s) => ({
+        conversations: [
+          conv,
+          ...s.conversations.filter((c) => String(c.id ?? c.conversationId ?? '').trim() !== room),
+        ],
+      }))
+    }
+
+    await get().fetchConversations({ silent: true })
+    const existing = findConversationForBooking(get().conversations, bid)
+    if (existing) return existing
+
+    try {
+      const byBooking = await getConversationByBookingId(bid, { createIfMissing: true })
+      if (byBooking?.conversationId) {
+        const conv = await getOrHydrateConversationForRoom(byBooking.conversationId, fallbacks)
+        upsertList({ ...conv, contextType: conv.contextType ?? 'BOOKING', contextId: bid })
+        return conv
+      }
+    } catch {
+      /* by-booking unavailable or forbidden */
+    }
+
+    try {
+      const booking = await getBookingById(bid)
+      const room = readDmConversationIdFromBooking(booking)
+      if (room) {
+        const oid =
+          otherUserId?.trim() ||
+          String(booking.artisanId ?? booking.artisan_id ?? '').trim() ||
+          fallbacks.otherUserId
+        const conv = await getOrHydrateConversationForRoom(room, {
+          ...fallbacks,
+          otherUserId: oid || fallbacks.otherUserId,
+        })
+        upsertList({ ...conv, contextType: 'BOOKING', contextId: bid })
+        return conv
+      }
+    } catch {
+      /* booking fetch failed */
+    }
+
+    return null
   },
 
   ensureChatConversationForParticipant: async ({
@@ -149,29 +244,28 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }))
     }
 
-    await get().fetchConversations({ silent: true })
-    const hit = get().conversations.find((c) => c.otherParticipant?.id === oid)
-    if (hit) return hit
-
     const bid = bookingId?.trim()
     if (bid) {
-      try {
-        const byBooking = await getConversationByBookingId(bid, { createIfMissing: true })
-        if (byBooking?.conversationId) {
-          const conv = await getOrHydrateConversationForRoom(byBooking.conversationId, fallbacks)
-          upsertList(conv)
-          return conv
-        }
-      } catch {
-        /* by-booking unavailable or forbidden */
-      }
+      const byBooking = await get().ensureChatConversationForBooking({
+        bookingId: bid,
+        otherUserId: oid,
+        displayName: fallbacks.displayName,
+        displayAvatar: fallbacks.displayAvatar,
+      })
+      if (byBooking) return byBooking
+    }
 
+    await get().fetchConversations({ silent: true })
+    const hit = findActiveConversationForParticipant(get().conversations, oid)
+    if (hit) return hit
+
+    if (bid) {
       try {
         const booking = await getBookingById(bid)
         const room = readDmConversationIdFromBooking(booking)
         if (room) {
           const conv = await getOrHydrateConversationForRoom(room, fallbacks)
-          upsertList(conv)
+          upsertList({ ...conv, contextType: 'BOOKING', contextId: bid })
           return conv
         }
       } catch {

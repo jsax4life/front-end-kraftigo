@@ -7,6 +7,7 @@ import { useChatStore } from "@/store/useChatStore";
 import { chatSocketManager } from "@/lib/socket";
 import { Conversation, Message } from "@/types";
 import { useAuthStore } from "@/store/useAuthStore";
+import { getConversationContextLabel } from "@/lib/chatInbox";
 
 // Mock Screens
 import LocationPicker from "./mock-screens/LocationPicker";
@@ -17,11 +18,20 @@ interface ChatInterfaceProps {
   isOpen: boolean;
   onClose: () => void;
   conversation: Conversation | null;
+  /** When the same person has multiple Kraft threads, show a switch control */
+  canSwitchThread?: boolean;
+  onSwitchThread?: () => void;
 }
 
 type MockScreen = 'none' | 'location' | 'call' | 'profile';
 
-const ChatInterface = ({ isOpen, onClose, conversation }: ChatInterfaceProps) => {
+const ChatInterface = ({
+  isOpen,
+  onClose,
+  conversation,
+  canSwitchThread = false,
+  onSwitchThread,
+}: ChatInterfaceProps) => {
   const [messageContent, setMessageContent] = useState("");
   const [showAttachments, setShowAttachments] = useState(false);
   const [activeMockScreen, setActiveMockScreen] = useState<MockScreen>('none');
@@ -58,7 +68,7 @@ const ChatInterface = ({ isOpen, onClose, conversation }: ChatInterfaceProps) =>
   }, [displayMessages]);
 
   const handleSendMessage = async (content: string = messageContent) => {
-    if (isSendingMessage) return;
+    if (isSendingMessage || conversation?.isLocked) return;
     const finalContent = content || messageContent;
     if (!finalContent.trim() || !conversationId) return;
     
@@ -83,6 +93,7 @@ const ChatInterface = ({ isOpen, onClose, conversation }: ChatInterfaceProps) =>
   if (!isOpen || !conversation) return null;
 
   const otherParticipant = conversation.otherParticipant;
+  const contextLabel = getConversationContextLabel(conversation);
 
   return (
     <>
@@ -116,11 +127,25 @@ const ChatInterface = ({ isOpen, onClose, conversation }: ChatInterfaceProps) =>
           </button>
         </div>
 
-        {/* Task Status Banner */}
-        <div className="bg-[#FF6600] px-5 py-2.5 flex justify-center items-center shadow-sm">
+        {/* Kraft / booking context */}
+        <div
+          className={`px-5 py-2.5 flex flex-col items-center gap-1 shadow-sm ${
+            conversation.isLocked ? "bg-[#667085]" : "bg-[#FF6600]"
+          }`}
+        >
            <span className="text-[11px] font-poppins font-bold text-white text-center">
-              Task booked for Tuesday, 14 May at 10:00.
+              {contextLabel}
+              {conversation.isLocked ? " · read-only" : ""}
            </span>
+           {canSwitchThread && onSwitchThread ? (
+             <button
+               type="button"
+               onClick={onSwitchThread}
+               className="text-[10px] font-poppins font-semibold text-white/90 underline underline-offset-2 hover:text-white"
+             >
+               Switch Kraft
+             </button>
+           ) : null}
         </div>
 
         {/* Messages Area */}
@@ -168,6 +193,11 @@ const ChatInterface = ({ isOpen, onClose, conversation }: ChatInterfaceProps) =>
 
         {/* Input Area & Attachment Grid */}
         <div className="px-5 pt-4 bg-white border-t border-[#F2F4F7] pb-2">
+          {conversation.isLocked ? (
+            <p className="text-center text-[13px] font-poppins text-[#667085] py-4">
+              This Kraft is finished — this thread is read-only.
+            </p>
+          ) : (
           <div className="flex items-center gap-3 mb-2">
               <div className="flex-1 flex items-center bg-[#FAFAFA] border border-[#EEEEEE] rounded-[14px] px-4 shadow-sm focus-within:border-brand-orange transition-colors">
                   <button 
@@ -199,9 +229,10 @@ const ChatInterface = ({ isOpen, onClose, conversation }: ChatInterfaceProps) =>
                   </button>
               </div>
           </div>
+          )}
 
           {/* Attachment Grid (WhatsApp Style Collapsible) */}
-          {showAttachments && (
+          {showAttachments && !conversation.isLocked && (
               <div className="grid grid-cols-3 gap-4 pt-6 pb-2 animate-in slide-in-from-bottom duration-200">
                   <button className="flex flex-col items-center gap-2 group">
                       <div className="w-16 h-16 rounded-full border border-[#EEEEEE] flex items-center justify-center text-[#FF6600] active:scale-95 transition-transform shadow-sm bg-white">

@@ -9,10 +9,22 @@ import TaskerNav from "@/components/shared/taskerNav";
 import Header from "@/components/shared/Header";
 import ChatInterface from "@/components/support/ChatInterface";
 import ChatListPresenceDot from "@/components/shared/ChatListPresenceDot";
+import ChatThreadPickerSheet from "@/components/shared/ChatThreadPickerSheet";
 import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { getStoredAccessToken } from "@/lib/axios";
 import { chatSocketManager } from "@/lib/socket";
+import {
+  filterChatGroups,
+  getConversationContextLabel,
+  groupConversationsByParticipant,
+  type ParticipantChatGroup,
+} from "@/lib/chatInbox";
+import {
+  rememberPreferredChatThread,
+  resolvePreferredChatThread,
+} from "@/lib/chatThreadPreference";
+import type { Conversation } from "@/types";
 
 const ChatPageContent = () => {
   const searchParams = useSearchParams();
@@ -20,6 +32,7 @@ const ChatPageContent = () => {
   const { accessToken } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [deepLinkBusy, setDeepLinkBusy] = useState(false);
+  const [threadPickerGroup, setThreadPickerGroup] = useState<ParticipantChatGroup | null>(null);
 
   useEffect(() => {
     fetchConversations();
@@ -55,14 +68,24 @@ const ChatPageContent = () => {
 
     void (async () => {
       try {
-        const conv = await useChatStore.getState().ensureChatConversationForParticipant({
-          otherUserId: userId.trim(),
-          displayName: name.trim(),
-          displayAvatar: "/images/abt.jpg",
-          bookingId,
-        });
+        const store = useChatStore.getState();
+        const conv = bookingId?.trim()
+          ? await store.ensureChatConversationForBooking({
+              bookingId: bookingId.trim(),
+              otherUserId: userId.trim(),
+              displayName: name.trim(),
+              displayAvatar: "/images/abt.jpg",
+            })
+          : await store.ensureChatConversationForParticipant({
+              otherUserId: userId.trim(),
+              displayName: name.trim(),
+              displayAvatar: "/images/abt.jpg",
+            });
         if (cancelled) return;
         if (conv) {
+          if (conv.otherParticipant?.id) {
+            rememberPreferredChatThread(conv.otherParticipant.id, conv);
+          }
           setCurrentConversation(conv);
         } else {
           setCurrentConversation(null);
@@ -80,10 +103,33 @@ const ChatPageContent = () => {
     };
   }, [searchParams, setCurrentConversation]);
 
-  const filteredChats = conversations.filter((chat) =>
-    (chat.otherParticipant?.name?.toLowerCase() ?? "").includes(searchQuery.toLowerCase()) ||
-    (chat.lastMessage?.toLowerCase() ?? "").includes(searchQuery.toLowerCase()),
-  );
+  const chatGroups = groupConversationsByParticipant(conversations);
+  const filteredGroups = filterChatGroups(chatGroups, searchQuery);
+
+  const selectThread = (thread: Conversation, participantId: string) => {
+    rememberPreferredChatThread(participantId, thread);
+    setCurrentConversation(thread);
+  };
+
+  const openGroup = (group: ParticipantChatGroup) => {
+    const thread = resolvePreferredChatThread(group.participantId, group.threads);
+    selectThread(thread, group.participantId);
+  };
+
+  const openThread = (thread: Conversation) => {
+    setThreadPickerGroup(null);
+    const participantId =
+      threadPickerGroup?.participantId ?? thread.otherParticipant?.id ?? "";
+    if (participantId) {
+      selectThread(thread, participantId);
+    } else {
+      setCurrentConversation(thread);
+    }
+  };
+
+  const currentThreadGroup = currentConversation?.otherParticipant?.id
+    ? chatGroups.find((g) => g.participantId === currentConversation.otherParticipant?.id)
+    : undefined;
 
   return (
     <main className="min-h-screen bg-white pb-24">
@@ -93,7 +139,6 @@ const ChatPageContent = () => {
         {deepLinkBusy && (
           <p className="text-[13px] font-poppins text-[#667085] mb-4">Opening conversation…</p>
         )}
-        {/* Search */}
         <div className="relative mb-6">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#667085]" size={20} />
           <input
@@ -105,57 +150,79 @@ const ChatPageContent = () => {
           />
         </div>
 
-        {/* Chat List */}
         <div className="space-y-1">
-          {filteredChats.map((chat) => (
+          {filteredGroups.map((group) => {
+            const preview = group.previewThread;
+            const contextLabel = getConversationContextLabel(preview);
+            const multiThread = group.threads.length > 1;
+
+            return (
             <button
-              key={chat.conversationId || chat.id}
-              onClick={() => setCurrentConversation(chat)}
+              key={group.participantId}
+              onClick={() => openGroup(group)}
               className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-gray-50 transition-all border-b border-gray-50 last:border-0"
             >
               <div className="relative shrink-0 w-14 h-14">
                 <div className="w-14 h-14 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center relative">
-                  {chat.otherParticipant?.avatar ? (
-                    <Image src={chat.otherParticipant.avatar} alt={chat.otherParticipant.name} fill className="object-cover" />
+                  {group.participant.avatar ? (
+                    <Image src={group.participant.avatar} alt={group.participant.name} fill className="object-cover" />
                   ) : (
                     <UserIcon size={24} className="text-gray-400" />
                   )}
                 </div>
-                <ChatListPresenceDot chat={chat} />
+                <ChatListPresenceDot chat={preview} />
               </div>
               
               <div className="flex-1 min-w-0 text-left">
-                <div className="flex justify-between items-center mb-1">
+                <div className="flex justify-between items-center mb-1 gap-2">
                   <h3 className="text-[16px] font-gerat font-bold text-[#1D2939] truncate">
-                    {chat.otherParticipant?.name}
+                    {group.participant.name}
                   </h3>
-                  <span className="text-[12px] font-poppins text-[#667085]">
-                    {chat.lastMessageAt ? new Date(chat.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                  <span className="text-[12px] font-poppins text-[#667085] shrink-0">
+                    {preview.lastMessageAt ? new Date(preview.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                   </span>
                 </div>
+                <p className="text-[11px] font-poppins text-[#98A2B3] truncate mb-1">
+                  {multiThread
+                    ? `${group.threads.length} Kraft conversations · ${contextLabel}`
+                    : contextLabel}
+                </p>
                 <div className="flex justify-between items-center">
-                  <p className="text-[14px] font-poppins text-[#667085] truncate pr-4">
-                    {chat.lastMessage || "No messages yet"}
+                  <p className={`text-[14px] font-poppins truncate pr-4 ${group.totalUnread ? 'text-black font-semibold' : 'text-[#667085]'}`}>
+                    {preview.lastMessage || "No messages yet"}
                   </p>
-                  {(chat.unreadCount || 0) > 0 && (
+                  {group.totalUnread > 0 && (
                     <span className="bg-brand-orange text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full">
-                      {chat.unreadCount}
+                      {group.totalUnread}
                     </span>
                   )}
                 </div>
               </div>
-              <ChevronRight size={18} className="text-[#D0D5DD]" />
+              <ChevronRight size={18} className="text-[#D0D5DD] shrink-0" />
             </button>
-          ))}
+          )})}
         </div>
       </div>
 
-      {/* Detail Chat Interface */}
+      {threadPickerGroup && (
+        <ChatThreadPickerSheet
+          participantName={threadPickerGroup.participant.name}
+          threads={threadPickerGroup.threads}
+          onSelect={openThread}
+          onClose={() => setThreadPickerGroup(null)}
+          isSwitchMode={!!currentConversation}
+        />
+      )}
+
       {currentConversation && (
         <ChatInterface 
           isOpen={!!currentConversation} 
           onClose={() => setCurrentConversation(null)} 
           conversation={currentConversation}
+          canSwitchThread={(currentThreadGroup?.threads.length ?? 0) > 1}
+          onSwitchThread={() => {
+            if (currentThreadGroup) setThreadPickerGroup(currentThreadGroup);
+          }}
         />
       )}
 
@@ -166,9 +233,9 @@ const ChatPageContent = () => {
 
 const ChatPage = () => {
   return (
-    <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading chat...</div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading chat...</div>}>
       <ChatPageContent />
-    </React.Suspense>
+    </Suspense>
   );
 };
 

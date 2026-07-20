@@ -204,12 +204,57 @@ export function parseConversationPayload(
   const unreadRaw = bag.unreadCount ?? bag.unread_count;
   const unreadCount = typeof unreadRaw === "number" && Number.isFinite(unreadRaw) ? unreadRaw : 0;
 
+  const contextType = String(bag.contextType ?? bag.context_type ?? "").trim() || undefined;
+  const contextId = String(bag.contextId ?? bag.context_id ?? "").trim() || undefined;
+  const jobTitle =
+    (typeof bag.jobTitle === "string" && bag.jobTitle.trim()) ||
+    (typeof bag.job_title === "string" && bag.job_title.trim()) ||
+    undefined;
+  const bookingTitle =
+    (typeof bag.bookingTitle === "string" && bag.bookingTitle.trim()) ||
+    (typeof bag.booking_title === "string" && bag.booking_title.trim()) ||
+    undefined;
+  const contextLabel =
+    (typeof bag.contextLabel === "string" && bag.contextLabel.trim()) ||
+    (typeof bag.context_label === "string" && bag.context_label.trim()) ||
+    undefined;
+
+  const bookingNested =
+    bag.booking && typeof bag.booking === "object" && !Array.isArray(bag.booking)
+      ? asRecord(bag.booking)
+      : null;
+  const nestedJobTitle =
+    bookingNested &&
+    (typeof bookingNested.jobTitle === "string"
+      ? bookingNested.jobTitle.trim()
+      : typeof bookingNested.job_title === "string"
+        ? bookingNested.job_title.trim()
+        : "");
+
   return {
     id: roomId,
     conversationId: roomId,
     otherParticipant: other,
     isLocked: Boolean(bag.isLocked ?? bag.is_locked),
     unreadCount,
+    lastMessage:
+      (typeof bag.lastMessage === "string" && bag.lastMessage) ||
+      (typeof bag.last_message === "string" && bag.last_message) ||
+      undefined,
+    lastMessageAt: bag.lastMessageAt ?? bag.last_message_at ?? bag.updatedAt ?? bag.updated_at,
+    contextType,
+    contextId,
+    jobTitle: (jobTitle ?? nestedJobTitle) || undefined,
+    bookingTitle,
+    contextLabel,
+    createdAt:
+      (typeof bag.createdAt === "string" && bag.createdAt) ||
+      (typeof bag.created_at === "string" && bag.created_at) ||
+      undefined,
+    updatedAt:
+      (typeof bag.updatedAt === "string" && bag.updatedAt) ||
+      (typeof bag.updated_at === "string" && bag.updated_at) ||
+      undefined,
   };
 }
 

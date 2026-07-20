@@ -4,7 +4,8 @@ import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import UserNav from "@/components/shared/userNav";
-import { ArrowLeft, Search, MapPin, Tag, MessageCircle } from "lucide-react";
+import { ArrowLeft, Search, MapPin, Tag, MessageCircle, Trash2 } from "lucide-react";
+import toast from "react-hot-toast";
 import OffersModal from "@/components/shared/OffersModal";
 import CustomerKraftTaskDetailModal from "@/components/shared/CustomerKraftTaskDetailModal";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
@@ -131,9 +132,22 @@ const KraftsPage = () => {
   const [applicantCounts, setApplicantCounts] = useState<Record<string, number>>({});
   const [paymentModalBooking, setPaymentModalBooking] = useState<Booking | null>(null);
   const [taskDetailBooking, setTaskDetailBooking] = useState<Booking | null>(null);
+  const [discardConfirmBooking, setDiscardConfirmBooking] = useState<Booking | null>(null);
+  const [discardBusy, setDiscardBusy] = useState(false);
 
-  const { fetchMyBookings, refreshBookingAfterPayment, getUpcomingBookings, getCompletedBookings, bookings, isLoading, error, clearError, lastFetchStatus } =
-    useBookingsStore();
+  const {
+    fetchMyBookings,
+    refreshBookingAfterPayment,
+    deleteDraftBooking,
+    getUpcomingBookings,
+    getCompletedBookings,
+    bookings,
+    isLoading,
+    isSubmitting,
+    error,
+    clearError,
+    lastFetchStatus,
+  } = useBookingsStore();
 
   useEffect(() => {
     void fetchMyBookings();
@@ -279,6 +293,25 @@ const KraftsPage = () => {
 
   const waitingOpenTab = upcomingStatusFilter === "open_and_waiting";
 
+  const handleConfirmDiscardDraft = async () => {
+    if (!discardConfirmBooking) return;
+    setDiscardBusy(true);
+    try {
+      await deleteDraftBooking(discardConfirmBooking.id);
+      toast.success("Draft discarded");
+      setDiscardConfirmBooking(null);
+    } catch (err: unknown) {
+      const e = err as { userMessage?: string; response?: { data?: { message?: string } } };
+      toast.error(
+        e.userMessage ||
+          e.response?.data?.message ||
+          "Could not discard this draft. Try again or refresh the page.",
+      );
+    } finally {
+      setDiscardBusy(false);
+    }
+  };
+
   const renderUpcomingCards = (tasks: Booking[]) =>
     Object.entries(groupByMonth(tasks)).map(([month, monthTasks]) => (
       <div key={month}>
@@ -360,6 +393,7 @@ const KraftsPage = () => {
             const imageAlt = title;
 
             const needsPay = task.status === "PAYMENT_PENDING";
+            const isDraft = task.status === "RECOMMENDATION_PENDING";
 
             return (
               <div
@@ -418,6 +452,35 @@ const KraftsPage = () => {
                     >
                       Confirm payment
                     </button>
+                  </div>
+                )}
+                {isDraft && (
+                  <div
+                    className="px-4 pb-4 pt-0 border-t border-gray-100"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          router.push(
+                            `/user/book-service/select-artisan?${buildSelectArtisanQuery(task)}`,
+                          )
+                        }
+                        className="flex-1 py-2.5 bg-brand-orange text-white text-[13px] font-poppins font-semibold rounded-xl hover:bg-orange-600 transition-colors"
+                      >
+                        Continue
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDiscardConfirmBooking(task)}
+                        disabled={isSubmitting || discardBusy}
+                        aria-label="Discard draft"
+                        className="px-4 py-2.5 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                      >
+                        <Trash2 size={18} aria-hidden />
+                      </button>
+                    </div>
                   </div>
                 )}
                 {!canCustomerMessageKrafter(task) ? null : (
@@ -764,6 +827,37 @@ const KraftsPage = () => {
             })();
           }}
         />
+      )}
+
+      {discardConfirmBooking && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
+            <h3 className="text-[18px] font-poppins font-bold text-[#1D2939] mb-2">
+              Discard this draft?
+            </h3>
+            <p className="text-[14px] font-poppins text-[#667085] mb-6">
+              This cannot be undone. Any photos you added will be removed.
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setDiscardConfirmBooking(null)}
+                disabled={discardBusy}
+                className="flex-1 py-3 rounded-xl border border-gray-200 text-[14px] font-poppins font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Keep draft
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleConfirmDiscardDraft()}
+                disabled={discardBusy}
+                className="flex-1 py-3 rounded-xl bg-red-600 text-white text-[14px] font-poppins font-semibold hover:bg-red-700 disabled:opacity-50"
+              >
+                {discardBusy ? "Discarding…" : "Discard"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <UserNav />

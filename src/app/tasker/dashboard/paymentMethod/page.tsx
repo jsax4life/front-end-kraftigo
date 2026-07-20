@@ -1,122 +1,104 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { ArrowLeft } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { ArrowLeft, CheckCircle2, ExternalLink, Landmark, ShieldAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
-import Input from "@/components/ui/input";
 import Button from "@/components/ui/button";
-import { useProfileStore } from "@/store/useProfileStore";
 import toast from "react-hot-toast";
 import Loader from "@/components/ui/loader";
+import {
+  connectPayoutAccount,
+  getPayoutAccountStatus,
+  refreshPayoutOnboarding,
+  PAYOUT_ACCOUNT_STATUS_INVALIDATE_EVENT,
+  type PayoutAccountStatus,
+} from "@/lib/api/payouts";
+
+/** Stripe requirement codes are dotted, e.g. `individual.verification.document` — humanize for display. */
+function humanizeRequirement(code: string): string {
+  return code
+    .split(".")
+    .join(" · ")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function errorMessage(err: unknown, fallback: string): string {
+  const ax = err as { response?: { data?: { message?: string } } };
+  return ax?.response?.data?.message || fallback;
+}
 
 const Page = () => {
   const router = useRouter();
 
-  const {
-    payoutStatus,
-    fetchKrafterPayoutStatus,
-    submitPayoutDetails,
-  } = useProfileStore();
-
+  const [status, setStatus] = useState<PayoutAccountStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [statusError, setStatusError] = useState<string | null>(null);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
-  const [formData, setFormData] = useState({
-    ibanAcctNumber: "",
-    bicSwiftCode: "",
-  });
-
-  const [fieldErrors, setFieldErrors] = useState<{ ibanAcctNumber?: string; bicSwiftCode?: string }>({});
+  const loadStatus = useCallback(async () => {
+    setStatusError(null);
+    try {
+      const data = await getPayoutAccountStatus();
+      setStatus(data);
+    } catch (err) {
+      setStatusError(errorMessage(err, "Could not load your payout account status."));
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    fetchKrafterPayoutStatus().finally(() => setIsLoading(false));
-  }, [fetchKrafterPayoutStatus]);
+    void loadStatus();
+  }, [loadStatus]);
 
-  // ── Validation helpers ────────────────────────────────────────────────────
+  // Refresh when returning from Stripe's hosted onboarding, or on the
+  // `ARTISAN_STRIPE_CONNECTED` / `ARTISAN_STRIPE_ONBOARDING_COMPLETED` realtime events.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void loadStatus();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener(PAYOUT_ACCOUNT_STATUS_INVALIDATE_EVENT, onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener(PAYOUT_ACCOUNT_STATUS_INVALIDATE_EVENT, onVisible);
+    };
+  }, [loadStatus]);
 
-  const validateIban = (raw: string): string | null => {
-    // raw = value without spaces
-    if (!raw) return null; // empty is handled by presence check
-    if (!/^[A-Z]{2}/.test(raw)) return "IBAN must start with a 2-letter country code (e.g. DE).";
-    if (raw.length !== 22) return `IBAN must be exactly 22 characters (currently ${raw.length}).`;
-    return null;
-  };
+  const handleBack = () => router.back();
 
-  const validateBic = (raw: string): string | null => {
-    if (!raw) return null;
-    if (raw.length !== 8 && raw.length !== 11) return `BIC must be 8 or 11 characters (currently ${raw.length}).`;
-    return null;
-  };
-
-  // ── Input handler ─────────────────────────────────────────────────────────
-
-  const handleInputChange = (field: string, value: string | File | null) => {
-    let finalValue = value;
-    if (typeof value === "string") {
-      if (field === "ibanAcctNumber") {
-        // Strip non-alphanumeric, capitalize, hard-cap at 22 raw chars, then space every 4
-        const clean = value.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 22);
-        finalValue = clean.replace(/(.{4})/g, "$1 ").trim();
-        // Clear any existing error as the user edits (errors are only set on submit)
-        if (fieldErrors.ibanAcctNumber) setFieldErrors((prev) => ({ ...prev, ibanAcctNumber: undefined }));
-      } else if (field === "bicSwiftCode") {
-        // Strip non-alphanumeric, capitalize, hard-cap at 11 raw chars
-        const clean = value.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 11);
-        finalValue = clean;
-        if (fieldErrors.bicSwiftCode) setFieldErrors((prev) => ({ ...prev, bicSwiftCode: undefined }));
-      }
-    }
-
-    setFormData((prev) => ({
-      ...prev,
-      [field]: finalValue,
-    }));
-  };
-
-  const handleBack = () => {
-    router.back();
-  };
-
-  // ── Submit ────────────────────────────────────────────────────────────────
-
-  const handleSubmit = async (isDraft = false) => {
-    const rawIban = formData.ibanAcctNumber.replace(/\s+/g, "");
-    const rawBic  = formData.bicSwiftCode.replace(/\s+/g, "");
-
-    // Presence check
-    if (!isDraft && (!rawIban || !rawBic)) {
-      toast.error("Please fill in both IBAN and BIC to submit.");
-      return;
-    }
-    if (isDraft && !rawIban && !rawBic) {
-      toast.error("Please enter at least one field to save as a draft.");
-      return;
-    }
-
-    // Structural validation — run on whichever fields are filled
-    const ibanErr = rawIban ? validateIban(rawIban) : null;
-    const bicErr  = rawBic  ? validateBic(rawBic)   : null;
-
-    if (ibanErr || bicErr) {
-      setFieldErrors({ ibanAcctNumber: ibanErr ?? undefined, bicSwiftCode: bicErr ?? undefined });
-      toast.error("Please fix the errors before continuing.");
-      return;
-    }
-
-    setIsSubmitting(true);
+  const goToOnboarding = async (mode: "connect" | "refresh") => {
+    setIsRedirecting(true);
     try {
-      await submitPayoutDetails({
-        iban: rawIban,
-        bic: rawBic,
-        submitAsDraft: isDraft,
-      });
-
-      toast.success(isDraft ? "Draft saved successfully!" : "Payout details submitted successfully!");
-      router.push("/tasker/dashboard?modal=open");
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to save payout details.");
+      const link = mode === "connect" ? await connectPayoutAccount() : await refreshPayoutOnboarding();
+      if (!link.onboardingUrl) {
+        toast.error("Stripe didn't return an onboarding link. Please try again.");
+        return;
+      }
+      window.location.href = link.onboardingUrl;
+    } catch (err) {
+      // `connect-account` 400s once onboarding is already complete; `refresh-onboarding`
+      // 400s if no Connect account exists yet — either way, re-sync and show the right state.
+      if (mode === "connect") {
+        toast.error(errorMessage(err, "Could not start Stripe onboarding. Please try again."));
+        await loadStatus();
+      } else {
+        try {
+          const link = await connectPayoutAccount();
+          if (link.onboardingUrl) {
+            window.location.href = link.onboardingUrl;
+            return;
+          }
+        } catch (fallbackErr) {
+          toast.error(errorMessage(fallbackErr, "Could not resume Stripe onboarding. Please try again."));
+          await loadStatus();
+          return;
+        }
+        toast.error(errorMessage(err, "Could not resume Stripe onboarding. Please try again."));
+      }
     } finally {
-      setIsSubmitting(false);
+      setIsRedirecting(false);
     }
   };
 
@@ -128,69 +110,156 @@ const Page = () => {
     );
   }
 
+  const requirementsDue = status?.requirementsDue ?? [];
+  const needsAttention =
+    !!status?.connected &&
+    (!status.onboardingCompleted || requirementsDue.length > 0 || status.accountStatus !== "ACTIVE");
+  const isFullySetUp =
+    !!status?.connected && status.onboardingCompleted && requirementsDue.length === 0 && status.accountStatus === "ACTIVE";
+
   return (
     <div className="relative w-full min-h-screen bg-white flex items-center justify-center px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-4xl mx-auto min-h-screen flex flex-col py-8">
-        <div className="space-y-6">
+        <div className="space-y-6 flex-1">
           <div className="flex items-center justify-between mb-5">
-            <button
-              onClick={handleBack}
-              className="text-2xl hover:opacity-70 transition-opacity"
-            >
+            <button onClick={handleBack} className="text-2xl hover:opacity-70 transition-opacity">
               <ArrowLeft />
             </button>
-
-            <span className="text-[14px] text-gray-500 font-poppins">
-              Step 6 of 6
-            </span>
+            <span className="text-[14px] text-gray-500 font-poppins">Step 6 of 6</span>
           </div>
           <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-2">
             Payout Setup
           </h1>
-          <p className="text-[16px] font-poppins text-[#2B2F32] mb-8">
-            Add your payment information
+          <p className="text-[16px] font-poppins text-[#2B2F32] mb-6">
+            Payouts are handled by Stripe — verify your identity and add a bank account to get paid.
+            We never see or store your bank details.
           </p>
-          <div>
-            <Input
-              label="IBAN"
-              placeholder={payoutStatus?.payout?.ibanMasked || "DE02 1223 1223 1223 1223 1223 1223"}
-              value={formData.ibanAcctNumber}
-              onChange={(value) => handleInputChange("ibanAcctNumber", value)}
-              required
-            />
-            {fieldErrors.ibanAcctNumber && (
-              <p className="mt-1.5 text-[12px] font-poppins text-red-500">{fieldErrors.ibanAcctNumber}</p>
-            )}
-          </div>
-          <div>
-            <Input
-              label="BIC"
-              placeholder={payoutStatus?.payout?.bicMasked || "DEUTDEDB"}
-              value={formData.bicSwiftCode}
-              onChange={(value) => handleInputChange("bicSwiftCode", value)}
-              required
-            />
-            {fieldErrors.bicSwiftCode && (
-              <p className="mt-1.5 text-[12px] font-poppins text-red-500">{fieldErrors.bicSwiftCode}</p>
-            )}
-          </div>
+
+          {statusError && (
+            <p className="text-[13px] font-poppins text-red-500 mb-4" role="alert">
+              {statusError}
+            </p>
+          )}
+
+          {!status?.connected && (
+            <div className="rounded-2xl border border-[#EAECF0] bg-[#F9FAFB] p-6 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-brand-orange/10 text-brand-orange rounded-xl">
+                  <Landmark size={22} strokeWidth={1.5} />
+                </div>
+                <div>
+                  <h3 className="text-[16px] font-gerat font-bold text-[#1D2939]">
+                    Connect your Stripe account
+                  </h3>
+                  <p className="text-[13px] font-poppins text-[#667085] mt-0.5">
+                    Takes a few minutes. Stripe verifies your identity and bank details directly.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {needsAttention && status?.connected && (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-amber-100 text-amber-700 rounded-xl shrink-0">
+                  <ShieldAlert size={22} strokeWidth={1.5} />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-[16px] font-gerat font-bold text-[#1D2939]">
+                    {status.onboardingCompleted ? "Action needed on your Stripe account" : "Finish your Stripe onboarding"}
+                  </h3>
+                  <p className="text-[13px] font-poppins text-[#667085] mt-0.5">
+                    Status: <span className="font-semibold">{status.accountStatus}</span>
+                  </p>
+                </div>
+              </div>
+              {requirementsDue.length > 0 && (
+                <ul className="space-y-1.5 pl-1">
+                  {requirementsDue.map((req) => (
+                    <li key={req} className="text-[13px] font-poppins text-[#475467] flex gap-2">
+                      <span className="text-amber-600">•</span>
+                      {humanizeRequirement(req)}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {!status.chargesEnabled || !status.payoutsEnabled ? (
+                <p className="text-[12px] font-poppins text-[#98A2B3]">
+                  {!status.payoutsEnabled
+                    ? "Stripe hasn't enabled payouts on this account yet."
+                    : "Stripe hasn't enabled charges on this account yet."}
+                </p>
+              ) : null}
+            </div>
+          )}
+
+          {isFullySetUp && (
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-emerald-100 text-emerald-700 rounded-xl shrink-0">
+                  <CheckCircle2 size={22} strokeWidth={1.5} />
+                </div>
+                <div>
+                  <h3 className="text-[16px] font-gerat font-bold text-[#1D2939]">You&apos;re all set</h3>
+                  <p className="text-[13px] font-poppins text-[#667085] mt-0.5">
+                    Your Stripe account is verified and ready to receive payouts.
+                  </p>
+                </div>
+              </div>
+              {status?.stripeAccountId && (
+                <p className="text-[11px] font-poppins text-[#98A2B3]">
+                  Stripe account: {status.stripeAccountId}
+                </p>
+              )}
+            </div>
+          )}
         </div>
-        <div className="text-center text-[14px] font-poppins mt-auto pb-3">
-          <Button
-            variant="primary"
-            onClick={() => handleSubmit(false)}
-            disabled={isSubmitting}
-            fullWidth
-            className="py-4 text-[16px] font-gerat font-bold"
-          >
-            {isSubmitting ? "Submitting..." : "Submit"}
-          </Button>
+
+        <div className="text-center text-[14px] font-poppins mt-8 pb-3 space-y-3">
+          {!status?.connected && (
+            <Button
+              variant="primary"
+              onClick={() => void goToOnboarding("connect")}
+              disabled={isRedirecting}
+              fullWidth
+              className="py-4 text-[16px] font-gerat font-bold flex items-center justify-center gap-2"
+            >
+              {isRedirecting ? "Opening Stripe…" : "Connect Stripe Account"}
+              {!isRedirecting && <ExternalLink size={16} />}
+            </Button>
+          )}
+
+          {needsAttention && status?.connected && (
+            <Button
+              variant="primary"
+              onClick={() => void goToOnboarding("refresh")}
+              disabled={isRedirecting}
+              fullWidth
+              className="py-4 text-[16px] font-gerat font-bold flex items-center justify-center gap-2"
+            >
+              {isRedirecting ? "Opening Stripe…" : "Continue with Stripe"}
+              {!isRedirecting && <ExternalLink size={16} />}
+            </Button>
+          )}
+
+          {isFullySetUp && (
+            <Button
+              variant="primary"
+              onClick={() => router.push("/tasker/profile/earnings")}
+              fullWidth
+              className="py-4 text-[16px] font-gerat font-bold"
+            >
+              Go to Wallet
+            </Button>
+          )}
+
           <button
-            onClick={() => handleSubmit(true)}
-            disabled={isSubmitting}
-            className="font-bold mt-3 disabled:opacity-50"
+            onClick={() => void loadStatus()}
+            disabled={isLoading}
+            className="font-bold mt-1 disabled:opacity-50 text-[13px] text-[#667085]"
           >
-            Save as Draft
+            Refresh status
           </button>
         </div>
       </div>

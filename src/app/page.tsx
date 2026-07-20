@@ -27,6 +27,7 @@ import KrafterDetailModal, {
 import { fetchKrafterProfile } from "@/lib/api/bookings";
 import Navbar from "@/components/shared/Navbar";
 import Footer from "@/components/shared/Footer";
+import { useKrafterCta } from "@/hooks/useKrafterCta";
 import { formatDistanceDisplay, readDistanceFields } from "@/utils/distance";
 import { DistanceBadge } from "@/components/ui/DistanceBadge";
 
@@ -107,6 +108,10 @@ const Page = () => {
     recentSearches,
     addRecentSearch,
   } = useHomeStore();
+
+  const { handleAction: handleKrafterBannerClick } = useKrafterCta({
+    enabled: isAuthenticated,
+  });
 
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -529,11 +534,11 @@ const Page = () => {
               <div className="flex gap-6 w-max">
                 <Image 
                   src="/annc.svg" 
-                  alt="banner1" 
+                  alt="Become a Krafter" 
                   width={400} 
                   height={186} 
                   className="shrink-0 cursor-pointer transition-transform hover:scale-[1.02]" 
-                  onClick={() => router.push("/tasker/createacc")}
+                  onClick={handleKrafterBannerClick}
                 />
                 <Image 
                   src="/annc2.svg" 

@@ -1,15 +1,18 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Home } from "lucide-react";
+import { ChevronLeft, Home, ExternalLink, ShieldAlert } from "lucide-react";
 import TaskerNav from "@/components/shared/taskerNav";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import {
   getWalletSummary,
+  getPayoutAccountStatus,
   postPayoutWithdraw,
   WALLET_SUMMARY_INVALIDATE_EVENT,
+  PAYOUT_ACCOUNT_STATUS_INVALIDATE_EVENT,
   type ArtisanWalletSummary,
+  type PayoutAccountStatus,
   type WalletDailyEarning,
   type WalletRecentActivity,
 } from "@/lib/api/payouts";
@@ -241,6 +244,8 @@ const EarningsPage = () => {
   const [walletLoading, setWalletLoading] = useState(true);
   const [walletError, setWalletError] = useState<string | null>(null);
   const [withdrawLoading, setWithdrawLoading] = useState(false);
+  const [payoutAccount, setPayoutAccount] = useState<PayoutAccountStatus | null>(null);
+  const [payoutAccountLoading, setPayoutAccountLoading] = useState(true);
 
   const loadWallet = useCallback(async () => {
     setWalletLoading(true);
@@ -258,9 +263,22 @@ const EarningsPage = () => {
     }
   }, []);
 
+  const loadPayoutAccount = useCallback(async () => {
+    setPayoutAccountLoading(true);
+    try {
+      const data = await getPayoutAccountStatus();
+      setPayoutAccount(data);
+    } catch {
+      setPayoutAccount(null);
+    } finally {
+      setPayoutAccountLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     void loadWallet();
-  }, [loadWallet]);
+    void loadPayoutAccount();
+  }, [loadWallet, loadPayoutAccount]);
 
   useEffect(() => {
     const onInvalidate = () => {
@@ -270,17 +288,35 @@ const EarningsPage = () => {
     return () => window.removeEventListener(WALLET_SUMMARY_INVALIDATE_EVENT, onInvalidate);
   }, [loadWallet]);
 
+  useEffect(() => {
+    const onInvalidate = () => {
+      void loadPayoutAccount();
+    };
+    window.addEventListener(PAYOUT_ACCOUNT_STATUS_INVALIDATE_EVENT, onInvalidate);
+    return () => window.removeEventListener(PAYOUT_ACCOUNT_STATUS_INVALIDATE_EVENT, onInvalidate);
+  }, [loadPayoutAccount]);
+
   const withdrawableAmount = wallet
     ? Math.max(wallet.availableToWithdrawAmount, wallet.availableForWithdrawal)
     : 0;
+
+  // `canWithdraw` from `account-status` is a UX gate only — the backend always
+  // re-verifies balance/hold/Stripe eligibility server-side on the actual withdraw call.
+  const isStripeConnected = payoutAccount?.connected ?? false;
+  const canWithdrawPerAccount = payoutAccount?.canWithdraw ?? false;
 
   const handleWithdraw = async () => {
     if (!wallet || withdrawableAmount <= 0 || withdrawLoading) return;
     setWithdrawLoading(true);
     try {
-      await postPayoutWithdraw();
-      toast.success("Withdrawal started. Balances update when the transfer completes.");
-      await loadWallet();
+      const result = await postPayoutWithdraw();
+      const amountLabel = result.amount > 0 ? formatWalletMoney(result.amount, result.currency || cur) : null;
+      toast.success(
+        amountLabel
+          ? `${amountLabel} is on its way to your bank.`
+          : "Withdrawal started. Balances update when the transfer completes.",
+      );
+      await Promise.all([loadWallet(), loadPayoutAccount()]);
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { message?: string } } };
       toast.error(ax.response?.data?.message ?? "Withdrawal could not be started. Try again.");
@@ -462,6 +498,25 @@ const EarningsPage = () => {
             </>
           ) : null}
 
+          {!payoutAccountLoading && !isStripeConnected && (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 flex items-start gap-3">
+              <ShieldAlert size={18} className="text-amber-700 shrink-0 mt-0.5" strokeWidth={1.5} />
+              <p className="text-[12px] font-poppins text-amber-800">
+                Connect your Stripe payout account to withdraw your balance.
+              </p>
+            </div>
+          )}
+          {!payoutAccountLoading && isStripeConnected && !canWithdrawPerAccount && (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 flex items-start gap-3">
+              <ShieldAlert size={18} className="text-amber-700 shrink-0 mt-0.5" strokeWidth={1.5} />
+              <p className="text-[12px] font-poppins text-amber-800">
+                {payoutAccount?.requirementsDue?.length
+                  ? "Stripe needs more information before you can withdraw."
+                  : "Your Stripe account isn't ready for payouts yet."}
+              </p>
+            </div>
+          )}
+
           <div className="space-y-3 pt-2">
             <button
               type="button"
@@ -479,9 +534,10 @@ const EarningsPage = () => {
             <button
               type="button"
               onClick={() => router.push("/tasker/dashboard/paymentMethod")}
-              className="w-full bg-brand-blue py-4 rounded-2xl text-white font-gerat font-bold text-[16px] hover:bg-blue-700 transition-colors"
+              className="w-full bg-brand-blue py-4 rounded-2xl text-white font-gerat font-bold text-[16px] hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
             >
-              Manage payout details
+              {isStripeConnected ? "Manage payout account" : "Connect Stripe Account"}
+              {!isStripeConnected && <ExternalLink size={16} />}
             </button>
           </div>
         </section>

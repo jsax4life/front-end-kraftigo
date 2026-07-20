@@ -38,8 +38,8 @@ const steps = [
   },
   {
     id: "payout",
-    label: "Add Payout Information",
-    sublabel: "Help customers recognize you",
+    label: "Connect Payout Account",
+    sublabel: "Set up Stripe to get paid",
   },
 ];
 

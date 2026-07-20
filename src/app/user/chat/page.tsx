@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { Search, ChevronRight, User as UserIcon, MoreHorizontal } from "lucide-react";
+import { Search, User as UserIcon, MoreHorizontal } from "lucide-react";
 import toast from "react-hot-toast";
 import UserNav from "@/components/shared/userNav";
 import Navbar from "@/components/shared/Navbar";
@@ -13,6 +13,18 @@ import { getStoredAccessToken } from "@/lib/axios";
 import { chatSocketManager } from "@/lib/socket";
 import ChatInterface from "@/components/support/ChatInterface";
 import ChatListPresenceDot from "@/components/shared/ChatListPresenceDot";
+import ChatThreadPickerSheet from "@/components/shared/ChatThreadPickerSheet";
+import {
+  filterChatGroups,
+  getConversationContextLabel,
+  groupConversationsByParticipant,
+  type ParticipantChatGroup,
+} from "@/lib/chatInbox";
+import {
+  rememberPreferredChatThread,
+  resolvePreferredChatThread,
+} from "@/lib/chatThreadPreference";
+import type { Conversation } from "@/types";
 
 const ChatPage = () => {
   const searchParams = useSearchParams();
@@ -20,6 +32,7 @@ const ChatPage = () => {
   const { accessToken } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [deepLinkBusy, setDeepLinkBusy] = useState(false);
+  const [threadPickerGroup, setThreadPickerGroup] = useState<ParticipantChatGroup | null>(null);
 
   useEffect(() => {
     fetchConversations();
@@ -55,14 +68,24 @@ const ChatPage = () => {
 
     void (async () => {
       try {
-        const conv = await useChatStore.getState().ensureChatConversationForParticipant({
-          otherUserId: artisanId.trim(),
-          displayName: name.trim(),
-          displayAvatar: "/images/pro.jpg",
-          bookingId,
-        });
+        const store = useChatStore.getState();
+        const conv = bookingId?.trim()
+          ? await store.ensureChatConversationForBooking({
+              bookingId: bookingId.trim(),
+              otherUserId: artisanId.trim(),
+              displayName: name.trim(),
+              displayAvatar: "/images/pro.jpg",
+            })
+          : await store.ensureChatConversationForParticipant({
+              otherUserId: artisanId.trim(),
+              displayName: name.trim(),
+              displayAvatar: "/images/pro.jpg",
+            });
         if (cancelled) return;
         if (conv) {
+          if (conv.otherParticipant?.id) {
+            rememberPreferredChatThread(conv.otherParticipant.id, conv);
+          }
           setCurrentConversation(conv);
         } else {
           setCurrentConversation(null);
@@ -80,10 +103,33 @@ const ChatPage = () => {
     };
   }, [searchParams, setCurrentConversation]);
 
-  const filteredChats = conversations.filter(chat => 
-    chat.otherParticipant?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    chat.lastMessage?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const chatGroups = groupConversationsByParticipant(conversations);
+  const filteredGroups = filterChatGroups(chatGroups, searchQuery);
+
+  const selectThread = (thread: Conversation, participantId: string) => {
+    rememberPreferredChatThread(participantId, thread);
+    setCurrentConversation(thread);
+  };
+
+  const openGroup = (group: ParticipantChatGroup) => {
+    const thread = resolvePreferredChatThread(group.participantId, group.threads);
+    selectThread(thread, group.participantId);
+  };
+
+  const openThread = (thread: Conversation) => {
+    setThreadPickerGroup(null);
+    const participantId =
+      threadPickerGroup?.participantId ?? thread.otherParticipant?.id ?? "";
+    if (participantId) {
+      selectThread(thread, participantId);
+    } else {
+      setCurrentConversation(thread);
+    }
+  };
+
+  const currentThreadGroup = currentConversation?.otherParticipant?.id
+    ? chatGroups.find((g) => g.participantId === currentConversation.otherParticipant?.id)
+    : undefined;
 
   return (
     <main className="relative min-h-screen bg-white pb-32 md:pb-0">
@@ -104,7 +150,6 @@ const ChatPage = () => {
             <p className="text-[13px] font-poppins text-[#667085] mb-4 -mt-2">Opening conversation…</p>
          )}
 
-         {/* Search */}
          <div className="relative mb-8">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <input
@@ -116,25 +161,29 @@ const ChatPage = () => {
             />
          </div>
 
-         {/* Chat List */}
          <div className="space-y-2">
-            {filteredChats.length === 0 ? (
+            {filteredGroups.length === 0 ? (
                 <div className="flex flex-col items-center py-20 text-center opacity-40">
                     <UserIcon size={48} className="mb-4 text-gray-300" />
                     <p className="text-[14px] font-poppins">No messages yet</p>
                 </div>
-            ) : filteredChats.map((chat) => (
+            ) : filteredGroups.map((group) => {
+               const preview = group.previewThread;
+               const contextLabel = getConversationContextLabel(preview);
+               const multiThread = group.threads.length > 1;
+
+               return (
                <button
-                  key={chat.conversationId || chat.id}
-                  onClick={() => setCurrentConversation(chat)}
+                  key={group.participantId}
+                  onClick={() => openGroup(group)}
                   className="w-full flex items-center gap-[14px] p-3.5 rounded-[18px] hover:bg-gray-50 transition-all border border-transparent active:scale-[0.98]"
                >
                   <div className="relative shrink-0">
                      <div className="w-[56px] h-[56px] rounded-full overflow-hidden bg-gray-100 flex items-center justify-center border border-gray-50">
-                        {chat.otherParticipant?.avatar ? (
+                        {group.participant.avatar ? (
                            <Image 
-                              src={chat.otherParticipant.avatar} 
-                              alt={chat.otherParticipant.name} 
+                              src={group.participant.avatar} 
+                              alt={group.participant.name} 
                               fill 
                               className="object-cover rounded-full" 
                            />
@@ -142,39 +191,58 @@ const ChatPage = () => {
                            <UserIcon size={24} className="text-gray-400" />
                         )}
                      </div>
-                     <ChatListPresenceDot chat={chat} />
+                     <ChatListPresenceDot chat={preview} />
                   </div>
                   
                   <div className="flex-1 min-w-0 text-left">
-                     <div className="flex justify-between items-center mb-0.5">
+                     <div className="flex justify-between items-center mb-0.5 gap-2">
                         <h3 className="text-[15px] font-poppins font-bold text-[rgba(0,0,0,0.8)] truncate">
-                           {chat.otherParticipant?.name}
+                           {group.participant.name}
                         </h3>
-                        <span className="text-[11px] font-poppins text-[#98A2B3]">
-                           {chat.lastMessageAt ? new Date(chat.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                        <span className="text-[11px] font-poppins text-[#98A2B3] shrink-0">
+                           {preview.lastMessageAt ? new Date(preview.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                         </span>
                      </div>
+                     <p className="text-[11px] font-poppins text-[#98A2B3] truncate mb-0.5">
+                        {multiThread
+                          ? `${group.threads.length} Kraft conversations · ${contextLabel}`
+                          : contextLabel}
+                     </p>
                      <div className="flex justify-between items-center">
-                        <p className={`text-[13px] font-poppins truncate pr-6 ${chat.unreadCount ? 'text-black font-semibold' : 'text-[#667085]'}`}>
-                           {chat.lastMessage || "Start the conversation"}
+                        <p className={`text-[13px] font-poppins truncate pr-6 ${group.totalUnread ? 'text-black font-semibold' : 'text-[#667085]'}`}>
+                           {preview.lastMessage || "Start the conversation"}
                         </p>
-                        {(chat.unreadCount || 0) > 0 && (
+                        {group.totalUnread > 0 && (
                            <span className="bg-brand-orange text-white text-[10px] font-bold min-w-[18px] h-4.5 flex items-center justify-center rounded-full px-1.5 shadow-sm">
-                              {chat.unreadCount}
+                              {group.totalUnread}
                            </span>
                         )}
                      </div>
                   </div>
                </button>
-            ))}
+            )})}
          </div>
       </div>
+
+      {threadPickerGroup && (
+        <ChatThreadPickerSheet
+          participantName={threadPickerGroup.participant.name}
+          threads={threadPickerGroup.threads}
+          onSelect={openThread}
+          onClose={() => setThreadPickerGroup(null)}
+          isSwitchMode={!!currentConversation}
+        />
+      )}
 
       {currentConversation && (
         <ChatInterface 
           isOpen={!!currentConversation} 
           onClose={() => setCurrentConversation(null)} 
           conversation={currentConversation}
+          canSwitchThread={(currentThreadGroup?.threads.length ?? 0) > 1}
+          onSwitchThread={() => {
+            if (currentThreadGroup) setThreadPickerGroup(currentThreadGroup);
+          }}
         />
       )}
 

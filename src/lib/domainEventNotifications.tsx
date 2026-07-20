@@ -7,7 +7,7 @@ import {
   useDomainNotificationHistoryStore,
   type DomainNotificationFeedAction,
 } from "@/store/useDomainNotificationHistoryStore";
-import { emitWalletSummaryInvalidate } from "@/lib/api/payouts";
+import { emitWalletSummaryInvalidate, emitPayoutAccountStatusInvalidate } from "@/lib/api/payouts";
 import {
   AlertTriangle,
   BadgeCheck,
@@ -17,6 +17,8 @@ import {
   ClipboardList,
   Gavel,
   Coins,
+  Landmark,
+  Link2,
   Loader2,
   PartyPopper,
   RefreshCw,
@@ -27,6 +29,7 @@ import {
   Wallet,
   X,
   XCircle,
+  XOctagon,
 } from "lucide-react";
 
 type Tone = "brand" | "success" | "info" | "amber" | "danger";
@@ -233,6 +236,9 @@ export function showDomainEventNotification(raw: unknown): void {
   };
   const goTaskerEarnings = () => {
     if (typeof window !== "undefined") window.location.assign("/tasker/profile/earnings");
+  };
+  const goTaskerPayouts = () => {
+    if (typeof window !== "undefined") window.location.assign("/tasker/dashboard/paymentMethod");
   };
 
   const hist = (
@@ -519,6 +525,76 @@ export function showDomainEventNotification(raw: unknown): void {
         body,
         { actionLabel: "Wallet", onAction: goTaskerEarnings },
         hist("ARTISAN_WALLET_WITHDRAWN", null),
+      );
+      break;
+    }
+    case "ARTISAN_WALLET_WITHDRAWAL_FAILED": {
+      emitWalletSummaryInvalidate();
+      if (!useAuthStore.getState().isTasker()) break;
+      const reversedAmount = fmtMoneyWithCurrency(msg.amount, msg.currency);
+      pushToast(
+        "danger",
+        <XOctagon className="h-5 w-5" />,
+        "Withdrawal reversed",
+        reversedAmount
+          ? `${reversedAmount} could not be transferred and was reversed. Check your Stripe account.`
+          : "A withdrawal was reversed. Check your Stripe account.",
+        { actionLabel: "Payouts", onAction: goTaskerPayouts, duration: 12_000 },
+        hist("ARTISAN_WALLET_WITHDRAWAL_FAILED", null),
+      );
+      break;
+    }
+    case "ARTISAN_STRIPE_CONNECTED": {
+      emitPayoutAccountStatusInvalidate();
+      if (!useAuthStore.getState().isTasker()) break;
+      pushToast(
+        "info",
+        <Link2 className="h-5 w-5" />,
+        "Stripe account created",
+        "Finish onboarding to start receiving payouts.",
+        { actionLabel: "Continue setup", onAction: goTaskerPayouts },
+        hist("ARTISAN_STRIPE_CONNECTED", null),
+      );
+      break;
+    }
+    case "ARTISAN_STRIPE_ONBOARDING_COMPLETED": {
+      emitPayoutAccountStatusInvalidate();
+      if (!useAuthStore.getState().isTasker()) break;
+      pushToast(
+        "success",
+        <BadgeCheck className="h-5 w-5" />,
+        "Payouts ready",
+        "Your Stripe account is set up. You can now withdraw your balance.",
+        { actionLabel: "Wallet", onAction: goTaskerEarnings },
+        hist("ARTISAN_STRIPE_ONBOARDING_COMPLETED", null),
+      );
+      break;
+    }
+    case "ARTISAN_BANK_PAYOUT_PAID": {
+      if (!useAuthStore.getState().isTasker()) break;
+      const paidAmount = fmtMoneyWithCurrency(msg.amount, msg.currency);
+      pushToast(
+        "success",
+        <Landmark className="h-5 w-5" />,
+        "Funds in your bank",
+        paidAmount ? `${paidAmount} landed in your bank account.` : "Funds landed in your bank account.",
+        { actionLabel: "Wallet", onAction: goTaskerEarnings },
+        hist("ARTISAN_BANK_PAYOUT_PAID", null),
+      );
+      break;
+    }
+    case "ARTISAN_BANK_PAYOUT_FAILED": {
+      if (!useAuthStore.getState().isTasker()) break;
+      const failedAmount = fmtMoneyWithCurrency(msg.amount, msg.currency);
+      pushToast(
+        "danger",
+        <Landmark className="h-5 w-5" />,
+        "Bank payout failed",
+        failedAmount
+          ? `Stripe could not deposit ${failedAmount} into your bank. Check your account details.`
+          : "Stripe could not deposit funds into your bank. Check your account details.",
+        { actionLabel: "Payouts", onAction: goTaskerPayouts, duration: 12_000 },
+        hist("ARTISAN_BANK_PAYOUT_FAILED", null),
       );
       break;
     }

@@ -14,6 +14,7 @@ import {
   getRecommendations,
   updateBooking,
   cancelBooking,
+  deleteDraftBooking as deleteDraftBookingApi,
   reopenRecommendation as reopenRecommendationApi,
   reviveFromExpired as reviveFromExpiredApi,
   confirmBooking as confirmBookingApi,
@@ -55,6 +56,7 @@ function scheduleChatRefreshAfterKrafterSelection(booking: Booking) {
   const id = raw != null && String(raw).trim() !== '' ? String(raw).trim() : undefined
   void useChatStore.getState().refreshAfterKrafterOrApplicantSelection({
     otherParticipantId: id,
+    bookingId: booking.id?.trim() || undefined,
   })
 }
 
@@ -112,6 +114,8 @@ interface BookingsState {
   getRecommendations: (payload: GetRecommendationsPayload) => Promise<any[]>
   updateBooking: (id: string, payload: UpdateBookingPayload) => Promise<Booking>
   cancelBooking: (id: string, payload: CancelBookingPayload) => Promise<void>
+  /** DELETE draft while status is RECOMMENDATION_PENDING */
+  deleteDraftBooking: (id: string) => Promise<void>
   reopenRecommendation: (id: string) => Promise<Booking>
   reviveFromExpired: (id: string) => Promise<Booking>
   /** Poll until booking leaves PAYMENT_PENDING after Stripe success. */
@@ -313,6 +317,60 @@ export const useBookingsStore = create<BookingsState>()((set, get) => ({
       }))
     } catch (err: any) {
       set({ error: err.response?.data?.message || 'Failed to cancel booking', isSubmitting: false })
+      throw err
+    }
+  },
+
+  deleteDraftBooking: async (id) => {
+    const removeLocally = () => {
+      const draftMatches = get().recommendationDraftBookingId === id
+      if (draftMatches) {
+        clearRecommendationDraftBookingIdFromSession()
+      }
+      set((state) => ({
+        bookings: state.bookings.filter((b) => b.id !== id),
+        selectedBooking: state.selectedBooking?.id === id ? null : state.selectedBooking,
+        isSubmitting: false,
+        recommendationDraftBookingId: draftMatches ? null : state.recommendationDraftBookingId,
+      }))
+    }
+
+    set({ isSubmitting: true, error: null })
+    try {
+      await deleteDraftBookingApi(id)
+      removeLocally()
+    } catch (err: any) {
+      const status = err?.response?.status as number | undefined
+      if (status === 404) {
+        removeLocally()
+        return
+      }
+      if (status === 400) {
+        try {
+          const updated = await getBookingById(id)
+          set((state) => ({
+            bookings: state.bookings.map((b) => (b.id === id ? updated : b)),
+            selectedBooking: state.selectedBooking?.id === id ? updated : state.selectedBooking,
+            isSubmitting: false,
+          }))
+        } catch {
+          set({ isSubmitting: false })
+        }
+        const message =
+          err.response?.data?.message ||
+          'This draft has already moved forward. Use Cancel if you need to stop the booking.'
+        set({ error: message, isSubmitting: false })
+        throw Object.assign(err, { draftDeleteStatus: 400 as const, userMessage: message })
+      }
+      if (status === 403) {
+        const message = err.response?.data?.message || 'You cannot delete this draft.'
+        set({ error: message, isSubmitting: false })
+        throw Object.assign(err, { draftDeleteStatus: 403 as const, userMessage: message })
+      }
+      set({
+        error: err.response?.data?.message || 'Failed to discard draft',
+        isSubmitting: false,
+      })
       throw err
     }
   },

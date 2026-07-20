@@ -582,6 +582,14 @@ export const cancelBooking = async (id: string, payload: CancelBookingPayload): 
   return response.data
 }
 
+/** DELETE /api/bookings/{id} — permanently delete a RECOMMENDATION_PENDING draft */
+export const deleteDraftBooking = async (id: string): Promise<{ deleted: boolean }> => {
+  const response = await api.delete(`/api/bookings/${id}`)
+  const data = response.data ?? {}
+  if (data.deleted === true) return { deleted: true }
+  return { deleted: true }
+}
+
 /** POST /api/bookings/{id}/reopen-recommendation — customer reopens a declined booking into recommendation flow */
 export const reopenRecommendation = async (id: string): Promise<Booking> => {
   const response = await api.post(`/api/bookings/${id}/reopen-recommendation`, {})

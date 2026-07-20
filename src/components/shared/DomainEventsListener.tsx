@@ -10,9 +10,25 @@ import {
   disconnectDomainEventsSocket,
 } from "@/lib/domainEventsSocket";
 import { showDomainEventNotification } from "@/lib/domainEventNotifications";
+import { clearRecommendationDraftBookingIdFromSession } from "@/lib/recommendationDraftBooking";
 
 let refetchDebounce: ReturnType<typeof setTimeout> | null = null;
 let pendingChatListRefetch = false;
+
+function evictDraftBookingLocally(bookingId: string) {
+  const id = bookingId.trim();
+  if (!id) return;
+  const state = useBookingsStore.getState();
+  const draftMatches = state.recommendationDraftBookingId === id;
+  if (draftMatches) {
+    clearRecommendationDraftBookingIdFromSession();
+  }
+  useBookingsStore.setState((s) => ({
+    bookings: s.bookings.filter((b) => b.id !== id),
+    selectedBooking: s.selectedBooking?.id === id ? null : s.selectedBooking,
+    recommendationDraftBookingId: draftMatches ? null : s.recommendationDraftBookingId,
+  }));
+}
 
 const DOMAIN_EVENTS_THAT_REFRESH_CHAT = new Set([
   "KRAFTER_SELECTED",
@@ -61,6 +77,10 @@ export default function DomainEventsListener() {
   const onEventRef = useRef<(msg: Record<string, unknown>) => void>(() => {});
   onEventRef.current = (msg: Record<string, unknown>) => {
     showDomainEventNotification(msg);
+    if (msg.type === "BOOKING_DRAFT_DELETED") {
+      evictDraftBookingLocally(String(msg.bookingId ?? ""));
+      return;
+    }
     scheduleStoresRefresh(msg);
   };
 

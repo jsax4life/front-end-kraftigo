@@ -320,9 +320,11 @@ const SelectArtisanPage = () => {
   }));
   const handleChat = (artisanId: string) => {
     const artisan = artisans.find((a) => a.id === artisanId);
-    router.push(
-      `/user/chat?artisanId=${artisanId}&name=${encodeURIComponent(artisan?.name || "")}`,
-    );
+    const params = new URLSearchParams();
+    params.set("artisanId", artisanId);
+    params.set("name", artisan?.name || "");
+    if (bookingId) params.set("bookingId", bookingId);
+    router.push(`/user/chat?${params.toString()}`);
   };
 
   return (
