@@ -93,14 +93,13 @@ const DashboardContent = () => {
   }
   
   if (profileCompletionSummary?.legalIdentity?.kycStatus === "APPROVED") completedStepIds.push("identity");
-  if (profileCompletionSummary?.payout?.isComplete) completedStepIds.push("payout");
 
   // Fallback visual logic until the API handles everything for all users smoothly
   // e.g., if we still want to force register to be checked on this dashboard:
   if (!completedStepIds.includes("register")) completedStepIds.push("register");
 
   const completedSteps = completedStepIds.length;
-  const totalSteps = 6;
+  const totalSteps = 5;
   const completedPercentage = Math.round((completedSteps / totalSteps) * 100);
 
   const handleStepClick = async (stepId: string) => {
@@ -147,7 +146,6 @@ const DashboardContent = () => {
       personal: "/tasker/profile/complete",
       skills: "/tasker/profile/complete?step=5",
       eligibility: "/tasker/dashboard/work-eligible",
-      payout: "/tasker/dashboard/paymentMethod",
     };
 
     const route = routeMap[stepId];

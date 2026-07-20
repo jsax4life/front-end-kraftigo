@@ -11,6 +11,8 @@ import {
   postPayoutWithdraw,
   WALLET_SUMMARY_INVALIDATE_EVENT,
   PAYOUT_ACCOUNT_STATUS_INVALIDATE_EVENT,
+  isStripeConnectReadyForWithdraw,
+  shouldShowConnectStripeNudge,
   type ArtisanWalletSummary,
   type PayoutAccountStatus,
   type WalletDailyEarning,
@@ -300,17 +302,33 @@ const EarningsPage = () => {
     ? Math.max(wallet.availableToWithdrawAmount, wallet.availableForWithdrawal)
     : 0;
 
-  // `canWithdraw` from `account-status` is a UX gate only — the backend always
-  // re-verifies balance/hold/Stripe eligibility server-side on the actual withdraw call.
-  const isStripeConnected = payoutAccount?.connected ?? false;
-  const canWithdrawPerAccount = payoutAccount?.canWithdraw ?? false;
+  const stripeReady = isStripeConnectReadyForWithdraw(payoutAccount);
+  const showConnectNudge =
+    !payoutAccountLoading &&
+    shouldShowConnectStripeNudge(payoutAccount, withdrawableAmount);
 
   const handleWithdraw = async () => {
     if (!wallet || withdrawableAmount <= 0 || withdrawLoading) return;
+
     setWithdrawLoading(true);
     try {
+      let account = payoutAccount;
+      if (!account) {
+        account = await getPayoutAccountStatus();
+        setPayoutAccount(account);
+      }
+
+      if (!isStripeConnectReadyForWithdraw(account)) {
+        toast.error("Connect Stripe to withdraw your balance.");
+        router.push("/tasker/dashboard/paymentMethod?from=withdraw");
+        return;
+      }
+
       const result = await postPayoutWithdraw();
-      const amountLabel = result.amount > 0 ? formatWalletMoney(result.amount, result.currency || cur) : null;
+      const amountLabel =
+        result.amount > 0
+          ? formatWalletMoney(result.amount, result.currency || wallet.currency || "EUR")
+          : null;
       toast.success(
         amountLabel
           ? `${amountLabel} is on its way to your bank.`
@@ -319,7 +337,11 @@ const EarningsPage = () => {
       await Promise.all([loadWallet(), loadPayoutAccount()]);
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { message?: string } } };
-      toast.error(ax.response?.data?.message ?? "Withdrawal could not be started. Try again.");
+      const message = ax.response?.data?.message ?? "Withdrawal could not be started. Try again.";
+      toast.error(message);
+      if (/connect.*stripe|stripe.*connect|onboarding/i.test(message)) {
+        router.push("/tasker/dashboard/paymentMethod?from=withdraw");
+      }
     } finally {
       setWithdrawLoading(false);
     }
@@ -498,22 +520,44 @@ const EarningsPage = () => {
             </>
           ) : null}
 
-          {!payoutAccountLoading && !isStripeConnected && (
+          {showConnectNudge && (
             <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 flex items-start gap-3">
               <ShieldAlert size={18} className="text-amber-700 shrink-0 mt-0.5" strokeWidth={1.5} />
-              <p className="text-[12px] font-poppins text-amber-800">
-                Connect your Stripe payout account to withdraw your balance.
-              </p>
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] font-poppins text-amber-800">
+                  You have {fmt(withdrawableAmount)} ready to withdraw. Connect Stripe to cash out.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => router.push("/tasker/dashboard/paymentMethod?from=withdraw")}
+                  className="mt-2 text-[12px] font-poppins font-semibold text-brand-orange hover:text-orange-700 flex items-center gap-1"
+                >
+                  Connect Stripe Account
+                  <ExternalLink size={14} aria-hidden />
+                </button>
+              </div>
             </div>
           )}
-          {!payoutAccountLoading && isStripeConnected && !canWithdrawPerAccount && (
+          {payoutAccount?.connected &&
+            !stripeReady &&
+            withdrawableAmount > 0 &&
+            (payoutAccount.requirementsDue.length > 0 || !payoutAccount.payoutsEnabled) && (
             <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 flex items-start gap-3">
               <ShieldAlert size={18} className="text-amber-700 shrink-0 mt-0.5" strokeWidth={1.5} />
-              <p className="text-[12px] font-poppins text-amber-800">
-                {payoutAccount?.requirementsDue?.length
-                  ? "Stripe needs more information before you can withdraw."
-                  : "Your Stripe account isn't ready for payouts yet."}
-              </p>
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] font-poppins text-amber-800">
+                  {payoutAccount.requirementsDue.length > 0
+                    ? "Stripe needs a bit more information before you can withdraw."
+                    : "Your Stripe account isn't ready for payouts yet."}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => router.push("/tasker/dashboard/paymentMethod?from=withdraw")}
+                  className="mt-2 text-[12px] font-poppins font-semibold text-brand-orange hover:text-orange-700"
+                >
+                  Continue with Stripe
+                </button>
+              </div>
             </div>
           )}
 
@@ -530,14 +574,6 @@ const EarningsPage = () => {
               className="w-full bg-brand-orange py-4 rounded-2xl text-white font-gerat font-bold text-[16px] hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {withdrawLoading ? "Withdrawing…" : "Withdraw funds"}
-            </button>
-            <button
-              type="button"
-              onClick={() => router.push("/tasker/dashboard/paymentMethod")}
-              className="w-full bg-brand-blue py-4 rounded-2xl text-white font-gerat font-bold text-[16px] hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-            >
-              {isStripeConnected ? "Manage payout account" : "Connect Stripe Account"}
-              {!isStripeConnected && <ExternalLink size={16} />}
             </button>
           </div>
         </section>

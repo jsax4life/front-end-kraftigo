@@ -19,6 +19,10 @@ export interface KrafterProfileCompletionSummary {
   payout: {
     isComplete: boolean
     maskedAccountInfo: string | null
+    /** Stripe onboarding done when connected; not required for profile `allComplete`. */
+    requiredForProfileCompletion?: boolean
+    /** User must connect before `POST /api/payouts/withdraw`. */
+    requiredForWithdrawal?: boolean
   }
   recommendedNextStep: string | null
   allComplete: boolean

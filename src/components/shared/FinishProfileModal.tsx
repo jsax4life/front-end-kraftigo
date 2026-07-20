@@ -36,11 +36,6 @@ const steps = [
     label: "Add Your Skills To Your Profile",
     sublabel: "Show users what you worked",
   },
-  {
-    id: "payout",
-    label: "Connect Payout Account",
-    sublabel: "Set up Stripe to get paid",
-  },
 ];
 
 const FinishProfileModal: React.FC<FinishProfileModalProps> = ({

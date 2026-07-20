@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, CheckCircle2, ExternalLink, Landmark, ShieldAlert } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Button from "@/components/ui/button";
 import toast from "react-hot-toast";
 import Loader from "@/components/ui/loader";
@@ -30,6 +30,8 @@ function errorMessage(err: unknown, fallback: string): string {
 
 const Page = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const fromWithdraw = searchParams.get("from") === "withdraw";
 
   const [status, setStatus] = useState<PayoutAccountStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -66,7 +68,13 @@ const Page = () => {
     };
   }, [loadStatus]);
 
-  const handleBack = () => router.back();
+  const handleBack = () => {
+    if (fromWithdraw) {
+      router.push("/tasker/profile/earnings");
+      return;
+    }
+    router.back();
+  };
 
   const goToOnboarding = async (mode: "connect" | "refresh") => {
     setIsRedirecting(true);
@@ -125,14 +133,14 @@ const Page = () => {
             <button onClick={handleBack} className="text-2xl hover:opacity-70 transition-opacity">
               <ArrowLeft />
             </button>
-            <span className="text-[14px] text-gray-500 font-poppins">Step 6 of 6</span>
           </div>
           <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-2">
-            Payout Setup
+            {fromWithdraw ? "Connect Stripe to withdraw" : "Payout account"}
           </h1>
           <p className="text-[16px] font-poppins text-[#2B2F32] mb-6">
-            Payouts are handled by Stripe — verify your identity and add a bank account to get paid.
-            We never see or store your bank details.
+            {fromWithdraw
+              ? "Stripe handles identity verification and bank details when you cash out. You can earn and view your wallet balance without connecting first."
+              : "Payouts are handled by Stripe — verify your identity and add a bank account to get paid. We never see or store your bank details."}
           </p>
 
           {statusError && (
@@ -246,11 +254,13 @@ const Page = () => {
           {isFullySetUp && (
             <Button
               variant="primary"
-              onClick={() => router.push("/tasker/profile/earnings")}
+              onClick={() =>
+                router.push(fromWithdraw ? "/tasker/profile/earnings" : "/tasker/profile/earnings")
+              }
               fullWidth
               className="py-4 text-[16px] font-gerat font-bold"
             >
-              Go to Wallet
+              {fromWithdraw ? "Back to wallet" : "Go to wallet"}
             </Button>
           )}
 

@@ -170,6 +170,23 @@ export async function getWalletSummary(): Promise<ArtisanWalletSummary> {
 
 // ─── Stripe Connect payout account ─────────────────────────────────────────
 
+/** True when Stripe Connect onboarding is complete enough to attempt a withdrawal. */
+export function isStripeConnectReadyForWithdraw(account: PayoutAccountStatus | null | undefined): boolean {
+  if (!account?.connected || !account.onboardingCompleted) return false;
+  if (account.requirementsDue.length > 0) return false;
+  return account.chargesEnabled && account.payoutsEnabled;
+}
+
+/** Optional nudge: balance available but Stripe not connected yet. */
+export function shouldShowConnectStripeNudge(
+  account: PayoutAccountStatus | null | undefined,
+  availableAmount: number,
+): boolean {
+  if (!account || account.connected) return false;
+  const avail = Math.max(account.availableForWithdrawal, availableAmount);
+  return avail > 0;
+}
+
 /** `GET /api/payouts/account-status` → `accountStatus`. */
 export type PayoutAccountStatusValue = "PENDING" | "RESTRICTED" | "ACTIVE" | "DISABLED";
 
