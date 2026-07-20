@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { ArrowLeft, CheckCircle2, ExternalLink, Landmark, ShieldAlert } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Button from "@/components/ui/button";
@@ -28,7 +28,7 @@ function errorMessage(err: unknown, fallback: string): string {
   return ax?.response?.data?.message || fallback;
 }
 
-const Page = () => {
+const PaymentMethodContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const fromWithdraw = searchParams.get("from") === "withdraw";
@@ -276,5 +276,17 @@ const Page = () => {
     </div>
   );
 };
+
+const Page = () => (
+  <Suspense
+    fallback={
+      <div className="flex items-center justify-center h-screen">
+        <Loader />
+      </div>
+    }
+  >
+    <PaymentMethodContent />
+  </Suspense>
+);
 
 export default Page;
