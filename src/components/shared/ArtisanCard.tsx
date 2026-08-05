@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { Star } from "lucide-react";
 import { formatDistanceDisplay, readDistanceFields } from "@/utils/distance";
+import { formatHourlyRate } from "@/utils/currency";
 
 interface ArtisanCardProps {
   artisan: {
@@ -151,7 +152,8 @@ const ArtisanCard = ({ artisan, index, onSelect, onViewProfile }: ArtisanCardPro
       {/* Bottom Row (Full Width) */}
       <div className="mt-3 sm:mt-auto pt-2 sm:pt-4 flex items-center justify-between w-full gap-4">
         <div className="text-[24px] sm:text-[20px] font-mabry font-bold text-[#2F2C2C] shrink-0">
-          ${artisan.pricePerHour.toFixed(2)}<span className="text-[16px] font-mabry">/hr</span>
+          {formatHourlyRate(artisan.pricePerHour)}
+          <span className="sr-only"> per hour</span>
         </div>
         <button
           onClick={(e) => {

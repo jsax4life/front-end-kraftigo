@@ -21,6 +21,7 @@ import {
 } from "@/lib/paymentCardRequired";
 import { MARKETPLACE_FIXED_PRICE_FINISH_BOOKING_MESSAGE } from "@/lib/marketplaceFixedPriceOfferValidation";
 import { parseBookingMoney } from "@/lib/bookingDisplay";
+import { formatHourlyRate, formatMoney } from "@/utils/currency";
 import {
   clampDurationHours,
   parseDurationHoursParam,
@@ -420,12 +421,12 @@ const Page = () => {
           <div className="flex flex-col items-end gap-2 ">
             {isPublic ? (
               <span className="text-brand-orange text-[18px] sm:text-[18px] mt-2 font-mabry font-bold">
-                Budget: ${budget}{isPublicHourly ? "/hr" : ""}
+                Budget: {formatMoney(Number(budget) || 0)}{isPublicHourly ? "/hr" : ""}
               </span>
             ) : (
               <>
                 <span className="text-brand-orange text-[16px] sm:text-[18px] font-poppins font-bold">
-                  ${hourlyRate.toFixed(2)}/hr
+                  {formatHourlyRate(hourlyRate)}
                 </span>
                 <Image
                   src={artisanDisplayPhoto}
@@ -456,12 +457,12 @@ const Page = () => {
             <>
               <div className="flex items-center justify-between">
                 <span className="text-[13px] sm:text-[14px] font-poppins text-gray-700">
-                  {isPublicHourly ? "Your offer rate" : "Your offer budget"} (${Number(budget || 0)}{isPublicHourly ? "/hr" : ""} * {durationHoursDisplay % 1 === 0
+                  {isPublicHourly ? "Your offer rate" : "Your offer budget"} ({formatHourlyRate(Number(budget) || 0)} * {durationHoursDisplay % 1 === 0
                         ? durationHoursDisplay
                         : durationHoursDisplay.toFixed(2)} )
                 </span>
                 <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900">
-                  ${estimatedLaborSubtotal.toFixed(2)}
+                  {formatMoney(estimatedLaborSubtotal)}
                 </span>
               </div>
             </>
@@ -469,12 +470,12 @@ const Page = () => {
             <>
               <div className="flex items-center justify-between">
                 <span className="text-[13px] sm:text-[14px] font-poppins text-gray-700">
-                  Hourly rate (€{hourlyRate.toFixed(2)}/hr  * {durationHoursDisplay % 1 === 0
+                  Hourly rate ({formatHourlyRate(hourlyRate)} * {durationHoursDisplay % 1 === 0
                     ? durationHoursDisplay
                     : durationHoursDisplay.toFixed(2)} hours)
                 </span>
                 <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900">
-                  €{estimatedLaborSubtotal.toFixed(2)}
+                  {formatMoney(estimatedLaborSubtotal)}
                 </span>
               </div>
               
@@ -485,7 +486,7 @@ const Page = () => {
               {isPublic ? "Service fee" : "Service fee (estimate)"}
             </span>
             <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900">
-              €{serviceFee.toFixed(2)}
+              {formatMoney(serviceFee)}
             </span>
           </div>
           <div className="pt-3 border-t border-[#0000001A] flex items-center justify-between">
@@ -493,7 +494,7 @@ const Page = () => {
               {isPublic ? "Total Amount" : "Total (estimate)"}
             </span>
             <span className="text-[16px] sm:text-[18px] font-poppins font-bold text-gray-900">
-              €{totalAmount.toFixed(2)}
+              {formatMoney(totalAmount)}
             </span>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import type { Application } from "@/types";
 import { readDistanceFields } from "@/utils/distance";
+import { formatHourlyRate, formatMoney } from "@/utils/currency";
 
 type LooseRecord = Record<string, unknown>;
 
@@ -51,13 +52,7 @@ export function mapBookingApplicationRowToApplication(
   if (proposed != null && proposed !== "") {
     const n = Number(proposed);
     if (Number.isFinite(n)) {
-      const formatted = new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "EUR",
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }).format(n);
-      priceStr = isHourly ? `${formatted}/hr` : formatted;
+      priceStr = isHourly ? formatHourlyRate(n) : formatMoney(n);
     }
   }
 

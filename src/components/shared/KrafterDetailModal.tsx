@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { X, Star, MapPin, Clock, Languages, Briefcase } from "lucide-react";
 import { formatDistanceDisplay, readDistanceFields } from "@/utils/distance";
+import { formatHourlyRate } from "@/utils/currency";
 import { DistanceBadge } from "@/components/ui/DistanceBadge";
 
 export interface KrafterDetail {
@@ -213,8 +214,7 @@ const KrafterDetailModal = ({ krafter, onClose, onSelect }: KrafterDetailModalPr
             <div className="flex items-center justify-between mt-2 ">
               <div>
                 <p className="text-[22px] font-mabry font-bold text-gray-900">
-                  €{krafter.pricePerHour.toFixed(2)}
-                  <span className="text-[22px] font-mabry"> /hr</span>
+                  {formatHourlyRate(krafter.pricePerHour)}
                 </p>
               </div>
             </div>

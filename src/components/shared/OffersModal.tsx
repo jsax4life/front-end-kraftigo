@@ -16,6 +16,7 @@ import {
 import { bookingPaymentClientSecret } from "@/lib/bookingPaymentCheckout";
 import { useBookingsStore } from "@/store/useBookingsStore";
 import { DEFAULT_DURATION_HOURS } from "@/lib/durationHours";
+import { formatHourlyRate } from "@/utils/currency";
 
 interface OffersModalProps {
   booking: Booking | null;
@@ -37,7 +38,7 @@ const mockApplications: Application[] = [
     rating: 4,
     reviews_count: 23,
     tasks_count: 72,
-    price: "€41.29/hr",
+    price: formatHourlyRate(41.29),
     status: "pending",
     proposal_message:
       "I have six years of experience cleaning houses. My priority is to bring a good service and leave everything very clean✨.",

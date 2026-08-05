@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { CircleEllipsis } from "lucide-react";
 import { DistanceBadge } from "@/components/ui/DistanceBadge";
+import { formatMoney } from "@/utils/currency";
 
 interface JobCardProps {
   id: string;
@@ -62,7 +63,7 @@ const JobCard = ({
         <Image src={image} alt={title} fill className="object-cover" />
         {/* Price Badge */}
         <div className="absolute top-3 left-3 max-w-[min(100%,18rem)] truncate bg-brand-blue px-3 py-1 text-sm font-medium text-white rounded-full">
-          {priceBadgeLabel ?? `$${priceRange.min} - $${priceRange.max}`}
+          {priceBadgeLabel ?? `${formatMoney(priceRange.min)} - ${formatMoney(priceRange.max)}`}
         </div>
         {/* Bookmark Icon */}
         <button

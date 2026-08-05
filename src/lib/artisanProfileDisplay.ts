@@ -1,5 +1,6 @@
 import { parseCoordinate } from "@/lib/taskLocation";
 import { formatGenderLabel } from "@/lib/genderOptions";
+import { formatFlatRate, formatHourlyRate } from "@/utils/currency";
 import type { ArtisanProfile } from "@/types";
 
 function pickStr(obj: Record<string, unknown> | undefined, ...keys: string[]): string | undefined {
@@ -100,10 +101,10 @@ export function formatOfferingRate(offering: {
   const rate =
     type === "FLAT"
       ? offering.flatRate != null
-        ? `€${offering.flatRate} flat`
+        ? formatFlatRate(offering.flatRate)
         : "Flat rate"
       : offering.hourlyRate != null
-        ? `€${offering.hourlyRate}/hr`
+        ? formatHourlyRate(offering.hourlyRate)
         : "Hourly rate";
   const exp =
     offering.experienceYears != null && offering.experienceYears > 0

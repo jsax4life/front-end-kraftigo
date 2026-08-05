@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { formatDistanceDisplay, readDistanceFields } from "@/utils/distance";
+import { formatHourlyRate } from "@/utils/currency";
 
 interface ArtisanGridCardProps {
   artisan: {
@@ -92,7 +93,7 @@ const ArtisanGridCard = ({ artisan, onSelect, onViewProfile }: ArtisanGridCardPr
       {/* Bottom Row */}
       <div className="mt-auto flex items-center justify-between w-full gap-2">
         <div className="text-[18px] sm:text-[20px] font-mabry font-bold text-[#2F2C2C] shrink-0">
-          ${artisan.pricePerHour.toFixed(2)}<span className="text-[14px] font-mabry">/hr</span>
+          {formatHourlyRate(artisan.pricePerHour)}
         </div>
         <button
           onClick={(e) => {

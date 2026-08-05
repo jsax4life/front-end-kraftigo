@@ -8,6 +8,7 @@ import { ArrowLeft, Search, MapPin, Tag, MessageCircle, Trash2 } from "lucide-re
 import toast from "react-hot-toast";
 import OffersModal from "@/components/shared/OffersModal";
 import CustomerKraftTaskDetailModal from "@/components/shared/CustomerKraftTaskDetailModal";
+import { formatHourlyRate } from "@/utils/currency";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import ErrorBanner from "@/components/shared/ErrorBanner";
 import { useBookingsStore } from "@/store/useBookingsStore";
@@ -321,7 +322,7 @@ const KraftsPage = () => {
             if (task.status === "OPEN_FOR_APPLICATIONS") {
               const title = task.jobTitle ?? task.service?.title ?? "Kraft";
               const rate = parseBookingMoney(task.proposedPrice ?? task.listingProposedPrice);
-              const priceLabel = rate != null ? `$${rate.toFixed(2)}/hr` : "—";
+              const priceLabel = rate != null ? formatHourlyRate(rate) : "—";
               const posted = formatPostedDayMonth(task.created_at ?? task.createdAt);
               const offerCount = applicantCounts[task.id];
               const offersLabel =

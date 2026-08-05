@@ -23,6 +23,7 @@ export interface VerifyEmailPayload {
 
 export interface GoogleAuthPayload {
   idToken: string;
+  hasAcceptedTerms: boolean;
 }
 
 export interface ResetPasswordPayload {

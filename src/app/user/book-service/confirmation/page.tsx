@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { useEffect, useState, Suspense } from "react";
 import { parseBookingMoney } from "@/lib/bookingDisplay";
+import { formatHourlyRate, formatMoney } from "@/utils/currency";
 
 const ConfirmationContent = () => {
   const router = useRouter();
@@ -260,14 +261,14 @@ const ConfirmationContent = () => {
             <div className="space-y-2 text-[13px] font-poppins">
               {hourlyRate !== null ? (
                 <div className="flex justify-between gap-4">
-                  <span className="text-gray-600">Hourly rate (${hourlyRate.toFixed(2)}/hr x {
+                  <span className="text-gray-600">Hourly rate ({formatHourlyRate(hourlyRate)} x {
                     estimatedHoursLabel
                   } )</span>  
                   <span className="font-semibold text-gray-900">
                   {bookingFinalAgreed !== null ? (
                     <div className="flex justify-between gap-4">
                       <span className="font-semibold text-gray-900">
-                        €{bookingFinalAgreed.toFixed(2)}
+                        {formatMoney(bookingFinalAgreed)}
                       </span>
                     </div>
                   ) : null}
@@ -280,7 +281,7 @@ const ConfirmationContent = () => {
                     <div className="flex justify-between gap-4">
                       <span className="text-gray-600">Platform fee</span>
                       <span className="font-semibold text-gray-900">
-                        €{bookingPlatformFee.toFixed(2)}
+                        {formatMoney(bookingPlatformFee)}
                       </span>
                     </div>
                   ) : null}
@@ -288,7 +289,7 @@ const ConfirmationContent = () => {
                     <div className="flex justify-between gap-4 border-t border-[#0000001A] pt-2 mt-2">
                       <span className="text-gray-900 font-semibold">Total (from booking)</span>
                       <span className="font-bold text-brand-orange">
-                        €{serverTotal.toFixed(2)}
+                        {formatMoney(serverTotal)}
                       </span>
                     </div>
                   ) : null}

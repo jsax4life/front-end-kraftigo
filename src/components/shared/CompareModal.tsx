@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import { Application } from "@/types";
 import { useBookingsStore } from "@/store/useBookingsStore";
 import { formatDistanceDisplay, readDistanceFields } from "@/utils/distance";
+import { formatHourlyRate } from "@/utils/currency";
 import { DistanceBadge } from "@/components/ui/DistanceBadge";
 
 interface CompareSheetProps {
@@ -182,7 +183,7 @@ function mapCompareItemToApplication(item: any, fallback: Application): Applicat
   const name = item?.fullName ?? item?.name ?? item?.artisanName ?? fallback.artisan_name;
   const image = item?.avatar ?? item?.image ?? item?.profilePhotoUrl ?? fallback.image;
   const price =
-    item?.price ?? (item?.pricePerHour != null ? `€${item.pricePerHour}/hr` : fallback.price);
+    item?.price ?? (item?.pricePerHour != null ? formatHourlyRate(item.pricePerHour) : fallback.price);
   const distance = readDistanceFields(item);
   return {
     ...fallback,

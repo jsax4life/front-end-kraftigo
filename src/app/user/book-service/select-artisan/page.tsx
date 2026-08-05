@@ -22,6 +22,7 @@ import { formatLocalDateYmd, parseLocalDateYmd } from "@/utils/date";
 import { readDistanceFields } from "@/utils/distance";
 import { resolveTaskCoordinates } from "@/lib/taskLocation";
 import { readFlexibleScheduleFromUrlParams } from "@/lib/flexibleSchedule";
+import { formatHourlyRate } from "@/utils/currency";
 
 interface Artisan {
   id: string;
@@ -307,7 +308,7 @@ const SelectArtisanPage = () => {
     artisan_id: artisan.id.toString(),
     artisan_name: artisan.name,
     proposal_message: "",
-    price: `€${artisan.pricePerHour}/hr`,
+    price: formatHourlyRate(artisan.pricePerHour),
     status: "pending",
     rating: artisan.rating,
     reviews_count: artisan.reviewCount,

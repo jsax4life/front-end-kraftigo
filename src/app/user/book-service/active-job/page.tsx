@@ -10,6 +10,7 @@ import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import ErrorBanner from "@/components/shared/ErrorBanner";
 import { useBookingsStore } from "@/store/useBookingsStore";
 import { deriveActiveJobDisplay, buildSelectArtisanQuery, upcomingStatusLabel } from "@/lib/bookingDisplay";
+import { formatMoney } from "@/utils/currency";
 import type { CancelBookingPayload } from "@/lib/api/bookings";
 import {
   canCustomerCancelBookingStatus,
@@ -292,14 +293,14 @@ const ActiveJobContent = () => {
                   className="flex justify-between text-[13px] font-poppins text-gray-600"
                 >
                   <span>{row.label}</span>
-                  <span>${row.amount.toFixed(2)}</span>
+                  <span>{formatMoney(row.amount)}</span>
                 </div>
               ))
             )}
             {displayData.priceBreakdown.total != null && (
               <div className="flex justify-between text-[14px] font-poppins font-bold text-black border-t border-gray-100 pt-2 mt-2">
                 <span>Total</span>
-                <span>${displayData.priceBreakdown.total.toFixed(2)}</span>
+                <span>{formatMoney(displayData.priceBreakdown.total)}</span>
               </div>
             )}
           </div>

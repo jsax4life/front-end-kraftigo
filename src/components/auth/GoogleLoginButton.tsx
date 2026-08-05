@@ -38,7 +38,9 @@ const GoogleLoginButton = ({
       return;
     }
     try {
-      await loginWithGoogle(buildGoogleAuthPayload(credentialResponse.credential));
+      await loginWithGoogle(
+        buildGoogleAuthPayload(credentialResponse.credential, termsAccepted),
+      );
       logger.log("Google OAuth successful!");
       toast.success("Login successful! Welcome to Kraftigo.");
       await routeAfterAuthLogin(router);

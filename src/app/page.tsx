@@ -28,7 +28,9 @@ import { fetchKrafterProfile } from "@/lib/api/bookings";
 import Navbar from "@/components/shared/Navbar";
 import Footer from "@/components/shared/Footer";
 import HomeKrafterBanner from "@/components/shared/HomeKrafterBanner";
+import HomeSummerPromoBanner from "@/components/shared/HomeSummerPromoBanner";
 import { formatDistanceDisplay, readDistanceFields } from "@/utils/distance";
+import { formatHourlyRate, formatMoney } from "@/utils/currency";
 import { DistanceBadge } from "@/components/ui/DistanceBadge";
 import type { HomeProOfWeek } from "@/lib/api/auth";
 
@@ -51,7 +53,7 @@ const STATIC_PROS = [
     tasks: 72,
     description:
       "I have six years of experience cleaning houses. My priority is to bring a good service and leav...",
-    price: "€41.29/hr",
+    price: formatHourlyRate(41.29),
     distance: undefined,
     image: "/images/pro.jpg",
     badge: "TOP PRO",
@@ -63,7 +65,7 @@ const STATIC_PROS = [
     tasks: 120,
     description:
       "Professional cleaner with attention to detail. I ensure every corner is spotless and your home...",
-    price: "€45.00/hr",
+    price: formatHourlyRate(45),
     distance: undefined,
     image: "/images/pro.jpg",
     badge: "TOP PRO",
@@ -113,7 +115,7 @@ function mapHomeKrafterToCard(p: HomeProOfWeek): HomeKrafterCard {
     reviews: p.reviewCount,
     tasks: p.completedKrafts,
     description: p.description ?? "",
-    price: `€${p.hourlyRate.toFixed(2)}/hr`,
+    price: formatHourlyRate(p.hourlyRate),
     distance: formatDistanceDisplay(readDistanceFields(p)) ?? undefined,
     image: normSrc(p.profilePhotoUrl) ?? "/images/pro.jpg",
     badge: p.badges[0] ? p.badges[0].replace(/_/g, " ") : undefined,
@@ -554,13 +556,7 @@ const Page = () => {
             <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0 pt-3">
               <div className="flex gap-6 w-max">
                 <HomeKrafterBanner />
-                <Image 
-                  src="/annc2.svg" 
-                  alt="banner2" 
-                  width={450} 
-                  height={186} 
-                  className="shrink-0" 
-                />
+                <HomeSummerPromoBanner />
               </div>
             </div>
           )}
@@ -976,9 +972,10 @@ const Page = () => {
                                   </p>
                                   <p className="text-[12px] font-poppins text-brand-orange mt-0.5">
                                     {price != null
-                                      ? `€${price.toFixed(2)}`
-                                      : "—"}{" "}
-                                    {priceType === "HOURLY" ? "/hr" : "flat"}
+                                      ? `${formatMoney(price)}${
+                                          priceType === "HOURLY" ? "/hr" : " flat"
+                                        }`
+                                      : "—"}
                                     {durationMinutes
                                       ? ` · ~${Math.round(durationMinutes / 60)}h`
                                       : ""}
@@ -1057,7 +1054,7 @@ const Page = () => {
                                   ? ` · ${artisan.completedJobs} jobs`
                                   : ""}
                                 {artisan.hourlyRate != null
-                                  ? ` · €${artisan.hourlyRate.toFixed(2)}/hr`
+                                  ? ` · ${formatHourlyRate(artisan.hourlyRate)}`
                                   : ""}
                                 {artisan.isAvailable === true
                                   ? " · Available"

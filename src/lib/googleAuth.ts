@@ -1,6 +1,12 @@
-/** Backend `POST /api/auth/google` accepts only the Google ID token. */
-export function buildGoogleAuthPayload(idToken: string) {
-  return { idToken };
+/** Backend `POST /api/auth/google` requires the Google ID token and terms acceptance. */
+export function buildGoogleAuthPayload(
+  idToken: string,
+  hasAcceptedTerms: boolean,
+) {
+  return {
+    idToken,
+    hasAcceptedTerms: Boolean(hasAcceptedTerms),
+  };
 }
 
 /** Map backend Google auth errors to user-facing messages. */
