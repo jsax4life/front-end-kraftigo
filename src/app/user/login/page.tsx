@@ -1,26 +1,26 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Input from "@/components/ui/input";
 import Button from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
-import { useProfileStore } from "@/store/useProfileStore";
-import { getVerificationWire } from "@/lib/api/verification";
 import Loader from "@/components/ui/loader";
 import { useOTPInput } from "@/hooks/useOTPInput";
 import { isValidEmail, isNotEmpty } from "@/utils/validation";
 import { AUTH_CONFIG } from "@/constants/auth";
 import toast from "react-hot-toast";
-import { formatLoginApiError } from "@/lib/authApiErrors";
+import { formatLoginApiError, isEmailNotVerifiedError } from "@/lib/authApiErrors";
+import { setPendingEmailVerification } from "@/lib/pendingEmailVerification";
 import GoogleLoginButton from "@/components/auth/GoogleLoginButton";
+import { routeAfterAuthLogin } from "@/lib/postLoginRouting";
 
-const Page = () => {
+const LoginPageContent = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { loginUser, isAuthenticated, isLoading, error, clearError } = useAuthStore();
-  const { fetchVerificationStatus } = useProfileStore();
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = AUTH_CONFIG.LOGIN_STEPS;
   const showGoogleLogin = !!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
@@ -39,23 +39,20 @@ const Page = () => {
   } = useOTPInput(AUTH_CONFIG.OTP_LENGTH);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      (async () => {
-        await fetchVerificationStatus();
-        const { verificationState, kycStatus } = getVerificationWire(
-          useProfileStore.getState().verificationStatus,
-        );
-        if (
-          kycStatus === "APPROVED" &&
-          (verificationState === "PENDING" || verificationState === "APPROVED")
-        ) {
-          router.replace("/tasker/dashboard");
-          return;
-        }
-        router.replace("/");
-      })();
+    const emailFromQuery = searchParams.get("email")?.trim() ?? "";
+    if (emailFromQuery) {
+      setFormData((prev) => ({ ...prev, email: emailFromQuery }));
     }
-  }, [isAuthenticated, router, fetchVerificationStatus]);
+    if (searchParams.get("verified") === "1") {
+      toast.success("Email verified. Sign in to continue.");
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      void routeAfterAuthLogin(router);
+    }
+  }, [isAuthenticated, router]);
 
   const handleInputChange = (field: string, value: string | boolean) => {
     if (error) clearError();
@@ -101,20 +98,18 @@ const Page = () => {
     try {
       await loginUser(formData.email, formData.password);
       toast.success("Login successful! Welcome back.");
-      await fetchVerificationStatus();
-      const { verificationState, kycStatus } = getVerificationWire(
-        useProfileStore.getState().verificationStatus,
-      );
-      if (
-        kycStatus === "APPROVED" &&
-        (verificationState === "PENDING" || verificationState === "APPROVED")
-      ) {
-        router.replace("/tasker/dashboard");
+      await routeAfterAuthLogin(router);
+    } catch (err: unknown) {
+      const storeError = useAuthStore.getState().error;
+      if (isEmailNotVerifiedError(err, storeError)) {
+        setPendingEmailVerification(formData.email);
+        toast.error("Your email is not verified yet. Enter the code we sent you.");
+        router.push(
+          `${AUTH_CONFIG.VERIFY_EMAIL_ROUTE}?email=${encodeURIComponent(formData.email)}`,
+        );
         return;
       }
-      router.replace("/");
-    } catch (err: unknown) {
-      const msg = formatLoginApiError(err, useAuthStore.getState().error);
+      const msg = formatLoginApiError(err, storeError);
       toast.error(msg);
     }
   };
@@ -169,7 +164,7 @@ const Page = () => {
                   <div className="text-center text-[16px] my-4 font-mabry">
                     Or sign in with
                   </div>
-                  <div className="flex gap-4 justify-center pb-4">
+                  <div className="flex gap-4 justify-center pb-2 items-center">
                     {showGoogleLogin ? (
                       <GoogleLoginButton variant="icon" />
                     ) : (
@@ -184,6 +179,17 @@ const Page = () => {
                       <Image src="/apple.svg" alt="Apple" width={24} height={24} />
                     </button>
                   </div>
+                  <p className="text-center text-[12px] font-poppins text-gray-500 px-4 pb-4">
+                    By signing in with Google you agree to our{" "}
+                    <button
+                      type="button"
+                      onClick={() => router.push("/user/createacc")}
+                      className="text-brand-blue underline"
+                    >
+                      Terms of Use
+                    </button>
+                    .
+                  </p>
                 </div>
               </div>
             )}
@@ -221,4 +227,10 @@ const Page = () => {
   );
 };
 
-export default Page;
+export default function Page() {
+  return (
+    <Suspense fallback={<Loader />}>
+      <LoginPageContent />
+    </Suspense>
+  );
+}

@@ -8,11 +8,14 @@ import { X, MessageCircle, AlertCircle, Pause, ChevronRight, Calendar } from "lu
 import PhotoUploader, { Photo } from "@/components/shared/PhotoUploader";
 import Button from "@/components/ui/button";
 import RateCustomerModal from "@/components/shared/RateCustomerModal";
-import { submitReview } from "@/lib/api/reviews";
+import { getMyReviews, submitReview } from "@/lib/api/reviews";
+import { findMyReviewForBooking, type MyReview } from "@/lib/reviewDisplay";
+import SubmittedReviewSummary from "@/components/shared/SubmittedReviewSummary";
 import { buildTaskerMessageCustomerUrlFromBooking } from "@/lib/chatDeepLinks";
 import type { Booking } from "@/types";
 import { useBookingsStore } from "@/store/useBookingsStore";
-import { parseBookingMoney } from "@/lib/bookingDisplay";
+import { parseBookingMoney, deriveBookingCustomerPresentation } from "@/lib/bookingDisplay";
+import { getBookingById } from "@/lib/api/bookings";
 import { formatDistanceDisplay, readDistanceFields } from "@/utils/distance";
 import { DistanceBadge } from "@/components/ui/DistanceBadge";
 
@@ -164,7 +167,7 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
   const [showPriceBreakdown, setShowPriceBreakdown] = useState(false);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [isReviewSubmitting, setIsReviewSubmitting] = useState(false);
-  const [hasSubmittedReview, setHasSubmittedReview] = useState(false);
+  const [existingReview, setExistingReview] = useState<MyReview | null>(null);
   const estimatedHours = 2;
 
   const buildReviewPayload = (rating: number, tags: string[], feedback: string) => ({
@@ -223,6 +226,52 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
   }, [booking?.id, booking?.status]);
 
   useEffect(() => {
+    if (!booking?.id || normStatus(booking.status) !== "COMPLETED") {
+      setExistingReview(null);
+      return;
+    }
+    let cancelled = false;
+    setExistingReview(null);
+    void (async () => {
+      try {
+        const reviews = await getMyReviews();
+        if (cancelled) return;
+        const found = findMyReviewForBooking(reviews, booking.id);
+        if (found) setExistingReview(found);
+      } catch (err) {
+        console.error("Failed to load your review:", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [booking?.id, booking?.status]);
+
+  useEffect(() => {
+    if (!booking?.id) return;
+    const c = booking.customer;
+    const hasCustomerIdentity =
+      Boolean(booking.customerName?.trim()) ||
+      Boolean(c?.firstName?.trim()) ||
+      Boolean(c?.lastName?.trim()) ||
+      Boolean(c?.phone?.trim());
+    if (hasCustomerIdentity) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const full = await getBookingById(booking.id);
+        if (cancelled || !full) return;
+        onBookingUpdated?.(full);
+      } catch {
+        /* keep list row if detail fetch fails */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [booking?.id, booking?.customer, booking?.customerName, onBookingUpdated]);
+
+  useEffect(() => {
     if (phase !== "in-progress" || isPaused) return;
     const tick = () => setTimer(msToTimer(computeElapsedMs()));
     tick();
@@ -237,7 +286,10 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
   const isConfirmed = apiStatus === "CONFIRMED";
   const isExpired = apiStatus === "EXPIRED";
   const displayTitle = booking.title || booking.service?.title || "Booking";
-  const customerLabel = booking.customerName ?? "Customer";
+  const customerPresentation = deriveBookingCustomerPresentation(booking);
+  const customerLabel = customerPresentation.displayName;
+  const customerAvatar = customerPresentation.photoUrl;
+  const customerSecondary = customerPresentation.secondaryLine;
   const dateLabel = formatDateLabel(booking.scheduled_date);
   const timeLabel = booking.scheduled_time || booking.preferredTime || "TBD";
   const kraftDetailsText = booking.jobDescription || booking.notes || "No additional details provided.";
@@ -319,11 +371,11 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
   const hasCompletionPhotos = proofPhotos.some((p) => p.file instanceof File);
 
   const handleRatingSubmit = async (rating: number, tags: string[], feedback: string) => {
-    if (hasSubmittedReview || isReviewSubmitting) return;
+    if (existingReview || isReviewSubmitting) return;
     setIsReviewSubmitting(true);
     try {
-      await submitReview(buildReviewPayload(rating, tags, feedback));
-      setHasSubmittedReview(true);
+      const created = await submitReview(buildReviewPayload(rating, tags, feedback));
+      setExistingReview(created);
       toast.success("Review submitted.");
       setShowRatingModal(false);
     } catch (err: unknown) {
@@ -424,23 +476,27 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-300 flex items-center justify-center">
-                    {booking.image ? (
+                    {customerAvatar ? (
                       <Image
-                        src={booking.image}
+                        src={customerAvatar}
                         alt={customerLabel}
                         fill
                         className="object-cover"
                       />
                     ) : (
-                      <span className="text-white text-lg font-bold">{customerLabel.charAt(0)}</span>
+                      <span className="text-white text-lg font-bold">{customerPresentation.initials}</span>
                     )}
                 </div>
                   <div>
                     <h3 className="text-[15px] font-bold text-gray-900">{customerLabel}</h3>
                     <p className="text-[12px] text-gray-500 mt-0.5">
                       {phase === "completed"
-                        ? "Completed booking summary"
-                        : "Message for this listed kraft if you use chat."}
+                        ? customerSecondary !== "Customer"
+                          ? customerSecondary
+                          : "Completed booking summary"
+                        : customerSecondary !== "Customer"
+                          ? customerSecondary
+                          : "Message for this listed kraft if you use chat."}
                     </p>
                   </div>
               </div>
@@ -659,14 +715,21 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
                 </>
               )}
 
+              {phase === "completed" && existingReview && (
+                <SubmittedReviewSummary
+                  review={existingReview}
+                  revieweeLabel={customerLabel}
+                />
+              )}
+
               {phase === "completed" && (
                 <button
                   type="button"
                   onClick={() => setShowRatingModal(true)}
-                  disabled={hasSubmittedReview}
+                  disabled={!!existingReview}
                   className="w-full py-3 border border-brand-orange text-brand-orange text-[15px] font-semibold rounded-xl hover:bg-orange-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {hasSubmittedReview ? "Review submitted" : "Rate customer"}
+                  {existingReview ? "Review submitted" : "Rate customer"}
                 </button>
               )}
 

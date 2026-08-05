@@ -36,7 +36,7 @@ const Select = ({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}
-          className={`w-full h-13 px-4  bg-[#F6F6F6] rounded-xl border border-[#0000001A] outline-none text-[14px] font-poppins text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed appearance-none pr-10 ${className}`}
+          className={`w-full h-13 px-4 bg-[#F6F6F6] rounded-xl border border-[#0000001A] outline-none text-[14px] font-poppins text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer appearance-none pr-10 ${className}`}
         >
           <option value="" disabled>
             {placeholder}

@@ -67,10 +67,21 @@ export const getServiceCategories = async (): Promise<ServiceCategory[]> => {
   return response.data
 }
 
+function normalizeServiceSkillGroups(data: unknown): ServiceSkillGroup[] {
+  if (Array.isArray(data)) return data as ServiceSkillGroup[]
+  if (!data || typeof data !== 'object') return []
+  const root = data as Record<string, unknown>
+  for (const key of ['groups', 'data', 'items', 'skillGroups', 'skill_groups']) {
+    const val = root[key]
+    if (Array.isArray(val)) return val as ServiceSkillGroup[]
+  }
+  return []
+}
+
 /** GET /api/services/skills/groups — grouped skills by category */
 export const getServiceSkillGroups = async (): Promise<ServiceSkillGroup[]> => {
   const response = await api.get('/api/services/skills/groups')
-  return response.data
+  return normalizeServiceSkillGroups(response.data)
 }
 
 /** GET /api/services/search — advanced search with ranking */

@@ -1,4 +1,5 @@
 import api from '@/lib/axios'
+import type { GenderApiValue } from '@/lib/genderOptions'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -25,13 +26,14 @@ export interface KrafterOnboardingStatus {
 export interface KrafterPersonalPayload {
   firstName: string
   lastName: string
-  /** "MALE" | "FEMALE" */
-  gender: 'MALE' | 'FEMALE'
+  /** MALE | FEMALE | DIVERS | NOT_SPECIFIED */
+  gender: GenderApiValue
   /** ISO date: "1990-05-15" */
   dateOfBirth: string
   /** ISO 3166-1 alpha-2 country code e.g. "DE", "GH" */
   nationality: string
-  hasAcceptedTerms: boolean
+  /** Required on first onboarding; omit or pass true on later profile edits. */
+  hasAcceptedTerms?: boolean
 }
 
 /** PATCH /api/profile/krafter/initial-onboarding/address — request body */

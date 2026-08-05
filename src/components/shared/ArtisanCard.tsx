@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { Star } from "lucide-react";
-import { DistanceBadge } from "@/components/ui/DistanceBadge";
+import { formatDistanceDisplay, readDistanceFields } from "@/utils/distance";
 
 interface ArtisanCardProps {
   artisan: {
@@ -69,8 +69,15 @@ const ArtisanCard = ({ artisan, index, onSelect, onViewProfile }: ArtisanCardPro
                 </span>
               )}
             </div>
-            <div className="text-[13px] font-poppins text-[#2F2C2C] shrink-0 mt-0.5">
-              {artisan.distanceLabel || (artisan.distance ? `${artisan.distance} miles away` : "")}
+            <div className="min-w-0 max-w-[48%] text-right">
+              <p className="text-[13px] font-poppins text-[#2F2C2C] whitespace-normal break-words leading-snug">
+                {formatDistanceDisplay(
+                  readDistanceFields({
+                    distanceKm: artisan.distance,
+                    distanceLabel: artisan.distanceLabel,
+                  }),
+                ) ?? ""}
+              </p>
             </div>
           </div>
 

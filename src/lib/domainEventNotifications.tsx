@@ -9,6 +9,10 @@ import {
 } from "@/store/useDomainNotificationHistoryStore";
 import { emitWalletSummaryInvalidate, emitPayoutAccountStatusInvalidate } from "@/lib/api/payouts";
 import {
+  emitKycVerificationStatusInvalidate,
+  logKycPushStub,
+} from "@/lib/kycNotifications";
+import {
   AlertTriangle,
   BadgeCheck,
   Banknote,
@@ -30,6 +34,9 @@ import {
   X,
   XCircle,
   XOctagon,
+  Shield,
+  ShieldCheck,
+  ShieldX,
 } from "lucide-react";
 
 type Tone = "brand" | "success" | "info" | "amber" | "danger";
@@ -239,6 +246,14 @@ export function showDomainEventNotification(raw: unknown): void {
   };
   const goTaskerPayouts = () => {
     if (typeof window !== "undefined") window.location.assign("/tasker/dashboard/paymentMethod");
+  };
+  const goKycWelcome = () => {
+    if (typeof window !== "undefined") window.location.assign("/krafter/kyc-welcome");
+  };
+
+  const kycSideEffects = (eventType: string) => {
+    emitKycVerificationStatusInvalidate();
+    logKycPushStub(eventType, msg);
   };
 
   const hist = (
@@ -630,7 +645,9 @@ export function showDomainEventNotification(raw: unknown): void {
         hist("DISPUTE_RESOLVED", null),
       );
       break;
-    case "ARTISAN_VERIFIED":
+    case "ARTISAN_VERIFIED": {
+      kycSideEffects("ARTISAN_VERIFIED");
+      if (!useAuthStore.getState().isTasker()) break;
       pushToast(
         "success",
         <BadgeCheck className="h-5 w-5" />,
@@ -640,6 +657,52 @@ export function showDomainEventNotification(raw: unknown): void {
         hist("ARTISAN_VERIFIED", "requests"),
       );
       break;
+    }
+    case "ARTISAN_KYC_UNDER_REVIEW": {
+      kycSideEffects("ARTISAN_KYC_UNDER_REVIEW");
+      if (!useAuthStore.getState().isTasker()) break;
+      pushToast(
+        "info",
+        <ShieldCheck className="h-5 w-5" />,
+        "KYC under review",
+        "Your identity documents were submitted and are being reviewed.",
+        { actionLabel: "View status", onAction: goKycWelcome },
+        hist("ARTISAN_KYC_UNDER_REVIEW", "verification"),
+      );
+      break;
+    }
+    case "ARTISAN_KYC_REJECTED": {
+      kycSideEffects("ARTISAN_KYC_REJECTED");
+      if (!useAuthStore.getState().isTasker()) break;
+      const rejectionReason =
+        (typeof msg.rejectionReason === "string" && msg.rejectionReason.trim()) ||
+        (typeof msg.reason === "string" && msg.reason.trim()) ||
+        "";
+      pushToast(
+        "danger",
+        <ShieldX className="h-5 w-5" />,
+        "KYC declined",
+        rejectionReason
+          ? rejectionReason
+          : "Your identity verification was declined. Review the details and try again.",
+        { actionLabel: "Retry verification", onAction: goKycWelcome, duration: 12_000 },
+        hist("ARTISAN_KYC_REJECTED", "verification"),
+      );
+      break;
+    }
+    case "ARTISAN_KYC_ACTION_REQUIRED": {
+      kycSideEffects("ARTISAN_KYC_ACTION_REQUIRED");
+      if (!useAuthStore.getState().isTasker()) break;
+      pushToast(
+        "amber",
+        <Shield className="h-5 w-5" />,
+        "Finish verification",
+        "Your identity verification session was not completed. Pick up where you left off.",
+        { actionLabel: "Continue KYC", onAction: goKycWelcome },
+        hist("ARTISAN_KYC_ACTION_REQUIRED", "verification"),
+      );
+      break;
+    }
     case "PROFILE_UPDATED":
       pushToast(
         "info",

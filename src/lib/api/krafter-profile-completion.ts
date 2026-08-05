@@ -4,7 +4,11 @@ import api from '@/lib/axios'
 export interface KrafterProfileCompletionSummary {
   initialOnboarding: { isComplete: boolean; personalCompletedAt?: string | null; addressCompletedAt?: string | null }
   personalDetails: { isComplete: boolean; completedAt?: string | null }
-  skills: { isComplete: boolean; completedAt?: string | null }
+  skills: {
+    isComplete: boolean
+    completedAt?: string | null
+    serviceCategoryOfferings?: ServiceCategoryOffering[]
+  }
   workEligibility: {
     isComplete: boolean
     hasApprovedDocument: boolean
@@ -151,6 +155,7 @@ export interface KrafterPersonalDetailsSubmitPayload {
   whereYouLive?: string
   latitude?: number
   longitude?: number
+  travelRadiusKm?: number
   uniqueSellingPoint?: string
   certifications?: Array<{
     name: string
@@ -168,11 +173,24 @@ export interface KrafterPersonalDetailsSubmitPayload {
 
 export interface ServiceCategoryOffering {
   serviceCategoryId: string
+  serviceCategoryName?: string
   pricingType: 'HOURLY' | 'FLAT'
   hourlyRate?: number
   flatRate?: number
   experienceYears?: number
   photoUrl?: string
+}
+
+/** GET /api/profile/krafter/complete-profile/skills */
+export interface KrafterSkillsStatus {
+  completedAt?: string | null
+  isComplete?: boolean
+  serviceCategoryOfferings?: ServiceCategoryOffering[]
+  skills?: {
+    isComplete?: boolean
+    completedAt?: string | null
+    serviceCategoryOfferings?: ServiceCategoryOffering[]
+  }
 }
 
 /** PATCH /api/profile/krafter/complete-profile/skills */
@@ -300,6 +318,13 @@ export const updateKrafterProfilePhoto = async (
 }
 
 // ─── Skills API Functions ─────────────────────────────────────────────────────
+
+export const getKrafterSkillsStatus = async (): Promise<KrafterSkillsStatus> => {
+  const response = await api.get<KrafterSkillsStatus>(
+    '/api/profile/krafter/complete-profile/skills',
+  )
+  return response.data
+}
 
 export const submitKrafterSkills = async (
   payload: KrafterSkillsSubmitPayload,

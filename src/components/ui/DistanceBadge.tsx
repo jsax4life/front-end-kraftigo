@@ -41,14 +41,9 @@ export function DistanceBadge({
 
   return (
     <span
-      className={`inline-flex text-[10px] md:text-[14px] w-fit max-w-full items-center shrink-0 font-poppins font-semibold leading-none text-black ${sizeClasses[size]} ${alignClasses[align]} ${className}`}
+      className={`inline-flex text-[10px] md:text-[14px] w-fit max-w-full items-start font-poppins font-semibold leading-snug text-black ${sizeClasses[size]} ${alignClasses[align]} ${className}`}
     >
-      {/* <MapPin
-        className="shrink-0 text-black"
-        strokeWidth={2.25}
-        aria-hidden
-      /> */}
-      <span className="truncate">{text}</span>
+      <span className="whitespace-normal break-words">{text}</span>
     </span>
   );
 }

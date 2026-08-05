@@ -8,7 +8,9 @@ import RatingModal from "@/components/shared/RatingModal";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import ErrorBanner from "@/components/shared/ErrorBanner";
 import { useBookingsStore } from "@/store/useBookingsStore";
-import { submitReview } from "@/lib/api/reviews";
+import { getMyReviews, submitReview } from "@/lib/api/reviews";
+import { findMyReviewForBooking, type MyReview } from "@/lib/reviewDisplay";
+import SubmittedReviewSummary from "@/components/shared/SubmittedReviewSummary";
 import { createDispute } from "@/lib/api/disputes";
 import { bookingArtisanName, deriveActiveJobDisplay } from "@/lib/bookingDisplay";
 
@@ -83,13 +85,31 @@ const CompletedJobContent = () => {
   const [showPriceBreakdown, setShowPriceBreakdown] = useState(false);
   const [showKraftDetails, setShowKraftDetails] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [hasSubmittedReview, setHasSubmittedReview] = useState(false);
+  const [existingReview, setExistingReview] = useState<MyReview | null>(null);
 
   useEffect(() => {
     if (bookingId) {
       void fetchBookingById(bookingId);
     }
   }, [bookingId, fetchBookingById]);
+
+  useEffect(() => {
+    if (!bookingId) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const reviews = await getMyReviews();
+        if (cancelled) return;
+        const found = findMyReviewForBooking(reviews, bookingId);
+        if (found) setExistingReview(found);
+      } catch (err) {
+        console.error("Failed to load your review:", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [bookingId]);
 
   // Derive display data
   const booking = bookingId && selectedBooking ? selectedBooking : null;
@@ -121,26 +141,34 @@ const CompletedJobContent = () => {
   const isCompletedBooking = booking?.status === "COMPLETED";
 
   const handleRatingDone = async (rating: number, tags: string[], feedback: string, tipAmount: number) => {
-    if (!isCompletedBooking || hasSubmittedReview) return;
+    if (!isCompletedBooking || existingReview) return;
     setIsSubmitting(true);
     try {
       if (bookingId) {
-        await submitReview({
+        const created = await submitReview({
           bookingId,
           rating,
           feedback: feedback.trim() || undefined,
           selectedTags: tags,
           highlights: tags,
         });
+        setExistingReview(created);
       }
       void tipAmount;
-      setHasSubmittedReview(true);
       setShowRating(false);
       router.push("/user/krafts?tab=completed");
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { message?: string } } };
       if ((ax.response?.data?.message ?? "").toLowerCase().includes("already")) {
-        setHasSubmittedReview(true);
+        if (bookingId) {
+          try {
+            const reviews = await getMyReviews();
+            const found = findMyReviewForBooking(reviews, bookingId);
+            if (found) setExistingReview(found);
+          } catch {
+            /* ignore */
+          }
+        }
       }
       console.error("Failed to submit review:", err);
     } finally {
@@ -312,15 +340,21 @@ const CompletedJobContent = () => {
         )}
       </div>
 
+      {existingReview && (
+        <div className="mx-4 mb-4">
+          <SubmittedReviewSummary review={existingReview} revieweeLabel={artisanName} />
+        </div>
+      )}
+
       {/* Action Buttons */}
       <div className="px-4 space-y-3">
         {isCompletedBooking && (
           <button
             onClick={() => setShowRating(true)}
-            disabled={hasSubmittedReview}
+            disabled={!!existingReview}
             className="w-full py-4 bg-brand-blue text-white rounded-2xl text-[15px] font-poppins font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {hasSubmittedReview ? "Review submitted" : `Rate ${artisanName}`}
+            {existingReview ? "Review submitted" : `Rate ${artisanName}`}
           </button>
         )}
         <button

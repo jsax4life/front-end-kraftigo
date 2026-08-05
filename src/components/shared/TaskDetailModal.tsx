@@ -10,6 +10,8 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import PhotoUploader, { type Photo } from "@/components/shared/PhotoUploader";
 import { formatDistanceDisplay, readDistanceFields } from "@/utils/distance";
+import { deriveBookingCustomerPresentation } from "@/lib/bookingDisplay";
+import { getBookingById } from "@/lib/api/bookings";
 import { DistanceBadge } from "@/components/ui/DistanceBadge";
 
 interface TaskDetailModalProps {
@@ -69,6 +71,30 @@ export default function TaskDetailModal({
     setCompletionNotesInput("");
   }, [booking?.id]);
 
+  useEffect(() => {
+    if (!booking?.id) return;
+    const c = booking.customer;
+    const hasCustomerIdentity =
+      Boolean(booking.customerName?.trim()) ||
+      Boolean(c?.firstName?.trim()) ||
+      Boolean(c?.lastName?.trim()) ||
+      Boolean(c?.phone?.trim());
+    if (hasCustomerIdentity) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const full = await getBookingById(booking.id);
+        if (cancelled || !full) return;
+        onBookingUpdated?.(full);
+      } catch {
+        /* keep list row if detail fetch fails */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [booking?.id, booking?.customer, booking?.customerName, onBookingUpdated]);
+
   if (!booking) return null;
 
   const hasCompletionPhotos = completionPhotos.some((p) => p.file instanceof File);
@@ -80,6 +106,7 @@ export default function TaskDetailModal({
   const isExpired = booking.status === "EXPIRED";
   const displayTitle = booking.title || booking.service?.title || "Craft";
   const distanceText = formatDistanceDisplay(readDistanceFields(booking));
+  const customerPresentation = deriveBookingCustomerPresentation(booking);
 
   return (
     <div
@@ -139,24 +166,27 @@ export default function TaskDetailModal({
         <div className="mx-5 mb-5 bg-[#F6F6F6] border border-[#0000001A] rounded-lg p-3 flex items-center gap-3">
           {/* Avatar */}
           <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-gray-300 shrink-0 flex items-center justify-center">
-            {booking.image ? (
+            {customerPresentation.photoUrl ? (
               <Image
-                src={booking.image}
-                alt={booking.customerName ?? "Customer"}
+                src={customerPresentation.photoUrl}
+                alt={customerPresentation.displayName}
                 fill
                 className="object-cover"
               />
             ) : (
               <span className="text-white text-lg font-bold">
-                {booking.customerName?.charAt(0) ?? "?"}
+                {customerPresentation.initials}
               </span>
             )}
           </div>
           {/* Info */}
           <div>
             <p className="text-[15px] font-bold text-gray-900">
-              {booking.customerName ?? "Customer"}
+              {customerPresentation.displayName}
             </p>
+            {customerPresentation.secondaryLine !== "Customer" ? (
+              <p className="text-[12px] text-gray-500 mt-0.5">{customerPresentation.secondaryLine}</p>
+            ) : (
             <div className="flex items-center gap-1 mt-0.5">
               {/* 3 full stars */}
               {[0, 1, 2].map((s) => (
@@ -198,6 +228,7 @@ export default function TaskDetailModal({
                 (23 Reviews)
               </span>
             </div>
+            )}
           </div>
         </div>
 

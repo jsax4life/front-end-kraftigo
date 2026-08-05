@@ -21,7 +21,7 @@ const Button = ({
 }: ButtonProps) => {
   // Base styles that apply to all buttons
   const baseStyles =
-    "h-[49px] text-[14px] font-mabry py-4 px-8 rounded-xl transition-all  disabled:cursor-not-allowed";
+    "h-[49px] text-[14px] font-mabry py-4 px-8 rounded-xl transition-all cursor-pointer disabled:cursor-not-allowed";
 
   // Width styles
   const widthStyles = fullWidth

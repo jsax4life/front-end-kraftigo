@@ -102,6 +102,59 @@ export function bookingArtisanName(b: BookingLike, fallback = "Krafter"): string
   return explicit || personName(b.service?.artisan) || personName(b.artisan ?? undefined) || fallback;
 }
 
+export type BookingCustomerPresentation = {
+  displayName: string;
+  initials: string;
+  photoUrl: string | null;
+  secondaryLine: string;
+};
+
+/** Resolve customer display from list/detail booking payloads (camel or snake_case). */
+export function deriveBookingCustomerPresentation(
+  booking: BookingLike & {
+    customer?: {
+      id?: string;
+      firstName?: string | null;
+      lastName?: string | null;
+      email?: string | null;
+      phone?: string | null;
+      profilePhotoUrl?: string | null;
+      avatar?: string | null;
+    } | null;
+    customerName?: string;
+    customer_id?: string;
+  },
+): BookingCustomerPresentation {
+  const loose = booking as Record<string, unknown>;
+  const c = booking.customer;
+  const first = c?.firstName?.trim() || "";
+  const last = c?.lastName?.trim() || "";
+  const fromCustomer = [first, last].filter(Boolean).join(" ").trim();
+  const explicitName =
+    (typeof booking.customerName === "string" && booking.customerName.trim()) ||
+    (typeof loose.customer_name === "string" && loose.customer_name.trim()) ||
+    "";
+  const displayName = fromCustomer || explicitName || "Customer";
+  const initials = (() => {
+    const a = first.charAt(0);
+    const b = last.charAt(0) || first.charAt(1);
+    const pair = (a + b).toUpperCase();
+    if (pair) return pair;
+    const n = displayName.trim();
+    if (n.length >= 2) return n.slice(0, 2).toUpperCase();
+    return n.charAt(0).toUpperCase() || "?";
+  })();
+  const photoUrl =
+    (c?.profilePhotoUrl && String(c.profilePhotoUrl).trim()) ||
+    (c?.avatar && String(c.avatar).trim()) ||
+    null;
+  const secondaryLine =
+    (c?.phone && String(c.phone).trim()) ||
+    (c?.email && String(c.email).trim()) ||
+    "Customer";
+  return { displayName, initials, photoUrl, secondaryLine };
+}
+
 function artisanDisplayName(b: BookingLike): string | null {
   const name = bookingArtisanName(b, "");
   return name || null;

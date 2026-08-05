@@ -94,6 +94,7 @@ export interface HomeUpcomingBooking {
 export interface HomePageResponse {
   categories: HomeCategory[];
   prosOfWeek: HomeProOfWeek[];
+  kraftersNearYou?: HomeProOfWeek[];
   upcoming: HomeUpcomingBooking[];
 }
 

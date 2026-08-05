@@ -31,6 +31,8 @@ import { Checkbox } from "@/components/ui/Checkbox";
 import { LegalModal } from "@/components/ui/LegalModal";
 import { TermsContent } from "@/components/ui/TermsContent";
 import { PrivacyContent } from "@/components/ui/PrivacyContent";
+import { GENDER_SELECT_OPTIONS, isValidGenderSelection } from "@/lib/genderOptions";
+import NationalityFieldHint from "@/components/shared/NationalityFieldHint";
 
 // function omitUndefinedRecord(
 //   obj: Record<string, unknown>,
@@ -281,6 +283,7 @@ const Page = () => {
           isNotEmpty(formData.firstName) &&
           isNotEmpty(formData.lastName) &&
           isNotEmpty(formData.gender) &&
+          isValidGenderSelection(formData.gender) &&
           isNotEmpty(formData.dateOfBirth) &&
           isNotEmpty(formData.nationality) &&
           formData.termsAccepted !== false
@@ -647,19 +650,10 @@ const Page = () => {
                 />
                 <Select
                   label="Gender"
-                  placeholder="Male"
+                  placeholder="Select gender"
                   value={formData.gender}
                   onChange={(value) => handleInputChange("gender", value)}
-                  options={[
-                    {
-                      value: "Male",
-                      label: "Male",
-                    },
-                    {
-                      value: "Female",
-                      label: "Female",
-                    },
-                  ]}
+                  options={GENDER_SELECT_OPTIONS}
                   required
                 />
                 <Input
@@ -687,6 +681,7 @@ const Page = () => {
                   ]}
                   required
                 />
+                <NationalityFieldHint />
 
                 <div>
                   <Checkbox

@@ -7,6 +7,7 @@ import "./globals.css";
 import AuthPromptModal from "@/components/shared/AuthPromptModal";
 import DomainEventsListener from "@/components/shared/DomainEventsListener";
 import GoogleTranslateInit from "@/components/shared/GoogleTranslateInit";
+import GoogleTagManager from "@/components/shared/GoogleTagManager";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -70,6 +71,7 @@ export default function RootLayout({
       <body
         className={`${poppins.variable} ${local.variable} ${mabry.variable} antialiased selection:bg-brand-orange selection:text-white`}
       >
+        <GoogleTagManager />
         {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? (
           <GoogleOAuthProvider
             clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}

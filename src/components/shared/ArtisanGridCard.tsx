@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { formatDistanceDisplay, readDistanceFields } from "@/utils/distance";
 
 interface ArtisanGridCardProps {
   artisan: {
@@ -51,8 +52,13 @@ const ArtisanGridCard = ({ artisan, onSelect, onViewProfile }: ArtisanGridCardPr
                 </span>
               )}
             </div>
-            <div className="text-[12px] font-poppins text-[#2F2C2C] shrink-0 mt-0.5">
-              {artisan.distanceLabel || (artisan.distance ? `${artisan.distance} miles away` : "")}
+            <div className="text-[12px] font-poppins text-[#2F2C2C] min-w-0 max-w-[48%] text-right whitespace-normal break-words leading-snug">
+              {formatDistanceDisplay(
+                readDistanceFields({
+                  distanceKm: artisan.distance,
+                  distanceLabel: artisan.distanceLabel,
+                }),
+              ) ?? ""}
             </div>
           </div>
 

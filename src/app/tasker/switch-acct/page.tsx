@@ -28,6 +28,13 @@ import {
   parseGeoapifyLatLon,
   resolveKrafterLocationCoords,
 } from "@/lib/geoapify";
+import {
+  GENDER_SELECT_OPTIONS,
+  normalizeGenderApiValue,
+  isValidGenderSelection,
+  type GenderApiValue,
+} from "@/lib/genderOptions";
+import NationalityFieldHint from "@/components/shared/NationalityFieldHint";
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -218,12 +225,7 @@ const Page = () => {
           ...prev,
           firstName: p?.firstName ?? prev.firstName,
           lastName: p?.lastName ?? prev.lastName,
-          gender:
-            p?.gender === "MALE"
-              ? "Male"
-              : p?.gender === "FEMALE"
-              ? "Female"
-              : prev.gender,
+          gender: p?.gender ? normalizeGenderApiValue(p.gender) : prev.gender,
           dateOfBirth: p?.dateOfBirth ?? prev.dateOfBirth,
           nationality: p?.nationality ?? prev.nationality,
           streetNo: a?.street ?? prev.streetNo,
@@ -268,6 +270,7 @@ const Page = () => {
           isNotEmpty(formData.firstName) &&
           isNotEmpty(formData.lastName) &&
           isNotEmpty(formData.gender) &&
+          isValidGenderSelection(formData.gender) &&
           isNotEmpty(formData.dateOfBirth) &&
           isNotEmpty(formData.nationality) &&
           formData.termsAccepted !== false
@@ -296,7 +299,7 @@ const Page = () => {
         await saveKrafterPersonal({
           firstName: formData.firstName,
           lastName: formData.lastName,
-          gender: formData.gender.toUpperCase() as "MALE" | "FEMALE",
+          gender: formData.gender as GenderApiValue,
           dateOfBirth: formData.dateOfBirth,
           nationality: demonymToCode[formData.nationality] ?? formData.nationality,
           hasAcceptedTerms: formData.termsAccepted as boolean,
@@ -497,13 +500,10 @@ const Page = () => {
                 />
                 <Select
                   label="Gender"
-                  placeholder="Select a gender"
+                  placeholder="Select gender"
                   value={formData.gender}
                   onChange={(v) => handleInputChange("gender", v)}
-                  options={[
-                    { value: "Male", label: "Male" },
-                    { value: "Female", label: "Female" },
-                  ]}
+                  options={GENDER_SELECT_OPTIONS}
                   required
                 />
                 <Input
@@ -526,6 +526,7 @@ const Page = () => {
                   required
                   emptyMessage="No nationality found. Try a different spelling."
                 />
+                <NationalityFieldHint />
 
                 <div>
                   <Checkbox

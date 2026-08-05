@@ -10,6 +10,8 @@ export type User = {
   status?: "PENDING_VERIFICATION" | "ACTIVE" | "SUSPENDED";
   avatar?: string;
   hasAcceptedTerms?: boolean;
+  authProvider?: string;
+  hasStartedArtisanOnboarding?: boolean;
 };
 
 /** @deprecated Use User instead */
@@ -372,8 +374,11 @@ export type ArtisanProfileUrlSubmitPayload = {
 };
 
 export interface ArtisanProfile {
+  id?: string;
+  userId?: string;
   legalFullName: string;
   displayName: string;
+  displayFullName?: string;
   profilePhotoUrl?: string;
   /** Service category UUID from `GET /api/services/skills/groups` */
   primarySkillCategoryId?: string;
@@ -384,10 +389,11 @@ export interface ArtisanProfile {
   }[];
   baseCity: string;
   postalCode: string;
-  latitude?: number | null;
-  longitude?: number | null;
+  latitude?: number | string | null;
+  longitude?: number | string | null;
   travelRadiusKm: number;
   primaryTrade: string;
+  occupationDescription?: string;
   secondarySkills: string[];
   /** Skill UUIDs from services catalog */
   secondarySkillIds?: string[];
@@ -404,6 +410,54 @@ export interface ArtisanProfile {
   transportType: 'CAR' | 'VAN' | 'BIKE' | 'NONE';
   taxOrVatId?: string;
   bio: string;
+  uniqueSellingPoint?: string;
+  countryOfResidence?: string;
+  portfolioPhotoUrls?: string[];
+  portfolioVideoUrl?: string | null;
+  serviceCategoryOfferings?: Array<{
+    serviceCategoryId: string;
+    serviceCategoryName?: string;
+    pricingType?: string;
+    hourlyRate?: number;
+    flatRate?: number;
+    experienceYears?: number;
+    photoUrl?: string | null;
+  }>;
+  rateCard?: Array<{
+    serviceCategoryId?: string;
+    skillId?: string;
+    hourlyRate?: number;
+    pricingType?: string;
+  }>;
+  payoutIban?: string;
+  payoutBic?: string;
+  stripeAccountId?: string;
+  verificationStatus?: string;
+  isProfileCompleted?: boolean;
+  averageRating?: number | null;
+  totalReviewsCount?: number;
+  verification?: {
+    status?: string;
+    kycStatus?: string;
+    governmentIdType?: string;
+    submittedAt?: string;
+    reviewedAt?: string | null;
+    rejectionReason?: string | null;
+    kycVerifiedAt?: string;
+    kycExtractedDetails?: Record<string, unknown>;
+  };
+  user?: {
+    id?: string;
+    email?: string;
+    phone?: string;
+    firstName?: string;
+    lastName?: string;
+    gender?: string;
+    dateOfBirth?: string;
+    nationality?: string;
+    status?: string;
+    emailVerifiedAt?: string;
+  };
 }
 
 export interface CustomerProfile {

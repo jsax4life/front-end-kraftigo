@@ -1,5 +1,5 @@
 import api from '@/lib/axios'
-import type { Review } from '@/types'
+import { normalizeMyReview, normalizeMyReviews, type MyReview } from '@/lib/reviewDisplay'
 
 export interface CreateReviewPayload {
   bookingId: string
@@ -27,13 +27,27 @@ export interface CreateReviewPayload {
 }
 
 /** POST /api/reviews — submit a review for a completed booking */
-export const submitReview = async (payload: CreateReviewPayload): Promise<Review> => {
+export const submitReview = async (payload: CreateReviewPayload): Promise<MyReview> => {
   const response = await api.post('/api/reviews', payload)
-  return response.data
+  const normalized = normalizeMyReview(response.data)
+  if (normalized) return normalized
+  return {
+    id: payload.bookingId,
+    bookingId: payload.bookingId,
+    rating: payload.rating,
+    comment: payload.comment ?? payload.feedback ?? payload.details ?? payload.reviewText,
+    standoutTags: payload.standoutTags ?? payload.selectedTags ?? payload.highlights,
+  }
 }
 
-/** GET /api/reviews/my — all reviews submitted by the current customer */
-export const getMyReviews = async (): Promise<Review[]> => {
+/** GET /api/reviews/my — reviews submitted by the current user (customer or krafter) */
+export const getMyReviews = async (): Promise<MyReview[]> => {
   const response = await api.get('/api/reviews/my')
-  return response.data
+  const data = response.data
+  if (Array.isArray(data)) return normalizeMyReviews(data)
+  if (data && typeof data === 'object') {
+    const nested = (data as { reviews?: unknown }).reviews
+    if (Array.isArray(nested)) return normalizeMyReviews(nested)
+  }
+  return []
 }

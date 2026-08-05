@@ -30,6 +30,7 @@ interface HomeState {
   // Data
   categories: HomeCategory[];
   prosOfWeek: HomeProOfWeek[];
+  kraftersNearYou: HomeProOfWeek[];
   upcoming: HomeUpcomingBooking[];
 
   // Status
@@ -52,6 +53,7 @@ export const useHomeStore = create<HomeState>()(
     (set, get) => ({
       categories: [],
       prosOfWeek: [],
+      kraftersNearYou: [],
       upcoming: [],
       isLoading: false,
       error: null,
@@ -83,6 +85,7 @@ export const useHomeStore = create<HomeState>()(
       set({
         categories: data.categories ?? [],
         prosOfWeek: data.prosOfWeek ?? [],
+        kraftersNearYou: data.kraftersNearYou ?? [],
         upcoming: data.upcoming ?? [],
         isLoading: false,
         hasFetched: true,
@@ -100,6 +103,7 @@ export const useHomeStore = create<HomeState>()(
     set({
       categories: [],
       prosOfWeek: [],
+      kraftersNearYou: [],
       upcoming: [],
       isLoading: false,
       error: null,

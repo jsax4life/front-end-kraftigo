@@ -10,6 +10,7 @@ import { useBookingsStore } from "@/store/useBookingsStore";
 import type { Booking } from "@/types";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { deriveBookingCustomerPresentation } from "@/lib/bookingDisplay";
 
 /* ─── calendar helpers ───────────────────────────────────────────── */
 const WEEK_DAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
@@ -297,7 +298,7 @@ const SchedulePage = () => {
                       key={booking.id}
                       time={booking.scheduled_time || "TBD"}
                       title={booking.service?.title || "Craft"}
-                      client={`Client: Customer`}
+                      client={`Client: ${deriveBookingCustomerPresentation(booking).displayName}`}
                       location={booking.location}
                       status={booking.status}
                       statusColor={statusInfo.color}

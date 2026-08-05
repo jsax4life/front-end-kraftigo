@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { User } from '@/types'
 import { updateCachedToken } from '@/lib/axios'
-import type { RegisterPayload, ResetPasswordPayload } from '@/lib/api/auth'
+import type { RegisterPayload, ResetPasswordPayload, GoogleAuthPayload } from '@/lib/api/auth'
 import {
   loginUser,
   registerUser,
@@ -11,7 +11,7 @@ import {
   forgotPassword,
   resetPassword,
   changePassword as changePasswordApi,
-  loginWithGoogle,
+  loginWithGoogle as loginWithGoogleApi,
   loginTasker,
   registerTasker,
   logoutUser,
@@ -37,7 +37,7 @@ interface AuthState {
   forgotPassword: (email: string) => Promise<string>
   resetPassword: (payload: ResetPasswordPayload) => Promise<string>
   changePassword: (currentPassword: string, newPassword: string) => Promise<string>
-  loginWithGoogle: (idToken: string) => Promise<void>
+  loginWithGoogle: (payload: GoogleAuthPayload) => Promise<void>
   
   // Tasker Actions
   loginTasker: (email: string, password: string) => Promise<void>
@@ -217,10 +217,10 @@ export const useAuthStore = create<AuthState>()(
         },
 
         // Google OAuth Login/Signup
-        loginWithGoogle: async (idToken: string) => {
+        loginWithGoogle: async (payload: GoogleAuthPayload) => {
           set({ isLoading: true, error: null })
           try {
-            const { user, accessToken, refreshToken } = await loginWithGoogle({ idToken })
+            const { user, accessToken, refreshToken } = await loginWithGoogleApi(payload)
             
             updateCachedToken(accessToken)
             set({

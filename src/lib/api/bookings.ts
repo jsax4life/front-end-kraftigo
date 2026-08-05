@@ -426,7 +426,13 @@ export function normalizeBookingDetailResponse(data: unknown): Booking {
   const scheduledTime = pickStr('scheduled_time', 'scheduledTime') ?? preferredTime ?? ''
 
   const serviceCategory = (r.serviceCategory ?? r.service_category) as Booking['serviceCategory']
-  const customer = r.customer as Booking['customer']
+  const customer =
+    normalizeArtisanBookingCustomer(r, customerId) ??
+    (r.customer && typeof r.customer === 'object'
+      ? normalizeArtisanBookingCustomer({ customer: r.customer }, customerId)
+      : undefined)
+  const customerName =
+    resolveArtisanBookingCustomerName(customer, r) ?? pickStr('customerName', 'customer_name')
   const distance = readDistanceFields(r)
 
   const merged: Booking = {
@@ -483,6 +489,7 @@ export function normalizeBookingDetailResponse(data: unknown): Booking {
       : {}),
     mediaUrls,
     customer: customer ?? undefined,
+    ...(customerName ? { customerName } : {}),
     serviceCategory: serviceCategory ?? undefined,
     ...(distance.distanceKm != null ? { distanceKm: distance.distanceKm } : {}),
     ...(distance.distanceLabel ? { distanceLabel: distance.distanceLabel } : {}),
@@ -798,12 +805,62 @@ export interface ArtisanAssignedBookingRow {
   conversationId?: string | null
   distanceKm?: number | null
   distanceLabel?: string | null
+  customerName?: string | null
+  customer?: {
+    id?: string
+    firstName?: string | null
+    lastName?: string | null
+    email?: string | null
+    phone?: string | null
+    profilePhotoUrl?: string | null
+    avatar?: string | null
+  } | null
 }
 
 function parseMoneyField(value: string | null | undefined): number | undefined {
   if (value == null || value === '') return undefined
   const n = parseFloat(String(value))
   return Number.isFinite(n) ? n : undefined
+}
+
+function normalizeArtisanBookingCustomer(
+  loose: Record<string, unknown>,
+  customerId: string,
+): Booking['customer'] | undefined {
+  const raw = loose.customer
+  if (!raw || typeof raw !== 'object') return undefined
+  const c = raw as Record<string, unknown>
+  const pickStr = (...keys: string[]): string | undefined => {
+    for (const key of keys) {
+      const v = c[key]
+      if (typeof v === 'string' && v.trim()) return v.trim()
+    }
+    return undefined
+  }
+  const id = pickStr('id') ?? customerId
+  if (!id?.trim()) return undefined
+  return {
+    id: id.trim(),
+    firstName: pickStr('firstName', 'first_name') ?? null,
+    lastName: pickStr('lastName', 'last_name') ?? null,
+    email: pickStr('email') ?? null,
+    phone: pickStr('phone') ?? null,
+    profilePhotoUrl: pickStr('profilePhotoUrl', 'profile_photo_url') ?? null,
+    avatar: pickStr('avatar') ?? null,
+  }
+}
+
+function resolveArtisanBookingCustomerName(
+  customer: Booking['customer'] | undefined,
+  loose: Record<string, unknown>,
+): string | undefined {
+  if (customer) {
+    const n = [customer.firstName, customer.lastName].filter(Boolean).join(' ').trim()
+    if (n) return n
+  }
+  const explicit = loose.customerName ?? loose.customer_name
+  if (typeof explicit === 'string' && explicit.trim()) return explicit.trim()
+  return undefined
 }
 
 /** Normalize `GET /api/artisan/bookings` rows into shared `Booking` (snake_case + `title`/`service` for UI). */
@@ -866,6 +923,15 @@ export function mapArtisanAssignedBookingRowToBooking(row: ArtisanAssignedBookin
   }
 
   const distance = readDistanceFields(loose)
+  const customer =
+    normalizeArtisanBookingCustomer(loose, row.customerId) ??
+    (row.customer
+      ? normalizeArtisanBookingCustomer(
+          { customer: row.customer },
+          row.customer.id ?? row.customerId,
+        )
+      : undefined)
+  const customerName = resolveArtisanBookingCustomerName(customer, loose) ?? row.customerName ?? undefined
 
   return {
     id: row.id,
@@ -883,6 +949,8 @@ export function mapArtisanAssignedBookingRowToBooking(row: ArtisanAssignedBookin
     title: row.jobTitle,
     image: assignedMediaUrls?.[0] ?? firstMedia,
     service,
+    customer,
+    customerName,
     jobTitle: row.jobTitle,
     jobDescription: row.jobDescription,
     address: row.address,

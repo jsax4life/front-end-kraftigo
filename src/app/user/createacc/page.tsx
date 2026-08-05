@@ -8,7 +8,6 @@ import Button from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import Loader from "@/components/ui/loader";
-import { useOTPInput } from "@/hooks/useOTPInput";
 import {
   isValidEmail,
   isValidPassword,
@@ -23,8 +22,16 @@ import { TermsContent } from "@/components/ui/TermsContent";
 import { PrivacyContent } from "@/components/ui/PrivacyContent";
 import WhyModal from "@/components/ui/whyModal";
 import PasswordStrength from "@/components/ui/PasswordStrength";
+import GoogleLoginButton from "@/components/auth/GoogleLoginButton";
 import { AUTH_CONFIG } from "@/constants/auth";
 import toast from "react-hot-toast";
+import EmailVerificationForm from "@/components/auth/EmailVerificationForm";
+import {
+  getPendingEmailVerification,
+  setPendingEmailVerification,
+  clearPendingEmailVerification,
+} from "@/lib/pendingEmailVerification";
+import { isEmailNotVerifiedError } from "@/lib/authApiErrors";
 
 const Page = () => {
   const router = useRouter();
@@ -39,11 +46,10 @@ const Page = () => {
     error,
     clearError,
   } = useAuthStore();
-  const [registrationComplete, setRegistrationComplete] = useState(false);
-  const [resendTimer, setResendTimer] = useState(0);
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [showWhyModal, setShowWhyModal] = useState(false);
+  const [googleTermsAccepted, setGoogleTermsAccepted] = useState(false);
 
   // Form data state
   const [formData, setFormData] = useState({
@@ -57,21 +63,17 @@ const Page = () => {
     termsAccepted: false,
   });
 
-  // OTP hook for future use
-  const {
-    code: verificationCode,
-    handleCodeChange,
-    handleKeyDown,
-    reset: resetCode,
-  } = useOTPInput(AUTH_CONFIG.OTP_LENGTH);
-
-  // Countdown timer for resend
+  // Resume email verification after browser close or interrupted registration
   useEffect(() => {
-    if (resendTimer > 0) {
-      const timer = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [resendTimer]);
+    const pending = getPendingEmailVerification();
+    const authUser = useAuthStore.getState().user;
+    const pendingEmail =
+      pending?.email ||
+      (authUser?.status === "PENDING_VERIFICATION" ? authUser.email?.trim().toLowerCase() : "");
+    if (!pendingEmail) return;
+    setFormData((prev) => ({ ...prev, email: pendingEmail }));
+    setCurrentStep(4);
+  }, []);
 
   const handleInputChange = (field: string, value: string | boolean) => {
     if (error) clearError();
@@ -101,8 +103,6 @@ const Page = () => {
         );
       case 3:
         return formData.termsAccepted;
-      case 4:
-        return verificationCode.every((digit) => digit !== "");
       default:
         return false;
     }
@@ -128,9 +128,6 @@ const Page = () => {
     } else if (currentStep === 3) {
       // Submit registration on step 3 (after terms acceptance)
       handleSubmit();
-    } else if (currentStep === 4) {
-      // Verify email on step 4
-      handleVerifyEmail();
     }
   };
 
@@ -178,66 +175,22 @@ const Page = () => {
         result.message || "Registration successful! Please check your email.",
       );
 
-      // Mark registration as complete and move to OTP step
-      setRegistrationComplete(true);
+      setPendingEmailVerification(formData.email);
       setCurrentStep(4);
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.error("Registration failed:", err);
-      // Show error toast to user
+      const storeError = useAuthStore.getState().error;
+      if (isEmailNotVerifiedError(err, storeError)) {
+        setPendingEmailVerification(formData.email);
+        toast.error("This email is registered but not verified. Enter your verification code.");
+        setCurrentStep(4);
+        return;
+      }
+      const e = err as { response?: { data?: { message?: string } } };
       const errorMessage =
-        err.response?.data?.message ||
+        e.response?.data?.message ||
         error ||
         "Registration failed. Please try again.";
-      toast.error(errorMessage);
-    }
-  };
-
-  // Verify email with OTP
-  const handleVerifyEmail = async () => {
-    const otpCode = verificationCode.join("");
-    logger.log("Verifying email with code:", otpCode);
-
-    try {
-      await verifyEmail(formData.email, otpCode);
-      logger.log("Email verified successfully!");
-
-      // Seamlessly log the user in since we have their credentials
-      await loginUser(formData.email, formData.password);
-
-      toast.success("Registration complete! Welcome to Kraftigo.");
-
-      router.push("/");
-    } catch (err: any) {
-      logger.error("Verification failed:", err);
-
-      const errorMessage =
-        err.response?.data?.message ||
-        error ||
-        "Verification failed. Please check your code and try again.";
-      toast.error(errorMessage);
-    }
-  };
-
-  // Resend verification code
-  const handleResendCode = async () => {
-    if (resendTimer > 0) return;
-
-    logger.log("Resending verification code to:", formData.email);
-
-    try {
-      const message = await resendVerificationCode(formData.email);
-      logger.log("Resend successful:", message);
-
-      toast.success(message);
-      setResendTimer(60);
-      resetCode();
-    } catch (err: any) {
-      logger.error("Resend failed:", err);
-
-      const errorMessage =
-        err.response?.data?.message ||
-        error ||
-        "Failed to resend code. Please try again.";
       toast.error(errorMessage);
     }
   };
@@ -301,6 +254,48 @@ const Page = () => {
                   onDialCodeChange={(code) => handleInputChange("dialCode", code)}
                   required
                 />
+
+                {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? (
+                  <div className="pt-4 border-t border-gray-100 space-y-4">
+                    <p className="text-center text-[14px] font-mabry text-gray-500">
+                      Or sign up with Google
+                    </p>
+                    <Checkbox
+                      checked={googleTermsAccepted}
+                      onChange={setGoogleTermsAccepted}
+                      labelNode={
+                        <span className="text-[13px] font-poppins text-gray-700 leading-relaxed">
+                          I agree to the{" "}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setShowTermsModal(true);
+                            }}
+                            className="text-brand-blue underline font-semibold"
+                          >
+                            Terms of Use
+                          </button>{" "}
+                          and{" "}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setShowPrivacyModal(true);
+                            }}
+                            className="text-brand-blue underline font-semibold"
+                          >
+                            Privacy Policy
+                          </button>
+                        </span>
+                      }
+                    />
+                    <GoogleLoginButton
+                      variant="full"
+                      termsAccepted={googleTermsAccepted}
+                    />
+                  </div>
+                ) : null}
               </div>
             )}
 
@@ -366,54 +361,51 @@ const Page = () => {
 
             {/* Step 3: Email Verification */}
             {currentStep === 4 && (
-              <div className="space-y-6">
-                <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-4">
-                  Confirm Your Email
-                </h1>
-                <p className="text-[14px] font-poppins text-gray-600 mb-8">
-                  We&apos;ve sent a verification code to your email{" "}
-                  <span className="font-semibold text-gray-900">
-                    {formData.email}
-                  </span>
-                </p>
-
-                {/* Verification Code Inputs */}
-                <div className="flex gap-2 sm:gap-3 justify-center md:mt-24 mb-6">
-                  {verificationCode.map((digit, index) => (
-                    <input
-                      key={index}
-                      id={`code-${index}`}
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={1}
-                      value={digit}
-                      onChange={(e) => handleCodeChange(index, e.target.value)}
-                      onKeyDown={(e) => handleKeyDown(index, e)}
-                      className="w-12 h-12 sm:w-14 sm:h-14 text-center text-xl font-semibold border-2 border-gray-300 rounded-lg focus:border-brand-orange focus:outline-none focus:ring-2 focus:ring-brand-orange/20"
-                    />
-                  ))}
-                </div>
-
-                {/* Resend Code */}
-                <div className="text-center">
-                  {resendTimer > 0 ? (
-                    <p className="text-[14px] font-poppins text-gray-600">
-                      Resend code in{" "}
-                      <span className="font-semibold text-gray-900">
-                        00:{resendTimer.toString().padStart(2, "0")}
-                      </span>
-                    </p>
-                  ) : (
-                    <button
-                      onClick={handleResendCode}
-                      disabled={isLoading}
-                      className="text-[14px] font-poppins text-brand-orange font-semibold hover:underline disabled:opacity-50"
-                    >
-                      Resend code
-                    </button>
-                  )}
-                </div>
-              </div>
+              <EmailVerificationForm
+                email={formData.email}
+                isLoading={isLoading}
+                onVerify={async (otpCode) => {
+                  logger.log("Verifying email with code:", otpCode);
+                  try {
+                    await verifyEmail(formData.email, otpCode);
+                    clearPendingEmailVerification();
+                    if (formData.password) {
+                      await loginUser(formData.email, formData.password);
+                      toast.success("Registration complete! Welcome to Kraftigo.");
+                      router.push("/");
+                      return;
+                    }
+                    toast.success("Email verified! Sign in to continue.");
+                    router.push(
+                      `/user/login?email=${encodeURIComponent(formData.email)}&verified=1`,
+                    );
+                  } catch (err: unknown) {
+                    logger.error("Verification failed:", err);
+                    const e = err as { response?: { data?: { message?: string } } };
+                    toast.error(
+                      e.response?.data?.message ||
+                        error ||
+                        "Verification failed. Please check your code and try again.",
+                    );
+                  }
+                }}
+                onResend={async () => {
+                  logger.log("Resending verification code to:", formData.email);
+                  try {
+                    const message = await resendVerificationCode(formData.email);
+                    setPendingEmailVerification(formData.email);
+                    toast.success(message);
+                  } catch (err: unknown) {
+                    logger.error("Resend failed:", err);
+                    const e = err as { response?: { data?: { message?: string } } };
+                    toast.error(
+                      e.response?.data?.message ||
+                        error ||
+                        "Failed to resend code. Please try again.",
+                    );
+                  }
+                }}
+              />
             )}
           </div>
 
@@ -486,6 +478,7 @@ const Page = () => {
               </div>
             )}
 
+            {currentStep !== 4 && (
             <div>
               <Button
                 variant="primary"
@@ -493,13 +486,10 @@ const Page = () => {
                 fullWidth
                 disabled={!isStepValid()}
               >
-                {currentStep === 4
-                  ? "Verify Email"
-                  : currentStep === totalSteps
-                    ? "Submit"
-                    : "Continue"}
+                {currentStep === totalSteps ? "Submit" : "Continue"}
               </Button>
             </div>
+            )}
           </div>
         </div>
       )}

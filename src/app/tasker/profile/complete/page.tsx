@@ -23,7 +23,14 @@ import { getServiceSkillGroups, type ServiceSkillGroup } from "@/lib/api/service
 import { SearchCombobox } from "@/components/ui/SearchCombobox";
 import { AddressAutocompleteInput } from "@/components/ui/AddressAutocompleteInput";
 import { resolveKrafterLocationCoords } from "@/lib/geoapify";
-import { getKrafterWorkMediaFromStatus } from "@/lib/api/krafter-profile-completion";
+import {
+  getKrafterSkillsStatus,
+  getKrafterWorkMediaFromStatus,
+} from "@/lib/api/krafter-profile-completion";
+import {
+  extractServiceCategoryOfferings,
+  mapOfferingsToSkillDrafts,
+} from "@/lib/krafterSkillsDraft";
 
 const Tag = ({ label, onRemove }: { label: string; onRemove: () => void }) => (
   <div className="flex items-center gap-1.5 bg-[#F6F6F6] text-[#667085] px-3 py-1.5 rounded-lg border border-[#0000001A]">
@@ -118,23 +125,31 @@ const CompleteProfileForm = () => {
   }, [fetchKrafterPersonalDetailsStatus]);
 
   useEffect(() => {
-    if (step === 5) {
-      const loadSkills = async () => {
-        setIsLoadingSkills(true);
-        try {
-          const groups = await getServiceSkillGroups();
-          setSkillGroups(groups);
-        } catch (error) {
-          console.error("Failed to load skills", error);
-        } finally {
-          setIsLoadingSkills(false);
+    if (step !== 5) return;
+    let cancelled = false;
+    void (async () => {
+      setIsLoadingSkills(true);
+      try {
+        const [groups, skillsStatus] = await Promise.all([
+          getServiceSkillGroups(),
+          getKrafterSkillsStatus(),
+        ]);
+        if (cancelled) return;
+        setSkillGroups(groups);
+        const offerings = extractServiceCategoryOfferings(skillsStatus);
+        if (offerings.length > 0) {
+          setSelectedSkills(mapOfferingsToSkillDrafts(offerings, groups));
         }
-      };
-      if (skillGroups.length === 0) {
-        loadSkills();
+      } catch (error) {
+        console.error("Failed to load skills", error);
+      } finally {
+        if (!cancelled) setIsLoadingSkills(false);
       }
-    }
-  }, [step, skillGroups.length]);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [step]);
 
   useEffect(() => {
     if (personalDetailsStatus && personalDetailsStatus.personal) {

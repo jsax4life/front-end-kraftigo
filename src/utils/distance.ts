@@ -44,13 +44,16 @@ export function readDistanceFields(...sources: unknown[]): DistanceFields {
   return { distanceKm, distanceLabel };
 }
 
-/** Format `distanceKm` to miles. Fall back to backend `distanceLabel`. */
+/** Format distance for display. Prefer backend `distanceLabel`; otherwise format `distanceKm`. */
 export function formatDistanceDisplay(fields: DistanceFields): string | null {
-  if (fields.distanceKm != null) {
-    const miles = fields.distanceKm * 0.621371;
-    if (miles < 1) return `${miles.toFixed(1)} miles away`;
-    return `${Math.round(miles)} miles away`;
-  }
   if (fields.distanceLabel) return fields.distanceLabel;
+
+  if (fields.distanceKm != null) {
+    const km = fields.distanceKm;
+    if (km < 1) return `${km.toFixed(1)} km away`;
+    const rounded = Math.round(km);
+    return `${rounded} km away`;
+  }
+
   return null;
 }

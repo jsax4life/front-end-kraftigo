@@ -307,7 +307,11 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
   saveKrafterPersonal: async (payload) => {
     set({ isLoading: true, error: null })
     try {
-      const data = await saveKrafterPersonalStep(payload)
+      const data = await saveKrafterPersonalStep({
+        ...payload,
+        hasAcceptedTerms: payload.hasAcceptedTerms ?? true,
+      })
+      await get().fetchArtisanProfile()
       set({ onboardingStatus: data, isLoading: false })
       return data
     } catch (error: any) {
@@ -485,6 +489,7 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
     set({ isLoading: true, error: null })
     try {
       const newSummary = await submitKrafterSkills(payload)
+      await get().fetchArtisanProfile()
       set({
         profileCompletionSummary: newSummary,
         isLoading: false,

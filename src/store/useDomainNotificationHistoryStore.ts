@@ -8,6 +8,7 @@ export type DomainNotificationFeedAction =
   | "requests"
   | "schedule"
   | "home"
+  | "verification"
   | null;
 
 export type DomainNotificationFeedItem = {

@@ -8,10 +8,12 @@ import toast from "react-hot-toast";
 import Header from "@/components/shared/Header";
 import { useAuthStore } from "@/store/useAuthStore";
 import { AUTH_CONFIG } from "@/constants/auth";
+import { isGoogleOnlyAccount } from "@/lib/googleAuth";
 
 const SecurityPage = () => {
   const router = useRouter();
-  const { changePassword, isLoading, isTasker } = useAuthStore();
+  const { changePassword, isLoading, isTasker, user } = useAuthStore();
+  const googleOnly = isGoogleOnlyAccount(user?.authProvider);
   const [passwords, setPasswords] = useState({
     current: "",
     new: "",
@@ -65,6 +67,22 @@ const SecurityPage = () => {
           <h3 className="text-[12px] font-poppins font-bold text-[#98A2B3] uppercase tracking-widest mb-6">
             Change Password
           </h3>
+          {googleOnly ? (
+            <div className="space-y-4">
+              <p className="text-[14px] font-poppins text-[#667085] leading-relaxed">
+                Your account uses Google sign-in and does not have a password yet. Use{" "}
+                <button
+                  type="button"
+                  onClick={() => router.push("/user/forgot-password")}
+                  className="text-brand-blue font-semibold underline"
+                >
+                  Forgot password
+                </button>{" "}
+                to set one if you want email/password login as well.
+              </p>
+            </div>
+          ) : (
+          <>
           <div className="space-y-6">
             <Input
               label="Current password"
@@ -93,6 +111,8 @@ const SecurityPage = () => {
               {isLoading ? "Updating…" : "Change Password"}
             </Button>
           </div>
+          </>
+          )}
         </div>
 
         <div className="bg-white p-6 rounded-2xl border border-[#F2F4F7] shadow-sm">

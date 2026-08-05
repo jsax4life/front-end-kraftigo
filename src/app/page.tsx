@@ -30,6 +30,7 @@ import Footer from "@/components/shared/Footer";
 import HomeKrafterBanner from "@/components/shared/HomeKrafterBanner";
 import { formatDistanceDisplay, readDistanceFields } from "@/utils/distance";
 import { DistanceBadge } from "@/components/ui/DistanceBadge";
+import type { HomeProOfWeek } from "@/lib/api/auth";
 
 // ─── Static fallbacks ─────────────────────────────────────────────────────────
 
@@ -88,6 +89,37 @@ const formatScheduledAt = (iso: string) => {
 
 type SearchResultRow = Record<string, unknown>;
 
+type HomeKrafterCard = {
+  name: string;
+  rating: number;
+  reviews: number;
+  tasks: number;
+  description: string;
+  price: string;
+  distance?: string;
+  image: string;
+  badge?: string;
+};
+
+function formatHomeKrafterDisplayName(displayName: string): string {
+  const parts = displayName.trim().split(/\s+/);
+  return parts.length > 1 ? `${parts[0]} ${parts[1][0]}.` : parts[0];
+}
+
+function mapHomeKrafterToCard(p: HomeProOfWeek): HomeKrafterCard {
+  return {
+    name: formatHomeKrafterDisplayName(p.displayName),
+    rating: Math.round(p.rating),
+    reviews: p.reviewCount,
+    tasks: p.completedKrafts,
+    description: p.description ?? "",
+    price: `€${p.hourlyRate.toFixed(2)}/hr`,
+    distance: formatDistanceDisplay(readDistanceFields(p)) ?? undefined,
+    image: normSrc(p.profilePhotoUrl) ?? "/images/pro.jpg",
+    badge: p.badges[0] ? p.badges[0].replace(/_/g, " ") : undefined,
+  };
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const Page = () => {
@@ -100,6 +132,7 @@ const Page = () => {
   const {
     categories: apiCategories,
     prosOfWeek,
+    kraftersNearYou,
     upcoming,
     isLoading,
     hasFetched,
@@ -221,24 +254,16 @@ const Page = () => {
         }))
       : STATIC_CATEGORIES.map((c) => ({ id: "", ...c }));
 
-  // Pros: Real dynamic data from API if logged in, fallback if guest
-  const displayPros =
-    prosOfWeek.length > 0
-      ? prosOfWeek.map((p) => ({
-          name: (() => {
-            const parts = p.displayName.trim().split(/\s+/);
-            return parts.length > 1 ? `${parts[0]} ${parts[1][0]}.` : parts[0];
-          })(),
-          rating: Math.round(p.rating),
-          reviews: p.reviewCount,
-          tasks: p.completedKrafts,
-          description: p.description,
-          price: `€${p.hourlyRate.toFixed(2)}/hr`,
-          distance: formatDistanceDisplay(readDistanceFields(p)) ?? undefined,
-          image: normSrc(p.profilePhotoUrl) ?? "/images/pro.jpg",
-          badge: p.badges[0] ? p.badges[0].replace(/_/g, " ") : undefined,
-        }))
-      : isAuthenticated ? [] : STATIC_PROS;
+  const displayNearYouKrafters: HomeKrafterCard[] =
+    kraftersNearYou.length > 0
+      ? kraftersNearYou.map(mapHomeKrafterToCard)
+      : isAuthenticated
+        ? []
+        : STATIC_PROS;
+
+  // Featured pros of the week (separate curated list)
+  const displayProsOfWeek: HomeKrafterCard[] =
+    prosOfWeek.length > 0 ? prosOfWeek.map(mapHomeKrafterToCard) : [];
 
   // ── Handlers ────────────────────────────────────────────────────────────────
   const handleProtectedAction = (path: string) => {
@@ -600,8 +625,8 @@ const Page = () => {
             ) : null}
           </div>
 
-          {/* Pro's Of The Week */}
-          {(isLoading && !hasFetched) || (isAuthenticated ? displayPros.length > 1 : displayPros.length > 0) ? (
+          {/* Krafters near you */}
+          {(isLoading && !hasFetched) || displayNearYouKrafters.length > 0 ? (
             <div className="mb-8">
               <h2 className="text-[20px] sm:text-[20px] font-poppins font-semibold mb-4">
                 Krafter&apos;s near you
@@ -616,14 +641,14 @@ const Page = () => {
                     />
                   ))}
                 </div>
-              ) : displayPros.length > 1 ? (
+              ) : displayNearYouKrafters.length > 1 ? (
                 <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
                   <div className="flex gap-4">
-                    {displayPros.map((pro, index) => {
-                      const raw = prosOfWeek[index] as any;
+                    {displayNearYouKrafters.map((pro, index) => {
+                      const raw = kraftersNearYou[index];
                       return (
                         <ProCard
-                          key={index}
+                          key={raw?.krafterId ?? index}
                           name={pro.name}
                           rating={pro.rating}
                           reviews={pro.reviews}
@@ -641,11 +666,11 @@ const Page = () => {
                 </div>
               ) : (
                 <div>
-                  {displayPros.map((pro, index) => {
-                    const raw = prosOfWeek[index] as any;
+                  {displayNearYouKrafters.map((pro, index) => {
+                    const raw = kraftersNearYou[index];
                     return (
                       <ProCard
-                        key={index}
+                        key={raw?.krafterId ?? index}
                         name={pro.name}
                         rating={pro.rating}
                         reviews={pro.reviews}
@@ -661,6 +686,37 @@ const Page = () => {
                   })}
                 </div>
               )}
+            </div>
+          ) : null}
+
+          {/* Pros of the week */}
+          {displayProsOfWeek.length > 0 ? (
+            <div className="mb-8">
+              <h2 className="text-[20px] sm:text-[20px] font-poppins font-semibold mb-4">
+                Pros of the week
+              </h2>
+              <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
+                <div className="flex gap-4">
+                  {displayProsOfWeek.map((pro, index) => {
+                    const raw = prosOfWeek[index];
+                    return (
+                      <ProCard
+                        key={raw?.krafterId ?? index}
+                        name={pro.name}
+                        rating={pro.rating}
+                        reviews={pro.reviews}
+                        tasks={pro.tasks}
+                        description={pro.description}
+                        price={pro.price}
+                        distance={pro.distance}
+                        image={pro.image}
+                        badge={pro.badge}
+                        onViewProfile={() => openKrafterModal(pro, raw)}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           ) : null}
 

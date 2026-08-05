@@ -24,6 +24,7 @@ import toast from "react-hot-toast";
 import { ProfileInfoSkeleton } from "@/components/shared/Skeletons";
 import DeleteAccountModal from "@/components/shared/DeleteAccountModal";
 import KrafterCtaBanner from "@/components/shared/KrafterCtaBanner";
+import { isGoogleOnlyAccount } from "@/lib/googleAuth";
 
 const SettingsItem = ({ icon: Icon, label, onClick, showBorder = true }: { icon: any, label: string, onClick: () => void, showBorder?: boolean }) => (
   <button 
@@ -199,6 +200,7 @@ const Page = () => {
         open={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
         onConfirm={handleDeleteAccount}
+        defaultMode={isGoogleOnlyAccount(user?.authProvider) ? "social" : "password"}
       />
     </main>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertTriangle, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
 
@@ -12,6 +12,8 @@ interface DeleteAccountModalProps {
     password?: string;
     confirmation?: "DELETE_MY_KRAFTIGO_ACCOUNT";
   }) => Promise<void>;
+  /** Pre-select social confirmation flow for Google-only accounts. */
+  defaultMode?: "password" | "social";
 }
 
 const SOCIAL_CONFIRMATION = "DELETE_MY_KRAFTIGO_ACCOUNT";
@@ -20,12 +22,17 @@ export default function DeleteAccountModal({
   open,
   onClose,
   onConfirm,
+  defaultMode = "password",
 }: DeleteAccountModalProps) {
-  const [mode, setMode] = useState<"password" | "social">("password");
+  const [mode, setMode] = useState<"password" | "social">(defaultMode);
   const [password, setPassword] = useState("");
   const [confirmationText, setConfirmationText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open) setMode(defaultMode);
+  }, [open, defaultMode]);
 
   if (!open) return null;
 

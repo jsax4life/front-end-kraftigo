@@ -47,7 +47,7 @@ const Header = ({
         {showBack && (
           <button 
             onClick={handleBack}
-            className="p-1 hover:opacity-70 transition-opacity"
+            className="p-1 hover:opacity-70 transition-opacity cursor-pointer"
           >
             <ArrowLeft className="w-8 h-8 text-[#1D2939]" strokeWidth={1.5} />
           </button>
@@ -67,7 +67,7 @@ const Header = ({
           showLogout && (
             <button 
               onClick={handleLogout}
-              className="p-2 hover:bg-red-50 rounded-full transition-colors text-[#F04438]"
+              className="p-2 hover:bg-red-50 rounded-full transition-colors text-[#F04438] cursor-pointer"
               title="Sign Out"
             >
               <LogOut size={24} />

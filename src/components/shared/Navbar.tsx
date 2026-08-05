@@ -45,7 +45,8 @@ const Navbar = () => {
       <div className="flex items-center gap-2">
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="flex items-center justify-center rounded-full transition-colors z-50 relative"
+          className="flex items-center justify-center rounded-full transition-colors z-50 relative cursor-pointer"
+          aria-label={isMenuOpen ? "Close menu" : "Open menu"}
         >
           {isMenuOpen ? (
             <div className="w-10 h-10 flex items-center justify-center rounded-full bg-[#FF66001A]">

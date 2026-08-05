@@ -4,4 +4,5 @@ export const AUTH_CONFIG = {
   LOGIN_STEPS: 2,
   REGISTRATION_STEPS: 4,
   FORGET_PASSWORD_STEPS: 3,
+  VERIFY_EMAIL_ROUTE: "/user/verify-email",
 } as const;

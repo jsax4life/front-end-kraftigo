@@ -29,6 +29,7 @@ function runStoredAction(action: DomainNotificationFeedAction, bookingId?: strin
     window.location.assign(id ? `/tasker/schedule?openJob=${encodeURIComponent(id)}` : "/tasker/schedule");
   }
   else if (action === "home") window.location.assign("/");
+  else if (action === "verification") window.location.assign("/krafter/kyc-welcome");
 }
 
 type Props = {

@@ -23,6 +23,7 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { deleteAccount } from "@/lib/api/auth";
 import DeleteAccountModal from "@/components/shared/DeleteAccountModal";
+import { isGoogleOnlyAccount } from "@/lib/googleAuth";
 import { UpdateLocationBanner } from "@/components/shared/DashboardWidgets";
 import { hasKrafterProfileCoords } from "@/lib/taskLocation";
 
@@ -288,6 +289,7 @@ const Page = () => {
         open={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
         onConfirm={handleDeleteAccount}
+        defaultMode={isGoogleOnlyAccount(user?.authProvider) ? "social" : "password"}
       />
     </main>
   );

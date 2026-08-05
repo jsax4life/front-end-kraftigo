@@ -78,7 +78,7 @@ export const SearchCombobox = ({
             setOpen(true);
             if (e.target.value !== value) onChange("");
           }}
-          className="w-full px-4 pl-10 pr-10 py-4 rounded-2xl bg-[#F6F6F6] border border-[#EAECF0] outline-none font-poppins text-[15px] focus:border-brand-orange transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full px-4 pl-10 pr-10 py-4 rounded-2xl bg-[#F6F6F6] border border-[#EAECF0] outline-none font-poppins text-[15px] focus:border-brand-orange transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         />
         <ChevronDown
           size={16}
@@ -99,7 +99,7 @@ export const SearchCombobox = ({
                   e.preventDefault(); 
                   handleSelect(opt);
                 }}
-                className={`w-full text-left px-4 py-2.5 font-poppins text-[14px] hover:bg-[#FFF4EE] hover:text-brand-orange transition-colors ${
+                className={`w-full text-left px-4 py-2.5 font-poppins text-[14px] hover:bg-[#FFF4EE] hover:text-brand-orange transition-colors cursor-pointer ${
                   opt === value
                     ? "text-brand-orange font-semibold bg-[#FFF4EE]"
                     : "text-[#1D2939]"

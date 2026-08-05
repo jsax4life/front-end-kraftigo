@@ -11,6 +11,8 @@ import {
 } from "@/lib/domainEventsSocket";
 import { showDomainEventNotification } from "@/lib/domainEventNotifications";
 import { clearRecommendationDraftBookingIdFromSession } from "@/lib/recommendationDraftBooking";
+import { isKycDomainEventType } from "@/lib/kycNotifications";
+import { useProfileStore } from "@/store/useProfileStore";
 
 let refetchDebounce: ReturnType<typeof setTimeout> | null = null;
 let pendingChatListRefetch = false;
@@ -80,6 +82,11 @@ export default function DomainEventsListener() {
     if (msg.type === "BOOKING_DRAFT_DELETED") {
       evictDraftBookingLocally(String(msg.bookingId ?? ""));
       return;
+    }
+    const eventType = typeof msg.type === "string" ? msg.type : "";
+    if (isKycDomainEventType(eventType)) {
+      void useProfileStore.getState().fetchVerificationStatusSilent().catch(() => {});
+      void useProfileStore.getState().fetchArtisanProfile().catch(() => {});
     }
     scheduleStoresRefresh(msg);
   };

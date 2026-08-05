@@ -50,7 +50,7 @@ const TaskerNav = () => {
               <button
                 key={item.name}
                 onClick={() => router.push(item.path)}
-                className="flex flex-col items-center justify-center gap-1 min-w-15 transition-colors relative"
+                className="flex flex-col items-center justify-center gap-1 min-w-15 transition-colors relative cursor-pointer"
               >
                 <div
                   className={`relative w-6 h-6 ${
