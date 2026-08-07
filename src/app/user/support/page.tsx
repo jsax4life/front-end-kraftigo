@@ -23,66 +23,16 @@ const toDisplayStatus = (status: Booking["status"]): "Completed" | "In Progress"
   return "Upcoming";
 };
 
-const clientFAQs = [
-  {
-    question: "How do I cancel a booking?",
-    answer:
-      "Go to My Bookings, select the booking, and tap Cancel. Cancellations made more than 2 hours before the scheduled start are free. Cancelling after work has begun may incur a partial fee based on work completed.",
-  },
-  {
-    question: "How do I report a problem with a Krafter?",
-    answer:
-      "Open the booking and tap Report an Issue. Describe what happened and attach photos if you have them — our team reviews reports within 24–48 hours and will follow up directly.",
-  },
-  {
-    question: "How do I request a refund?",
-    answer:
-      "Your payment is held securely until the job is marked complete. For instant refunds (no-show or cancelled before the start), funds are released automatically. For quality disputes, open the booking, tap Request Refund, and explain the issue — if approved, funds are returned to your original payment method within 5–7 business days.",
-  },
-  {
-    question: "What happens if a Krafter doesn't show up?",
-    answer:
-      "Tap Report No-Show on the booking. Since payment hasn't been released yet, you'll get a full refund automatically, and you can rebook with another available Krafter right away.",
-  },
-  {
-    question: "How do I update my payment method?",
-    answer:
-      "Go to Settings → Payment Methods, where you can add a new card, set a default, or remove an old one anytime.",
-  },
-];
-
-const krafterFAQs = [
-  {
-    question: "What happens if a client cancels on me?",
-    answer:
-      "If a client cancels after you've confirmed the job, you may be entitled to a cancellation fee depending on how much notice they gave and whether you'd already started work. Cancellations made well ahead of your scheduled start time are not compensated.",
-  },
-  {
-    question: "How do I get paid?",
-    answer:
-      "Once you mark the job complete and the client confirms (or the review window passes without a dispute), your payment is released from escrow to your linked payout account. Payouts typically land within 2–3 business days.",
-  },
-  {
-    question: "What happens if a client doesn't show up?",
-    answer:
-      "Tap Report Client No-Show on the booking once your scheduled start time has passed. Once confirmed, you'll receive your agreed-upon callout fee and the booking closes — no further action needed on your end.",
-  },
-  {
-    question: "How do I report a problem with a client?",
-    answer:
-      "Open the booking and tap Report an Issue, describing what happened. Our team reviews flagged bookings and may restrict that client's ability to book again while we investigate.",
-  },
-  {
-    question: "How do I update my payout method?",
-    answer:
-      "Go to Settings → Payout Details to update your linked bank account or card. Changes take effect from your next payout cycle.",
-  },
-];
+import { useTranslations } from "next-intl";
 
 const Page = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const { setCurrentConversation, currentConversation, conversations, fetchConversations } = useChatStore();
   const { bookings, fetchMyBookings } = useBookingsStore();
+  const t = useTranslations("support");
+
+  const clientFaqKeys = ["q1", "q2", "q3", "q4", "q5"] as const;
+  const krafterFaqKeys = ["q1", "q2", "q3", "q4", "q5"] as const;
 
   useEffect(() => {
     fetchConversations();
@@ -195,20 +145,20 @@ const Page = () => {
 
         {/* Client FAQs */}
         <div className="space-y-2 pb-6 px-4 sm:px-6 lg:px-8">
-          <h2 className="text-[14px] text-[#667085] font-poppins mb-1">Client — Help Topics</h2>
+          <h2 className="text-[14px] text-[#667085] font-poppins mb-1">{t("clientHelpTopics")}</h2>
           <div className="divide-y divide-[#F2F4F7]">
-            {clientFAQs.map((topic, i) => (
-              <HelpTopicItem key={i} label={topic.question} answer={topic.answer} />
+            {clientFaqKeys.map((key, i) => (
+              <HelpTopicItem key={i} label={t(`clientFaqs.${key}.question`)} answer={t(`clientFaqs.${key}.answer`)} />
             ))}
           </div>
         </div>
 
         {/* Krafter FAQs */}
         <div className="space-y-2 pb-8 px-4 sm:px-6 lg:px-8">
-          <h2 className="text-[14px] text-[#667085] font-poppins mb-1">Krafter — Help Topics</h2>
+          <h2 className="text-[14px] text-[#667085] font-poppins mb-1">{t("krafterHelpTopics")}</h2>
           <div className="divide-y divide-[#F2F4F7]">
-            {krafterFAQs.map((topic, i) => (
-              <HelpTopicItem key={i} label={topic.question} answer={topic.answer} />
+            {krafterFaqKeys.map((key, i) => (
+              <HelpTopicItem key={i} label={t(`krafterFaqs.${key}.question`)} answer={t(`krafterFaqs.${key}.answer`)} />
             ))}
           </div>
         </div>

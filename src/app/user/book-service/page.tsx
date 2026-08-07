@@ -24,6 +24,7 @@ import {
   validateFlexibleScheduleState,
   type FlexibleScheduleState,
 } from "@/lib/flexibleSchedule";
+import { useTranslations } from "next-intl";
 
 const BookServicePage = () => {
   const router = useRouter();
@@ -55,6 +56,9 @@ const BookServicePage = () => {
     setPendingPublishMediaFiles,
     isSubmitting,
   } = useBookingsStore();
+
+  const tn = useTranslations("booking.nav");
+  const td = useTranslations("booking.serviceDetailsStep");
 
   interface BookServiceForm {
     selectedDate: Date | undefined;
@@ -96,7 +100,7 @@ const BookServicePage = () => {
     { display: "1:00 PM", value: "13:00" },
     { display: "3:00 PM", value: "15:00" },
     { display: "6:00 PM", value: "18:00" },
-    { display: "Custom", value: "Custom" },
+    { display: td("custom"), value: "Custom" },
   ];
 
   const handleNext = async () => {
@@ -110,13 +114,13 @@ const BookServicePage = () => {
     if (!formData.selectedDate || !resolvedTime || !formData.taskDetails) {
       toast.error(
         !resolvedTime && formData.selectedTime === "Custom"
-          ? "Please enter a custom time."
-          : "Please fill in all required fields"
+          ? td("errorCustomTime")
+          : td("errorRequired")
       );
       return;
     }
     if (formData.selectedDate && isDateTimeTooSoon(formData.selectedDate, resolvedTime)) {
-      toast.error("Choose a time at least 30 minutes from now.");
+      toast.error(td("errorTooSoon"));
       return;
     }
     const flexError = validateFlexibleScheduleState(formData.selectedDate, flexSchedule);
@@ -125,7 +129,7 @@ const BookServicePage = () => {
       return;
     }
     if (!categoryId.trim()) {
-      toast.error("Missing service category. Go back and pick a category.");
+      toast.error(td("errorMissingCategory"));
       return;
     }
 
@@ -135,9 +139,7 @@ const BookServicePage = () => {
       getBookingLocationData();
 
     if (lat === null || lng === null) {
-      toast.error(
-        "Please pick your job address from the suggestions list (or use current location) so we can calculate distance to Krafters.",
-      );
+      toast.error(td("errorMissingLocation"));
       return;
     }
 
@@ -193,8 +195,7 @@ const BookServicePage = () => {
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { message?: string } } };
       toast.error(
-        ax.response?.data?.message ||
-          "Could not start your booking. Please try again.",
+        ax.response?.data?.message || td("errorGeneric")
       );
     }
   };
@@ -231,7 +232,7 @@ const BookServicePage = () => {
               onClick={() => router.back()}
               className="w-fit px-3 py-2.5 text-xs sm:text-sm bg-brand-orange text-white rounded-full flex items-center justify-center cursor-pointer hover:bg-orange-600 transition-colors"
             >
-              Kraft Details
+              {td("kraftDetails")}
             </span>
             <span className="w-9 h-9 bg-white font-bold rounded-full text-[#00000066] flex items-center justify-center text-sm">
               3
@@ -251,7 +252,7 @@ const BookServicePage = () => {
             }}
             className="text-brand-orange text-[12px] sm:text-[14px] font-poppins font-semibold rounded-full hover:underline"
           >
-            Cancel
+            {tn("cancel")}
           </button>
         </div>
 
@@ -263,12 +264,12 @@ const BookServicePage = () => {
                 {categoryName}
               </h1>
               <p className="text-[14px] sm:text-[15px] text-gray-600 font-poppins truncate max-w-[280px] sm:max-w-sm">
-                {currentAddress || "Select a location"}
+                {currentAddress || td("selectLocation")}
               </p>
               <p className="text-[14px] sm:text-[15px] text-gray-600 font-poppins">
                 {formData.selectedDate 
                   ? `${formatDate(formData.selectedDate)}${formData.selectedTime ? ` at ${formData.selectedTime}` : ''}`
-                  : "Select a date"
+                  : td("selectDate")
                 }
               </p>
             </div>
@@ -287,10 +288,10 @@ const BookServicePage = () => {
         {/* Enter Your Address */}
         <div className="p-4 sm:p-5 border-b border-[#0000001A]">
           <h2 className="text-[20px] sm:text-[22px] font-poppins font-medium mb-3">
-            Enter Your Address
+            {td("enterYourAddress")}
           </h2>
           <p className="text-[12px] sm:text-[13px] text-gray-600 font-bold font-poppins mb-2">
-            Saved Address
+            {td("savedAddress")}
           </p>
           <div className="flex items-center gap-2 p-3 mb-3">
             <MapPin size={16} className="text-gray-600 shrink-0" />
@@ -304,7 +305,7 @@ const BookServicePage = () => {
           >
             <Plus size={16} className="text-gray-600" />
             <span className="text-[14px] sm:text-[15px] font-poppins text-gray-600">
-              Select location
+              {td("selectLocation")}
             </span>
           </button>
         </div>
@@ -312,7 +313,7 @@ const BookServicePage = () => {
         {/* Choose Date */}
         <div className="p-4 sm:p-5 border-b border-[#0000001A]">
           <h2 className="text-[20px] sm:text-[22px] font-poppins font-medium mb-3">
-            Choose Date
+            {td("chooseDate")}
           </h2>
           <button
             onClick={() => setShowDatePicker(true)}
@@ -321,7 +322,7 @@ const BookServicePage = () => {
             <span className="text-[14px] sm:text-[15px] font-poppins text-gray-800">
               {formData.selectedDate
                 ? formatDate(formData.selectedDate)
-                : "Select Dates"}
+                : td("selectDates")}
             </span>
             <Plus size={16} className="text-gray-600" />
           </button>
@@ -336,7 +337,7 @@ const BookServicePage = () => {
         {/* When? */}
         <div className="p-4 sm:p-5 border-b border-[#0000001A]">
           <h2 className="text-[20px] sm:text-[22px] font-poppins font-medium mb-3">
-            When?
+            {td("when")}
           </h2>
           <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2 pb-4">
             {timeSlots.map((time) => {
@@ -371,7 +372,7 @@ const BookServicePage = () => {
                   onClick={() => setShowTimePicker(true)}
                   className="w-full p-3 bg-[#F6F6F6] rounded-xl text-[14px] sm:text-[15px] font-poppins border border-[#0000001A] text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-orange text-left flex justify-between items-center"
                 >
-                  <span>{formatTime12h(customTime) || "Select a time"}</span>
+                  <span>{formatTime12h(customTime) || td("selectTime")}</span>
                   <Clock size={16} className="text-gray-500" />
                 </button>
               </div>
@@ -381,18 +382,17 @@ const BookServicePage = () => {
         {/* Tell Us The Details */}
         <div className="p-4 sm:p-5 border-b border-[#0000001A]">
           <h2 className="text-[20px] sm:text-[22px] font-poppins font-medium mb-1">
-            Tell Us The Details Of Your Task <span className="text-red-500">*</span>
+            {td("tellUsDetails")} <span className="text-red-500">*</span>
           </h2>
           <p className="text-[12px] sm:text-[13px] font-poppins mb-2">
-            Start The Conversation And Tell Your Tasker What You Need Done.
-            Don&apos;t Worry, You Can Edit This Later.
+            {td("startConversation")}
           </p>
           <textarea
             value={formData.taskDetails}
             onChange={(e) =>
               setFormData({ ...formData, taskDetails: e.target.value })
             }
-            placeholder="I want my clothes washed in triple cycle..."
+            placeholder={td("detailsPlaceholder")}
             className="w-full h-32 sm:h-40 p-3 bg-[#F6F6F6] border border-[#0000001A] rounded-lg text-[14px] sm:text-[15px] font-poppins resize-none focus:outline-none focus:border-brand-orange"
           />
         </div>
@@ -402,13 +402,13 @@ const BookServicePage = () => {
           photos={formData.photos}
           onChange={(photos: Photo[]) => setFormData((prev) => ({ ...prev, photos }))}
           maxPhotos={3}
-          title="Add Photos"
+          title={td("addPhotos")}
         />
 
         {/* Special Instructions */}
         <div className="p-4 sm:p-5">
           <h2 className="text-[20px] sm:text-[22px] font-poppins font-medium mb-3">
-            Special Instructions
+            {td("specialInstructions")}
           </h2>
           <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
             <input
@@ -420,7 +420,7 @@ const BookServicePage = () => {
                   specialInstructions: e.target.value,
                 })
               }
-              placeholder="eg. Beware of dog, Side gate is unlocked"
+              placeholder={td("specialInstructionsPlaceholder")}
               className="flex-1 bg-transparent text-[14px] sm:text-[15px] font-poppins focus:outline-none pb-2"
             />
           </div>
@@ -439,7 +439,7 @@ const BookServicePage = () => {
             }
             className="py-4 text-[16px] sm:text-[17px] max-w-md mx-auto disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSubmitting ? "Saving…" : "Next"}
+            {isSubmitting ? tn("saving") : tn("next")}
           </Button>
           <Button
             variant="outline"
@@ -447,7 +447,7 @@ const BookServicePage = () => {
             onClick={() => router.push("/")}
             className="py-4 text-[16px] sm:text-[17px] max-w-md mx-auto "
           >
-            Cancel
+            {tn("cancel")}
           </Button>
         </div>
       </div>

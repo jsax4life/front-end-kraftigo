@@ -9,6 +9,7 @@ import ProgressStepper from "../components/ProgressStepper";
 import { useCustomKraftsStore } from "@/store/useCustomKraftsStore";
 import type { CustomKraftExpiryOption } from "@/lib/api/custom-krafts";
 import { MARKETPLACE_FIXED_PRICE_OFFER_MESSAGE } from "@/lib/marketplaceFixedPriceOfferValidation";
+import { useTranslations } from "next-intl";
 
 function parseCustomKraftOffer(raw: string): number {
   const t = raw.trim().replace(",", ".");
@@ -50,15 +51,25 @@ const Page = () => {
     error,
     clearError,
   } = useCustomKraftsStore();
+  const t = useTranslations("customKraft");
+  const td = useTranslations("customKraft.budgetStep");
+  const tn = useTranslations("customKraft.nav");
 
   // ─── Local state ─────────────────────────────────────────────────────────────
   const [offerAmount, setOfferAmount] = useState("");
   const [openToNegotiation, setOpenToNegotiation] = useState(false);
-  const [kraftExpiry, setKraftExpiry] = useState("3 days");
+  const [kraftExpiry, setKraftExpiry] = useState(td("expiryOptions.3days"));
   const [urgentBoost, setUrgentBoost] = useState(false);
   const [fixedPriceListingError, setFixedPriceListingError] = useState<string | null>(null);
 
-  const expiryOptions = ["24h", "3 days", "1 Week"];
+  const expiryOptions = [td("expiryOptions.24h"), td("expiryOptions.3days"), td("expiryOptions.1week")];
+
+  // Map localized expiry back to English enum for API
+  const getExpiryEnum = (localizedExpiry: string) => {
+    if (localizedExpiry === td("expiryOptions.24h")) return EXPIRY_MAP["24h"];
+    if (localizedExpiry === td("expiryOptions.1week")) return EXPIRY_MAP["1 Week"];
+    return EXPIRY_MAP["3 days"];
+  };
 
   // ─── Show store errors as toasts ─────────────────────────────────────────────
   useEffect(() => {
@@ -79,7 +90,7 @@ const Page = () => {
   const buildStep3Fields = () => ({
     offerAmount: offerAmount ? parseFloat(offerAmount) : undefined,
     openToNegotiation,
-    expiryOption: EXPIRY_MAP[kraftExpiry],
+    expiryOption: getExpiryEnum(kraftExpiry),
     urgentBoost,
   });
 
@@ -141,7 +152,7 @@ const Page = () => {
     if (!selectedKraft) return;
     try {
       await updateStep3(selectedKraft.id, buildStep3Fields());
-      toast.success("Draft saved!");
+      toast.success(tn("draftSaved"));
     } catch {
       // error handled by useEffect
     }
@@ -158,21 +169,20 @@ const Page = () => {
         </button>
 
         <h1 className="text-[24px] sm:text-[28px] font-gerat font-bold text-gray-900 mb-6">
-          Request A Custom Kraft
+          {t("requestACustomKraft")}
         </h1>
 
         <ProgressStepper currentStep={3} />
 
         <div className="space-y-6">
-          <div className="border-b border-[#0000001A] pb-8 space-y-4">
-            {/* Offer Amount */}
-            <div>
-              <h2 className="text-[18px] sm:text-[20px] font-poppins font-semibold text-gray-900 mb-3">
-                Budget
-              </h2>
-              <p className="text-[13px] font-poppins text-gray-700 mb-2">
-                Offer Amount
-              </p>
+          {/* Budget */}
+          <div className="border-b border-[#0000001A] pb-8">
+            <h2 className="text-[18px] sm:text-[20px] font-poppins font-semibold text-gray-900 mb-3">
+              {td("budgetForKraft")}
+            </h2>
+            <p className="text-[13px] font-poppins text-gray-600 mb-6">
+              {td("setReasonableBudget")}
+            </p>
               <div className="relative">
                 <span className="absolute left-6 top-1/2 -translate-y-1/2 text-[24px] font-poppins text-gray-400">
                   €
@@ -201,14 +211,13 @@ const Page = () => {
                   className="w-full pl-14 pr-6 py-5 bg-[#F6F6F6] rounded-xl text-[24px] font-poppins text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-orange"
                 />
               </div>
-            </div>
 
             {/* Open to negotiation */}
-            <div className="flex items-center justify-between pb-3">
+            <div className="flex items-center justify-between pt-6 pb-3">
               <div className="flex items-center gap-1 px-1">
                 <Image src="/neg.svg" alt="icon" width={18} height={18} />
                 <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-800">
-                  Open to negotiation
+                  {td("openToNegotiation")}
                 </span>
               </div>
               <button
@@ -243,77 +252,63 @@ const Page = () => {
           </div>
 
           {/* Kraft Expiry */}
-          <div className="border-b border-[#0000001A] pb-8 space-y-4">
-            <div>
-              <h3 className="text-[16px] sm:text-[18px] font-poppins font-semibold text-gray-900 mb-3">
-                Kraft Expiry
-              </h3>
-              <div className="grid grid-cols-3 gap-3">
-                {expiryOptions.map((option) => (
-                  <button
-                    key={option}
-                    onClick={() => setKraftExpiry(option)}
-                    className={`p-4 rounded-xl text-[14px] font-poppins font-medium transition-colors ${
-                      kraftExpiry === option
-                        ? "bg-[#FF66001A] border-2 border-brand-orange text-brand-orange"
-                        : "bg-[#F6F6F6] border-2 border-transparent text-gray-700 hover:bg-gray-200"
-                    }`}
-                  >
-                    {option}
-                  </button>
-                ))}
-              </div>
+          <div className="border-b border-[#0000001A] pb-8">
+            <h3 className="text-[16px] sm:text-[18px] font-poppins font-semibold text-gray-900 mb-4">
+              {td("kraftExpiry")}
+            </h3>
+            <div className="grid grid-cols-3 gap-3">
+              {expiryOptions.map((option) => (
+                <button
+                  key={option}
+                  onClick={() => setKraftExpiry(option)}
+                  className={`p-4 rounded-xl text-[14px] font-poppins font-medium transition-colors ${
+                    kraftExpiry === option
+                      ? "bg-[#FF66001A] border-2 border-brand-orange text-brand-orange"
+                      : "bg-[#F6F6F6] border-2 border-transparent text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  {option}
+                </button>
+              ))}
             </div>
           </div>
 
-          <div className="mb-20">
-            {/* Urgent Boost */}
-            <div
-              className={`p-4 rounded-xl border-2 transition-colors ${
-                urgentBoost
-                  ? "border-brand-orange bg-[#FF66000D]"
-                  : "border-gray-200 bg-white"
-              }`}
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-brand-orange rounded-lg flex items-center justify-center shrink-0">
-                    <span className="text-2xl">⚡</span>
-                  </div>
-                  <div>
-                    <h4 className="text-[15px] font-poppins font-bold text-gray-900 mb-1">
-                      Urgent Boost
-                    </h4>
-                    <p className="text-[13px] font-poppins text-gray-600">
-                      Get seen by 3x more Krafters for just €4.99
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setUrgentBoost(!urgentBoost)}
-                  className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
-                    urgentBoost
-                      ? "bg-brand-orange border-brand-orange"
-                      : "bg-white border-gray-300"
-                  }`}
-                >
-                  {urgentBoost && (
-                    <svg
-                      className="w-3 h-3 text-white"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={3}
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                  )}
-                </button>
+          {/* Urgent Boost */}
+          <div className="border-b border-[#0000001A] pb-8 mb-20">
+            <div className="flex items-start gap-4">
+              <Image src="/flash.svg" alt="Flash" width={24} height={24} />
+              <div className="flex-1">
+                <h3 className="text-[16px] sm:text-[18px] font-poppins font-semibold text-gray-900 mb-1">
+                  {td("urgentBoost")}
+                </h3>
+                <p className="text-[13px] font-poppins text-gray-600">
+                  {td("urgentBoostDescription")}
+                </p>
               </div>
+              <button
+                onClick={() => setUrgentBoost(!urgentBoost)}
+                className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
+                  urgentBoost
+                    ? "bg-brand-orange border-brand-orange"
+                    : "bg-white border-gray-300"
+                }`}
+              >
+                {urgentBoost && (
+                  <svg
+                    className="w-3 h-3 text-white"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={3}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                )}
+              </button>
             </div>
           </div>
 
@@ -323,7 +318,7 @@ const Page = () => {
             disabled={isSubmitting}
             className="w-full py-4 bg-brand-orange text-white text-[16px] font-poppins font-semibold rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-60"
           >
-            {isSubmitting ? "Creating draft…" : "Next"}
+            {isSubmitting ? tn("saving") : tn("next")}
           </button>
 
           {/* Save as draft — only for returning users with an existing draft */}
@@ -333,7 +328,7 @@ const Page = () => {
               disabled={isSubmitting}
               className="w-full text-[14px] font-poppins text-gray-600 hover:text-gray-900 transition-colors disabled:opacity-50"
             >
-              Save as draft
+              {tn("saveAsDraft")}
             </button>
           )}
         </div>

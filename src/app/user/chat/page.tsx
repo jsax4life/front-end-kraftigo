@@ -25,6 +25,7 @@ import {
   resolvePreferredChatThread,
 } from "@/lib/chatThreadPreference";
 import type { Conversation } from "@/types";
+import { useTranslations } from "next-intl";
 
 const ChatPage = () => {
   const searchParams = useSearchParams();
@@ -33,6 +34,7 @@ const ChatPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [deepLinkBusy, setDeepLinkBusy] = useState(false);
   const [threadPickerGroup, setThreadPickerGroup] = useState<ParticipantChatGroup | null>(null);
+  const t = useTranslations("chat");
 
   useEffect(() => {
     fetchConversations();
@@ -89,9 +91,7 @@ const ChatPage = () => {
           setCurrentConversation(conv);
         } else {
           setCurrentConversation(null);
-          toast.error(
-            "Could not open this conversation yet. Open Messages from your Kraft, or try again in a moment.",
-          );
+          toast.error(t("openConversationError"));
         }
       } finally {
         if (!cancelled) setDeepLinkBusy(false);
@@ -139,7 +139,7 @@ const ChatPage = () => {
       <div className="px-5 pt-16 md:pt-8 pb-4 max-w-4xl mx-auto">
          <div className="flex justify-between items-center mb-6">
             <h1 className="text-[20px] font-gerat font-[850] text-[rgba(0,0,0,0.8)] tracking-[-0.03em]">
-               Messages
+               {t("title")}
             </h1>
             <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                <MoreHorizontal size={20} className="text-gray-500" />
@@ -147,14 +147,14 @@ const ChatPage = () => {
          </div>
 
          {deepLinkBusy && (
-            <p className="text-[13px] font-poppins text-[#667085] mb-4 -mt-2">Opening conversation…</p>
+            <p className="text-[13px] font-poppins text-[#667085] mb-4 -mt-2">{t("openingConversation")}</p>
          )}
 
          <div className="relative mb-8">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <input
                type="text"
-               placeholder="Search messages"
+               placeholder={t("searchPlaceholder")}
                value={searchQuery}
                onChange={(e) => setSearchQuery(e.target.value)}
                className="w-full pl-11 pr-4 py-3.5 bg-[#F6F6F6] rounded-[14px] text-[14px] font-poppins focus:outline-none placeholder:text-gray-400 border border-transparent focus:border-gray-200 transition-all shadow-sm"
@@ -165,7 +165,7 @@ const ChatPage = () => {
             {filteredGroups.length === 0 ? (
                 <div className="flex flex-col items-center py-20 text-center opacity-40">
                     <UserIcon size={48} className="mb-4 text-gray-300" />
-                    <p className="text-[14px] font-poppins">No messages yet</p>
+                    <p className="text-[14px] font-poppins">{t("noMessagesYet")}</p>
                 </div>
             ) : filteredGroups.map((group) => {
                const preview = group.previewThread;
@@ -205,12 +205,12 @@ const ChatPage = () => {
                      </div>
                      <p className="text-[11px] font-poppins text-[#98A2B3] truncate mb-0.5">
                         {multiThread
-                          ? `${group.threads.length} Kraft conversations · ${contextLabel}`
+                          ? t("multiThreadLabel", { count: group.threads.length, contextLabel })
                           : contextLabel}
                      </p>
                      <div className="flex justify-between items-center">
                         <p className={`text-[13px] font-poppins truncate pr-6 ${group.totalUnread ? 'text-black font-semibold' : 'text-[#667085]'}`}>
-                           {preview.lastMessage || "Start the conversation"}
+                           {preview.lastMessage || t("startConversation")}
                         </p>
                         {group.totalUnread > 0 && (
                            <span className="bg-brand-orange text-white text-[10px] font-bold min-w-[18px] h-4.5 flex items-center justify-center rounded-full px-1.5 shadow-sm">

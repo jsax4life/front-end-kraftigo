@@ -3,6 +3,7 @@
 import { X } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import Button from "@/components/ui/button";
+import { useTranslations } from "next-intl";
 
 export const formatTime12h = (time24: string) => {
   if (!time24) return "";
@@ -34,6 +35,8 @@ const TimePickerModal = ({
   const hourRef = useRef<HTMLDivElement>(null);
   const minuteRef = useRef<HTMLDivElement>(null);
   const ampmRef = useRef<HTMLDivElement>(null);
+  
+  const t = useTranslations("shared.timePicker");
 
   useEffect(() => {
     if (isOpen) {
@@ -99,7 +102,7 @@ const TimePickerModal = ({
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-[#0000001A]">
           <h2 className="text-[18px] sm:text-[20px] font-poppins font-bold text-gray-900">
-            Choose Time
+            {t("chooseTime")}
           </h2>
           <button
             onClick={onClose}
@@ -191,9 +194,9 @@ const TimePickerModal = ({
         </div>
 
         {/* Footer */}
-        <div className="p-5 border-t border-[#0000001A]">
-          <Button variant="primary" fullWidth onClick={handleDone}>
-            Done
+        <div className="p-5 border-t border-[#0000001A] flex justify-center">
+          <Button variant="primary" fullWidth onClick={handleDone} className="mt-6 w-full max-w-[260px]">
+            {t("done")}
           </Button>
         </div>
       </div>

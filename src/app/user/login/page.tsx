@@ -16,6 +16,7 @@ import { formatLoginApiError, isEmailNotVerifiedError } from "@/lib/authApiError
 import { setPendingEmailVerification } from "@/lib/pendingEmailVerification";
 import GoogleLoginButton from "@/components/auth/GoogleLoginButton";
 import { routeAfterAuthLogin } from "@/lib/postLoginRouting";
+import { useTranslations } from "next-intl";
 
 const LoginPageContent = () => {
   const router = useRouter();
@@ -24,6 +25,8 @@ const LoginPageContent = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = AUTH_CONFIG.LOGIN_STEPS;
   const showGoogleLogin = !!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+  const t = useTranslations("auth.login");
+  const tc = useTranslations("auth.common");
 
   // Form data state
   const [formData, setFormData] = useState({
@@ -133,13 +136,13 @@ const LoginPageContent = () => {
             {currentStep === 1 && (
               <div className="space-y-6">
                 <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-8">
-                  Welcome Back
+                  {t("title")}
                 </h1>
 
                 <Input
-                  label="Email"
+                  label={tc("emailLabel")}
                   type="email"
-                  placeholder="Enter your email"
+                  placeholder={tc("emailPlaceholder")}
                   value={formData.email}
                   onChange={(value) => handleInputChange("email", value)}
                 />
@@ -149,20 +152,20 @@ const LoginPageContent = () => {
                       onClick={() => router.push("/user/forgot-password")}
                       className="text-brand-blue text-[14px] font-mabry cursor-pointer underline "
                     >
-                      Forgot password?
+                      {t("forgotPasswordLink")}
                     </p>
                   </div>
                   <Input
-                    label="Password"
+                    label={tc("passwordLabel")}
                     type="password"
-                    placeholder="Enter your password"
+                    placeholder={tc("passwordPlaceholder")}
                     value={formData.password}
                     onChange={(value) => handleInputChange("password", value)}
                   />
                 </div>
                 <div className="mt-10">
                   <div className="text-center text-[16px] my-4 font-mabry">
-                    Or sign in with
+                    {t("orSignInWith")}
                   </div>
                   <div className="flex gap-4 justify-center pb-2 items-center">
                     {showGoogleLogin ? (
@@ -180,13 +183,13 @@ const LoginPageContent = () => {
                     </button>
                   </div>
                   <p className="text-center text-[12px] font-poppins text-gray-500 px-4 pb-4">
-                    By signing in with Google you agree to our{" "}
+                    {t("googleTerms")}{" "}
                     <button
                       type="button"
                       onClick={() => router.push("/user/createacc")}
                       className="text-brand-blue underline"
                     >
-                      Terms of Use
+                      {tc("termsOfUse")}
                     </button>
                     .
                   </p>
@@ -199,13 +202,13 @@ const LoginPageContent = () => {
             {currentStep === 1 && (
               <div className="text-center text-[14px] font-mabry">
                 <span className="text-brand-orange">
-                  Don&apos;t have an account?{" "}
+                  {t("noAccount")}{" "}
                 </span>
                 <button
                   onClick={() => router.push("/user/createacc")}
                   className="text-brand-blue font-semibold hover:underline"
                 >
-                  Sign Up
+                  {tc("signUp")}
                 </button>
               </div>
             )}
@@ -217,7 +220,7 @@ const LoginPageContent = () => {
                 fullWidth
                 disabled={!isStepValid()}
               >
-                {currentStep === totalSteps ? "Verify" : "Sign In"}
+                {currentStep === totalSteps ? t("verify") : tc("signIn")}
               </Button>
             </div>
           </div>

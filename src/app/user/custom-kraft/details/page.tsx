@@ -9,6 +9,7 @@ import AddressModal from "@/components/shared/AddressModal";
 import { useAddressStore } from "@/store/useAddressStore";
 import { useCustomKraftsStore } from "@/store/useCustomKraftsStore";
 import type { CustomKraftFrequency } from "@/lib/api/custom-krafts";
+import { useTranslations } from "next-intl";
 
 // ─── Frequency label → API enum map ──────────────────────────────────────────
 const FREQUENCY_MAP: Record<string, CustomKraftFrequency> = {
@@ -41,13 +42,29 @@ const Page = () => {
     getCurrentLocation,
     loadAddresses,
   } = useAddressStore();
+  const t = useTranslations("customKraft");
+  const td = useTranslations("customKraft.detailsStep");
+  const tn = useTranslations("customKraft.nav");
 
   // ─── Local state ─────────────────────────────────────────────────────────────
   const [bookingHours, setBookingHours] = useState(1);
-  const [frequency, setFrequency] = useState("Just Once");
+  const [frequency, setFrequency] = useState(td("freqOptions.justOnce"));
   const [showAddressModal, setShowAddressModal] = useState(false);
 
-  const frequencyOptions = ["Just Once", "Weekly", "Every 2 weeks", "Monthly"];
+  const frequencyOptions = [
+    td("freqOptions.justOnce"),
+    td("freqOptions.weekly"),
+    td("freqOptions.every2Weeks"),
+    td("freqOptions.monthly"),
+  ];
+
+  // Map localized frequency back to English enum for API
+  const getFrequencyEnum = (localizedFreq: string) => {
+    if (localizedFreq === td("freqOptions.weekly")) return FREQUENCY_MAP["Weekly"];
+    if (localizedFreq === td("freqOptions.every2Weeks")) return FREQUENCY_MAP["Every 2 weeks"];
+    if (localizedFreq === td("freqOptions.monthly")) return FREQUENCY_MAP["Monthly"];
+    return FREQUENCY_MAP["Just Once"];
+  };
 
   // ─── Show store errors as toasts ─────────────────────────────────────────────
   useEffect(() => {
@@ -72,14 +89,14 @@ const Page = () => {
   // ─── Handlers ────────────────────────────────────────────────────────────────
   const handleNext = async () => {
     if (!selectedAddressId) {
-      toast.error("Please select an address");
+      toast.error(td("selectAddressError"));
       return;
     }
 
     const step2Fields = {
       addressId: selectedAddressId,
       bookingHours,
-      frequency: FREQUENCY_MAP[frequency],
+      frequency: getFrequencyEnum(frequency),
     };
 
     if (pendingDraftData) {
@@ -103,9 +120,9 @@ const Page = () => {
       await updateStep2(selectedKraft.id, {
         addressId: selectedAddressId,
         bookingHours,
-        frequency: FREQUENCY_MAP[frequency],
+        frequency: getFrequencyEnum(frequency),
       });
-      toast.success("Draft saved!");
+      toast.success(tn("draftSaved"));
     } catch {
       // error handled by useEffect
     }
@@ -122,7 +139,7 @@ const Page = () => {
         </button>
 
         <h1 className="text-[24px] sm:text-[28px] font-gerat font-bold text-gray-900 mb-6">
-          Request A Custom Kraft
+          {t("requestACustomKraft")}
         </h1>
 
         <ProgressStepper currentStep={2} />
@@ -131,10 +148,10 @@ const Page = () => {
           {/* Enter Your Address */}
           <div className="border-b border-[#0000001A] pb-8">
             <h2 className="text-[18px] sm:text-[20px] font-poppins font-semibold text-gray-900 mb-3">
-              Enter Your Address
+              {td("enterYourAddress")}
             </h2>
             <p className="text-[13px] font-poppins font-semibold text-gray-700 mb-2">
-              Saved Address
+              {td("savedAddress")}
             </p>
             <div className="p-4 bg-[#F6F6F6] rounded-xl flex items-center gap-3 mb-3">
               <div className="w-5 h-5 flex items-center justify-center">
@@ -149,17 +166,17 @@ const Page = () => {
               className="w-full p-4 bg-[#F6F6F6] rounded-xl text-[14px] font-poppins text-gray-600 hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
             >
               <Plus size={18} />
-              Add new location
+              {td("addNewLocation")}
             </button>
           </div>
 
           {/* Booking Hours */}
           <div className="border-b border-[#0000001A] pb-8">
             <h3 className="text-[16px] sm:text-[18px] font-poppins font-semibold text-gray-900 mb-2">
-              Booking Hours
+              {td("bookingHours")}
             </h3>
             <p className="text-[13px] font-poppins text-gray-600 mb-3">
-              How many hours do you want to book
+              {td("howManyHours")}
             </p>
             <div className="flex items-center justify-center gap-6">
               <button
@@ -183,10 +200,10 @@ const Page = () => {
           {/* Frequency */}
           <div className="border-b border-[#0000001A] pb-8 mb-20">
             <h3 className="text-[16px] sm:text-[18px] font-poppins font-semibold text-gray-900 mb-2">
-              Frequency
+              {td("frequency")}
             </h3>
             <p className="text-[13px] font-poppins text-gray-600 mb-3">
-              How often do you want this service
+              {td("howOften")}
             </p>
             <div className="space-y-3">
               {frequencyOptions.map((option) => (
@@ -218,7 +235,7 @@ const Page = () => {
             disabled={isSubmitting}
             className="w-full py-4 bg-brand-orange text-white text-[16px] font-poppins font-semibold rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-60"
           >
-            {isSubmitting ? "Saving…" : "Next"}
+            {isSubmitting ? tn("saving") : tn("next")}
           </button>
 
           {/* Save as draft — only for returning users with an existing draft */}
@@ -228,7 +245,7 @@ const Page = () => {
               disabled={isSubmitting}
               className="w-full text-[14px] font-poppins text-gray-600 hover:text-gray-900 transition-colors disabled:opacity-50"
             >
-              Save as draft
+              {tn("saveAsDraft")}
             </button>
           )}
         </div>

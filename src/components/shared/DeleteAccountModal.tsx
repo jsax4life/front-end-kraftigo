@@ -4,6 +4,7 @@ import { AlertTriangle, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
+import { useTranslations } from "next-intl";
 
 interface DeleteAccountModalProps {
   open: boolean;
@@ -29,6 +30,7 @@ export default function DeleteAccountModal({
   const [confirmationText, setConfirmationText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const t = useTranslations("profile.deleteAccount");
 
   useEffect(() => {
     if (open) setMode(defaultMode);
@@ -49,11 +51,11 @@ export default function DeleteAccountModal({
     setError(null);
     if (mode === "password") {
       if (!password.trim()) {
-        setError("Enter your password to continue.");
+        setError(t("enterPasswordError"));
         return;
       }
     } else if (confirmationText.trim() !== SOCIAL_CONFIRMATION) {
-      setError(`Type ${SOCIAL_CONFIRMATION} exactly.`);
+      setError(t("typeExactlyError", { text: SOCIAL_CONFIRMATION }));
       return;
     }
 
@@ -88,7 +90,7 @@ export default function DeleteAccountModal({
           <div className="flex items-center gap-2">
             <AlertTriangle size={18} className="text-red-600 shrink-0" />
             <h2 id="delete-account-title" className="text-[18px] font-poppins font-semibold text-[#1D2939]">
-              Close account
+              {t("title")}
             </h2>
           </div>
           <button
@@ -103,11 +105,10 @@ export default function DeleteAccountModal({
 
         <div className="rounded-xl border border-red-100 bg-red-50 px-3 py-3 mb-4">
           <p className="text-[13px] font-poppins text-red-900">
-            This action is permanent. Your account data will be anonymized and the account will be
-            deactivated. You will be logged out from all sessions.
+            {t("warning1")}
           </p>
           <p className="text-[12px] font-poppins text-red-800 mt-2">
-            Deletion may be blocked if you still have active bookings/applications.
+            {t("warning2")}
           </p>
         </div>
 
@@ -121,7 +122,7 @@ export default function DeleteAccountModal({
                 : "bg-white text-gray-700 border-gray-200"
             }`}
           >
-            Password account
+            {t("passwordAccount")}
           </button>
           <button
             type="button"
@@ -132,21 +133,21 @@ export default function DeleteAccountModal({
                 : "bg-white text-gray-700 border-gray-200"
             }`}
           >
-            Social login
+            {t("socialLogin")}
           </button>
         </div>
 
         {mode === "password" ? (
           <Input
-            label="Confirm your password"
+            label={t("confirmPasswordLabel")}
             type="password"
             value={password}
             onChange={setPassword}
-            placeholder="Enter password"
+            placeholder={t("enterPasswordPlaceholder")}
           />
         ) : (
           <Input
-            label={`Type ${SOCIAL_CONFIRMATION} to confirm`}
+            label={t("typeToConfirmLabel", { text: SOCIAL_CONFIRMATION })}
             value={confirmationText}
             onChange={setConfirmationText}
             placeholder={SOCIAL_CONFIRMATION}
@@ -161,7 +162,7 @@ export default function DeleteAccountModal({
 
         <div className="grid grid-cols-2 gap-3 mt-5">
           <Button type="button" variant="secondary" onClick={resetAndClose} disabled={isSubmitting}>
-            Cancel
+            {t("cancel")}
           </Button>
           <Button
             type="button"
@@ -170,7 +171,7 @@ export default function DeleteAccountModal({
             disabled={isSubmitting}
             className="!bg-red-600 hover:!bg-red-700"
           >
-            {isSubmitting ? "Closing..." : "Close account"}
+            {isSubmitting ? t("closing") : t("closeAccountBtn")}
           </Button>
         </div>
       </div>

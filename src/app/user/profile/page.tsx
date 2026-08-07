@@ -25,6 +25,7 @@ import { ProfileInfoSkeleton } from "@/components/shared/Skeletons";
 import DeleteAccountModal from "@/components/shared/DeleteAccountModal";
 import KrafterCtaBanner from "@/components/shared/KrafterCtaBanner";
 import { isGoogleOnlyAccount } from "@/lib/googleAuth";
+import { useTranslations } from "next-intl";
 
 const SettingsItem = ({ icon: Icon, label, onClick, showBorder = true }: { icon: any, label: string, onClick: () => void, showBorder?: boolean }) => (
   <button 
@@ -50,6 +51,7 @@ const Page = () => {
   const { user } = useAuthStore();
   const { customerProfile, fetchCustomerProfile, isLoading } = useProfileStore();
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const t = useTranslations("profile");
 
   useEffect(() => {
     if (!customerProfile) {
@@ -68,12 +70,12 @@ const Page = () => {
     try {
       await deleteAccount(payload);
       await useAuthStore.getState().logout();
-      toast.success("Account closed successfully.");
+      toast.success(t("accountClosedSuccess"));
       router.replace("/user/login");
     } catch (error: any) {
       const message =
         error?.response?.data?.message ||
-        "Could not close account. Check active bookings/applications and try again.";
+        t("accountClosedError");
       toast.error(Array.isArray(message) ? message.join(", ") : message);
       throw error;
     }
@@ -87,7 +89,7 @@ const Page = () => {
       
       <div className="px-[20px] pt-[60px] md:pt-8 pb-8 w-full max-w-4xl mx-auto">
         <h1 className="text-[20px] font-gerat font-[850] text-[rgba(0,0,0,0.8)] mb-6 tracking-[-0.03em]">
-          Profile
+          {t("title")}
         </h1>
 
         {/* User Profile Card */}
@@ -115,51 +117,51 @@ const Page = () => {
           </div>
         )}
 
-        <SectionHeader label="Account" />
+        <SectionHeader label={t("sections.account")} />
         <div className="flex flex-col py-[8px] bg-[#F6F6F6] rounded-[20px]">
            <SettingsItem 
              icon={User} 
-             label="Personal Information" 
+             label={t("menu.personalInfo")} 
              onClick={() => router.push("/user/profile/personal-info")}
            />
            <SettingsItem 
              icon={Lock} 
-             label="Security" 
+             label={t("menu.security")} 
              onClick={() => router.push("/user/profile/security")}
              showBorder={false}
            />
         </div>
 
-        <SectionHeader label="Payment & Billing" />
+        <SectionHeader label={t("sections.paymentBilling")} />
         <div className="flex flex-col py-[8px] bg-[#F6F6F6] rounded-[20px]">
            <SettingsItem 
              icon={CreditCard} 
-             label="Payment Methods" 
+             label={t("menu.paymentMethods")} 
              onClick={() => router.push("/user/profile/payment-methods")}
            />
            <SettingsItem 
              icon={Clock} 
-             label="Transaction History" 
+             label={t("menu.transactionHistory")} 
              onClick={() => router.push("/user/profile/transactions")}
              showBorder={false}
            />
         </div>
 
-        <SectionHeader label="App Preferences" />
+        <SectionHeader label={t("sections.appPreferences")} />
         <div className="flex flex-col py-[8px] bg-[#F6F6F6] rounded-[20px]">
            <SettingsItem 
              icon={MapPin} 
-             label="Saved Addresses" 
+             label={t("menu.savedAddresses")} 
              onClick={() => {}}
            />
            <SettingsItem 
              icon={Bell} 
-             label="Notifications" 
+             label={t("menu.notifications")} 
              onClick={() => router.push("/user/profile/notifications")}
            />
            <SettingsItem 
              icon={Languages} 
-             label="Language" 
+             label={t("menu.language")} 
              onClick={() => router.push("/user/profile/language")}
              showBorder={false}
            />
@@ -168,12 +170,12 @@ const Page = () => {
         <div className="flex flex-col mt-[20px] py-[8px] bg-[#F6F6F6] rounded-[20px]">
            <SettingsItem 
              icon={MessageCircle} 
-             label="Help Center" 
+             label={t("menu.helpCenter")} 
              onClick={() => {}}
            />
            <SettingsItem
              icon={UserX}
-             label="Close Account"
+             label={t("menu.closeAccount")}
              onClick={() => setDeleteModalOpen(true)}
              showBorder={false}
            />
@@ -183,15 +185,15 @@ const Page = () => {
            onClick={async () => {
              try {
                await useAuthStore.getState().logout();
-               toast.success("Logged out successfully");
+               toast.success(t("logoutSuccess"));
                router.push("/user/login");
              } catch (error) {
-               toast.error("Logout failed");
+               toast.error(t("logoutFailed"));
              }
            }}
            className="w-full mt-[12px] flex justify-center items-center py-[14px] bg-[rgba(254,41,41,0.1)] rounded-[12px]"
         >
-           <span className="text-[14px] font-poppins text-[#FE2929]">Log out</span>
+           <span className="text-[14px] font-poppins text-[#FE2929]">{t("logoutButton")}</span>
         </button>
       </div>
 

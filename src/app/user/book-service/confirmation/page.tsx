@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useEffect, useState, Suspense } from "react";
 import { parseBookingMoney } from "@/lib/bookingDisplay";
 import { formatHourlyRate, formatMoney } from "@/utils/currency";
+import { useTranslations } from "next-intl";
 
 const ConfirmationContent = () => {
   const router = useRouter();
@@ -57,6 +58,8 @@ const ConfirmationContent = () => {
 
   const artisanImage =
     searchParams.get("artisanImage")?.trim() || "/images/pro.jpg";
+
+  const td = useTranslations("booking.confirmationStep");
 
   const parsedDate = new Date(rawDate);
   const formattedDisplayDate = !isNaN(parsedDate.getTime()) 
@@ -143,12 +146,12 @@ const ConfirmationContent = () => {
         {/* Success Message */}
         <div className="text-center mb-8">
           <h1 className="text-[28px] sm:text-[32px] font-gerat font-bold mb-3">
-            {isPublic ? "Task Posted Successfully" : "Request sent"}
+            {isPublic ? td("successPublicTitle") : td("successRequestTitle")}
           </h1>
           <p className="text-[14px] sm:text-[15px] font-poppins text-gray-600">
             {isPublic
-              ? `You've successfully posted your ${categoryName} task to the marketplace.`
-              : `We've shared your ${categoryName} request with ${searchParams.get("artisanName") || "your Krafter"}. The booking is not confirmed until they accept — we'll keep you updated.`}
+              ? td("successPublicDesc", { category: categoryName })
+              : td("successRequestDesc", { category: categoryName, name: searchParams.get("artisanName") || "your Krafter" })}
           </p>
         </div>
 
@@ -200,7 +203,7 @@ const ConfirmationContent = () => {
                     (23 reviews)
                   </span> */}
                   <span className="text-[13px] font-poppins text-gray-600">
-                    {searchParams.get("artisanKrafts")} Krafts
+                    {td("kraftsCount", { count: searchParams.get("artisanKrafts") || "0" })}
                   </span>
                 </div>
                 {/* <span className="inline-block bg-[#FFF9C4] text-[#F57F17] text-[10px] font-poppins font-semibold px-2 py-1 rounded">
@@ -221,7 +224,7 @@ const ConfirmationContent = () => {
                 {formattedDisplayDate}
               </p>
               <p className="text-[15px] sm:text-[16px] font-poppins font-semibold text-gray-900">
-                Scheduled Date
+                {td("scheduledDate")}
               </p>
             </div>
           </div>
@@ -234,7 +237,7 @@ const ConfirmationContent = () => {
                 {rawTime}
               </p>
               <p className="text-[15px] sm:text-[16px] font-poppins font-semibold text-gray-900">
-                Estimated Window
+                {td("estimatedWindow")}
               </p>
             </div>
           </div>
@@ -247,7 +250,7 @@ const ConfirmationContent = () => {
                 {address}
               </p>
               <p className="text-[15px] sm:text-[16px] font-poppins font-semibold text-gray-900">
-                Service Address
+                {td("serviceAddress")}
               </p>
             </div>
           </div>
@@ -256,12 +259,12 @@ const ConfirmationContent = () => {
         {!isPublic ? (
           <div className="mb-6 rounded-xl border border-[#0000001A] bg-[#FAFAFA] p-4">
             <h3 className="text-[16px] font-poppins font-semibold text-gray-900 mb-3">
-              Pricing
+              {td("pricing")}
             </h3>
             <div className="space-y-2 text-[13px] font-poppins">
               {hourlyRate !== null ? (
                 <div className="flex justify-between gap-4">
-                  <span className="text-gray-600">Hourly rate ({formatHourlyRate(hourlyRate)} x {
+                  <span className="text-gray-600">{td("hourlyRate")} ({formatHourlyRate(hourlyRate)} x {
                     estimatedHoursLabel
                   } )</span>  
                   <span className="font-semibold text-gray-900">
@@ -279,7 +282,7 @@ const ConfirmationContent = () => {
                 <>
                   {bookingPlatformFee !== null ? (
                     <div className="flex justify-between gap-4">
-                      <span className="text-gray-600">Platform fee</span>
+                      <span className="text-gray-600">{td("platformFee")}</span>
                       <span className="font-semibold text-gray-900">
                         {formatMoney(bookingPlatformFee)}
                       </span>
@@ -287,7 +290,7 @@ const ConfirmationContent = () => {
                   ) : null}
                   {serverTotal !== null ? (
                     <div className="flex justify-between gap-4 border-t border-[#0000001A] pt-2 mt-2">
-                      <span className="text-gray-900 font-semibold">Total (from booking)</span>
+                      <span className="text-gray-900 font-semibold">{td("totalFromBooking")}</span>
                       <span className="font-bold text-brand-orange">
                         {formatMoney(serverTotal)}
                       </span>
@@ -301,8 +304,7 @@ const ConfirmationContent = () => {
                 </>
               ) : (
                 <p className="text-[12px] text-gray-600">
-                  Final charges from Kraftigo will appear here once the booking is fully priced on
-                  the server.
+                  {td("finalChargesNotice")}
                 </p>
               )}
             </div>
@@ -320,7 +322,7 @@ const ConfirmationContent = () => {
           />
           <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4">
             <p className="bg-brand-orange text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-full text-[12px] sm:text-[14px] font-poppins flex items-center gap-1 shadow-lg">
-              Service Area
+              {td("serviceArea")}
             </p>
           </div>
         </div>
@@ -329,25 +331,25 @@ const ConfirmationContent = () => {
 {!isPublic && (
         <div className="mb-6 mt-2">
           <h3 className="text-[18px] sm:text-[20px] font-poppins font-semibold text-gray-900 mb-4">
-            What&apos;s Next?
+            {td("whatsNext")}
           </h3>
           <div className="space-y-4">
             <div className="flex items-start gap-3">
               <CheckCircle2 size={22} className="text-brand-orange mt-0.5 shrink-0" />
               <p className="text-[14px] sm:text-[15px] font-poppins text-gray-700">
-                Krafter will arrive at the scheduled time
+                {td("nextArrive")}
               </p>
             </div>
             <div className="flex items-start gap-3">
               <MessageSquare size={22} className="text-brand-orange mt-0.5 shrink-0" />
               <p className="text-[14px] sm:text-[15px] font-poppins text-gray-700">
-                You can chat with them anytime to share entry instructions or details
+                {td("nextChat")}
               </p>
             </div>
             <div className="flex items-start gap-3">
               <ShieldCheck size={22} className="text-brand-orange mt-0.5 shrink-0" />
               <p className="text-[14px] sm:text-[15px] font-poppins text-gray-700">
-                You&apos;re protected by Kraftigo&apos;s satisfaction guarantee
+                {td("nextGuarantee")}
               </p>
             </div>
           </div>
@@ -362,14 +364,14 @@ const ConfirmationContent = () => {
               onClick={handleMessageKrafter}
               className="text-[16px] sm:text-[17px] w-full py-3 bg-brand-orange text-white  font-poppins  rounded-xl hover: transition-colors  "
             >
-              Message Krafter
+              {td("messageKrafter")}
             </button>
           )}
           <button
             onClick={handleViewDetails}
             className="w-full py-3 bg-[#0000FF] text-white text-[16px] sm:text-[17px] font-poppins rounded-xl hover:bg-blue-700 transition-colors"
           >
-            Go Back Home
+            {td("goBackHome")}
           </button>
         </div>
 
@@ -402,8 +404,9 @@ const ConfirmationContent = () => {
 };
 
 export default function Page() {
+  const td = useTranslations("booking.confirmationStep");
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div>{td("loading")}</div>}>
       <ConfirmationContent />
     </Suspense>
   );

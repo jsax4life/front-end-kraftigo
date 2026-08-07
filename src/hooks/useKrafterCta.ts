@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useProfileStore } from "@/store/useProfileStore";
 import { getKrafterCtaState, navigateKrafterCta } from "@/lib/krafterCta";
+import { useTranslations } from "next-intl";
 
 type UseKrafterCtaOptions = {
   /** When false, skips the background verification fetch (e.g. logged-out home). */
@@ -22,7 +23,15 @@ export function useKrafterCta(options?: UseKrafterCtaOptions) {
     void fetchVerificationStatusSilent();
   }, [enabled, fetchVerificationStatusSilent]);
 
-  const cta = useMemo(() => getKrafterCtaState(verificationStatus), [verificationStatus]);
+  const t = useTranslations("profile.cta");
+  const cta = useMemo(() => {
+    const baseCta = getKrafterCtaState(verificationStatus);
+    return {
+      ...baseCta,
+      bannerTitle: baseCta.isKrafterEligible ? t("krafterDashboard") : t("earnMoney"),
+      buttonLabel: baseCta.isKrafterEligible ? t("switchToKrafter") : t("becomeKrafter")
+    };
+  }, [verificationStatus, t]);
 
   const handleAction = useCallback(() => {
     navigateKrafterCta(router, verificationStatus);

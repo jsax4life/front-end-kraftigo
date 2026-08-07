@@ -7,6 +7,7 @@ import Image from "next/image";
 import { getPaymentById } from "@/lib/api/payments";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import type { Payment } from "@/types";
+import { useTranslations } from "next-intl";
 
 const ReceiptContent = () => {
   const router = useRouter();
@@ -35,6 +36,8 @@ const ReceiptContent = () => {
     window.print();
   };
 
+  const t = useTranslations("profile.receipt");
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
@@ -46,12 +49,12 @@ const ReceiptContent = () => {
   if (!payment) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-white">
-        <p className="text-gray-500 font-poppins mb-4">Receipt not found.</p>
+        <p className="text-gray-500 font-poppins mb-4">{t("notFound")}</p>
         <button
           onClick={() => router.back()}
           className="px-4 py-2 bg-[#FF6600] text-white rounded-lg font-poppins"
         >
-          Go Back
+          {t("goBack")}
         </button>
       </div>
     );
@@ -83,7 +86,7 @@ const ReceiptContent = () => {
   const serviceFee = Number(payment.breakdown?.serviceFee ?? 0);
   const discountAmount = payment.breakdown?.discountAmount;
   const discountLabel = payment.breakdown?.discountLabel;
-  const statusHeading = payment.statusLabel ?? "Transaction Successful";
+  const statusHeading = payment.statusLabel ?? t("transactionSuccessful");
 
   const formatMoney = (amount: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency }).format(amount);
@@ -133,7 +136,7 @@ const ReceiptContent = () => {
             )}
             {payment.scheduledAt && (
               <p className="text-[12px] text-[#667085] font-poppins mt-1">
-                Scheduled: {new Date(payment.scheduledAt).toLocaleString()}
+                {t("scheduled")} {new Date(payment.scheduledAt).toLocaleString()}
               </p>
             )}
           </div>
@@ -171,14 +174,14 @@ const ReceiptContent = () => {
                     </div>
                     {krafterReviews != null && (
                       <span className="text-[13px] text-[#667085] font-poppins shrink-0">
-                        ({krafterReviews} reviews)
+                        {t("reviews", { count: krafterReviews })}
                       </span>
                     )}
                   </div>
                 )}
                 {krafter.completedKrafts != null && (
                   <span className="inline-flex items-center gap-1 bg-[#FFF9E6] text-[#B78800] text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
-                    {krafter.completedKrafts} krafts completed
+                    {t("completedKrafts", { count: krafter.completedKrafts })}
                   </span>
                 )}
               </div>
@@ -187,7 +190,7 @@ const ReceiptContent = () => {
 
           <div className="mb-10">
             <h3 className="text-[18px] font-poppins font-bold text-[#1D2939] mb-5">
-              Price Breakdown
+              {t("priceBreakdown")}
             </h3>
             <div className="space-y-4">
               {lineItems.length > 0 ? (
@@ -201,7 +204,7 @@ const ReceiptContent = () => {
                 ))
               ) : (
                 <div className="flex justify-between items-center">
-                  <span className="text-[14px] text-[#475467] font-poppins">Service</span>
+                  <span className="text-[14px] text-[#475467] font-poppins">{t("service")}</span>
                   <span className="text-[14px] text-[#1D2939] font-poppins font-medium">
                     {formatMoney(totalPaid - serviceFee)}
                   </span>
@@ -210,7 +213,7 @@ const ReceiptContent = () => {
 
               {serviceFee > 0 && (
                 <div className="flex justify-between items-center">
-                  <span className="text-[14px] text-[#475467] font-poppins">Service fee</span>
+                  <span className="text-[14px] text-[#475467] font-poppins">{t("serviceFee")}</span>
                   <span className="text-[14px] text-[#1D2939] font-poppins font-medium">
                     {formatMoney(serviceFee)}
                   </span>
@@ -220,7 +223,7 @@ const ReceiptContent = () => {
               {discountAmount != null && discountAmount > 0 && (
                 <div className="flex justify-between items-center">
                   <span className="text-[14px] text-[#475467] font-poppins">
-                    {discountLabel ?? "Discount"}
+                    {discountLabel ?? t("discount")}
                   </span>
                   <span className="text-[14px] text-[#1D2939] font-poppins font-medium">
                     -{formatMoney(discountAmount)}
@@ -231,7 +234,7 @@ const ReceiptContent = () => {
               <div className="h-[1px] bg-[#EAECF0] w-full my-1" />
 
               <div className="flex justify-between items-center">
-                <span className="text-[16px] font-poppins font-bold text-[#1D2939]">Total Paid</span>
+                <span className="text-[16px] font-poppins font-bold text-[#1D2939]">{t("totalPaid")}</span>
                 <span className="text-[16px] font-poppins font-bold text-[#1D2939]">
                   {formattedAmount}
                 </span>
@@ -242,13 +245,13 @@ const ReceiptContent = () => {
           {payment.timeline && payment.timeline.length > 0 && (
             <div className="mb-10">
               <h3 className="text-[18px] font-poppins font-bold text-[#1D2939] mb-5">
-                Payment timeline
+                {t("paymentTimeline")}
               </h3>
               <div className="space-y-3">
                 {payment.timeline.map((event, idx) => (
                   <div key={idx} className="flex justify-between text-[13px] font-poppins">
                     <span className="text-[#475467]">
-                      {event.label ?? event.status ?? "Event"}
+                      {event.label ?? event.status ?? t("event")}
                     </span>
                     <span className="text-[#667085]">
                       {event.at ?? event.timestamp
@@ -266,7 +269,7 @@ const ReceiptContent = () => {
           <div className="mb-12">
             <div className="flex items-center gap-2">
               <span className="text-[13px] text-[#475467] font-poppins shrink-0">
-                Transaction reference:
+                {t("transactionReference")}
               </span>
               <span className="text-[13px] text-[#475467] font-poppins truncate font-mono">
                 {payment.transactionReference ?? payment.id}
@@ -279,10 +282,10 @@ const ReceiptContent = () => {
               onClick={handleDownloadPdf}
               className="w-full bg-[#FF6600] hover:bg-[#E55C00] text-white font-poppins text-[15px] font-medium py-3.5 rounded-xl transition-colors flex items-center justify-center gap-2"
             >
-              <Download size={18} /> Download PDF Receipt
+              <Download size={18} /> {t("downloadPdf")}
             </button>
             <button className="w-full bg-[#0200FF] hover:bg-blue-700 text-white font-poppins text-[15px] font-medium py-3.5 rounded-xl transition-colors">
-              Report this Transaction
+              {t("reportTransaction")}
             </button>
           </div>
         </div>

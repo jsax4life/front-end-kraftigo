@@ -3,6 +3,7 @@
 import React from "react";
 import Image from "next/image";
 import { X, Check } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface FinishProfileModalProps {
   isOpen: boolean;
@@ -15,27 +16,10 @@ interface FinishProfileModalProps {
 }
 
 const steps = [
-  
-  {
-    id: "eligibility",
-    label: "Add Your Work Eligibility",
-    sublabel: "Tell them about your expertise",
-  },
-  {
-    id: "identity",
-    label: "Add Legal Document",
-    sublabel: "Let customers know you better",
-  },
-  {
-    id: "personal",
-    label: "Add Personal Details",
-    sublabel: "Let customers know you better",
-  },
-  {
-    id: "skills",
-    label: "Add Your Skills To Your Profile",
-    sublabel: "Show users what you worked",
-  },
+  { id: "eligibility" },
+  { id: "identity" },
+  { id: "personal" },
+  { id: "skills" },
 ];
 
 const FinishProfileModal: React.FC<FinishProfileModalProps> = ({
@@ -47,6 +31,8 @@ const FinishProfileModal: React.FC<FinishProfileModalProps> = ({
   pendingStepIds = [],
   onStepClick,
 }) => {
+  const t = useTranslations("modals.finishProfile");
+
   if (!isOpen) return null;
 
   return (
@@ -76,11 +62,10 @@ const FinishProfileModal: React.FC<FinishProfileModalProps> = ({
 
         <div className="px-8 pb-10 text-center mt-5">
           <h2 className="text-[26px] font-gerat font-bold text-[#1D2939] mb-1">
-            Finish Your Profile
+            {t("title")}
           </h2>
           <p className="text-[14px] font-poppins text-[#667085] mb-8">
-            Youre already {completedPercentage}% of the way there! Complete
-            these steps to start accepting jobs
+            {t("subtitle", { completedPercentage })}
           </p>
 
           <div className="space-y-0 text-left mb-10">
@@ -124,21 +109,21 @@ const FinishProfileModal: React.FC<FinishProfileModalProps> = ({
                           isCompleted ? "text-[#98A2B3]" : "text-[#1D2939]"
                         }`}
                       >
-                        {step.label}
+                        {t(`steps.${step.id}.label` as any)}
                       </h4>
-                      {!isChecked && step.sublabel && (
+                      {!isChecked && (
                         <p className="text-[13px] font-poppins text-[#667085]">
-                          {step.sublabel}
+                          {t(`steps.${step.id}.sublabel` as any)}
                         </p>
                       )}
                       {isCompleted && (
                         <p className="text-[13px] font-poppins text-[#98A2B3]">
-                          Completed
+                          {t("status.completed")}
                         </p>
                       )}
                       {isPending && (
                         <p className="text-[13px] font-poppins text-brand-orange mt-0.5">
-                          Waiting for approval
+                          {t("status.waiting")}
                         </p>
                       )}
                     </div>

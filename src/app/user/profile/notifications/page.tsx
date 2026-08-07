@@ -4,6 +4,7 @@ import { BellRing } from "lucide-react";
 import Header from "@/components/shared/Header";
 import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
 import type { NotificationKey } from "@/lib/notificationPreferences";
+import { useTranslations } from "next-intl";
 
 interface ToggleProps {
   label: string;
@@ -66,33 +67,34 @@ const TOGGLE_META: { key: NotificationKey; label: string; description: string }[
 
 const NotificationsPage = () => {
   const { settings, toggle, isLoading, isSaving } = useNotificationPreferences();
+  const t = useTranslations("profile.notifications");
 
   return (
     <main className="min-h-screen bg-[#F9FAFB] flex flex-col">
-      <Header title="Notifications" showLogout={false} />
+      <Header title={t("title")} showLogout={false} />
 
       <div className="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-10">
-          <h2 className="text-[32px] font-gerat font-[850] text-[#1D2939] leading-tight">Notifications</h2>
+          <h2 className="text-[32px] font-gerat font-[850] text-[#1D2939] leading-tight">{t("title")}</h2>
           <p className="text-[14px] text-[#667085] font-poppins mt-2">
-            Select what you want to be notified about
+            {t("desc")}
           </p>
         </div>
 
         <div className="bg-white p-6 rounded-3xl border border-[#F2F4F7] shadow-sm">
           <h3 className="text-[12px] font-poppins font-bold text-[#98A2B3] uppercase tracking-widest mb-2 ml-1">
-            Preferences
+            {t("preferences")}
           </h3>
           {isLoading && !settings ? (
-            <p className="text-[13px] font-poppins text-gray-500 py-4">Loading preferences…</p>
+            <p className="text-[13px] font-poppins text-gray-500 py-4">{t("loadingPreferences")}</p>
           ) : (
             <div className="flex flex-col">
               {TOGGLE_META.map((item) => (
                 <NotificationToggle
                   key={item.key}
-                  label={item.label}
-                  description={item.description}
-                  enabled={settings[item.key]}
+                  label={t(item.key)}
+                  description={t(`${item.key}Desc`)}
+                  enabled={settings?.[item.key] ?? false}
                   disabled={isSaving}
                   onChange={() => toggle(item.key)}
                 />
@@ -104,7 +106,7 @@ const NotificationsPage = () => {
         <div className="mt-12 flex items-center gap-3 p-5 bg-orange-50/50 rounded-2xl border border-orange-100">
           <BellRing className="text-brand-orange shrink-0" size={24} />
           <p className="text-[13px] font-poppins text-[#667085]">
-            We&apos;ll only notify you about important updates regarding your krafts even if all toggles are off.
+            {t("infoText")}
           </p>
         </div>
       </div>

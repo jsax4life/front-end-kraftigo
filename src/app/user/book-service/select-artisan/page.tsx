@@ -23,6 +23,7 @@ import { readDistanceFields } from "@/utils/distance";
 import { resolveTaskCoordinates } from "@/lib/taskLocation";
 import { readFlexibleScheduleFromUrlParams } from "@/lib/flexibleSchedule";
 import { formatHourlyRate } from "@/utils/currency";
+import { useTranslations } from "next-intl";
 
 interface Artisan {
   id: string;
@@ -152,6 +153,7 @@ const SelectArtisanPage = () => {
 
   const { getRecommendations, isLoading } = useBookingsStore();
   const { currentLatitude, currentLongitude } = useAddressStore();
+  const td = useTranslations("booking.selectArtisanStep");
 
   const [artisans, setArtisans] = useState<Artisan[]>([]);
   const [artisansFromApi, setArtisansFromApi] = useState(false);
@@ -191,9 +193,7 @@ const SelectArtisanPage = () => {
     }
 
     if (!taskCoords) {
-      setCoordsError(
-        "We need your job location coordinates to show Krafter distance. Go back and pick your address from the suggestions list.",
-      );
+      setCoordsError(td("errorMissingLocationCoords"));
       setArtisans([]);
       setArtisansFromApi(false);
       setFetchDone(true);
@@ -342,7 +342,7 @@ const SelectArtisanPage = () => {
               <Check size={20} className="text-white" />
             </span>
             <span className="w-fit px-3 py-2.5 text-xs sm:text-sm bg-brand-orange text-white rounded-full flex items-center justify-center cursor-pointer hover:bg-orange-600 transition-colors">
-              Krafter
+              {td("krafter")}
             </span>
             <span className="w-9 h-9 bg-white font-bold rounded-full text-[#00000066] flex items-center justify-center text-sm">
               4
@@ -355,7 +355,7 @@ const SelectArtisanPage = () => {
             className="text-brand-orange text-[14px] sm:text-[16px] font-poppins font-semibold"
             onClick={() => router.back()}
           >
-            Back
+            {td("back")}
           </button>
         </div>
         {/* Service Header */}
@@ -366,18 +366,18 @@ const SelectArtisanPage = () => {
                 {categoryName}
               </h1>
               <p className="text-[14px] sm:text-[15px] text-gray-600 font-poppins truncate max-w-[280px] sm:max-w-sm">
-                {address || "Select a location"}
+                {address || td("selectLocation")}
               </p>
               <p className="text-[14px] sm:text-[15px] text-gray-600 font-poppins">
                 {(() => {
                   try {
-                    if (!dateParam) return "Select a date";
+                    if (!dateParam) return td("selectDate");
                     const d = new Date(dateParam);
                     if (isNaN(d.getTime()))
                       return `${dateParam} at ${timeParam}`;
                     return `${d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
                   } catch {
-                    return "Select a date";
+                    return td("selectDate");
                   }
                 })()}
               </p>
@@ -400,14 +400,13 @@ const SelectArtisanPage = () => {
           <div className="flex items-start gap-3">
             <div className="flex-1">
               <span className="text-xs text-[#E29A00] bg-[#E29A001A] px-2 py-1.5 rounded-full  ">
-                Recommended
+                {td("recommended")}
               </span>
               <h3 className="text-[20px] sm:text-[20px] font-poppins font-bold mb-1 mt-2">
-                Post To The Community
+                {td("postToCommunity")}
               </h3>
               <p className="text-[12px] sm:text-[13px] font-poppins mb-3">
-                Make your request public so all qualified taskers can serve you
-                offers and marketplace pricing
+                {td("postToCommunityDesc")}
               </p>
               <div className="w-fit">
                 <Button
@@ -420,7 +419,7 @@ const SelectArtisanPage = () => {
                     );
                   }}
                 >
-                  <p>Post public task</p>
+                  <p>{td("postPublicTask")}</p>
                   <Image
                     src="/speaker.svg"
                     alt="icon"
@@ -453,7 +452,7 @@ const SelectArtisanPage = () => {
                 }}
                 className="px-4 py-2 bg-[#F6F6F6] border border-[#0000001A] text-gray-700 text-[13px] sm:text-[14px] font-poppins font-medium rounded-lg whitespace-nowrap flex items-center gap-2 cursor-pointer transition-colors hover:border-brand-orange hover:text-brand-orange"
               >
-                Price
+                {td("filterPrice")}
                 {priceFilterActive ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
               </button>
               <button 
@@ -464,7 +463,7 @@ const SelectArtisanPage = () => {
                 }}
                 className="px-4 py-2 bg-[#F6F6F6] border border-[#0000001A] text-gray-700 text-[13px] sm:text-[14px] font-poppins font-medium rounded-lg whitespace-nowrap flex items-center gap-2 cursor-pointer transition-colors hover:border-brand-orange hover:text-brand-orange"
               >
-                Rating
+                {td("filterRating")}
                 {ratingFilterActive ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
               </button>
               <button 
@@ -475,7 +474,7 @@ const SelectArtisanPage = () => {
                 }}
                 className="hidden md:flex px-4 py-2 bg-[#F6F6F6] border border-[#0000001A] text-gray-700 text-[13px] sm:text-[14px] font-poppins font-medium rounded-lg whitespace-nowrap items-center gap-2 cursor-pointer transition-colors hover:border-brand-orange hover:text-brand-orange"
               >
-                Today
+                {td("filterToday")}
                 {todayFilterActive ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
               </button>
             </div>
@@ -487,7 +486,7 @@ const SelectArtisanPage = () => {
                   className="w-10 h-10 md:w-auto md:h-auto md:px-7 md:py-2.5 bg-[#F6F6F6] border border-[#0000001A] text-gray-700 text-[13px] sm:text-[14px] font-poppins font-medium rounded-lg md:rounded-full whitespace-nowrap flex items-center justify-center gap-2 cursor-pointer transition-colors hover:border-brand-orange hover:text-brand-orange"
                 >
                   <ArrowLeftRight size={18} className="md:w-[14px] md:h-[14px]" /> 
-                  <span className="hidden md:inline">Compare ({artisans.length})</span>
+                  <span className="hidden md:inline">{td("compare")} ({artisans.length})</span>
                 </button>
               )}
               <button 
@@ -529,8 +528,10 @@ const SelectArtisanPage = () => {
         <div className="mb-4 flex justify-between items-center px-4 sm:px-0">
           <h2 className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-600">
             {isLoading
-              ? "Loading Krafters…"
-              : `${filteredArtisans.length} Krafter${filteredArtisans.length !== 1 ? "s" : ""} Available`}
+              ? td("loadingKrafters")
+              : filteredArtisans.length === 1 
+                  ? td("kraftersAvailable", { count: 1 })
+                  : td("kraftersAvailablePlural", { count: filteredArtisans.length })}
           </h2>
           {filteredArtisans.length > 0 && (
             <button
@@ -565,10 +566,10 @@ const SelectArtisanPage = () => {
         {!isLoading && fetchDone && !coordsError && filteredArtisans.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 text-center px-4">
             <p className="text-[16px] font-poppins font-semibold text-gray-400">
-              No Krafters found
+              {td("noKraftersFound")}
             </p>
             <p className="text-[13px] font-poppins text-gray-300 mt-1">
-              Try posting a public task so Krafters can come to you
+              {td("noKraftersFoundDesc")}
             </p>
           </div>
         )}

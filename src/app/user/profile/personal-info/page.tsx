@@ -12,6 +12,7 @@ import toast from "react-hot-toast";
 import { User as UserIcon, Edit2, Camera } from "lucide-react";
 import { useAddressStore } from "@/store/useAddressStore";
 import { CustomerProfile } from "@/types";
+import { useTranslations } from "next-intl";
 
 import Header from "@/components/shared/Header";
 
@@ -31,6 +32,7 @@ const PersonalInfoPage = () => {
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
   const profilePhotoInputRef = useRef<HTMLInputElement>(null);
+  const t = useTranslations("profile.personalInfo");
 
   const { currentAddress } = useAddressStore();
 
@@ -96,10 +98,10 @@ const PersonalInfoPage = () => {
       };
       
       await updateCustomerProfile(profileData);
-      toast.success("Profile updated successfully!");
+      toast.success(t("updateSuccess"));
       router.back();
     } catch (error) {
-      toast.error("Failed to update profile");
+      toast.error(t("updateError"));
     }
   };
 
@@ -125,9 +127,9 @@ const PersonalInfoPage = () => {
       setProfilePhotoUrl(publicUrl);
       
       await updateCustomerProfile({ profilePhotoUrl: publicUrl });
-      toast.success('Profile photo updated!');
+      toast.success(t("photoUpdateSuccess"));
     } catch (err: any) {
-      toast.error(err.message || 'Failed to upload profile photo');
+      toast.error(err.message || t("photoUploadError"));
     } finally {
       setIsUploadingAvatar(false);
     }
@@ -135,15 +137,15 @@ const PersonalInfoPage = () => {
 
   return (
     <main className="min-h-screen bg-white flex flex-col">
-      <Header title="Personal Information" showLogout={false} />
+      <Header title={t("title")} showLogout={false} />
 
       <div className="flex-1 space-y-8 max-w-4xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         <div>
           <h2 className="text-[28px] font-gerat font-bold text-[#1D2939]">
-            Hi {fullName.split(' ')[0] || "User"}
+            {t("greeting", { name: fullName.split(' ')[0] || "User" })}
           </h2>
           <p className="text-[16px] text-[#667085] font-poppins mt-1">
-            Editing Profile
+            {t("editingProfile")}
           </p>
         </div>
 
@@ -195,27 +197,27 @@ const PersonalInfoPage = () => {
         <div className="space-y-8">
           {/* Identity Section */}
           <div className="bg-white p-6 rounded-2xl border border-[#F2F4F7] shadow-sm">
-            <h3 className="text-[12px] font-poppins font-bold text-[#98A2B3] uppercase tracking-widest mb-6">Personal Details</h3>
+            <h3 className="text-[12px] font-poppins font-bold text-[#98A2B3] uppercase tracking-widest mb-6">{t("personalDetails")}</h3>
             <div className="space-y-5">
               <Input 
-                label="Full name"
+                label={t("fullName")}
                 value={fullName}
                 onChange={(val) => setFullName(val)}
-                placeholder="Enter your full name"
+                placeholder={t("enterFullName")}
               />
               <Input 
-                label="Email"
+                label={t("email")}
                 value={email}
                 disabled
                 onChange={() => {}}
-                placeholder="Enter your email"
+                placeholder={t("enterEmail")}
                 type="email"
               />
               <Input 
-                label="Phone"
+                label={t("phone")}
                 value={phone}
                 onChange={(val) => setPhone(val.replace(/\D/g, '').slice(0, 11))}
-                placeholder="Enter your phone number"
+                placeholder={t("enterPhone")}
                 type="tel"
               />
             </div>
@@ -223,10 +225,10 @@ const PersonalInfoPage = () => {
 
           {/* Address Section */}
           <div className="bg-white p-6 rounded-2xl border border-[#F2F4F7] shadow-sm">
-            <h3 className="text-[12px] font-poppins font-bold text-[#98A2B3] uppercase tracking-widest mb-6">Service Address</h3>
+            <h3 className="text-[12px] font-poppins font-bold text-[#98A2B3] uppercase tracking-widest mb-6">{t("serviceAddress")}</h3>
             <div className="space-y-5">
               <AddressAutocompleteInput 
-                label="Street"
+                label={t("street")}
                 value={street}
                 onChange={setStreet}
                 onSelectSuggestion={(s) => {
@@ -241,28 +243,28 @@ const PersonalInfoPage = () => {
                   setPostalCode(s.postcode || "");
                   setCountry("Germany");
                 }}
-                placeholder="Search for your address..."
+                placeholder={t("searchAddress")}
                 inputClassName="w-full px-4 py-3 bg-[#F9FAFB] border border-[#EAECF0] rounded-xl text-[14px] text-[#1D2939] focus:outline-none focus:border-[#FF6600] focus:ring-1 focus:ring-[#FF6600] transition-colors"
               />
               <div className="grid grid-cols-2 gap-4">
                 <Input 
-                  label="City"
+                  label={t("city")}
                   value={city}
                   onChange={(val) => setCity(val)}
-                  placeholder="City"
+                  placeholder={t("city")}
                 />
                 <Input 
-                  label="Postal Code"
+                  label={t("postalCode")}
                   value={postalCode}
                   onChange={(val) => setPostalCode(val)}
-                  placeholder="Postal Code"
+                  placeholder={t("postalCode")}
                 />
               </div>
               <Input 
-                label="Country"
+                label={t("country")}
                 value={country}
                 onChange={(val) => setCountry(val)}
-                placeholder="Country"
+                placeholder={t("country")}
               />
             </div>
           </div>
@@ -270,7 +272,7 @@ const PersonalInfoPage = () => {
 
         <div className="pt-10">
           <Button variant="primary" fullWidth onClick={handleSave} disabled={isLoading}>
-            {isLoading ? "Saving..." : "Save Changes"}
+            {isLoading ? t("saving") : t("saveChanges")}
           </Button>
         </div>
       </div>

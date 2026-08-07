@@ -27,6 +27,7 @@ import BookingPaymentConfirmModal from "@/components/shared/BookingPaymentConfir
 import { bookingPaymentClientSecret } from "@/lib/bookingPaymentCheckout";
 import { getBookingApplicants } from "@/lib/api/bookings";
 import { isPendingBookingApplication } from "@/lib/mapBookingApplicants";
+import { useTranslations } from "next-intl";
 
 function KraftTaskThumbnail({ src, alt }: { src: string; alt: string }) {
   const isPlaceholder = isKraftTaskPlaceholderImage(src);
@@ -76,12 +77,12 @@ const AWAITING_KRAFTER_STATUSES: readonly BookingStatus[] = [
   "COUNTERED",
 ];
 
-const UPCOMING_FILTER_TABS: { id: UpcomingBookingFilter; label: string; hint?: string }[] = [
-  { id: "all", label: "All" },
-  { id: "active", label: "Active" },
-  { id: "open_and_waiting", label: "Waiting & open", hint: "Responses & community" },
-  { id: "drafts", label: "Drafts", hint: "Pick a Krafter" },
-  { id: "declined", label: "Declined" },
+const getUpcomingFilterTabs = (t: any): { id: UpcomingBookingFilter; label: string; hint?: string }[] => [
+  { id: "all", label: t("filters.all") },
+  { id: "active", label: t("filters.active") },
+  { id: "open_and_waiting", label: t("filters.waitingOpen"), hint: t("filters.waitingOpenHint") },
+  { id: "drafts", label: t("filters.drafts"), hint: t("filters.draftsHint") },
+  { id: "declined", label: t("filters.declined") },
 ];
 
 function matchesUpcomingFilter(status: BookingStatus, filter: UpcomingBookingFilter): boolean {
@@ -135,6 +136,7 @@ const KraftsPage = () => {
   const [taskDetailBooking, setTaskDetailBooking] = useState<Booking | null>(null);
   const [discardConfirmBooking, setDiscardConfirmBooking] = useState<Booking | null>(null);
   const [discardBusy, setDiscardBusy] = useState(false);
+  const t = useTranslations("krafts");
 
   const {
     fetchMyBookings,
@@ -248,37 +250,37 @@ const KraftsPage = () => {
 
   const statusBadge = (status: Booking["status"]) => {
     if (status === "COMPLETED")
-      return <span className="text-[11px] font-poppins font-semibold text-green-600 bg-green-50 px-2.5 py-1 rounded-full">Completed</span>;
+      return <span className="text-[11px] font-poppins font-semibold text-green-600 bg-green-50 px-2.5 py-1 rounded-full">{t("status.completed")}</span>;
     if (status === "EXPIRED")
-      return <span className="text-[11px] font-poppins font-semibold text-amber-800 bg-amber-100 px-2.5 py-1 rounded-full">Expired</span>;
+      return <span className="text-[11px] font-poppins font-semibold text-amber-800 bg-amber-100 px-2.5 py-1 rounded-full">{t("status.expired")}</span>;
     if (status === "CANCELLED")
-      return <span className="text-[11px] font-poppins font-semibold text-red-500 bg-red-50 px-2.5 py-1 rounded-full">You cancelled this Kraft</span>;
+      return <span className="text-[11px] font-poppins font-semibold text-red-500 bg-red-50 px-2.5 py-1 rounded-full">{t("status.cancelled")}</span>;
     if (status === "DISPUTED")
-      return <span className="text-[11px] font-poppins font-semibold text-brand-orange bg-orange-50 px-2.5 py-1 rounded-full">Disputed</span>;
+      return <span className="text-[11px] font-poppins font-semibold text-brand-orange bg-orange-50 px-2.5 py-1 rounded-full">{t("status.disputed")}</span>;
     if (status === "IN_PROGRESS")
-      return <span className="text-[11px] font-poppins font-semibold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">In Progress</span>;
+      return <span className="text-[11px] font-poppins font-semibold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">{t("status.inProgress")}</span>;
     if (status === "CONFIRMED")
-      return <span className="text-[11px] font-poppins font-semibold text-brand-blue bg-blue-50 px-2.5 py-1 rounded-full">Confirmed</span>;
+      return <span className="text-[11px] font-poppins font-semibold text-brand-blue bg-blue-50 px-2.5 py-1 rounded-full">{t("status.confirmed")}</span>;
     if (status === "DECLINED")
-      return <span className="text-[11px] font-poppins font-semibold text-red-600 bg-red-50 px-2.5 py-1 rounded-full">Declined</span>;
+      return <span className="text-[11px] font-poppins font-semibold text-red-600 bg-red-50 px-2.5 py-1 rounded-full">{t("status.declined")}</span>;
     if (status === "RECOMMENDATION_PENDING")
-      return <span className="text-[11px] font-poppins font-semibold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full">Draft</span>;
+      return <span className="text-[11px] font-poppins font-semibold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full">{t("status.draft")}</span>;
     if (status === "KRAFTER_SELECTED")
-      return <span className="text-[11px] font-poppins font-semibold text-violet-700 bg-violet-50 px-2.5 py-1 rounded-full">Krafter selected</span>;
+      return <span className="text-[11px] font-poppins font-semibold text-violet-700 bg-violet-50 px-2.5 py-1 rounded-full">{t("status.krafterSelected")}</span>;
     if (status === "OPEN_FOR_APPLICATIONS")
-      return <span className="text-[11px] font-poppins font-semibold text-sky-700 bg-sky-50 px-2.5 py-1 rounded-full">Open listing</span>;
+      return <span className="text-[11px] font-poppins font-semibold text-sky-700 bg-sky-50 px-2.5 py-1 rounded-full">{t("status.openListing")}</span>;
     if (status === "REQUESTED")
-      return <span className="text-[11px] font-poppins font-semibold text-gray-600 bg-gray-100 px-2.5 py-1 rounded-full">Requested</span>;
+      return <span className="text-[11px] font-poppins font-semibold text-gray-600 bg-gray-100 px-2.5 py-1 rounded-full">{t("status.requested")}</span>;
     if (status === "ACCEPTED")
-      return <span className="text-[11px] font-poppins font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full">Accepted</span>;
+      return <span className="text-[11px] font-poppins font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full">{t("status.accepted")}</span>;
     if (status === "PAYMENT_PENDING")
       return (
         <span className="text-[11px] font-poppins font-semibold text-amber-800 bg-amber-100 px-2.5 py-1 rounded-full">
-          Payment needed
+          {t("status.paymentNeeded")}
         </span>
       );
     if (status === "COUNTERED")
-      return <span className="text-[11px] font-poppins font-semibold text-orange-700 bg-orange-50 px-2.5 py-1 rounded-full">Countered</span>;
+      return <span className="text-[11px] font-poppins font-semibold text-orange-700 bg-orange-50 px-2.5 py-1 rounded-full">{t("status.countered")}</span>;
     return <span className="text-[11px] font-poppins font-semibold text-gray-500 bg-gray-50 px-2.5 py-1 rounded-full">{status}</span>;
   };
 
@@ -299,14 +301,14 @@ const KraftsPage = () => {
     setDiscardBusy(true);
     try {
       await deleteDraftBooking(discardConfirmBooking.id);
-      toast.success("Draft discarded");
+      toast.success(t("discardModal.success"));
       setDiscardConfirmBooking(null);
     } catch (err: unknown) {
       const e = err as { userMessage?: string; response?: { data?: { message?: string } } };
       toast.error(
         e.userMessage ||
           e.response?.data?.message ||
-          "Could not discard this draft. Try again or refresh the page.",
+          t("discardModal.error"),
       );
     } finally {
       setDiscardBusy(false);
@@ -326,7 +328,7 @@ const KraftsPage = () => {
               const posted = formatPostedDayMonth(task.created_at ?? task.createdAt);
               const offerCount = applicantCounts[task.id];
               const offersLabel =
-                offerCount === undefined ? "…" : `${offerCount} Offer${offerCount === 1 ? "" : "s"} Received`;
+                offerCount === undefined ? t("card.offersReceivedUnknown") : t("card.offersReceived", { count: offerCount, plural: offerCount === 1 ? "" : "e" });
 
               const cardOpensDetail = opensTaskDetailFromUpcomingCard(upcomingStatusFilter, task.status);
 
@@ -354,7 +356,7 @@ const KraftsPage = () => {
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-4 text-[12px] font-poppins">
                     <div className="flex items-center gap-1.5 text-gray-500">
                       <Image src="/taskerCal.svg" alt="" width={14} height={14} />
-                      <span>Posted {posted}</span>
+                      <span>{t("card.posted", { date: posted })}</span>
                     </div>
                     <div className="flex items-center gap-1.5 text-brand-orange font-semibold">
                       <Tag size={14} className="shrink-0" aria-hidden />
@@ -370,7 +372,7 @@ const KraftsPage = () => {
                       }}
                       className="flex-1 bg-brand-orange text-white py-3 rounded-xl text-[14px] font-poppins font-semibold hover:bg-orange-600 transition-colors"
                     >
-                      View Offers
+                      {t("card.viewOffers")}
                     </button>
                     <button
                       type="button"
@@ -379,7 +381,7 @@ const KraftsPage = () => {
                       }
                       className="px-6 bg-[#FFF5F0] border border-gray-100 rounded-xl text-[14px] font-poppins font-bold text-gray-800 hover:bg-orange-50 transition-colors"
                     >
-                      Edit
+                      {t("card.edit")}
                     </button>
                   </div>
                 </div>
@@ -451,7 +453,7 @@ const KraftsPage = () => {
                       onClick={() => setPaymentModalBooking(task)}
                       className="w-full py-3 bg-brand-orange text-white text-[14px] font-poppins font-semibold rounded-xl hover:bg-orange-600 transition-colors"
                     >
-                      Confirm payment
+                      {t("card.confirmPayment")}
                     </button>
                   </div>
                 )}
@@ -470,7 +472,7 @@ const KraftsPage = () => {
                         }
                         className="flex-1 py-2.5 bg-brand-orange text-white text-[13px] font-poppins font-semibold rounded-xl hover:bg-orange-600 transition-colors"
                       >
-                        Continue
+                        {t("card.continue")}
                       </button>
                       <button
                         type="button"
@@ -495,7 +497,7 @@ const KraftsPage = () => {
                       className="w-full py-2.5 flex items-center justify-center gap-2 rounded-xl border border-brand-orange text-brand-orange text-[13px] font-poppins font-semibold hover:bg-[#FFF5F0] transition-colors"
                     >
                       <MessageCircle size={16} strokeWidth={2} aria-hidden />
-                      Message Krafter
+                      {t("card.messageKrafter")}
                     </button>
                   </div>
                 )}
@@ -514,7 +516,7 @@ const KraftsPage = () => {
           <button onClick={() => router.push("/")} className="p-1">
             <ArrowLeft size={24} />
           </button>
-          <h1 className="text-[28px] font-gerat font-bold">Krafts</h1>
+          <h1 className="text-[28px] font-gerat font-bold">{t("title")}</h1>
         </div>
 
         {/* Tabs */}
@@ -528,7 +530,7 @@ const KraftsPage = () => {
               activeTab === "upcoming" ? "bg-brand-blue text-white" : "text-gray-500"
             }`}
           >
-            Upcoming
+            {t("tabs.upcoming")}
           </button>
           <button
             onClick={() => setActiveTab("completed")}
@@ -536,7 +538,7 @@ const KraftsPage = () => {
               activeTab === "completed" ? "bg-brand-blue text-white" : "text-gray-500"
             }`}
           >
-            Completed
+            {t("tabs.completed")}
           </button>
         </div>
 
@@ -545,7 +547,7 @@ const KraftsPage = () => {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
           <input
             type="text"
-            placeholder="Search"
+            placeholder={t("searchPlaceholder")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-3 bg-gray-100 rounded-xl focus:outline-none text-[14px] font-poppins text-black"
@@ -571,7 +573,7 @@ const KraftsPage = () => {
         {!isLoading && activeTab === "upcoming" && (
           <div className="space-y-6">
             <div className="flex flex-nowrap gap-2 overflow-x-auto pb-2 -mx-1 px-1 scroll-smooth [scrollbar-width:thin]">
-              {UPCOMING_FILTER_TABS.map((tab) => (
+              {getUpcomingFilterTabs(t).map((tab) => (
                 <button
                   key={tab.id}
                   type="button"
@@ -591,7 +593,7 @@ const KraftsPage = () => {
             {/* Kraft Requests */}
             {showKraftRequests && (
               <div>
-                <h2 className="text-[16px] font-poppins font-bold mb-3 text-black">Kraft Requests</h2>
+                <h2 className="text-[16px] font-poppins font-bold mb-3 text-black">{t("sections.kraftRequests")}</h2>
                 {filterBySearch(requestedBookings).map((job) => {
                   const title = `${job.service?.title ?? "Request"} with ${job.service?.artisan?.fullName ?? "Pro"}`;
                   const date = formatDate(job.created_at);
@@ -621,11 +623,11 @@ const KraftsPage = () => {
                       <div className="flex items-center gap-4 mb-3">
                         <div className="flex items-center gap-1.5 text-[12px] text-gray-500 font-poppins">
                           <Image src="/taskerCal.svg" alt="calendar" width={14} height={14} />
-                          <span>Posted {date}</span>
+                          <span>{t("card.posted", { date: date })}</span>
                         </div>
                         <div className="flex items-center gap-1.5 text-[12px] text-brand-orange font-poppins font-semibold">
                           <MapPin size={14} />
-                          <span>Request Pending</span>
+                          <span>{t("card.requestPending")}</span>
                         </div>
                       </div>
                       <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
@@ -637,7 +639,7 @@ const KraftsPage = () => {
                           }}
                           className="flex-1 bg-brand-orange text-white py-3 rounded-xl text-[14px] font-poppins font-semibold hover:bg-orange-600 transition-colors"
                         >
-                          View Offers
+                          {t("card.viewOffers")}
                         </button>
                         <button
                           type="button"
@@ -646,7 +648,7 @@ const KraftsPage = () => {
                           }
                           className="px-6 bg-[#FFF5F0] border border-gray-100 rounded-xl text-[14px] font-poppins font-bold text-gray-800 hover:bg-orange-50 transition-colors"
                         >
-                          Edit
+                          {t("card.edit")}
                         </button>
                       </div>
                     </div>
@@ -659,12 +661,12 @@ const KraftsPage = () => {
             {filteredUpcoming.length === 0 && !showKraftRequests ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <p className="text-[16px] font-poppins font-semibold text-gray-400">
-                  {upcomingStatusFilter === "all" ? "No upcoming krafts" : "No krafts in this category"}
+                  {upcomingStatusFilter === "all" ? t("empty.noUpcomingAll") : t("empty.noUpcomingFilter")}
                 </p>
                 <p className="text-[13px] font-poppins text-gray-300 mt-1">
                   {upcomingStatusFilter === "all"
-                    ? "Your bookings and requests will appear here"
-                    : "Try another filter or choose All"}
+                    ? t("empty.noUpcomingAllDesc")
+                    : t("empty.noUpcomingFilterDesc")}
                 </p>
               </div>
             ) : hasOpenAndWaitingSplit ? (
@@ -675,10 +677,10 @@ const KraftsPage = () => {
                       id="krafts-awaiting-heading"
                       className="text-[13px] font-poppins font-bold text-gray-500 uppercase tracking-wide mb-3"
                     >
-                      Awaiting Krafter
+                      {t("sections.awaitingKrafter")}
                     </h2>
                     <p className="text-[12px] font-poppins text-gray-400 mb-4">
-                      Direct requests and counter-offers
+                      {t("sections.awaitingKrafterDesc")}
                     </p>
                     {renderUpcomingCards(awaitingKrafterBookings)}
                   </section>
@@ -689,10 +691,10 @@ const KraftsPage = () => {
                       id="krafts-community-heading"
                       className="text-[13px] font-poppins font-bold text-gray-500 uppercase tracking-wide mb-3 mt-2"
                     >
-                      Public listings
+                      {t("sections.publicListings")}
                     </h2>
                     <p className="text-[12px] font-poppins text-gray-400 mb-4">
-                      Open to applications from Krafters
+                      {t("sections.publicListingsDesc")}
                     </p>
                     {renderUpcomingCards(communityListingBookings)}
                   </section>
@@ -707,8 +709,8 @@ const KraftsPage = () => {
         {!isLoading && activeTab === "completed" && (
           filteredCompleted.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
-              <p className="text-[16px] font-poppins font-semibold text-gray-400">No completed krafts yet</p>
-              <p className="text-[13px] font-poppins text-gray-300 mt-1">Finished bookings will appear here</p>
+              <p className="text-[16px] font-poppins font-semibold text-gray-400">{t("empty.noCompleted")}</p>
+              <p className="text-[13px] font-poppins text-gray-300 mt-1">{t("empty.noCompletedDesc")}</p>
             </div>
           ) : (
             Object.entries(groupByMonth(filteredCompleted)).map(([month, tasks]) => (
@@ -771,7 +773,7 @@ const KraftsPage = () => {
                               className="w-full py-2.5 flex items-center justify-center gap-2 rounded-xl border border-brand-orange text-brand-orange text-[13px] font-poppins font-semibold hover:bg-[#FFF5F0] transition-colors"
                             >
                               <MessageCircle size={16} strokeWidth={2} aria-hidden />
-                              Message Krafter
+                              {t("card.messageKrafter")}
                             </button>
                           </div>
                         ) : null}
@@ -834,10 +836,10 @@ const KraftsPage = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
             <h3 className="text-[18px] font-poppins font-bold text-[#1D2939] mb-2">
-              Discard this draft?
+              {t("discardModal.title")}
             </h3>
             <p className="text-[14px] font-poppins text-[#667085] mb-6">
-              This cannot be undone. Any photos you added will be removed.
+              {t("discardModal.desc")}
             </p>
             <div className="flex gap-3">
               <button
@@ -846,7 +848,7 @@ const KraftsPage = () => {
                 disabled={discardBusy}
                 className="flex-1 py-3 rounded-xl border border-gray-200 text-[14px] font-poppins font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
               >
-                Keep draft
+                {t("discardModal.keep")}
               </button>
               <button
                 type="button"
@@ -854,7 +856,7 @@ const KraftsPage = () => {
                 disabled={discardBusy}
                 className="flex-1 py-3 rounded-xl bg-red-600 text-white text-[14px] font-poppins font-semibold hover:bg-red-700 disabled:opacity-50"
               >
-                {discardBusy ? "Discarding…" : "Discard"}
+                {discardBusy ? t("discardModal.discarding") : t("discardModal.discard")}
               </button>
             </div>
           </div>

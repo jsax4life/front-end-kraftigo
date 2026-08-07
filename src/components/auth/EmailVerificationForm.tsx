@@ -6,6 +6,7 @@ import { AUTH_CONFIG } from "@/constants/auth";
 import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
 import { isValidEmail } from "@/utils/validation";
+import { useTranslations } from "next-intl";
 
 type EmailVerificationFormProps = {
   email: string;
@@ -24,9 +25,11 @@ export default function EmailVerificationForm({
   isLoading = false,
   onVerify,
   onResend,
-  submitLabel = "Verify Email",
+  submitLabel,
 }: EmailVerificationFormProps) {
   const [resendTimer, setResendTimer] = useState(0);
+  const t = useTranslations("auth.verifyEmail");
+  const tc = useTranslations("auth.common");
   const {
     code: verificationCode,
     handleCodeChange,
@@ -58,28 +61,27 @@ export default function EmailVerificationForm({
     <div className="space-y-6">
       <div>
         <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-4">
-          Confirm Your Email
+          {t("title")}
         </h1>
         {allowEmailEdit ? (
           <div className="mb-6">
             <Input
-              label="Email"
+              label={tc("emailLabel")}
               type="email"
-              placeholder="Enter your email"
+              placeholder={tc("emailPlaceholder")}
               value={email}
               onChange={(value) => onEmailChange?.(value)}
             />
           </div>
         ) : (
           <p className="text-[14px] font-poppins text-gray-600 mb-2">
-            We&apos;ve sent a verification code to{" "}
+            {t("sentCodeTo")}{" "}
             <span className="font-semibold text-gray-900 break-all">{email}</span>
           </p>
         )}
         {!allowEmailEdit && (
           <p className="text-[13px] font-poppins text-gray-500 mb-6 leading-relaxed">
-            Can&apos;t find it? Check your spam or junk folder. You can resend the code below if
-            needed.
+            {t("spamNote")}
           </p>
         )}
       </div>
@@ -103,7 +105,7 @@ export default function EmailVerificationForm({
       <div className="text-center">
         {resendTimer > 0 ? (
           <p className="text-[14px] font-poppins text-gray-600">
-            Resend code in{" "}
+            {t("resendIn")}{" "}
             <span className="font-semibold text-gray-900">
               00:{resendTimer.toString().padStart(2, "0")}
             </span>
@@ -115,7 +117,7 @@ export default function EmailVerificationForm({
             disabled={isLoading || (allowEmailEdit && !isValidEmail(email))}
             className="text-[14px] font-poppins text-brand-orange font-semibold hover:underline disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
           >
-            Resend code
+            {t("resendCode")}
           </button>
         )}
       </div>
@@ -126,7 +128,7 @@ export default function EmailVerificationForm({
         fullWidth
         disabled={!isComplete() || isLoading || (allowEmailEdit && !isValidEmail(email))}
       >
-        {submitLabel}
+        {submitLabel ?? t("verifyButton")}
       </Button>
     </div>
   );

@@ -10,6 +10,7 @@ import { useAddressStore } from "@/store/useAddressStore";
 import type { SavedPaymentMethod } from "@/lib/api/payments";
 import type { Address } from "@/types";
 import PaymentFlowModal from "@/components/shared/PaymentFlowModal";
+import { useTranslations } from "next-intl";
 
 type Screen = 'list' | 'choice' | 'card-form' | 'sepa-form' | 'paypal' | 'edit-card' | 'address-form';
 const DEFAULT_ADDRESS_DATA = { name: "", details: "", zip: "", city: "Berlin", country: "Germany" };
@@ -17,12 +18,12 @@ const DEFAULT_ADDRESS_DATA = { name: "", details: "", zip: "", city: "Berlin", c
 const toAddressFormData = (address?: Address | null) =>
   address
     ? {
-        name: address.label,
-        details: address.address,
-        zip: address.postalCode || "",
-        city: address.city || "Berlin",
-        country: address.country || "Germany",
-      }
+      name: address.label,
+      details: address.address,
+      zip: address.postalCode || "",
+      city: address.city || "Berlin",
+      country: address.country || "Germany",
+    }
     : { ...DEFAULT_ADDRESS_DATA };
 
 const readMethodCard = (method: SavedPaymentMethod | null) => {
@@ -58,6 +59,7 @@ const PaymentMethodsPage = () => {
   const router = useRouter();
   const [currentScreen, setCurrentScreen] = useState<Screen>("list");
   const [showPaymentFlowModal, setShowPaymentFlowModal] = useState(false);
+  const t = useTranslations("profile.paymentMethods");
 
   const {
     savedMethods: methods,
@@ -127,25 +129,25 @@ const PaymentMethodsPage = () => {
     const ok = await removeSavedMethod(id);
     if (ok) {
       setCurrentScreen("list");
-      toast.success("Payment method removed");
+      toast.success(t("paymentMethodRemoved"));
     } else {
-      toast.error("Failed to remove payment method");
+      toast.error(t("failedToRemovePaymentMethod"));
     }
   };
 
   const handleSetDefault = async (id: string) => {
     const ok = await setDefaultSavedMethod(id);
     if (ok) {
-      toast.success("Set as default");
+      toast.success(t("setAsDefault"));
     } else {
-      toast.error("Failed to update default");
+      toast.error(t("failedToUpdateDefault"));
     }
   };
 
   const saveAddress = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!addressData.details) {
-      toast.error("Please enter an address");
+      toast.error(t("pleaseEnterAddress"));
       return;
     }
     await addAddress({
@@ -162,7 +164,7 @@ const PaymentMethodsPage = () => {
   return (
     <main className="min-h-screen bg-white font-poppins text-[#1D2939]">
       <Toaster position="top-center" />
-      
+
       {/* List Screen */}
       {currentScreen === "list" && (
         <div className="px-6 pt-16 flex flex-col min-h-screen animate-in fade-in duration-300">
@@ -171,7 +173,7 @@ const PaymentMethodsPage = () => {
               <ArrowLeft size={24} className="text-[#1D2939]" />
             </button>
             <h1 className="text-[20px] font-gerat font-[850] text-black/80 tracking-[-0.03em] capitalize">
-              Payment & Addresses
+              {t("title")}
             </h1>
           </div>
 
@@ -179,23 +181,23 @@ const PaymentMethodsPage = () => {
             {/* Payment Methods Section */}
             <div className="flex flex-col">
               <h2 className="text-[12px] font-bold text-black/80 mb-4">
-                Saved Payment Methods
+                {t("savedPaymentMethods")}
               </h2>
               {methodsLoading && methods.length === 0 ? (
                 <div className="flex items-center justify-center py-10 bg-[#F6F6F6] rounded-[12px] border border-black/10">
-                  <p className="text-[12px] text-black/60 font-medium">Loading payment methods...</p>
+                  <p className="text-[12px] text-black/60 font-medium">{t("loadingPaymentMethods")}</p>
                 </div>
               ) : methods.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-10 bg-[#F6F6F6] rounded-[12px] border border-black/10">
                   <p className="text-[12px] text-black/60 mb-6 font-medium">
-                    You have not added any payment methods
+                    {t("noPaymentMethods")}
                   </p>
                   <button
                     onClick={() => setShowPaymentFlowModal(true)}
                     className="flex items-center gap-2 text-[#0000FF] font-bold text-[14px]"
                   >
                     <Plus size={18} />
-                    <span>add new</span>
+                    <span>{t("addNew")}</span>
                   </button>
                 </div>
               ) : (
@@ -249,7 +251,7 @@ const PaymentMethodsPage = () => {
                     onClick={() => setShowPaymentFlowModal(true)}
                     className="w-full h-[52px] bg-[#0000FF] rounded-[12px] text-white font-bold text-[14px] flex items-center justify-center gap-2 active:scale-[0.98] transition-transform mt-2"
                   >
-                    <span>View</span>
+                    <span>{t("view")}</span>
                   </button>
                 </div>
               )}
@@ -258,16 +260,16 @@ const PaymentMethodsPage = () => {
             {/* Shipping Addresses Section */}
             <div className="flex flex-col pb-20">
               <h2 className="text-[12px] font-bold text-black/80 mb-4">
-                Saved Addresses
+                {t("savedAddresses")}
               </h2>
               {isLoadingAddresses && addresses.length === 0 ? (
                 <div className="flex items-center justify-center py-10 bg-[#F6F6F6] rounded-[12px] border border-black/10">
-                  <p className="text-[12px] text-black/60 font-medium">Loading addresses...</p>
+                  <p className="text-[12px] text-black/60 font-medium">{t("loadingAddresses")}</p>
                 </div>
               ) : addresses.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-10 bg-[#F6F6F6] rounded-[12px] border border-black/10">
                   <p className="text-[12px] text-black/60 mb-6 font-medium">
-                    You have not added any saved addresses
+                    {t("noSavedAddresses")}
                   </p>
                   <button
                     onClick={() => {
@@ -276,7 +278,7 @@ const PaymentMethodsPage = () => {
                     className="flex items-center gap-2 text-[#0000FF] font-bold text-[14px]"
                   >
                     <Plus size={18} />
-                    <span>add new address</span>
+                    <span>{t("addNewAddress")}</span>
                   </button>
                 </div>
               ) : (
@@ -309,7 +311,7 @@ const PaymentMethodsPage = () => {
                     }}
                     className="w-full h-[52px] bg-[#0000FF] rounded-[12px] text-white font-bold text-[14px] flex items-center justify-center gap-2 active:scale-[0.98] transition-transform mt-2"
                   >
-                    <span>+ add saved address</span>
+                    <span>{t("plusAddSavedAddress")}</span>
                   </button>
                 </div>
               )}
@@ -333,7 +335,7 @@ const PaymentMethodsPage = () => {
           <div className="bg-white rounded-t-[12px] w-full max-h-[85vh] overflow-y-auto px-6 pt-10 pb-12 animate-in slide-in-from-bottom duration-400">
             <div className="flex items-center justify-between mb-10">
               <h1 className="text-[20px] font-medium text-black/80 tracking-[-0.03em]">
-                Add a Payment Method
+                {t("addPaymentMethod")}
               </h1>
               <button
                 onClick={handleBack}
@@ -345,18 +347,18 @@ const PaymentMethodsPage = () => {
 
             <div className="space-y-3">
               <PaymentOption
-                label="Debit/Credit Card"
+                label={t("debitCreditCard")}
                 onClick={() => setCurrentScreen("card-form")}
               />
               <PaymentOption
-                label="SEPA Direct Debit"
+                label={t("sepaDirectDebit")}
                 onClick={() => setCurrentScreen("sepa-form")}
               />
               <PaymentOption
-                label="PayPal"
+                label={t("paypal")}
                 onClick={() => setCurrentScreen("paypal")}
               />
-              <PaymentOption label="Google Pay" onClick={() => {}}>
+              <PaymentOption label={t("googlePay")} onClick={() => { }}>
                 <div className="flex items-center gap-3">
                   <Image
                     src="/google2.svg"
@@ -373,8 +375,7 @@ const PaymentMethodsPage = () => {
               <div className="flex items-center gap-2 mb-1">
                 <Lock size={18} className="text-black/70" />
                 <p className="text-[12px] text-black/80 leading-[18px] max-w-[248px]">
-                  Your payment details are encrypted and never shared with
-                  Krafters.
+                  {t("encryptionInfo")}
                 </p>
               </div>
             </div>
@@ -388,7 +389,7 @@ const PaymentMethodsPage = () => {
           <div className="bg-white rounded-t-[12px] w-full h-[90vh] overflow-y-auto px-6 pt-10 pb-12 animate-in slide-in-from-bottom duration-400">
             <div className="flex items-center justify-between mb-8">
               <h1 className="text-[20px] font-medium text-black/80 tracking-[-0.03em]">
-                Add Debit/Credit Card
+                {t("addDebitCreditCard")}
               </h1>
               <button
                 onClick={handleBack}
@@ -403,22 +404,22 @@ const PaymentMethodsPage = () => {
               onSubmit={async (e) => {
                 e.preventDefault();
                 setCurrentScreen("list");
-                toast.success("Card added");
+                toast.success(t("cardAdded"));
                 await fetchSavedMethods();
               }}
             >
               <div className="space-y-4">
                 <label className="block text-[12px] font-bold text-black/80">
-                  Payment Method
+                  {t("paymentMethodLabel")}
                 </label>
                 <div className="flex flex-col bg-[#F6F6F6] border border-black/10 rounded-[8px] overflow-hidden">
                   <div className="flex items-center justify-between px-3 h-[47px] border-b border-black/10">
                     <span className="text-[14px] font-bold text-black/70 w-[94px]">
-                      Number
+                      {t("number")}
                     </span>
                     <input
                       type="text"
-                      placeholder="Required"
+                      placeholder={t("required")}
                       className="bg-transparent border-none outline-none text-[14px] text-black/80 flex-1 placeholder:text-black/30"
                       value={cardData.number}
                       onChange={(e) => setCardData({ ...cardData, number: e.target.value })}
@@ -427,11 +428,11 @@ const PaymentMethodsPage = () => {
                   </div>
                   <div className="flex items-center px-3 h-[47px] border-b border-black/10">
                     <span className="text-[14px] font-bold text-black/70 w-[94px]">
-                      Expires
+                      {t("expires")}
                     </span>
                     <input
                       type="text"
-                      placeholder="MM YYYY"
+                      placeholder={t("mmYyyy")}
                       className="bg-transparent border-none outline-none text-[14px] text-black/80 flex-1 placeholder:text-black/30"
                       value={cardData.expires}
                       onChange={(e) => setCardData({ ...cardData, expires: e.target.value })}
@@ -439,11 +440,11 @@ const PaymentMethodsPage = () => {
                   </div>
                   <div className="flex items-center px-3 h-[47px]">
                     <span className="text-[14px] font-bold text-black/70 w-[94px]">
-                      cv
+                      {t("cv")}
                     </span>
                     <input
                       type="text"
-                      placeholder="Security Code"
+                      placeholder={t("securityCode")}
                       className="bg-transparent border-none outline-none text-[14px] text-black/80 flex-1 placeholder:text-black/30"
                       value={cardData.cv}
                       onChange={(e) => setCardData({ ...cardData, cv: e.target.value })}
@@ -454,11 +455,11 @@ const PaymentMethodsPage = () => {
 
               <div className="space-y-3">
                 <label className="block text-[14px] font-bold text-black/80">
-                  Billing Name
+                  {t("billingName")}
                 </label>
                 <input
                   type="text"
-                  placeholder="Full Name"
+                  placeholder={t("fullName")}
                   className="w-full bg-[#F6F6F6] border border-black/10 rounded-[12px] px-4 py-[15px] outline-none text-[14px] text-black/80 placeholder:text-[#ABAFB1]"
                   value={cardData.name}
                   onChange={(e) => setCardData({ ...cardData, name: e.target.value })}
@@ -467,16 +468,16 @@ const PaymentMethodsPage = () => {
 
               <div className="space-y-4">
                 <label className="block text-[14px] font-bold text-black/80">
-                  Billing Address
+                  {t("billingAddress")}
                 </label>
                 <div className="space-y-3">
                   <div className="flex flex-col gap-2">
                     <span className="text-[14px] text-black/60 ml-1">
-                      Post Code
+                      {t("postCode")}
                     </span>
                     <input
                       type="text"
-                      placeholder="Post Code"
+                      placeholder={t("postCode")}
                       className="w-full bg-[#F6F6F6] border border-black/10 rounded-[12px] px-4 py-[15px] outline-none text-[14px] text-black/80 placeholder:text-[#ABAFB1]"
                       value={cardData.zip}
                       onChange={(e) => setCardData({ ...cardData, zip: e.target.value })}
@@ -484,7 +485,7 @@ const PaymentMethodsPage = () => {
                   </div>
                   <div className="flex flex-col gap-2">
                     <span className="text-[14px] text-black/60 ml-1">
-                      Country/Region
+                      {t("countryRegion")}
                     </span>
                     <div className="bg-[#F6F6F6] border border-black/10 rounded-[12px] px-4 py-[15px] flex items-center justify-between">
                       <span className="text-[14px] text-black/80">{cardData.country}</span>
@@ -496,11 +497,10 @@ const PaymentMethodsPage = () => {
 
               <button
                 type="submit"
-                className={`w-full h-[52px] rounded-[12px] text-white font-bold text-[14px] mt-8 transition-colors ${
-                  cardData.number && cardData.expires && cardData.cv ? "bg-[#0000FF]" : "bg-[#919191]"
-                }`}
+                className={`w-full h-[52px] rounded-[12px] text-white font-bold text-[14px] mt-8 transition-colors ${cardData.number && cardData.expires && cardData.cv ? "bg-[#0000FF]" : "bg-[#919191]"
+                  }`}
               >
-                Done
+                {t("done")}
               </button>
             </form>
           </div>
@@ -513,7 +513,7 @@ const PaymentMethodsPage = () => {
           <div className="bg-white rounded-t-[12px] w-full h-[90vh] overflow-y-auto px-6 pt-10 pb-12 animate-in slide-in-from-bottom duration-400">
             <div className="flex items-center justify-between mb-8">
               <h1 className="text-[20px] font-medium text-black/80 tracking-[-0.03em]">
-                Add SEPA Direct Debit
+                {t("addSepaDirectDebit")}
               </h1>
               <button
                 onClick={handleBack}
@@ -527,29 +527,29 @@ const PaymentMethodsPage = () => {
               <div className="space-y-4">
                 <div className="flex flex-col gap-2">
                   <span className="text-[14px] text-black/60 ml-1">
-                    First Name
+                    {t("firstName")}
                   </span>
                   <input
                     type="text"
-                    placeholder="First Name"
+                    placeholder={t("firstName")}
                     className="w-full bg-[#F6F6F6] border border-black/10 rounded-[12px] px-4 py-[15px] outline-none text-[14px] text-black/80 placeholder:text-[#ABAFB1]"
                   />
                 </div>
                 <div className="flex flex-col gap-2">
                   <span className="text-[14px] text-black/60 ml-1">
-                    Last Name
+                    {t("lastName")}
                   </span>
                   <input
                     type="text"
-                    placeholder="Last Name"
+                    placeholder={t("lastName")}
                     className="w-full bg-[#F6F6F6] border border-black/10 rounded-[12px] px-4 py-[15px] outline-none text-[14px] text-black/80 placeholder:text-[#ABAFB1]"
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <span className="text-[14px] text-black/60 ml-1">IBAN</span>
+                  <span className="text-[14px] text-black/60 ml-1">{t("iban")}</span>
                   <input
                     type="text"
-                    placeholder="IBAN"
+                    placeholder={t("iban")}
                     className="w-full bg-[#F6F6F6] border border-black/10 rounded-[12px] px-4 py-[15px] outline-none text-[14px] text-black/80 placeholder:text-[#ABAFB1]"
                   />
                 </div>
@@ -560,23 +560,22 @@ const PaymentMethodsPage = () => {
                   <div className="w-3 h-3 bg-orange-500 rounded-sm" />
                 </div>
                 <p className="text-[14px] text-[#2B2F32] leading-[21px]">
-                  I hereby confirm the SEPA Direct Debit Mandate to
-                  Kraftigos.de
+                  {t("sepaConfirm")}
                 </p>
               </div>
 
               <div className="space-y-4">
                 <label className="block text-[14px] font-bold text-black/80">
-                  Billing Address
+                  {t("billingAddress")}
                 </label>
                 <div className="space-y-3">
                   <div className="flex flex-col gap-2">
                     <span className="text-[14px] text-black/60 ml-1">
-                      Post Code
+                      {t("postCode")}
                     </span>
                     <input
                       type="text"
-                      placeholder="Post Code"
+                      placeholder={t("postCode")}
                       className="w-full bg-[#F6F6F6] border border-black/10 rounded-[12px] px-4 py-[15px] outline-none text-[14px] text-black/80 placeholder:text-[#ABAFB1]"
                     />
                   </div>
@@ -596,11 +595,11 @@ const PaymentMethodsPage = () => {
                 type="button"
                 onClick={() => {
                   setCurrentScreen("list");
-                  toast.success("SEPA method added");
+                  toast.success(t("sepaAdded"));
                 }}
                 className="w-full h-[52px] bg-[#0000FF] rounded-[12px] text-white font-bold text-[14px] mt-8"
               >
-                Done
+                {t("done")}
               </button>
             </form>
           </div>
@@ -613,7 +612,7 @@ const PaymentMethodsPage = () => {
           <div className="bg-white rounded-t-[12px] w-full h-[88vh] overflow-y-auto px-6 pt-10 pb-12 animate-in slide-in-from-bottom duration-400">
             <div className="flex items-center justify-between mb-20">
               <h1 className="text-[20px] font-medium text-black/80 tracking-[-0.03em] mx-auto">
-                Connect Paypal
+                {t("connectPaypal")}
               </h1>
               <button
                 onClick={handleBack}
@@ -658,17 +657,17 @@ const PaymentMethodsPage = () => {
                 />
               </div>
 
-              <p className="text-[12px] font-poppins text-black/40 mt-6">Launching paypal</p>
+              <p className="text-[12px] font-poppins text-black/40 mt-6">{t("launchingPaypal")}</p>
             </div>
-            
-            <button 
+
+            <button
               onClick={() => {
                 setCurrentScreen("list");
-                toast.success("PayPal connected");
+                toast.success(t("paypalConnected"));
               }}
               className="w-full h-[52px] bg-[#0070BA] rounded-[12px] text-white font-bold text-[14px] mt-auto active:scale-95 transition-transform"
             >
-              Log in to PayPal
+              {t("loginToPaypal")}
             </button>
           </div>
         </div>
@@ -680,7 +679,7 @@ const PaymentMethodsPage = () => {
           <div className="bg-white rounded-t-[12px] w-full h-[90vh] overflow-y-auto px-6 pt-10 pb-12 animate-in slide-in-from-bottom duration-400">
             <div className="flex items-center justify-between mb-8">
               <h1 className="text-[20px] font-medium text-black/80 tracking-[-0.03em]">
-                Edit Payment Method
+                {t("editPaymentMethod")}
               </h1>
               <button
                 onClick={handleBack}
@@ -693,12 +692,12 @@ const PaymentMethodsPage = () => {
             <form className="space-y-8">
               <div className="space-y-4">
                 <label className="block text-[12px] font-bold text-black/80">
-                  Payment Method
+                  {t("paymentMethodLabel")}
                 </label>
                 <div className="flex flex-col bg-[#F6F6F6] border border-black/10 rounded-[8px] overflow-hidden">
                   <div className="flex items-center justify-between px-3 h-[47px] border-b border-black/10">
                     <span className="text-[14px] font-bold text-black/70 w-[94px]">
-                      Number
+                      {t("number")}
                     </span>
                     <input
                       type="text"
@@ -710,7 +709,7 @@ const PaymentMethodsPage = () => {
                   </div>
                   <div className="flex items-center px-3 h-[47px] border-b border-black/10">
                     <span className="text-[14px] font-bold text-black/70 w-[94px]">
-                      Expires
+                      {t("expires")}
                     </span>
                     <input
                       type="text"
@@ -725,14 +724,14 @@ const PaymentMethodsPage = () => {
                   </div>
                   <div className="flex items-center px-3 h-[47px]">
                     <span className="text-[14px] font-bold text-black/70 w-[94px]">
-                      cv
+                      {t("cv")}
                     </span>
                     <input
                       type="text"
                       className="bg-transparent border-none outline-none text-[14px] text-black/80 flex-1"
                       value=""
                       readOnly
-                      placeholder="Not stored for security"
+                      placeholder={t("notStoredForSecurity")}
                     />
                   </div>
                 </div>
@@ -740,7 +739,7 @@ const PaymentMethodsPage = () => {
 
               <div className="space-y-3">
                 <label className="block text-[14px] font-bold text-black/80">
-                  Billing Name
+                  {t("billingName")}
                 </label>
                 <input
                   type="text"
@@ -752,24 +751,24 @@ const PaymentMethodsPage = () => {
 
               <div className="space-y-4">
                 <label className="block text-[14px] font-bold text-black/80">
-                  Billing Address
+                  {t("billingAddress")}
                 </label>
                 <div className="space-y-3">
                   <div className="flex flex-col gap-2">
                     <span className="text-[14px] text-black/60 ml-1">
-                      Post Code
+                      {t("postCode")}
                     </span>
                     <input
                       type="text"
                       className="w-full bg-[#F6F6F6] border border-black/10 rounded-[12px] px-4 py-[15px] outline-none text-[14px] text-black/80"
                       value=""
                       readOnly
-                      placeholder="Not available"
+                      placeholder={t("notAvailable")}
                     />
                   </div>
                   <div className="flex flex-col gap-2">
                     <span className="text-[14px] text-black/60 ml-1">
-                      Country/Region
+                      {t("countryRegion")}
                     </span>
                     <div className="bg-[#F6F6F6] border border-black/10 rounded-[12px] px-4 py-[15px] flex items-center justify-between">
                       <span className="text-[14px] text-black/80">Germany</span>
@@ -784,11 +783,11 @@ const PaymentMethodsPage = () => {
                   onClick={(e) => {
                     e.preventDefault();
                     setCurrentScreen("list");
-                    toast.success("Changes saved");
+                    toast.success(t("changesSaved"));
                   }}
                   className="w-full h-[52px] bg-[#0000FF] rounded-[12px] text-white font-bold text-[14px] active:scale-[0.98] transition-all"
                 >
-                  Save
+                  {t("save")}
                 </button>
                 {!editingMethod.isDefault && (
                   <button
@@ -798,7 +797,7 @@ const PaymentMethodsPage = () => {
                     }}
                     className="w-full h-[52px] border border-black/10 rounded-[12px] font-bold text-[14px] active:scale-[0.98] transition-all"
                   >
-                    Set as Default
+                    {t("setAsDefaultBtn")}
                   </button>
                 )}
                 <button
@@ -808,7 +807,7 @@ const PaymentMethodsPage = () => {
                   }}
                   className="w-full h-[52px] bg-[#FF6666]/10 text-[#FE2929] rounded-[12px] font-bold text-[14px] active:scale-[0.98] transition-all"
                 >
-                  Delete card
+                  {t("deleteCard")}
                 </button>
               </div>
             </form>
@@ -822,7 +821,7 @@ const PaymentMethodsPage = () => {
           <div className="bg-white rounded-t-[12px] w-full h-[90vh] overflow-y-auto px-6 pt-10 pb-12 animate-in slide-in-from-bottom duration-400">
             <div className="flex items-center justify-between mb-8">
               <h1 className="text-[20px] font-medium text-black/80 tracking-[-0.03em]">
-                {editingAddress ? "Edit Saved Address" : "Add Saved Address"}
+                {editingAddress ? t("editSavedAddress") : t("addSavedAddress")}
               </h1>
               <button
                 onClick={handleBack}
@@ -836,11 +835,11 @@ const PaymentMethodsPage = () => {
               <div className="space-y-4">
                 <div className="flex flex-col gap-2">
                   <span className="text-[14px] text-black/60 ml-1">
-                    Full Name
+                    {t("fullName")}
                   </span>
                   <input
                     type="text"
-                    placeholder="Full Name"
+                    placeholder={t("fullName")}
                     className="w-full bg-[#F6F6F6] border border-black/10 rounded-[12px] px-4 py-[15px] outline-none text-[14px] text-black/80 placeholder:text-[#ABAFB1]"
                     value={addressData.name}
                     onChange={(e) => setAddressData({ ...addressData, name: e.target.value })}
@@ -848,11 +847,11 @@ const PaymentMethodsPage = () => {
                 </div>
                 <div className="flex flex-col gap-2">
                   <span className="text-[14px] text-black/60 ml-1">
-                    Street & House Number
+                    {t("streetHouseNumber")}
                   </span>
                   <input
                     type="text"
-                    placeholder="Street Address"
+                    placeholder={t("streetAddress")}
                     className="w-full bg-[#F6F6F6] border border-black/10 rounded-[12px] px-4 py-[15px] outline-none text-[14px] text-black/80 placeholder:text-[#ABAFB1]"
                     value={addressData.details}
                     onChange={(e) => setAddressData({ ...addressData, details: e.target.value })}
@@ -861,11 +860,11 @@ const PaymentMethodsPage = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col gap-2">
                     <span className="text-[14px] text-black/60 ml-1">
-                      Post Code
+                      {t("postCode")}
                     </span>
                     <input
                       type="text"
-                      placeholder="Post Code"
+                      placeholder={t("postCode")}
                       className="w-full bg-[#F6F6F6] border border-black/10 rounded-[12px] px-4 py-[15px] outline-none text-[14px] text-black/80 placeholder:text-[#ABAFB1]"
                       value={addressData.zip}
                       onChange={(e) => setAddressData({ ...addressData, zip: e.target.value })}
@@ -873,11 +872,11 @@ const PaymentMethodsPage = () => {
                   </div>
                   <div className="flex flex-col gap-2">
                     <span className="text-[14px] text-black/60 ml-1">
-                      City
+                      {t("city")}
                     </span>
                     <input
                       type="text"
-                      placeholder="City"
+                      placeholder={t("city")}
                       className="w-full bg-[#F6F6F6] border border-black/10 rounded-[12px] px-4 py-[15px] outline-none text-[14px] text-black/80 placeholder:text-[#ABAFB1]"
                       value={addressData.city}
                       onChange={(e) => setAddressData({ ...addressData, city: e.target.value })}
@@ -886,7 +885,7 @@ const PaymentMethodsPage = () => {
                 </div>
                 <div className="flex flex-col gap-2">
                   <span className="text-[14px] text-black/60 ml-1">
-                    Country/Region
+                    {t("countryRegion")}
                   </span>
                   <div className="bg-[#F6F6F6] border border-black/10 rounded-[12px] px-4 py-[15px] flex items-center justify-between">
                     <span className="text-[14px] text-black/80">{addressData.country}</span>
@@ -900,7 +899,7 @@ const PaymentMethodsPage = () => {
                   type="submit"
                   className="w-full h-[52px] bg-[#0000FF] rounded-[12px] text-white font-bold text-[14px] active:scale-[0.98] transition-all"
                 >
-                  {editingAddress ? "Save Changes" : "Save Address"}
+                  {editingAddress ? t("saveChanges") : t("saveAddressBtn")}
                 </button>
 
                 {editingAddress && (
@@ -909,7 +908,7 @@ const PaymentMethodsPage = () => {
                     onClick={() => removeAddress(editingAddress.id)}
                     className="w-full h-[52px] bg-[#FF6666]/10 text-[#FE2929] rounded-[12px] font-bold text-[14px] active:scale-[0.98] transition-all"
                   >
-                    Delete Address
+                    {t("deleteAddress")}
                   </button>
                 )}
               </div>

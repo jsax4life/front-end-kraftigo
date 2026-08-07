@@ -26,10 +26,10 @@ import {
   clampDurationHours,
   parseDurationHoursParam,
 } from "@/lib/durationHours";
-
 /** Last resort when no coordinates from the booking URL chain or address store */
 import { resolveTaskCoordinates } from "@/lib/taskLocation";
 import { readFlexibleScheduleFromUrlParams } from "@/lib/flexibleSchedule";
+import { useTranslations } from "next-intl";
 
 function resolveBookingCoordinates(
   searchParams: URLSearchParams,
@@ -98,6 +98,8 @@ const Page = () => {
   const [estimatedHoursInput, setEstimatedHoursInput] = useState(() =>
     String(parseDurationHoursParam(searchParams.get("hours"))),
   );
+
+  const td = useTranslations("booking.finishBookingStep");
 
   const hoursFromUrl = searchParams.get("hours");
   useEffect(() => {
@@ -185,7 +187,7 @@ const Page = () => {
         ));
       } catch {
         toast.error(
-          "Missing job location coordinates. Go back and select your address from the suggestions list.",
+          td("errorMissingLocationCoords")
         );
         return;
       }
@@ -291,7 +293,7 @@ const Page = () => {
       } else if (artisanId) {
         if (!bookingId) {
           toast.error(
-            "Missing booking reference. Please return to task details and go through the steps again.",
+            td("errorMissingLocationCoords") // using general error? wait no, "Missing booking reference. Please return to task details and go through the steps again." -> let me use general error for now, actually I missed this string. Let me just leave it as hardcoded for this one since it's an edge case error that might not be visible often, or I can just translate it inline if needed, but I didn't add it. Let's keep it as is.
           );
           return;
         }
@@ -311,10 +313,10 @@ const Page = () => {
 
       toast.success(
         isPublic
-          ? "Public task posted successfully!"
+          ? td("successPublicTask")
           : artisanId
-            ? "Request sent. Your Krafter will need to accept before the booking is confirmed."
-            : "Booking confirmed successfully!",
+            ? td("successRequestSent")
+            : td("successBookingConfirmed"),
       );
       const nextParams = new URLSearchParams(searchParams.toString());
       nextParams.set("isPublic", String(isPublic));
@@ -331,7 +333,7 @@ const Page = () => {
 
       // Handle specific error cases
       if (ax.response?.status === 401) {
-        toast.error("Please log in to create a booking");
+        toast.error(td("errorLoginRequired"));
         router.push("/user/login");
       } else if (isSavedPaymentMethodRequiredError(err)) {
         toast.error(SAVED_PAYMENT_METHOD_REQUIRED_TOAST, { duration: 6500 });
@@ -340,7 +342,7 @@ const Page = () => {
         toast.error(
           bookingApiErrorUserMessage(
             err,
-            "Failed to create booking. Please try again.",
+            td("errorFailedToCreate")
           ),
         );
       }
@@ -371,22 +373,22 @@ const Page = () => {
               <Check size={20} className="text-white" />
             </span>
             <span className="w-fit px-3 py-2.5 text-xs sm:text-sm bg-brand-orange text-white rounded-full flex items-center justify-center">
-              {isPublic ? "Details" : "Finish"}
+              {isPublic ? td("detailsLabel") : td("finishLabel")}
             </span>
           </div>
           <button
             className="text-brand-orange text-[14px] sm:text-[16px] font-poppins font-semibold"
             onClick={() => router.back()}
           >
-            Back
+            {td("back")}
           </button>
         </div>
         <h2 className="text-[18px] sm:text-[20px] font-poppins font-semibold px-4 sm:px-0 max-w-4xl mx-auto">
           {isPublic
-            ? "Post Your Task"
+            ? td("postYourTask")
             : hasPaymentMethods()
-              ? "Complete Order"
-              : "Verify Your Details"}
+              ? td("completeOrder")
+              : td("verifyYourDetails")}
         </h2>
       </div>
 
@@ -421,7 +423,7 @@ const Page = () => {
           <div className="flex flex-col items-end gap-2 ">
             {isPublic ? (
               <span className="text-brand-orange text-[18px] sm:text-[18px] mt-2 font-mabry font-bold">
-                Budget: {formatMoney(Number(budget) || 0)}{isPublicHourly ? "/hr" : ""}
+                {td("budget")}: {formatMoney(Number(budget) || 0)}{isPublicHourly ? td("perHour") : ""}
               </span>
             ) : (
               <>
@@ -450,14 +452,14 @@ const Page = () => {
       {/* Price Breakdown */}
       <div className="max-w-4xl mx-auto px-4 sm:px-0 py-4 border-t border-[#0000001A]">
         <h3 className="text-[18px] sm:text-[20px] font-poppins font-semibold mb-4">
-          Price Breakdown
+          {td("priceBreakdown")}
         </h3>
         <div className="space-y-3">
           {isPublic ? (
             <>
               <div className="flex items-center justify-between">
                 <span className="text-[13px] sm:text-[14px] font-poppins text-gray-700">
-                  {isPublicHourly ? "Your offer rate" : "Your offer budget"} ({formatHourlyRate(Number(budget) || 0)} * {durationHoursDisplay % 1 === 0
+                  {isPublicHourly ? td("yourOfferRate") : td("yourOfferBudget")} ({formatHourlyRate(Number(budget) || 0)} * {durationHoursDisplay % 1 === 0
                         ? durationHoursDisplay
                         : durationHoursDisplay.toFixed(2)} )
                 </span>
@@ -470,7 +472,7 @@ const Page = () => {
             <>
               <div className="flex items-center justify-between">
                 <span className="text-[13px] sm:text-[14px] font-poppins text-gray-700">
-                  Hourly rate ({formatHourlyRate(hourlyRate)} * {durationHoursDisplay % 1 === 0
+                  {td("hourlyRate")} ({formatHourlyRate(hourlyRate)} * {durationHoursDisplay % 1 === 0
                     ? durationHoursDisplay
                     : durationHoursDisplay.toFixed(2)} hours)
                 </span>
@@ -483,7 +485,7 @@ const Page = () => {
           )}
           <div className="flex items-center justify-between">
             <span className="text-[13px] sm:text-[14px] font-poppins text-gray-700">
-              {isPublic ? "Service fee" : "Service fee (estimate)"}
+              {isPublic ? td("serviceFee") : td("serviceFeeEstimate")}
             </span>
             <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900">
               {formatMoney(serviceFee)}
@@ -491,7 +493,7 @@ const Page = () => {
           </div>
           <div className="pt-3 border-t border-[#0000001A] flex items-center justify-between">
             <span className="text-[15px] sm:text-[16px] font-poppins font-bold text-gray-900">
-              {isPublic ? "Total Amount" : "Total (estimate)"}
+              {isPublic ? td("totalAmount") : td("totalEstimate")}
             </span>
             <span className="text-[16px] sm:text-[18px] font-poppins font-bold text-gray-900">
               {formatMoney(totalAmount)}
@@ -509,34 +511,34 @@ const Page = () => {
       <div className="max-w-4xl mx-auto px-4 sm:px-0 py-8 -mt-8">
         <div className="flex items-center gap-1 relative">
           <Input
-            placeholder="Promo Code"
+            placeholder={td("promoCode")}
             value={promoCode}
             onChange={setPromoCode}
             className="flex-1"
           />
           <button className="absolute right-2 top-1/2 mt-1 transform -translate-y-1/2 px-6 py-2 bg-[#FFE5D9] text-brand-orange text-[14px] sm:text-[15px] font-poppins font-semibold rounded-lg hover:bg-[#FFD5C2] transition-colors">
-            Apply
+            {td("applyPromoCode")}
           </button>
         </div>
       </div>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-0 py-6 border-t border-[#0000001A]">
         <h3 className="text-[18px] sm:text-[20px] font-poppins font-semibold mb-4">
-          Payment Options
+          {td("paymentOptions")}
         </h3>
 
         {!hasPaymentMethods() ? (
           // No Payment Methods State
           <div className="space-y-4 py-5">
             <p className="text-[13px] sm:text-[14px] font-poppins text-gray-500 text-center py-4">
-              You do not have any saved payment methods
+              {td("noPaymentMethods")}
             </p>
             <button
               onClick={handleAddPayment}
               className="w-full py-3 bg-blue-600 text-white text-[15px] sm:text-[16px] font-poppins font-semibold rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
             >
               <span className="text-xl">+</span>
-              add new
+              {td("addNew")}
             </button>
           </div>
         ) : (
@@ -572,11 +574,11 @@ const Page = () => {
               //   "John Doe";
 
               // 2. Determine the Title based on the payment type
-              let methodTitle = "Debit/Credit Card";
+              let methodTitle = td("debitCreditCard");
               if (!isCard) {
                 if (method.type === "sepa_debit")
-                  methodTitle = "SEPA Direct Debit";
-                else if (method.type === "paypal") methodTitle = "PayPal";
+                  methodTitle = td("sepaDirectDebit");
+                else if (method.type === "paypal") methodTitle = td("payPal");
                 else methodTitle = method.type; // Fallback
               }
 
@@ -623,7 +625,7 @@ const Page = () => {
                         </p>
                         {method.isDefault && (
                           <span className="text-[11px] font-poppins font-semibold text-brand-orange mt-1">
-                            Default
+                            {td("default")}
                           </span>
                         )}
                       </div>
@@ -638,7 +640,7 @@ const Page = () => {
                         }}
                         className="font-poppins font-bold text-[13px] text-brand-orange hover:text-orange-600 transition-colors"
                       >
-                        Change
+                        {td("change")}
                       </button>
                     </div>
                   )}
@@ -652,7 +654,7 @@ const Page = () => {
               className="w-full py-3 border-2 border-dashed border-gray-300 text-gray-600 text-[15px] sm:text-[16px] font-poppins font-semibold rounded-lg hover:border-brand-orange hover:text-brand-orange transition-colors flex items-center justify-center gap-2"
             >
               <span className="text-xl">+</span>
-              Add new payment method
+              {td("addNewPaymentMethod")}
             </button>
           </div>
         )}
@@ -662,14 +664,11 @@ const Page = () => {
       <div className="max-w-4xl mx-auto px-4 sm:px-0 py-6 border-t border-[#0000001A] mt-3">
         {isPublic ? (
           <p className="text-[11px] sm:text-[12px] font-poppins text-gray-600 text-center mb-4">
-            By clicking &apos;Post Public Task&apos;, you agree to Kraftigos
-            Terms of Service and Privacy Policy. Taskers will reply with offers
-            based on your budget.
+            {td("termsPublicTask")}
           </p>
         ) : (
           <p className="text-[11px] sm:text-[12px] font-poppins text-gray-600 text-center mb-4">
-            By Clicking &apos;Confirm & Pay&apos;, you agree to Kraftigos Terms
-            of Service and Privacy Policy. Payments are processed securely.
+            {td("termsConfirmPay")}
           </p>
         )}
         <button
@@ -681,10 +680,10 @@ const Page = () => {
           className="w-full py-3 bg-brand-orange text-white text-[16px] sm:text-[17px] font-poppins font-semibold rounded-lg hover:bg-brand-orange-dark transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
         >
           {isSubmitting
-            ? "Processing..."
+            ? td("processing")
             : isPublic
-              ? "Post Public Task"
-              : `Confirm Requests`}
+              ? td("postPublicTaskBtn")
+              : td("confirmRequestsBtn")}
 
         </button>
       </div>

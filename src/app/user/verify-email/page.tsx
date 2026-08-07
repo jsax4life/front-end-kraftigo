@@ -13,12 +13,14 @@ import {
   setPendingEmailVerification,
 } from "@/lib/pendingEmailVerification";
 import { isValidEmail } from "@/utils/validation";
+import { useTranslations } from "next-intl";
 
 function VerifyEmailPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { verifyEmail, resendVerificationCode, isLoading } = useAuthStore();
   const [email, setEmail] = useState("");
+  const t = useTranslations("auth.verifyEmail");
 
   useEffect(() => {
     const fromQuery = searchParams.get("email")?.trim().toLowerCase() ?? "";
@@ -93,13 +95,13 @@ function VerifyEmailPageContent() {
           </div>
 
           <p className="text-center text-[14px] font-poppins text-gray-600 mt-8">
-            Already verified?{" "}
+            {t("alreadyVerified")}{" "}
             <button
               type="button"
               onClick={() => router.push("/user/login")}
               className="text-brand-blue font-semibold hover:underline"
             >
-              Sign in
+              {t("signIn")}
             </button>
           </p>
         </div>

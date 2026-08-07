@@ -19,6 +19,7 @@ import {
 import BookingPaymentConfirmModal from "@/components/shared/BookingPaymentConfirmModal";
 import { bookingPaymentClientSecret } from "@/lib/bookingPaymentCheckout";
 import { DistanceBadge } from "@/components/ui/DistanceBadge";
+import { useTranslations } from "next-intl";
 
 // ─── Fallback mock for when no real booking ID is provided ───────────────────
 const MOCK_BOOKING = {
@@ -72,6 +73,8 @@ const ActiveJobContent = () => {
       fetchBookingById(bookingId);
     }
   }, [bookingId, fetchBookingById]);
+
+  const td = useTranslations("booking.activeJob");
 
   // Derive display data from real booking (camelCase API or legacy) or fall back to mock
   const displayData =
@@ -162,10 +165,10 @@ const ActiveJobContent = () => {
       {isPaymentPending && bookingId && (
         <div className="mx-4 mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
           <p className="text-[13px] font-poppins font-semibold text-amber-900 mb-1">
-            Your Krafter accepted — payment authorization required
+            {td("paymentAuthRequiredTitle")}
           </p>
           <p className="text-[12px] font-poppins text-amber-800/90">
-            Confirm below to place a card hold and move this booking toward confirmed status (final confirmation follows Stripe processing).
+            {td("paymentAuthRequiredDesc")}
           </p>
         </div>
       )}
@@ -212,7 +215,7 @@ const ActiveJobContent = () => {
           )}
           {needsKrafterSelection && (
             <p className="text-[12px] font-poppins text-gray-500 mb-2">
-              Choose a Krafter to send your request and continue booking.
+              {td("chooseKrafterDesc")}
             </p>
           )}
           <div className="flex items-center gap-1.5 text-[12px] text-gray-500 font-poppins mb-1">
@@ -239,12 +242,12 @@ const ActiveJobContent = () => {
 
       {/* Map */}
       <div className="mx-4 mb-4">
-        <p className="text-[14px] font-poppins font-semibold text-black mb-2">Job Location</p>
+        <p className="text-[14px] font-poppins font-semibold text-black mb-2">{td("jobLocation")}</p>
         <div className="relative rounded-2xl overflow-hidden h-44 bg-gray-100">
           <Image src="/images/map.png" alt="map" fill className="object-cover" />
           <div className="absolute bottom-3 left-3">
             <span className="bg-brand-orange text-white text-[12px] font-poppins font-semibold px-3 py-1.5 rounded-full shadow">
-              Service Area
+              {td("serviceArea")}
             </span>
           </div>
         </div>
@@ -257,7 +260,7 @@ const ActiveJobContent = () => {
           onClick={() => setShowKraftDetails(!showKraftDetails)}
           className="w-full flex items-center justify-between py-4 border-b border-gray-100"
         >
-          <span className="text-[15px] font-poppins font-semibold text-black">Kraft Details</span>
+          <span className="text-[15px] font-poppins font-semibold text-black">{td("kraftDetails")}</span>
           <ChevronRight
             size={18}
             className={`text-gray-400 transition-transform ${showKraftDetails ? "rotate-90" : ""}`}
@@ -276,7 +279,7 @@ const ActiveJobContent = () => {
           onClick={() => setShowPriceBreakdown(!showPriceBreakdown)}
           className="w-full flex items-center justify-between py-4 border-b border-gray-100"
         >
-          <span className="text-[15px] font-poppins font-semibold text-black">Price Breakdown</span>
+          <span className="text-[15px] font-poppins font-semibold text-black">{td("priceBreakdown")}</span>
           <ChevronRight
             size={18}
             className={`text-gray-400 transition-transform ${showPriceBreakdown ? "rotate-90" : ""}`}
@@ -285,7 +288,7 @@ const ActiveJobContent = () => {
         {showPriceBreakdown && (
           <div className="py-3 space-y-2">
             {displayData.priceBreakdown.rows.length === 0 ? (
-              <p className="text-[13px] font-poppins text-gray-500">No pricing details yet.</p>
+              <p className="text-[13px] font-poppins text-gray-500">{td("noPricingDetails")}</p>
             ) : (
               displayData.priceBreakdown.rows.map((row) => (
                 <div
@@ -299,7 +302,7 @@ const ActiveJobContent = () => {
             )}
             {displayData.priceBreakdown.total != null && (
               <div className="flex justify-between text-[14px] font-poppins font-bold text-black border-t border-gray-100 pt-2 mt-2">
-                <span>Total</span>
+                <span>{td("total")}</span>
                 <span>{formatMoney(displayData.priceBreakdown.total)}</span>
               </div>
             )}
@@ -315,7 +318,7 @@ const ActiveJobContent = () => {
             onClick={() => setShowPaymentConfirm(true)}
             className="w-full py-4 bg-brand-orange text-white rounded-2xl text-[15px] font-poppins font-semibold hover:bg-orange-600 transition-colors"
           >
-            Confirm payment
+            {td("confirmPaymentBtn")}
           </button>
         )}
         {!isPaymentPending && apiStatus === "CONFIRMED" && bookingId && (
@@ -324,7 +327,7 @@ const ActiveJobContent = () => {
             disabled
             className="w-full py-4 bg-gray-200 text-gray-500 rounded-2xl text-[15px] font-poppins font-semibold cursor-not-allowed"
           >
-            Payment confirmed
+            {td("paymentConfirmedBtn")}
           </button>
         )}
         {needsKrafterSelection && bookingId && selectedBooking ? (
@@ -335,7 +338,7 @@ const ActiveJobContent = () => {
             }
             className="w-full py-4 bg-brand-orange text-white rounded-2xl text-[15px] font-poppins font-semibold hover:bg-orange-600 transition-colors"
           >
-            Choose a Krafter
+            {td("chooseKrafterBtn")}
           </button>
         ) : canReschedule ? (
           <button
@@ -343,14 +346,14 @@ const ActiveJobContent = () => {
             disabled={isSubmitting}
             className="w-full py-4 bg-brand-orange text-white rounded-2xl text-[15px] font-poppins font-semibold hover:bg-orange-600 transition-colors disabled:opacity-60"
           >
-            Reschedule
+            {td("rescheduleBtn")}
           </button>
         ) : !isAccepted ? (
           <button
             onClick={() => router.replace("/user/book-service/active-job?status=accepted" + (bookingId ? `&id=${bookingId}` : ""))}
             className="w-full py-4 bg-brand-orange text-white rounded-2xl text-[15px] font-poppins font-semibold hover:bg-orange-600 transition-colors"
           >
-            Accept &amp; Schedule
+            {td("acceptScheduleBtn")}
           </button>
         ) : null}
 
@@ -361,7 +364,7 @@ const ActiveJobContent = () => {
             disabled={isSubmitting}
             className="w-full py-4 bg-brand-blue text-white rounded-2xl text-[15px] font-poppins font-semibold hover:bg-blue-700 transition-colors disabled:opacity-60"
           >
-            Reopen Task
+            {td("reopenTaskBtn")}
           </button>
         ) : (
           <button
@@ -369,7 +372,7 @@ const ActiveJobContent = () => {
             onClick={() => router.push("/user/chat")}
             className="w-full py-4 bg-brand-blue text-white rounded-2xl text-[15px] font-poppins font-semibold hover:bg-blue-700 transition-colors"
           >
-            Report Issue
+            {td("reportIssueBtn")}
           </button>
         )}
 
@@ -379,7 +382,7 @@ const ActiveJobContent = () => {
             onClick={() => setShowCancel(true)}
             className="w-full py-2 text-brand-orange text-[14px] font-poppins font-semibold"
           >
-            Cancel Kraft
+            {td("cancelKraftBtn")}
           </button>
         ) : cancelDisabledHint ? (
           <p className="w-full py-2 text-center text-[12px] font-poppins text-gray-500 px-1">{cancelDisabledHint}</p>

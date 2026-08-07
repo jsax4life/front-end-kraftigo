@@ -4,12 +4,14 @@ import { useState } from "react";
 import { X, AlertCircle } from "lucide-react";
 import Image from "next/image";
 import type { CancelBookingPayload, CancelBookingReason } from "@/lib/api/bookings";
+import { useTranslations } from "next-intl";
 
-const CANCEL_REASON_OPTIONS: { value: CancelBookingReason; label: string }[] = [
-  { value: "SCHEDULE_CONFLICT", label: "Schedule conflict" },
-  { value: "NO_LONGER_NEED_SERVICE", label: "No longer need the service" },
-  { value: "FOUND_DIFFERENT_KRAFTER", label: "Found a different Krafter" },
-  { value: "OTHER", label: "Other" },
+// Kept as fallback values, though we will map over these keys using translation in the component
+const CANCEL_REASON_OPTIONS: { value: CancelBookingReason; translationKey: string }[] = [
+  { value: "SCHEDULE_CONFLICT", translationKey: "scheduleConflict" },
+  { value: "NO_LONGER_NEED_SERVICE", translationKey: "noLongerNeed" },
+  { value: "FOUND_DIFFERENT_KRAFTER", translationKey: "foundDifferent" },
+  { value: "OTHER", translationKey: "other" },
 ];
 
 const DETAILS_MAX = 2000;
@@ -21,6 +23,7 @@ interface CancelModalProps {
 }
 
 const CancelModal = ({ booking, onClose, onConfirm }: CancelModalProps) => {
+  const t = useTranslations("modals.cancel");
   const [selectedReason, setSelectedReason] = useState<CancelBookingReason | "">("");
   const [details, setDetails] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -58,11 +61,11 @@ const CancelModal = ({ booking, onClose, onConfirm }: CancelModalProps) => {
 
         <div className="flex items-start justify-between px-5 pt-4 pb-3 shrink-0">
           <div>
-            <h2 className="text-[20px] font-gerat font-bold text-black">Kraft Cancellation</h2>
+            <h2 className="text-[20px] font-gerat font-bold text-black">{t("title")}</h2>
             <p className="text-[12px] font-poppins text-gray-500 mt-0.5">
-              Are You Sure You Want To Cancel?
+              {t("subtitle")}
               <br />
-              Please confirm the details of the booking you wish to cancel.
+              {t("description")}
             </p>
           </div>
           <button type="button" onClick={onClose} className="text-gray-400 mt-1">
@@ -90,7 +93,7 @@ const CancelModal = ({ booking, onClose, onConfirm }: CancelModalProps) => {
             </div>
           </div>
 
-          <p className="text-[13px] font-poppins font-semibold text-black mb-3">Reason for cancellation</p>
+          <p className="text-[13px] font-poppins font-semibold text-black mb-3">{t("reasonTitle")}</p>
           <div className="space-y-3 mb-4">
             {CANCEL_REASON_OPTIONS.map((opt) => (
               <label
@@ -101,7 +104,7 @@ const CancelModal = ({ booking, onClose, onConfirm }: CancelModalProps) => {
                   if (opt.value !== "OTHER") setDetails("");
                 }}
               >
-                <span className="text-[13px] font-poppins text-gray-700">{opt.label}</span>
+                <span className="text-[13px] font-poppins text-gray-700">{t(`reasons.${opt.translationKey}` as any)}</span>
                 <span
                   className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors shrink-0 ${
                     selectedReason === opt.value
@@ -118,14 +121,14 @@ const CancelModal = ({ booking, onClose, onConfirm }: CancelModalProps) => {
           {needsDetails && (
             <div className="mb-4">
               <p className="text-[13px] font-poppins font-semibold text-black mb-2">
-                Please tell us more <span className="text-red-500">*</span>
+                {t("tellUsMore")} <span className="text-red-500">*</span>
               </p>
               <textarea
                 value={details}
                 onChange={(e) => setDetails(e.target.value.slice(0, DETAILS_MAX))}
                 rows={4}
                 maxLength={DETAILS_MAX}
-                placeholder="Describe your reason (required)"
+                placeholder={t("describeReason")}
                 className="w-full rounded-xl border border-gray-200 px-3 py-2 text-[13px] font-poppins text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-orange/30"
               />
               <p className="text-[11px] font-poppins text-gray-400 mt-1 text-right">
@@ -138,10 +141,10 @@ const CancelModal = ({ booking, onClose, onConfirm }: CancelModalProps) => {
             <AlertCircle size={16} className="text-red-500 shrink-0 mt-0.5" />
             <div>
               <p className="text-[12px] font-poppins font-semibold text-red-600 mb-0.5">
-                Cancellation Policy
+                {t("policyTitle")}
               </p>
               <p className="text-[11px] font-poppins text-red-500">
-                Cancellations made within 24 hours of the booking time may incur a fee per policy.
+                {t("policyDesc")}
               </p>
             </div>
           </div>
@@ -157,7 +160,7 @@ const CancelModal = ({ booking, onClose, onConfirm }: CancelModalProps) => {
                   : "bg-gray-100 text-gray-400 cursor-not-allowed"
               }`}
             >
-              {submitting ? "Cancelling…" : "Confirm cancellation"}
+              {submitting ? t("cancelling") : t("confirm")}
             </button>
             <button
               type="button"
@@ -165,7 +168,7 @@ const CancelModal = ({ booking, onClose, onConfirm }: CancelModalProps) => {
               disabled={submitting}
               className="w-full py-4 bg-brand-blue text-white rounded-2xl text-[15px] font-poppins font-semibold hover:bg-blue-700 transition-colors disabled:opacity-60"
             >
-              Keep booking
+              {t("keepBooking")}
             </button>
           </div>
         </div>

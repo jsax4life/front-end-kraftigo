@@ -33,6 +33,7 @@ import { formatDistanceDisplay, readDistanceFields } from "@/utils/distance";
 import { formatHourlyRate, formatMoney } from "@/utils/currency";
 import { DistanceBadge } from "@/components/ui/DistanceBadge";
 import type { HomeProOfWeek } from "@/lib/api/auth";
+import { useTranslations } from "next-intl";
 
 // ─── Static fallbacks ─────────────────────────────────────────────────────────
 
@@ -130,6 +131,7 @@ const Page = () => {
   const { openPrompt } = useAuthPromptStore();
   const { customerProfile, fetchCustomerProfile } = useProfileStore();
   const { currentLatitude, currentLongitude } = useAddressStore();
+  const t = useTranslations("home");
 
   const {
     categories: apiCategories,
@@ -417,8 +419,8 @@ const Page = () => {
                 {/* Greetings and Title */}
                 <div className="flex-1">
                   <h1 className="text-[36px] sm:text-[36px] lg:text-[42px] font-gerat font-[850] leading-10 text-[#1D2939]">
-                    What do you need <br className="hidden md:block " />
-                    today?
+                    {t("greetingDesktop1")} <br className="hidden md:block " />
+                    {t("greetingDesktop2")}
                   </h1>
                 </div>
               </div>
@@ -455,14 +457,14 @@ const Page = () => {
                 />
                 <input
                   type="text"
-                  placeholder="Find a plumber"
+                  placeholder={t("searchPlaceholder")}
                   className="w-full pl-12 pr-4 py-4 bg-white rounded-full border border-gray-200 focus:outline-none focus:border-brand-cream text-[14px] sm:text-[16px] font-poppins cursor-pointer"
                   readOnly
                 />
               </div>
             </div>
             <div className="flex flex-col justify-center items-center w-full gap-2">
-              <p className="text-[12px]">Popular Searches</p>
+              <p className="text-[12px]">{t("popularSearches")}</p>
               <div className="flex items-center gap-2 flex-wrap justify-center">
                 {displayCategories.slice(0, 4).map((category) => {
                   const params = new URLSearchParams({ category: category.name });
@@ -528,7 +530,7 @@ const Page = () => {
                 Hello <span className="text-[#1D2939] font-bold">{displayName}</span> 👋
               </p> */}
                 <h1 className="text-[36px] sm:text-[36px] lg:text-[42px] font-gerat font-[850] leading-tight text-[#1D2939]">
-                  What do you <br className="sm:hidden" /> need today?
+                  {t("greetingMobile1")} <br className="sm:hidden" /> {t("greetingMobile2")}
                 </h1>
               </div>
             </div>
@@ -545,7 +547,7 @@ const Page = () => {
                 />
                 <input
                   type="text"
-                  placeholder="Find a plumber"
+                  placeholder={t("searchPlaceholder")}
                   className="w-full pl-12 pr-4 py-4 rounded-full border border-gray-200 focus:outline-none focus:border-brand-cream text-[14px] sm:text-[16px] font-poppins cursor-pointer"
                   readOnly
                 />
@@ -565,13 +567,13 @@ const Page = () => {
           <div className="mb-8 mt-15">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-[18px] sm:text-[20px] font-gerat font-bold">
-                Categories
+                {t("categories")}
               </h2>
               <button
                 onClick={() => router.push("/user/categories")}
                 className="text-[14px] font-poppins hover:underline flex items-center gap-1"
               >
-                <p>See all</p>
+                <p>{t("seeAll")}</p>
                 <ChevronRight size={18} />
               </button>
             </div>
@@ -625,7 +627,7 @@ const Page = () => {
           {(isLoading && !hasFetched) || displayNearYouKrafters.length > 0 ? (
             <div className="mb-8">
               <h2 className="text-[20px] sm:text-[20px] font-poppins font-semibold mb-4">
-                Krafter&apos;s near you
+                {t("kraftersNearYou")}
               </h2>
 
               {isLoading && !hasFetched ? (
@@ -689,7 +691,7 @@ const Page = () => {
           {displayProsOfWeek.length > 0 ? (
             <div className="mb-8">
               <h2 className="text-[20px] sm:text-[20px] font-poppins font-semibold mb-4">
-                Pros of the week
+                {t("prosOfWeek")}
               </h2>
               <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
                 <div className="flex gap-4">
@@ -720,7 +722,7 @@ const Page = () => {
           {isAuthenticated && (
             <div className="mb-6">
               <h2 className="text-[18px] sm:text-[20px] font-gerat font-bold mb-4">
-                Upcoming
+                {t("upcoming")}
               </h2>
 
               {isLoading && !hasFetched ? (
@@ -793,10 +795,10 @@ const Page = () => {
                   <div className="flex gap-4">
                     <div className="flex-1">
                       <h3 className="text-[16px] sm:text-[14px] font-poppins font-bold mb-2">
-                        No upcoming bookings
+                        {t("noUpcoming")}
                       </h3>
                       <p className="text-[12px] sm:text-[13px] text-gray-600 font-poppins">
-                        Book a service to see your upcoming appointments here.
+                        {t("noUpcomingDesc")}
                       </p>
                     </div>
                     <div className="w-[88px] h-[88px] rounded-xl bg-gray-200 shrink-0 flex items-center justify-center">
@@ -853,12 +855,12 @@ const Page = () => {
                   {/* Services Section */}
                   <div className="mb-6">
                     <h3 className="text-[12px] font-poppins font-semibold mb-3 text-[#00000066]">
-                      Services
+                      {t("services")}
                     </h3>
                     <div>
                       {isSearchLoading ? (
                         <p className="text-[14px] text-gray-500 font-poppins px-3 pb-3">
-                          Searching…
+                          {t("searching")}
                         </p>
                       ) : null}
                       {!isSearchLoading && searchRequestError ? (
@@ -988,7 +990,7 @@ const Page = () => {
                       !searchRequestError &&
                       searchQuery.trim().length < 3 ? (
                         <p className="text-[14px] text-gray-500 font-poppins px-3 pb-3">
-                          Type at least 3 letters to search.
+                          {t("typeToSearch")}
                         </p>
                       ) : null}
                       {!isSearchLoading &&
@@ -996,7 +998,7 @@ const Page = () => {
                       searchQuery.trim().length >= 3 &&
                       searchServiceResults.length === 0 ? (
                         <p className="text-[14px] text-gray-500 font-poppins px-3 pb-3">
-                          No services found.
+                          {t("noServicesFound")}
                         </p>
                       ) : null}
                     </div>
@@ -1005,7 +1007,7 @@ const Page = () => {
                   {/* Artisans Section */}
                   <div>
                     <h3 className="text-[12px] font-poppins font-semibold mb-3 text-[#00000066]">
-                      Artisans
+                      {t("artisans")}
                     </h3>
                     <div>
                       {!isSearchLoading &&
@@ -1057,7 +1059,7 @@ const Page = () => {
                                   ? ` · ${formatHourlyRate(artisan.hourlyRate)}`
                                   : ""}
                                 {artisan.isAvailable === true
-                                  ? " · Available"
+                                  ? ` · ${t("available")}`
                                   : ""}
                               </p>
                             </div>
@@ -1068,19 +1070,19 @@ const Page = () => {
                       searchQuery.trim().length >= 3 &&
                       searchArtisans.length === 0 ? (
                         <p className="text-[14px] text-gray-500 font-poppins px-3 pb-3">
-                          No artisans found.
+                          {t("noArtisansFound")}
                         </p>
                       ) : null}
                     </div>
                     <div className="mt-12 text-center">
                       <p className="text-[14px] sm:text-[15px] font-poppins text-gray-600 mb-2">
-                        Cant find what you need?
+                        {t("cantFind")}
                       </p>
                       <button
                         onClick={handleCustomKraft}
                         className="text-[16px] sm:text-[17px] font-poppins font-bold text-brand-orange hover:underline"
                       >
-                        Request A Custom Kraft
+                        {t("requestCustom")}
                       </button>
                     </div>
                   </div>
@@ -1089,7 +1091,7 @@ const Page = () => {
                 // Recents Section
                 <div className="bg-white rounded-2xl p-4 shadow-lg border border-[#0000001A]">
                   <h3 className="text-[12px] font-poppins font-semibold mb-3 text-[#00000066]">
-                    {recentSearches.length > 0 ? "Recents" : "Popular Searches"}
+                    {recentSearches.length > 0 ? t("recents") : t("popularSearches")}
                   </h3>
                   <div>
                     {recentSearches.length > 0 ? (
@@ -1132,13 +1134,13 @@ const Page = () => {
                   </div>
                   <div className="mt-12 text-center">
                     <p className="text-[14px] sm:text-[15px] font-poppins text-gray-600 mb-2">
-                      Cant find what you need?
+                      {t("cantFind")}
                     </p>
                     <button
                       onClick={handleCustomKraft}
                       className="text-[16px] sm:text-[17px] font-poppins font-bold text-brand-orange hover:underline"
                     >
-                      Request A Custom Kraft
+                      {t("requestCustom")}
                     </button>
                   </div>
                 </div>
