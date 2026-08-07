@@ -74,11 +74,11 @@ const Page = () => {
   const parsedDate = new Date(date);
   const formattedDisplayDate = !isNaN(parsedDate.getTime())
     ? new Intl.DateTimeFormat("en-US", {
-        weekday: "short",
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      }).format(parsedDate)
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    }).format(parsedDate)
     : date;
   const fullDateTimeDisplay = `${formattedDisplayDate} at ${rawTime}`;
 
@@ -143,9 +143,9 @@ const Page = () => {
   const artisanImageRaw = searchParams.get("artisanImage")?.trim() || "";
   const artisanDisplayPhoto =
     artisanImageRaw &&
-    (artisanImageRaw.startsWith("http://") ||
-      artisanImageRaw.startsWith("https://") ||
-      artisanImageRaw.startsWith("/"))
+      (artisanImageRaw.startsWith("http://") ||
+        artisanImageRaw.startsWith("https://") ||
+        artisanImageRaw.startsWith("/"))
       ? artisanImageRaw
       : "/images/pro.jpg";
   const bookingId = searchParams.get("bookingId");
@@ -291,21 +291,31 @@ const Page = () => {
         logger.log("Marketplace Booking payload:", publishPayload);
         await publishToMarketplace(publishPayload);
       } else if (artisanId) {
-        if (!bookingId) {
-          toast.error(
-            td("errorMissingLocationCoords") // using general error? wait no, "Missing booking reference. Please return to task details and go through the steps again." -> let me use general error for now, actually I missed this string. Let me just leave it as hardcoded for this one since it's an edge case error that might not be visible often, or I can just translate it inline if needed, but I didn't add it. Let's keep it as is.
-          );
-          return;
+        if (bookingId) {
+          logger.log("Selecting Krafter on recommendation draft", {
+            bookingId,
+            artisanId,
+            durationHours,
+          });
+          pricingFromSelection = await selectKrafter(bookingId, {
+            krafterId: artisanId,
+            durationHours,
+          });
+        } else {
+          const pendingMedia = useBookingsStore.getState().pendingPublishMediaFiles;
+          logger.log("Direct Krafter booking payload:", {
+            ...basePayload,
+            artisanId,
+            durationHours,
+          });
+          await createBooking({
+            ...basePayload,
+            artisanId,
+            proposedPrice: hourlyRate * durationHours,
+            ...(pendingMedia.length > 0 ? { media: pendingMedia } : {}),
+          });
+          useBookingsStore.getState().clearPendingPublishMediaFiles();
         }
-        logger.log("Selecting Krafter on recommendation draft", {
-          bookingId,
-          artisanId,
-          durationHours,
-        });
-        pricingFromSelection = await selectKrafter(bookingId, {
-          krafterId: artisanId,
-          durationHours,
-        });
       } else {
         logger.log("Booking payload:", basePayload);
         await createBooking(basePayload);
@@ -336,7 +346,7 @@ const Page = () => {
         toast.error(td("errorLoginRequired"));
         router.push("/user/login");
       } else if (isSavedPaymentMethodRequiredError(err)) {
-        toast.error(SAVED_PAYMENT_METHOD_REQUIRED_TOAST, { duration: 6500 });
+        toast.error(SAVED_PAYMENT_METHOD_REQUIRED_TOAST, { duration: 4000 });
         setShowPaymentModal(true);
       } else {
         toast.error(
@@ -460,8 +470,8 @@ const Page = () => {
               <div className="flex items-center justify-between">
                 <span className="text-[13px] sm:text-[14px] font-poppins text-gray-700">
                   {isPublicHourly ? td("yourOfferRate") : td("yourOfferBudget")} ({formatHourlyRate(Number(budget) || 0)} * {durationHoursDisplay % 1 === 0
-                        ? durationHoursDisplay
-                        : durationHoursDisplay.toFixed(2)} )
+                    ? durationHoursDisplay
+                    : durationHoursDisplay.toFixed(2)} )
                 </span>
                 <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900">
                   {formatMoney(estimatedLaborSubtotal)}
@@ -480,7 +490,7 @@ const Page = () => {
                   {formatMoney(estimatedLaborSubtotal)}
                 </span>
               </div>
-              
+
             </>
           )}
           <div className="flex items-center justify-between">
@@ -586,11 +596,10 @@ const Page = () => {
                 <div
                   key={method.id}
                   onClick={() => selectPayment(method.id)}
-                  className={`p-5 rounded-2xl border transition-all cursor-pointer ${
-                    selectedPaymentId === method.id
+                  className={`p-5 rounded-2xl border transition-all cursor-pointer ${selectedPaymentId === method.id
                       ? "bg-[#F4F4F5] border-gray-300" // Selected state border
                       : "bg-[#F4F4F5] border-transparent hover:border-gray-200" // Unselected state
-                  }`}
+                    }`}
                 >
                   {/* Top Row: Title & Radio Button */}
                   <div className="flex justify-between items-start">
@@ -600,11 +609,10 @@ const Page = () => {
 
                     {/* Custom Radio Button */}
                     <div
-                      className={`w-[20px] h-[20px] rounded-full border-[2px] flex items-center justify-center shrink-0 transition-colors ${
-                        selectedPaymentId === method.id
+                      className={`w-[20px] h-[20px] rounded-full border-[2px] flex items-center justify-center shrink-0 transition-colors ${selectedPaymentId === method.id
                           ? "border-black"
                           : "border-gray-400"
-                      }`}
+                        }`}
                     >
                       {selectedPaymentId === method.id && (
                         <div className="w-2.5 h-2.5 bg-black rounded-full" />
@@ -674,7 +682,7 @@ const Page = () => {
         <button
           onClick={handleConfirmPayment}
           disabled={
-          isSubmitting ||
+            isSubmitting ||
             publicFixedPriceInvalid
           }
           className="w-full py-3 bg-brand-orange text-white text-[16px] sm:text-[17px] font-poppins font-semibold rounded-lg hover:bg-brand-orange-dark transition-colors flex items-center justify-center gap-2 disabled:opacity-60"

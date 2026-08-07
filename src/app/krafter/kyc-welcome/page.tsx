@@ -107,7 +107,7 @@ export default function KrafterKycWelcomePage() {
       <div className="relative z-10 mx-auto flex min-h-screen max-w-4xl flex-col px-5 pb-10 pt-14">
         <button
           type="button"
-          onClick={() => router.push("/user/profile")}
+          onClick={() => router.push("/krafter/verification")}
           className="mb-8 flex w-fit items-center gap-2 rounded-full px-1 py-1 font-poppins text-[13px] text-[rgba(0,0,0,0.65)] transition-colors hover:text-black"
         >
           <ArrowLeft size={18} strokeWidth={2} />

@@ -3,15 +3,18 @@ import type { Service, ServiceCategory } from '@/types'
 import {
   getServices,
   getServiceCategories,
+  getServiceSkillGroups,
   searchServices,
   getServiceById,
   type ServiceSearchParams,
+  type ServiceSkillGroup,
 } from '@/lib/api/services'
 
 interface ServicesState {
   // State
   services: Service[]
   categories: ServiceCategory[]
+  skillGroups: ServiceSkillGroup[]
   selectedService: Service | null
   searchResults: Service[] | null
   isLoading: boolean
@@ -21,6 +24,7 @@ interface ServicesState {
   // Actions
   fetchServices: (params?: ServiceSearchParams) => Promise<void>
   fetchCategories: () => Promise<void>
+  fetchSkillGroups: () => Promise<void>
   searchServices: (params: ServiceSearchParams) => Promise<void>
   fetchServiceById: (id: string) => Promise<Service>
   clearSearch: () => void
@@ -31,6 +35,7 @@ export const useServicesStore = create<ServicesState>()((set, get) => ({
   // Initial state
   services: [],
   categories: [],
+  skillGroups: [],
   selectedService: null,
   searchResults: null,
   isLoading: false,
@@ -56,6 +61,15 @@ export const useServicesStore = create<ServicesState>()((set, get) => ({
       set({
         error: err.response?.data?.message || 'Failed to load categories',
       })
+    }
+  },
+
+  fetchSkillGroups: async () => {
+    try {
+      const skillGroups = await getServiceSkillGroups()
+      set({ skillGroups, error: null })
+    } catch (err: any) {
+      console.error('Failed to load skill groups:', err)
     }
   },
 

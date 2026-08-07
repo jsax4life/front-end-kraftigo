@@ -200,7 +200,7 @@ function pushToast(
       />
     ),
     {
-      duration: opts?.duration ?? 9000,
+      duration: opts?.duration ?? 4500,
       position: "top-right",
     },
   );
@@ -491,7 +491,7 @@ export function showDomainEventNotification(raw: unknown): void {
         typeof msg.reason === "string" && msg.reason.trim()
           ? msg.reason.trim().slice(0, 140)
           : "A payment is under dispute.",
-        { duration: 12_000 },
+        { duration: 6000 },
         hist("PAYMENT_DISPUTED", null),
       );
       break;
@@ -554,7 +554,7 @@ export function showDomainEventNotification(raw: unknown): void {
         reversedAmount
           ? `${reversedAmount} could not be transferred and was reversed. Check your Stripe account.`
           : "A withdrawal was reversed. Check your Stripe account.",
-        { actionLabel: "Payouts", onAction: goTaskerPayouts, duration: 12_000 },
+        { actionLabel: "Payouts", onAction: goTaskerPayouts, duration: 6000 },
         hist("ARTISAN_WALLET_WITHDRAWAL_FAILED", null),
       );
       break;
@@ -608,7 +608,7 @@ export function showDomainEventNotification(raw: unknown): void {
         failedAmount
           ? `Stripe could not deposit ${failedAmount} into your bank. Check your account details.`
           : "Stripe could not deposit funds into your bank. Check your account details.",
-        { actionLabel: "Payouts", onAction: goTaskerPayouts, duration: 12_000 },
+        { actionLabel: "Payouts", onAction: goTaskerPayouts, duration: 6000 },
         hist("ARTISAN_BANK_PAYOUT_FAILED", null),
       );
       break;
@@ -619,7 +619,7 @@ export function showDomainEventNotification(raw: unknown): void {
         <Gavel className="h-5 w-5" />,
         "Dispute opened",
         "A dispute was opened on a booking.",
-        { duration: 12_000 },
+        { duration: 6000 },
         hist("DISPUTE_OPENED", null),
       );
       break;
@@ -685,7 +685,7 @@ export function showDomainEventNotification(raw: unknown): void {
         rejectionReason
           ? rejectionReason
           : "Your identity verification was declined. Review the details and try again.",
-        { actionLabel: "Retry verification", onAction: goKycWelcome, duration: 12_000 },
+        { actionLabel: "Retry verification", onAction: goKycWelcome, duration: 6000 },
         hist("ARTISAN_KYC_REJECTED", "verification"),
       );
       break;

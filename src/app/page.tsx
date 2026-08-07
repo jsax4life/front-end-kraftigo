@@ -19,16 +19,23 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { useProfileStore } from "@/store/useProfileStore";
 import { useAuthPromptStore } from "@/store/useAuthPromptStore";
 import { useHomeStore, normSrc } from "@/store/useHomeStore";
+import { useServicesStore } from "@/store/useServicesStore";
 import { searchServices } from "@/lib/api/services";
 import { useAddressStore } from "@/store/useAddressStore";
+import toast from "react-hot-toast";
 import KrafterDetailModal, {
-  KrafterDetail,
+  type KrafterDetail,
 } from "@/components/shared/KrafterDetailModal";
-import { fetchKrafterProfile } from "@/lib/api/bookings";
+import {
+  buildDirectKrafterBookServiceUrl,
+  buildKrafterDetailFromHomeRow,
+  resolveHomeKrafterDetail,
+} from "@/lib/krafterDetailDisplay";
 import Navbar from "@/components/shared/Navbar";
 import Footer from "@/components/shared/Footer";
 import HomeKrafterBanner from "@/components/shared/HomeKrafterBanner";
 import HomeSummerPromoBanner from "@/components/shared/HomeSummerPromoBanner";
+import { buildCategoryBookingUrl } from "@/constants/betaLaunch";
 import { formatDistanceDisplay, readDistanceFields } from "@/utils/distance";
 import { formatHourlyRate, formatMoney } from "@/utils/currency";
 import { DistanceBadge } from "@/components/ui/DistanceBadge";
@@ -145,6 +152,8 @@ const Page = () => {
     recentSearches,
     addRecentSearch,
   } = useHomeStore();
+  const { categories: serviceCategories, skillGroups, fetchCategories, fetchSkillGroups } =
+    useServicesStore();
 
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -160,82 +169,6 @@ const Page = () => {
   );
   const [isLoadingKrafterProfile, setIsLoadingKrafterProfile] = useState(false);
 
-  /** Fetch full artisan profile on demand, merge with home data, open modal */
-  const openKrafterModal = async (pro: any, raw: any) => {
-    // Start with whatever data the home API gave us
-    const base: KrafterDetail = {
-      id: raw?.krafterId || pro.name,
-      name: pro.name,
-      profileImage: pro.image,
-      badge: pro.badge,
-      rating: pro.rating,
-      reviewCount: pro.reviews,
-      taskCount: pro.tasks,
-      description: raw?.description || pro.description,
-      location: raw?.address || raw?.baseCity || pro.distance || "Germany",
-      pricePerHour:
-        raw?.hourlyRate || parseFloat(pro.price.replace(/[^0-9.]/g, "")) || 0,
-      isAvailable: raw?.isAvailable ?? true,
-      bio: raw?.bio || raw?.description || pro.description,
-      uniqueSellingPoint: raw?.uniqueSellingPoint ?? undefined,
-      occupationDescription: raw?.occupationDescription ?? undefined,
-      languagesSpoken: Array.isArray(raw?.languagesSpoken)
-        ? raw.languagesSpoken
-        : [],
-      skillTags: Array.isArray(raw?.skillTags) ? raw.skillTags : [],
-      portfolioImages: Array.isArray(raw?.portfolioImages)
-        ? raw.portfolioImages.filter(Boolean)
-        : [],
-      responseRate: raw?.responseRate ?? null,
-      averageResponseHours: raw?.averageResponseHours ?? null,
-      yearsWithUs: Number(raw?.yearsWithUs ?? 0),
-      address: raw?.address ?? undefined,
-    };
-    // Open modal immediately with base data
-    setSelectedKrafter(base);
-
-    // Try to enrich with full profile data in the background
-    if (raw?.krafterId) {
-      setIsLoadingKrafterProfile(true);
-      try {
-        const full = await fetchKrafterProfile(raw.krafterId);
-        if (full) {
-          const item = full?.artisan ?? full?.data ?? full;
-          setSelectedKrafter({
-            ...base,
-            profileImage:
-              item?.profilePhotoUrl || item?.avatar || base.profileImage,
-            bio: item?.bio || item?.description || base.bio,
-            uniqueSellingPoint:
-              item?.uniqueSellingPoint ?? base.uniqueSellingPoint,
-            occupationDescription:
-              item?.occupationDescription ?? base.occupationDescription,
-            languagesSpoken: Array.isArray(item?.languagesSpoken)
-              ? item.languagesSpoken
-              : base.languagesSpoken,
-            skillTags: Array.isArray(item?.skillTags)
-              ? item.skillTags
-              : base.skillTags,
-            portfolioImages: Array.isArray(item?.portfolioImages)
-              ? item.portfolioImages.filter(Boolean)
-              : base.portfolioImages,
-            responseRate: item?.responseRate ?? base.responseRate,
-            averageResponseHours:
-              item?.averageResponseHours ?? base.averageResponseHours,
-            yearsWithUs: Number(item?.yearsWithUs ?? base.yearsWithUs),
-            location:
-              item?.address || item?.baseCity || item?.city || base.location,
-            address: item?.address ?? base.address,
-          });
-        }
-      } catch {
-        // Silently keep the base data already shown
-      } finally {
-        setIsLoadingKrafterProfile(false);
-      }
-    }
-  };
-
   // ── Fetch profile (auth only) + home feed (`GET /api/home`) for everyone ───
   useEffect(() => {
     if (isAuthenticated && !customerProfile) {
@@ -244,11 +177,20 @@ const Page = () => {
     void fetchHomeData();
   }, [isAuthenticated, customerProfile, fetchCustomerProfile, fetchHomeData]);
 
+  useEffect(() => {
+    if (serviceCategories.length === 0) {
+      void fetchCategories();
+    }
+    if (skillGroups.length === 0) {
+      void fetchSkillGroups();
+    }
+  }, [serviceCategories.length, skillGroups.length, fetchCategories, fetchSkillGroups]);
+
   // ── Derived display values ──────────────────────────────────────────────────
   const displayName = user?.firstName || "User";
   const avatar = customerProfile?.profilePhotoUrl || user?.avatar;
 
-  /** Categories from `GET /api/home` (curated, dynamic); IDs must match service categories for book-service. */
+  /** Curated home carousel categories (`GET /api/home`) — browsing only. */
   const displayCategories =
     apiCategories.length > 0
       ? apiCategories.map((c) => ({
@@ -257,6 +199,52 @@ const Page = () => {
           image: normSrc(c.imageUrl) ?? "/images/home3.jpg",
         }))
       : STATIC_CATEGORIES.map((c) => ({ id: "", ...c }));
+
+  /** Bookable service taxonomy — always from `GET /api/services/categories`. */
+  const bookableCategories = useMemo(
+    () =>
+      serviceCategories
+        .filter((c) => c.id?.trim())
+        .map((c) => ({ id: c.id, name: c.name })),
+    [serviceCategories],
+  );
+
+  const openKrafterModal = async (pro: HomeKrafterCard, raw: HomeProOfWeek) => {
+    const rawRecord = { ...(raw as unknown as Record<string, unknown>) };
+    if (raw.skillTags?.length) {
+      rawRecord.skillTags = raw.skillTags;
+    }
+    if (raw.serviceCategoryOfferings?.length) {
+      rawRecord.serviceCategoryOfferings = raw.serviceCategoryOfferings;
+    }
+    setIsLoadingKrafterProfile(true);
+    try {
+      setSelectedKrafter(
+        await resolveHomeKrafterDetail(pro, rawRecord, skillGroups, {
+          serviceCategories: bookableCategories,
+          latitude:
+            typeof currentLatitude === "number" && Number.isFinite(currentLatitude)
+              ? currentLatitude
+              : undefined,
+          longitude:
+            typeof currentLongitude === "number" && Number.isFinite(currentLongitude)
+              ? currentLongitude
+              : undefined,
+        }),
+      );
+    } catch {
+      setSelectedKrafter(
+        buildKrafterDetailFromHomeRow(
+          pro,
+          rawRecord,
+          skillGroups,
+          bookableCategories,
+        ),
+      );
+    } finally {
+      setIsLoadingKrafterProfile(false);
+    }
+  };
 
   const displayNearYouKrafters: HomeKrafterCard[] =
     kraftersNearYou.length > 0
@@ -466,19 +454,19 @@ const Page = () => {
             <div className="flex flex-col justify-center items-center w-full gap-2">
               <p className="text-[12px]">{t("popularSearches")}</p>
               <div className="flex items-center gap-2 flex-wrap justify-center">
-                {displayCategories.slice(0, 4).map((category) => {
-                  const params = new URLSearchParams({ category: category.name });
-                  if (category.id) params.set("categoryId", category.id);
-                  return (
+                {displayCategories.slice(0, 4).map((category) => (
                     <button
                       key={category.id || category.name}
-                      onClick={() => router.push(`/user/book-service?${params.toString()}`)}
+                      onClick={() =>
+                        router.push(
+                          buildCategoryBookingUrl(category.id, category.name),
+                        )
+                      }
                       className="bg-[#F6F6F6] rounded-md px-1.5 py-0.5 text-[12px] hover:bg-brand-orange hover:text-white transition-colors cursor-pointer"
                     >
                       {category.name.split("/")[0].trim()}
                     </button>
-                  );
-                })}
+                  ))}
               </div>
             </div>
           </div>
@@ -591,11 +579,7 @@ const Page = () => {
               <div className="grid grid-cols-3 gap-3 sm:gap-4">
                 {displayCategories.map((category, index) => {
                   const handleCategoryClick = () => {
-                    const params = new URLSearchParams({
-                      category: category.name,
-                    });
-                    if (category.id) params.set("categoryId", category.id);
-                    router.push(`/user/book-service?${params.toString()}`);
+                    router.push(buildCategoryBookingUrl(category.id, category.name));
                   };
                   return (
                     <div
@@ -939,15 +923,14 @@ const Page = () => {
                                 key={index}
                                 onClick={() => {
                                   addRecentSearch(categoryName);
-                                  const params = new URLSearchParams({
-                                    category: categoryName,
-                                  });
-                                  if (categoryId)
-                                    params.set("categoryId", categoryId);
-                                  if (serviceId)
-                                    params.set("serviceId", serviceId);
+                                  const extraParams: Record<string, string> = {};
+                                  if (serviceId) extraParams.serviceId = serviceId;
                                   handleProtectedAction(
-                                    `/user/book-service?${params.toString()}`,
+                                    buildCategoryBookingUrl(
+                                      categoryId,
+                                      categoryName,
+                                      extraParams,
+                                    ),
                                   );
                                   setShowSearchModal(false);
                                 }}
@@ -1161,9 +1144,17 @@ const Page = () => {
         <KrafterDetailModal
           krafter={selectedKrafter}
           onClose={() => setSelectedKrafter(null)}
-          onSelect={(id) => {
+          requireServiceSelection
+          isLoadingProfile={isLoadingKrafterProfile}
+          onSelect={(id, offering) => {
+            if (!offering) {
+              toast.error("Select a service before booking this Krafter.");
+              return;
+            }
             setSelectedKrafter(null);
-            handleProtectedAction(`/user/book-service?artisanId=${encodeURIComponent(id)}`);
+            handleProtectedAction(
+              buildDirectKrafterBookServiceUrl(id, offering, selectedKrafter ?? undefined),
+            );
           }}
         />
       )}

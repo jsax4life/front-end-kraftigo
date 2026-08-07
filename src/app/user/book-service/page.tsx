@@ -25,6 +25,10 @@ import {
   type FlexibleScheduleState,
 } from "@/lib/flexibleSchedule";
 import { useTranslations } from "next-intl";
+import {
+  BETA_UNAVAILABLE_ROUTE,
+  isBetaBookableCategory,
+} from "@/constants/betaLaunch";
 
 const BookServicePage = () => {
   const router = useRouter();
@@ -33,6 +37,13 @@ const BookServicePage = () => {
   const categoryName = searchParams.get("category") || "Service";
   const preselectedArtisanId = searchParams.get("artisanId") || "";
   const [showAddressModal, setShowAddressModal] = useState(false);
+
+  useEffect(() => {
+    if (!categoryId.trim()) return;
+    if (!isBetaBookableCategory(categoryId, categoryName)) {
+      router.replace(`${BETA_UNAVAILABLE_ROUTE}?${searchParams.toString()}`);
+    }
+  }, [categoryId, categoryName, router, searchParams]);
 
   const { isAuthenticated } = useAuthStore();
   const { openPrompt } = useAuthPromptStore();
@@ -157,6 +168,44 @@ const BookServicePage = () => {
       .join("\n\n");
 
     try {
+      const isDirectKrafterBook = Boolean(preselectedArtisanId.trim());
+
+      if (isDirectKrafterBook) {
+        clearRecommendationDraftBooking();
+        setPendingPublishMediaFiles(mediaFiles);
+
+        const params = new URLSearchParams({
+          categoryId,
+          category: categoryName,
+          address: bookingAddress,
+          date: preferredDate,
+          time: resolvedTime,
+          taskDetails: formData.taskDetails,
+          specialInstructions: formData.specialInstructions,
+          artisanId: preselectedArtisanId,
+        });
+        params.set("latitude", String(lat));
+        params.set("longitude", String(lng));
+        appendFlexibleScheduleToUrlParams(params, schedule);
+
+        const passthroughKeys = [
+          "artisanName",
+          "artisanImage",
+          "artisanBadge",
+          "pricePerHour",
+          "distanceLabel",
+          "distanceKm",
+          "artisanKrafts",
+        ] as const;
+        for (const key of passthroughKeys) {
+          const value = searchParams.get(key);
+          if (value) params.set(key, value);
+        }
+
+        router.push(`/user/book-service/verifyDetails?${params.toString()}`);
+        return;
+      }
+
       const booking = await createBookingForRecommendation({
         serviceCategoryId: categoryId,
         jobTitle: categoryName,

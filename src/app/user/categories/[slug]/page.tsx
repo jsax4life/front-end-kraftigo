@@ -7,6 +7,11 @@ import { useEffect, useMemo } from "react";
 import { useServicesStore } from "@/store/useServicesStore";
 import type { ServiceCategory } from "@/types";
 import { useTranslations } from "next-intl";
+import {
+  BETA_UNAVAILABLE_ROUTE,
+  buildCategoryBookingUrl,
+  isBetaBookableCategory,
+} from "@/constants/betaLaunch";
 
 const Page = () => {
   const router = useRouter();
@@ -37,11 +42,24 @@ const Page = () => {
     }
   }, [currentCategory, fetchServices]);
 
+  useEffect(() => {
+    if (!currentCategory) return;
+    if (!isBetaBookableCategory(currentCategory.id, currentCategory.name)) {
+      const params = new URLSearchParams({
+        categoryId: currentCategory.id,
+        category: currentCategory.name,
+      });
+      router.replace(`${BETA_UNAVAILABLE_ROUTE}?${params.toString()}`);
+    }
+  }, [currentCategory, router]);
+
   const handleServiceClick = (serviceId: string, serviceTitle: string) => {
-    // Navigate to booking page with service details
-    console.log("Navigate to booking:", serviceId, serviceTitle);
+    if (!currentCategory) return;
     router.push(
-      `/user/book-service?serviceId=${serviceId}&service=${encodeURIComponent(serviceTitle)}`
+      buildCategoryBookingUrl(currentCategory.id, currentCategory.name, {
+        serviceId,
+        service: serviceTitle,
+      }),
     );
   };
 
