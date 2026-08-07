@@ -192,24 +192,27 @@ const Page = () => {
   const displayName = user?.firstName || "User";
   const avatar = customerProfile?.profilePhotoUrl || user?.avatar;
 
-  const rawCategories =
+  const rawCategories = useMemo(() =>
     apiCategories.length > 0
       ? apiCategories.map((c) => ({
           id: c.id,
           name: c.name,
           image: normSrc(c.imageUrl) ?? "/images/home3.jpg",
         }))
-      : STATIC_CATEGORIES.map((c) => ({ id: "", ...c }));
+      : STATIC_CATEGORIES.map((c) => ({ id: "", ...c })),
+  [apiCategories]);
+
+  const categoryNames = useMemo(() => rawCategories.map((c) => c.name), [rawCategories]);
 
   const { translatedTexts: translatedCategories } = useTranslateContent(
-    rawCategories.map((c) => c.name),
+    categoryNames,
     locale
   );
 
-  const displayCategories = rawCategories.map((c, i) => ({
+  const displayCategories = useMemo(() => rawCategories.map((c, i) => ({
     ...c,
     name: translatedCategories[i] || c.name,
-  }));
+  })), [rawCategories, translatedCategories]);
 
   /** Bookable service taxonomy — always from `GET /api/services/categories`. */
   const bookableCategories = useMemo(
@@ -257,30 +260,36 @@ const Page = () => {
     }
   };
 
-  const rawNearYou =
+  const rawNearYou = useMemo(() =>
     kraftersNearYou.length > 0
       ? kraftersNearYou.map(mapHomeKrafterToCard)
       : isAuthenticated
         ? []
-        : STATIC_PROS;
+        : STATIC_PROS,
+  [kraftersNearYou, isAuthenticated]);
 
-  const rawProsOfWeek =
-    prosOfWeek.length > 0 ? prosOfWeek.map(mapHomeKrafterToCard) : [];
+  const rawProsOfWeek = useMemo(() =>
+    prosOfWeek.length > 0 ? prosOfWeek.map(mapHomeKrafterToCard) : [],
+  [prosOfWeek]);
+
+  const allProDescriptions = useMemo(() =>
+    [...rawNearYou, ...rawProsOfWeek].map((p) => p.description),
+  [rawNearYou, rawProsOfWeek]);
 
   const { translatedTexts: translatedProDescriptions } = useTranslateContent(
-    [...rawNearYou, ...rawProsOfWeek].map((p) => p.description),
+    allProDescriptions,
     locale
   );
 
-  const displayNearYouKrafters = rawNearYou.map((p, i) => ({
+  const displayNearYouKrafters = useMemo(() => rawNearYou.map((p, i) => ({
     ...p,
     description: translatedProDescriptions[i] || p.description,
-  }));
+  })), [rawNearYou, translatedProDescriptions]);
 
-  const displayProsOfWeek = rawProsOfWeek.map((p, i) => ({
+  const displayProsOfWeek = useMemo(() => rawProsOfWeek.map((p, i) => ({
     ...p,
     description: translatedProDescriptions[rawNearYou.length + i] || p.description,
-  }));
+  })), [rawProsOfWeek, rawNearYou.length, translatedProDescriptions]);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
   const handleProtectedAction = (path: string) => {

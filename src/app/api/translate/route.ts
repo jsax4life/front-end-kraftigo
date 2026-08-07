@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { enqueueTranslation } from "@/lib/translationQueue";
 
 export async function POST(request: Request) {
   const apiKey = process.env.DEEPL_API_KEY;
@@ -24,75 +25,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ translatedTexts: [] });
     }
 
+    // Skip translation for English — just return as-is
     if (targetLang.toLowerCase() === "en") {
       return NextResponse.json({ translatedTexts: texts });
     }
 
-    // Determine if it's a Free or Pro DeepL API key
-    const isFreeAPI = apiKey.endsWith(":fx");
-    const baseUrl = isFreeAPI 
-      ? "https://api-free.deepl.com/v2/translate" 
-      : "https://api.deepl.com/v2/translate";
+    // Enqueue to server-side mutex: only 1 DeepL request runs at a time.
+    // Concurrent requests wait their turn instead of hammering the API.
+    const translatedTexts = await enqueueTranslation(texts, targetLang, apiKey);
+    return NextResponse.json({ translatedTexts });
 
-    const MAX_RETRIES = 3;
-    let attempt = 0;
-    let response;
-
-    while (attempt < MAX_RETRIES) {
-      response = await fetch(baseUrl, {
-        method: "POST",
-        headers: {
-          "Authorization": `DeepL-Auth-Key ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          text: texts,
-          target_lang: targetLang.toUpperCase(),
-        }),
-      });
-
-      if (response.ok) {
-        break; // Success, exit retry loop
-      }
-
-      if (response.status === 429) {
-        attempt++;
-        if (attempt < MAX_RETRIES) {
-          // Exponential backoff with jitter to prevent thundering herd
-          const waitMs = attempt * 500 + Math.random() * 300;
-          console.log(`DeepL 429 Rate Limit hit. Retrying in ${Math.round(waitMs)}ms... (Attempt ${attempt})`);
-          await new Promise((res) => setTimeout(res, waitMs));
-          continue;
-        }
-      }
-      
-      // If it's not a 429, or we've maxed out retries, break out
-      break;
-    }
-
-    if (!response || !response.ok) {
-      const errorText = response ? await response.text() : "No response";
-      const status = response ? response.status : "Unknown";
-      console.error(`DeepL API Error: ${status}`, errorText);
-      
-      // Fallback: Return original strings instead of breaking UI
-      return NextResponse.json({ translatedTexts: texts });
-    }
-
-    const data = await response.json();
-    
-    // DeepL returns: { translations: [{ detected_source_language: "EN", text: "..." }] }
-    if (data && data.translations && Array.isArray(data.translations)) {
-      const translatedTexts = data.translations.map((t: any) => t.text);
-      return NextResponse.json({ translatedTexts });
-    } else {
-      throw new Error("Invalid response format from DeepL");
-    }
   } catch (error) {
-    console.error("Translation error:", error);
+    console.error("Translation route error:", error);
     return NextResponse.json(
       { error: "Failed to translate content" },
       { status: 500 }
     );
   }
 }
+

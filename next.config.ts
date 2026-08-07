@@ -76,13 +76,13 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: '*.cdn.digitaloceanspaces.com',
+        hostname: '*.digitaloceanspaces.com',
         port: '',
         pathname: '/**',
       },
       {
         protocol: 'https',
-        hostname: 'kraftigo-space.fra1.cdn.digitaloceanspaces.com',
+        hostname: '*.cdn.digitaloceanspaces.com',
         port: '',
         pathname: '/**',
       },
