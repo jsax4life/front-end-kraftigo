@@ -16,7 +16,7 @@ export const useTranslationStore = create<TranslationState>()(
       getTranslation: (key) => get().cache[key],
     }),
     {
-      name: 'translation-cache', // unique name for localStorage key
+      name: 'translation-cache-v2', // unique name for localStorage key, version bumped to bust old pseudo-translations
     }
   )
 );

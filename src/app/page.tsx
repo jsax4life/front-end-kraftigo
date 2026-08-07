@@ -40,7 +40,8 @@ import { formatDistanceDisplay, readDistanceFields } from "@/utils/distance";
 import { formatHourlyRate, formatMoney } from "@/utils/currency";
 import { DistanceBadge } from "@/components/ui/DistanceBadge";
 import type { HomeProOfWeek } from "@/lib/api/auth";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
+import { useTranslateContent } from "@/hooks/useTranslateContent";
 
 // ─── Static fallbacks ─────────────────────────────────────────────────────────
 
@@ -139,6 +140,7 @@ const Page = () => {
   const { customerProfile, fetchCustomerProfile } = useProfileStore();
   const { currentLatitude, currentLongitude } = useAddressStore();
   const t = useTranslations("home");
+  const locale = useLocale();
 
   const {
     categories: apiCategories,
@@ -190,8 +192,7 @@ const Page = () => {
   const displayName = user?.firstName || "User";
   const avatar = customerProfile?.profilePhotoUrl || user?.avatar;
 
-  /** Curated home carousel categories (`GET /api/home`) — browsing only. */
-  const displayCategories =
+  const rawCategories =
     apiCategories.length > 0
       ? apiCategories.map((c) => ({
           id: c.id,
@@ -199,6 +200,16 @@ const Page = () => {
           image: normSrc(c.imageUrl) ?? "/images/home3.jpg",
         }))
       : STATIC_CATEGORIES.map((c) => ({ id: "", ...c }));
+
+  const { translatedTexts: translatedCategories } = useTranslateContent(
+    rawCategories.map((c) => c.name),
+    locale
+  );
+
+  const displayCategories = rawCategories.map((c, i) => ({
+    ...c,
+    name: translatedCategories[i] || c.name,
+  }));
 
   /** Bookable service taxonomy — always from `GET /api/services/categories`. */
   const bookableCategories = useMemo(
@@ -246,16 +257,30 @@ const Page = () => {
     }
   };
 
-  const displayNearYouKrafters: HomeKrafterCard[] =
+  const rawNearYou =
     kraftersNearYou.length > 0
       ? kraftersNearYou.map(mapHomeKrafterToCard)
       : isAuthenticated
         ? []
         : STATIC_PROS;
 
-  // Featured pros of the week (separate curated list)
-  const displayProsOfWeek: HomeKrafterCard[] =
+  const rawProsOfWeek =
     prosOfWeek.length > 0 ? prosOfWeek.map(mapHomeKrafterToCard) : [];
+
+  const { translatedTexts: translatedProDescriptions } = useTranslateContent(
+    [...rawNearYou, ...rawProsOfWeek].map((p) => p.description),
+    locale
+  );
+
+  const displayNearYouKrafters = rawNearYou.map((p, i) => ({
+    ...p,
+    description: translatedProDescriptions[i] || p.description,
+  }));
+
+  const displayProsOfWeek = rawProsOfWeek.map((p, i) => ({
+    ...p,
+    description: translatedProDescriptions[rawNearYou.length + i] || p.description,
+  }));
 
   // ── Handlers ────────────────────────────────────────────────────────────────
   const handleProtectedAction = (path: string) => {

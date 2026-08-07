@@ -1,16 +1,15 @@
 import { NextResponse } from "next/server";
-import { GoogleGenAI } from "@google/genai";
 
 export async function POST(request: Request) {
-  if (!process.env.GEMINI_API_KEY) {
-    console.error("GEMINI_API_KEY is not set in the environment variables.");
+  const apiKey = process.env.DEEPL_API_KEY;
+  if (!apiKey) {
+    console.error("DEEPL_API_KEY is not set in the environment variables.");
     return NextResponse.json(
       { error: "Translation service is not configured properly." },
       { status: 500 }
     );
   }
 
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   try {
     const { texts, targetLang } = await request.json();
 
@@ -25,45 +24,45 @@ export async function POST(request: Request) {
       return NextResponse.json({ translatedTexts: [] });
     }
 
-    if (targetLang === "en") {
+    if (targetLang.toLowerCase() === "en") {
       return NextResponse.json({ translatedTexts: texts });
     }
 
-    const prompt = `Translate the following array of texts into ${targetLang}. Return EXACTLY a JSON array of strings in the exact same order, without any markdown formatting or extra text.
+    // Determine if it's a Free or Pro DeepL API key
+    const isFreeAPI = apiKey.endsWith(":fx");
+    const baseUrl = isFreeAPI 
+      ? "https://api-free.deepl.com/v2/translate" 
+      : "https://api.deepl.com/v2/translate";
 
-Texts to translate:
-${JSON.stringify(texts, null, 2)}`;
+    const response = await fetch(baseUrl, {
+      method: "POST",
+      headers: {
+        "Authorization": `DeepL-Auth-Key ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        text: texts,
+        target_lang: targetLang.toUpperCase(),
+      }),
+    });
 
-    let resultText;
-    try {
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json",
-        }
-      });
-      resultText = response.text;
-    } catch (apiError: any) {
-      console.error("Gemini API Error (likely Rate Limit/Quota):", apiError.message);
-      // Fallback: If we hit a quota limit, return pseudo-translations so the UI doesn't break
-      const fallbackTranslations = texts.map(t => `[${targetLang.toUpperCase()}] ${t}`);
-      return NextResponse.json({ translatedTexts: fallbackTranslations });
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("DeepL API Error:", response.status, errorText);
+      
+      // Fallback: Return original strings instead of breaking UI
+      return NextResponse.json({ translatedTexts: texts });
     }
 
-    if (!resultText) {
-      throw new Error("Failed to generate translation");
+    const data = await response.json();
+    
+    // DeepL returns: { translations: [{ detected_source_language: "EN", text: "..." }] }
+    if (data && data.translations && Array.isArray(data.translations)) {
+      const translatedTexts = data.translations.map((t: any) => t.text);
+      return NextResponse.json({ translatedTexts });
+    } else {
+      throw new Error("Invalid response format from DeepL");
     }
-
-    let translatedTexts;
-    try {
-      translatedTexts = JSON.parse(resultText);
-    } catch (e) {
-      console.error("Failed to parse Gemini response as JSON:", resultText);
-      throw e;
-    }
-
-    return NextResponse.json({ translatedTexts });
   } catch (error) {
     console.error("Translation error:", error);
     return NextResponse.json(

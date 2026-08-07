@@ -6,7 +6,8 @@ import Image from "next/image";
 import { useEffect, useMemo } from "react";
 import { useServicesStore } from "@/store/useServicesStore";
 import type { ServiceCategory } from "@/types";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
+import { useTranslateContent } from "@/hooks/useTranslateContent";
 import {
   BETA_UNAVAILABLE_ROUTE,
   buildCategoryBookingUrl,
@@ -18,6 +19,7 @@ const Page = () => {
   const params = useParams();
   const slug = params.slug as string;
   const t = useTranslations("categories.details");
+  const locale = useLocale();
   
   const { services = [], categories = [], isLoading, error, fetchServices, fetchCategories } = useServicesStore();
 
@@ -27,6 +29,22 @@ const Page = () => {
       cat.slug === slug || cat.id === slug
     );
   }, [slug, categories]);
+
+  const { translatedTexts: translatedCategoryName } = useTranslateContent(
+    currentCategory ? [currentCategory.name] : [],
+    locale
+  );
+
+  const serviceStringsToTranslate = useMemo(() => {
+    const titles = services.map(s => s.title);
+    const descs = services.map(s => s.description || "");
+    return [...titles, ...descs];
+  }, [services]);
+
+  const { translatedTexts: translatedServices } = useTranslateContent(
+    serviceStringsToTranslate,
+    locale
+  );
 
   useEffect(() => {
     // Fetch categories if not already loaded
@@ -140,7 +158,7 @@ const Page = () => {
 
           {/* Title */}
           <h1 className="text-[32px] sm:text-[40px] lg:text-[48px] font-gerat font-bold text-white leading-tight mb-4">
-            {currentCategory?.name}
+            {translatedCategoryName[0] || currentCategory?.name}
           </h1>
 
          
@@ -192,10 +210,10 @@ const Page = () => {
                 {/* Content */}
                 <div className="flex-1 text-left">
                   <h3 className="text-[16px] sm:text-[17px] font-poppins font-bold text-gray-900 mb-1">
-                    {service.title}
+                    {translatedServices[services.findIndex(s => s.id === service.id)] || service.title}
                   </h3>
                   <p className="text-[13px] sm:text-[14px] font-poppins text-gray-600 mb-1 line-clamp-2">
-                    {service.description}
+                    {translatedServices[services.length + services.findIndex(s => s.id === service.id)] || service.description}
                   </p>
                   <div className="flex items-center gap-2">
                     <p className="text-[13px] sm:text-[14px] font-poppins font-semibold text-brand-orange bg-[#FF66001A] px-3 py-1 rounded-full w-fit">

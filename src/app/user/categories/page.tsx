@@ -6,7 +6,8 @@ import { useState, useEffect } from "react";
 import { useServicesStore } from "@/store/useServicesStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useAuthPromptStore } from "@/store/useAuthPromptStore";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
+import { useTranslateContent } from "@/hooks/useTranslateContent";
 import { buildCategoryBookingUrl } from "@/constants/betaLaunch";
 
 const Page = () => {
@@ -16,7 +17,12 @@ const Page = () => {
   const { openPrompt } = useAuthPromptStore();
   const { categories, isLoading, error, fetchCategories } = useServicesStore();
   const t = useTranslations("categories");
-  
+  const locale = useLocale();
+
+  // Extract names to translate
+  const categoryNames = categories.map((c) => c.name);
+  const { translatedTexts: translatedNames } = useTranslateContent(categoryNames, locale);
+
   const handleProtectedAction = (path: string) => {
     if (!isAuthenticated) openPrompt();
     else router.push(path);
@@ -26,9 +32,10 @@ const Page = () => {
     fetchCategories();
   }, [fetchCategories]);
 
-  const filteredCategories = categories.filter((category) =>
-    category.name.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  const filteredCategories = categories.filter((c, index) => {
+    const translatedName = translatedNames[index] || c.name;
+    return translatedName.toLowerCase().includes(searchQuery.toLowerCase());
+  });
 
   const handleCategoryClick = (categoryId: string, categoryName: string) => {
     router.push(buildCategoryBookingUrl(categoryId, categoryName));
@@ -97,7 +104,7 @@ const Page = () => {
                     </div>
                   )}
                   <span className="text-[16px] sm:text-[17px] font-poppins text-gray-900 group-hover:text-brand-orange transition-colors">
-                    {category.name}
+                    {translatedNames[categories.findIndex(cat => cat.id === category.id)] || category.name}
                   </span>
                 </div>
                 <ChevronRight

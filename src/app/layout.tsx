@@ -6,7 +6,6 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import "./globals.css";
 import AuthPromptModal from "@/components/shared/AuthPromptModal";
 import DomainEventsListener from "@/components/shared/DomainEventsListener";
-import GoogleTranslateInit from "@/components/shared/GoogleTranslateInit";
 import GoogleTagManager from "@/components/shared/GoogleTagManager";
 import { NextIntlClientProvider } from "next-intl";
 import { cookies } from "next/headers";
@@ -112,7 +111,6 @@ export default async function RootLayout({
             />
             <AuthPromptModal />
             <DomainEventsListener />
-            <GoogleTranslateInit />
             <main className="w-full min-h-screen bg-white">{children}</main>
           </GoogleOAuthProvider>
         ) : (
@@ -131,7 +129,6 @@ export default async function RootLayout({
             />
             <AuthPromptModal />
             <DomainEventsListener />
-            <GoogleTranslateInit />
             <main className="w-full min-h-screen bg-white">{children}</main>
           </>
         )}
