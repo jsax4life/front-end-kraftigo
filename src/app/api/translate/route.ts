@@ -34,21 +34,46 @@ export async function POST(request: Request) {
       ? "https://api-free.deepl.com/v2/translate" 
       : "https://api.deepl.com/v2/translate";
 
-    const response = await fetch(baseUrl, {
-      method: "POST",
-      headers: {
-        "Authorization": `DeepL-Auth-Key ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        text: texts,
-        target_lang: targetLang.toUpperCase(),
-      }),
-    });
+    const MAX_RETRIES = 3;
+    let attempt = 0;
+    let response;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("DeepL API Error:", response.status, errorText);
+    while (attempt < MAX_RETRIES) {
+      response = await fetch(baseUrl, {
+        method: "POST",
+        headers: {
+          "Authorization": `DeepL-Auth-Key ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text: texts,
+          target_lang: targetLang.toUpperCase(),
+        }),
+      });
+
+      if (response.ok) {
+        break; // Success, exit retry loop
+      }
+
+      if (response.status === 429) {
+        attempt++;
+        if (attempt < MAX_RETRIES) {
+          // Exponential backoff with jitter to prevent thundering herd
+          const waitMs = attempt * 500 + Math.random() * 300;
+          console.log(`DeepL 429 Rate Limit hit. Retrying in ${Math.round(waitMs)}ms... (Attempt ${attempt})`);
+          await new Promise((res) => setTimeout(res, waitMs));
+          continue;
+        }
+      }
+      
+      // If it's not a 429, or we've maxed out retries, break out
+      break;
+    }
+
+    if (!response || !response.ok) {
+      const errorText = response ? await response.text() : "No response";
+      const status = response ? response.status : "Unknown";
+      console.error(`DeepL API Error: ${status}`, errorText);
       
       // Fallback: Return original strings instead of breaking UI
       return NextResponse.json({ translatedTexts: texts });
