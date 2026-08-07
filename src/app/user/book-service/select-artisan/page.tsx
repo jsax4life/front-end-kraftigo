@@ -18,11 +18,23 @@ import CompareSheet from "@/components/shared/CompareModal";
 import { Application } from "@/types";
 import { useBookingsStore } from "@/store/useBookingsStore";
 import { useAddressStore } from "@/store/useAddressStore";
+import { useHomeStore } from "@/store/useHomeStore";
+import { useServicesStore } from "@/store/useServicesStore";
 import { formatLocalDateYmd, parseLocalDateYmd } from "@/utils/date";
 import { readDistanceFields } from "@/utils/distance";
 import { resolveTaskCoordinates } from "@/lib/taskLocation";
 import { readFlexibleScheduleFromUrlParams } from "@/lib/flexibleSchedule";
 import { formatHourlyRate } from "@/utils/currency";
+import {
+  buildOfferingsFromSkillTagNames,
+  enrichKrafterDetailFromApi,
+  ensureSkillGroupsLoaded,
+  extractKrafterOfferings,
+  extractPortfolioImages,
+  extractSkillTags,
+  offeringDisplayPrice,
+  type KrafterBookableOffering,
+} from "@/lib/krafterDetailDisplay";
 
 interface Artisan {
   id: string;
@@ -49,90 +61,122 @@ interface Artisan {
   responseRate?: number | null;
   averageResponseHours?: number | null;
   yearsWithUs?: number;
+  serviceOfferings?: KrafterBookableOffering[];
 }
 
-function mapRecommendationToArtisan(rawItem: any, index: number): Artisan {
+type JsonRecord = Record<string, unknown>;
+
+function asJsonRecord(value: unknown): JsonRecord | null {
+  if (value !== null && typeof value === "object" && !Array.isArray(value)) {
+    return value as JsonRecord;
+  }
+  return null;
+}
+
+function mapRecommendationToArtisan(rawItem: unknown, index: number): Artisan {
   // BE: compare/recommend cards are flat — distance + krafter fields at top level.
-  const nested = rawItem?.artisan ?? rawItem?.data ?? null;
-  const item = nested ?? rawItem;
+  const raw = asJsonRecord(rawItem) ?? {};
+  const nested = asJsonRecord(raw.artisan) ?? asJsonRecord(raw.data);
+  const item = nested ?? raw;
   const distance = readDistanceFields(rawItem);
+  const offerings = extractKrafterOfferings(rawItem);
   const id = String(
-    rawItem?.krafterId ??
-      item?.krafterId ??
-      item?.id ??
-      item?.artisanId ??
-      item?.artisan_id ??
+    raw.krafterId ??
+      item.krafterId ??
+      item.id ??
+      item.artisanId ??
+      item.artisan_id ??
       index + 1,
   );
   return {
     id,
     name:
-      rawItem?.displayName ??
-      item?.displayName ??
-      item?.fullName ??
-      item?.name ??
-      item?.artisanName ??
+      (typeof raw.displayName === "string" && raw.displayName) ||
+      (typeof item.displayName === "string" && item.displayName) ||
+      (typeof item.fullName === "string" && item.fullName) ||
+      (typeof item.name === "string" && item.name) ||
+      (typeof item.artisanName === "string" && item.artisanName) ||
       "Krafter",
     profileImage:
-      item?.profilePhotoUrl ??
-      item?.avatar ??
-      item?.profileImage ??
+      (typeof item.profilePhotoUrl === "string" && item.profilePhotoUrl) ||
+      (typeof item.avatar === "string" && item.avatar) ||
+      (typeof item.profileImage === "string" && item.profileImage) ||
       "/images/pro.jpg",
     badge: (() => {
-      const raw = item?.badges?.[0] ?? item?.badge ?? null;
-      if (!raw) return null;
-      const upper = String(raw).toUpperCase().replace(/_/g, " ");
+      const badges = item.badges;
+      const rawBadge =
+        (Array.isArray(badges) ? badges[0] : undefined) ?? item.badge ?? null;
+      if (!rawBadge) return null;
+      const upper = String(rawBadge).toUpperCase().replace(/_/g, " ");
       return upper;
     })(),
     rating:
-      Number(rawItem?.rating ?? item?.rating ?? item?.reviewsRating ?? 0) || 0,
+      Number(raw.rating ?? item.rating ?? item.reviewsRating ?? 0) || 0,
     reviewCount:
       Number(
-        rawItem?.reviewCount ??
-          item?.reviewCount ??
-          item?.reviewsCount ??
-          item?.reviews_count ??
+        raw.reviewCount ??
+          item.reviewCount ??
+          item.reviewsCount ??
+          item.reviews_count ??
           0,
       ) || 0,
     taskCount:
       Number(
-        rawItem?.completedKrafts ??
-          item?.completedKrafts ??
-          item?.completedJobs ??
-          item?.taskCount ??
-          item?.tasks_count ??
+        raw.completedKrafts ??
+          item.completedKrafts ??
+          item.completedJobs ??
+          item.taskCount ??
+          item.tasks_count ??
           0,
       ) || 0,
     location:
-      item?.address ?? item?.location ?? item?.city ?? item?.baseCity ?? "",
-    description: item?.description ?? item?.bio ?? item?.proposal_message ?? "",
+      (typeof item.address === "string" && item.address) ||
+      (typeof item.location === "string" && item.location) ||
+      (typeof item.city === "string" && item.city) ||
+      (typeof item.baseCity === "string" && item.baseCity) ||
+      "",
+    description:
+      (typeof item.description === "string" && item.description) ||
+      (typeof item.bio === "string" && item.bio) ||
+      (typeof item.proposal_message === "string" && item.proposal_message) ||
+      "",
     distance: distance.distanceKm,
     distanceLabel: distance.distanceLabel,
     pricePerHour:
       Number(
-        rawItem?.hourlyRate ??
-          item?.hourlyRate ??
-          item?.pricePerHour ??
-          item?.price_per_hour ??
-          item?.proposedPrice ??
+        raw.hourlyRate ??
+          item.hourlyRate ??
+          item.pricePerHour ??
+          item.price_per_hour ??
+          item.proposedPrice ??
           0,
       ) || 0,
-    isNewTasker: item?.isNewTasker ?? item?.is_new ?? false,
-    isAvailable: item?.isAvailable ?? false,
+    isNewTasker: Boolean(item.isNewTasker ?? item.is_new ?? false),
+    isAvailable: Boolean(item.isAvailable ?? false),
     // Extra fields for detail modal
-    bio: item?.bio ?? item?.description ?? "",
-    uniqueSellingPoint: item?.uniqueSellingPoint ?? null,
-    occupationDescription: item?.occupationDescription ?? null,
-    languagesSpoken: Array.isArray(item?.languagesSpoken)
-      ? item.languagesSpoken
+    bio:
+      (typeof item.bio === "string" && item.bio) ||
+      (typeof item.description === "string" && item.description) ||
+      "",
+    uniqueSellingPoint:
+      typeof item.uniqueSellingPoint === "string" ? item.uniqueSellingPoint : undefined,
+    occupationDescription:
+      typeof item.occupationDescription === "string"
+        ? item.occupationDescription
+        : undefined,
+    languagesSpoken: Array.isArray(item.languagesSpoken)
+      ? item.languagesSpoken.filter((lang): lang is string => typeof lang === "string")
       : [],
-    skillTags: Array.isArray(item?.skillTags) ? item.skillTags : [],
-    portfolioImages: Array.isArray(item?.portfolioImages)
-      ? item.portfolioImages.filter(Boolean)
-      : [],
-    responseRate: item?.responseRate ?? null,
-    averageResponseHours: item?.averageResponseHours ?? null,
-    yearsWithUs: Number(item?.yearsWithUs ?? 0),
+    skillTags: extractSkillTags(rawItem, offerings),
+    portfolioImages: extractPortfolioImages(rawItem),
+    responseRate:
+      typeof item.responseRate === "number" ? item.responseRate : null,
+    averageResponseHours:
+      typeof item.averageResponseHours === "number"
+        ? item.averageResponseHours
+        : null,
+    yearsWithUs: Number(item.yearsWithUs ?? 0),
+    serviceOfferings: offerings,
   };
 }
 
@@ -152,6 +196,9 @@ const SelectArtisanPage = () => {
 
   const { getRecommendations, isLoading } = useBookingsStore();
   const { currentLatitude, currentLongitude } = useAddressStore();
+  const { categories: homeCategories } = useHomeStore();
+  const { categories: serviceCategories, skillGroups, fetchCategories, fetchSkillGroups } =
+    useServicesStore();
 
   const [artisans, setArtisans] = useState<Artisan[]>([]);
   const [artisansFromApi, setArtisansFromApi] = useState(false);
@@ -161,6 +208,7 @@ const SelectArtisanPage = () => {
   const [selectedKrafter, setSelectedKrafter] = useState<KrafterDetail | null>(
     null,
   );
+  const [isLoadingKrafterProfile, setIsLoadingKrafterProfile] = useState(false);
   const [coordsError, setCoordsError] = useState<string | null>(null);
   const [priceFilterActive, setPriceFilterActive] = useState(false);
   const [ratingFilterActive, setRatingFilterActive] = useState(false);
@@ -174,6 +222,21 @@ const SelectArtisanPage = () => {
     storeLat: currentLatitude,
     storeLng: currentLongitude,
   });
+
+  useEffect(() => {
+    if (homeCategories.length === 0 && serviceCategories.length === 0) {
+      void fetchCategories();
+    }
+    if (skillGroups.length === 0) {
+      void fetchSkillGroups();
+    }
+  }, [
+    homeCategories.length,
+    serviceCategories.length,
+    skillGroups.length,
+    fetchCategories,
+    fetchSkillGroups,
+  ]);
 
   const canCompare = artisans.length > 1;
 
@@ -263,18 +326,29 @@ const SelectArtisanPage = () => {
     return result;
   }, [artisans, priceRange]);
 
-  const handleSelectArtisan = (artisanId: string) => {
+  const handleSelectArtisan = (
+    artisanId: string,
+    offering?: KrafterBookableOffering,
+  ) => {
     const selected = artisans.find((a) => a.id === artisanId);
     const params = new URLSearchParams(searchParams.toString());
     if (bookingId) params.set("bookingId", bookingId);
     params.set("artisanId", artisanId);
+    if (offering) {
+      params.set("categoryId", offering.serviceCategoryId);
+      params.set("category", offering.serviceCategoryName || categoryName);
+      const rate = offeringDisplayPrice(offering);
+      if (rate > 0) params.set("pricePerHour", String(rate));
+    }
     if (selected) {
       params.set("artisanName", selected.name);
       if (selected.profileImage) {
         params.set("artisanImage", selected.profileImage);
       }
       params.set("artisanBadge", selected.badge ?? "");
-      params.set("pricePerHour", selected.pricePerHour.toString());
+      if (!offering) {
+        params.set("pricePerHour", selected.pricePerHour.toString());
+      }
       params.set("artisanKrafts", selected.taskCount.toString());
       if (selected.distanceLabel) {
         params.set("distanceLabel", selected.distanceLabel);
@@ -284,6 +358,54 @@ const SelectArtisanPage = () => {
       }
     }
     router.push(`/user/book-service/verifyDetails?${params.toString()}`);
+  };
+
+  const openKrafterProfile = async (artisan: Artisan) => {
+    const base: KrafterDetail = {
+      id: artisan.id,
+      name: artisan.name,
+      profileImage: artisan.profileImage,
+      badge: artisan.badge,
+      rating: artisan.rating,
+      reviewCount: artisan.reviewCount,
+      taskCount: artisan.taskCount,
+      description: artisan.description,
+      location: artisan.location,
+      distance: artisan.distance,
+      distanceLabel: artisan.distanceLabel,
+      pricePerHour: artisan.pricePerHour,
+      isAvailable: artisan.isAvailable,
+      bio: artisan.bio,
+      uniqueSellingPoint: artisan.uniqueSellingPoint ?? undefined,
+      occupationDescription: artisan.occupationDescription ?? undefined,
+      languagesSpoken: artisan.languagesSpoken,
+      skillTags: artisan.skillTags,
+      portfolioImages: artisan.portfolioImages,
+      responseRate: artisan.responseRate,
+      averageResponseHours: artisan.averageResponseHours,
+      yearsWithUs: artisan.yearsWithUs,
+      serviceOfferings: artisan.serviceOfferings,
+    };
+    setSelectedKrafter(base);
+    setIsLoadingKrafterProfile(true);
+    try {
+      const groups = await ensureSkillGroupsLoaded(skillGroups);
+      const categoryFallback = serviceCategories
+        .filter((c) => c.id?.trim())
+        .map((c) => ({ id: c.id, name: c.name }));
+      setSelectedKrafter(
+        await enrichKrafterDetailFromApi(base, artisan.id, {
+          skillGroups: groups,
+          serviceCategories: categoryFallback,
+          latitude: taskCoords?.latitude ?? currentLatitude ?? undefined,
+          longitude: taskCoords?.longitude ?? currentLongitude ?? undefined,
+        }),
+      );
+    } catch {
+      /* keep base */
+    } finally {
+      setIsLoadingKrafterProfile(false);
+    }
   };
 
   // Auto-select krafter when arriving from a specific profile (e.g. home page "Book" button)
@@ -586,8 +708,7 @@ const SelectArtisanPage = () => {
                 onViewProfile={(id) => {
                   const raw = artisans.find((a) => a.id === id);
                   if (!raw) return;
-                  // Find the raw recommendation item to get extra fields
-                  setSelectedKrafter(raw as KrafterDetail);
+                  void openKrafterProfile(raw);
                 }}
               />
             ))}
@@ -605,7 +726,7 @@ const SelectArtisanPage = () => {
                 onViewProfile={(id) => {
                   const raw = artisans.find((a) => a.id === id);
                   if (!raw) return;
-                  setSelectedKrafter(raw as KrafterDetail);
+                  void openKrafterProfile(raw);
                 }}
               />
             ))}
@@ -634,9 +755,11 @@ const SelectArtisanPage = () => {
         <KrafterDetailModal
           krafter={selectedKrafter}
           onClose={() => setSelectedKrafter(null)}
-          onSelect={(id) => {
+          preselectedCategoryId={categoryId || undefined}
+          isLoadingProfile={isLoadingKrafterProfile}
+          onSelect={(id, offering) => {
             setSelectedKrafter(null);
-            handleSelectArtisan(id);
+            handleSelectArtisan(id, offering);
           }}
         />
       )}

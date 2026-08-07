@@ -749,18 +749,58 @@ export const getRecommendations = async (payload: GetRecommendationsPayload): Pr
   return response.data
 }
 
-/**
- * GET /api/artisans/:id — Fetch full public profile for a single Krafter.
- * Falls back gracefully if the endpoint doesn't exist on older backend versions.
- */
-export const fetchKrafterProfile = async (krafterId: string): Promise<any | null> => {
-  try {
-    const response = await api.get(`/api/artisans/${krafterId}`)
-    return response.data
-  } catch {
-    return null
-  }
+export type KrafterPublicProfileParams = {
+  latitude?: number
+  longitude?: number
 }
+
+/** Unwrap `{ data: … }` or return body as-is. */
+function unwrapPublicProfileBody(body: unknown): unknown {
+  if (!body || typeof body !== 'object') return body
+  const root = body as Record<string, unknown>
+  return root.data ?? root.krafter ?? root.profile ?? body
+}
+
+/**
+ * GET /api/krafters/:id/public-profile — marketplace-ready Krafter by ID.
+ * Alias: GET /api/profile/customer/krafters/:krafterId
+ * Optional ?lat=&lng= for distance on the card.
+ */
+export const fetchKrafterPublicProfile = async (
+  krafterId: string,
+  params?: KrafterPublicProfileParams,
+): Promise<unknown | null> => {
+  if (!krafterId.trim()) return null
+
+  const query: Record<string, string> = {}
+  if (params?.latitude != null && Number.isFinite(params.latitude)) {
+    query.lat = String(params.latitude)
+  }
+  if (params?.longitude != null && Number.isFinite(params.longitude)) {
+    query.lng = String(params.longitude)
+  }
+
+  const paths = [
+    `/api/krafters/${krafterId}/public-profile`,
+    `/api/profile/customer/krafters/${krafterId}`,
+  ]
+
+  for (const path of paths) {
+    try {
+      const response = await api.get(path, { params: query })
+      return unwrapPublicProfileBody(response.data)
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status
+      if (status === 404) continue
+      return null
+    }
+  }
+
+  return null
+}
+
+/** @deprecated Use fetchKrafterPublicProfile */
+export const fetchKrafterProfile = fetchKrafterPublicProfile
 
 // ─── Artisan-side booking actions ─────────────────────────────────────────────
 

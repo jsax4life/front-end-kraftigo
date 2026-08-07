@@ -67,15 +67,81 @@ export const getServiceCategories = async (): Promise<ServiceCategory[]> => {
   return response.data
 }
 
-function normalizeServiceSkillGroups(data: unknown): ServiceSkillGroup[] {
-  if (Array.isArray(data)) return data as ServiceSkillGroup[]
-  if (!data || typeof data !== 'object') return []
-  const root = data as Record<string, unknown>
-  for (const key of ['groups', 'data', 'items', 'skillGroups', 'skill_groups']) {
-    const val = root[key]
-    if (Array.isArray(val)) return val as ServiceSkillGroup[]
+function normalizeSkillGroupEntry(entry: unknown): ServiceSkillGroup | null {
+  if (!entry || typeof entry !== 'object') return null
+  const obj = entry as Record<string, unknown>
+  const catRaw = obj.category ?? obj.serviceCategory ?? obj.service_category
+  if (!catRaw || typeof catRaw !== 'object') return null
+  const cat = catRaw as Record<string, unknown>
+  if (typeof cat.id !== 'string' || typeof cat.name !== 'string') return null
+
+  const skillsRaw = obj.skills
+  const skills = Array.isArray(skillsRaw)
+    ? skillsRaw
+        .filter(
+          (s): s is ServiceSkillGroup['skills'][number] =>
+            s !== null &&
+            typeof s === 'object' &&
+            typeof (s as Record<string, unknown>).id === 'string' &&
+            typeof (s as Record<string, unknown>).name === 'string',
+        )
+        .map((s) => {
+          const skill = s as Record<string, unknown>
+          return {
+            id: String(skill.id),
+            name: String(skill.name),
+            description:
+              typeof skill.description === 'string' ? skill.description : undefined,
+            iconUrl:
+              typeof skill.iconUrl === 'string'
+                ? skill.iconUrl
+                : skill.iconUrl === null
+                  ? null
+                  : undefined,
+          }
+        })
+    : []
+
+  return {
+    category: {
+      id: cat.id,
+      name: cat.name,
+      description: typeof cat.description === 'string' ? cat.description : undefined,
+      iconUrl:
+        typeof cat.iconUrl === 'string'
+          ? cat.iconUrl
+          : cat.iconUrl === null
+            ? null
+            : undefined,
+    },
+    skills,
   }
-  return []
+}
+
+function normalizeServiceSkillGroups(data: unknown): ServiceSkillGroup[] {
+  let list: unknown[] = []
+  if (Array.isArray(data)) {
+    list = data
+  } else if (data && typeof data === 'object') {
+    const root = data as Record<string, unknown>
+    for (const key of [
+      'groups',
+      'data',
+      'items',
+      'skillGroups',
+      'skill_groups',
+      'categories',
+    ]) {
+      const val = root[key]
+      if (Array.isArray(val)) {
+        list = val
+        break
+      }
+    }
+  }
+  return list
+    .map(normalizeSkillGroupEntry)
+    .filter((group): group is ServiceSkillGroup => group !== null)
 }
 
 /** GET /api/services/skills/groups — grouped skills by category */

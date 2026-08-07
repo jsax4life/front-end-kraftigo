@@ -8,6 +8,7 @@ import Loader from "@/components/ui/loader";
 import Button from "@/components/ui/button";
 import {
   getVerificationMyStatus,
+  getKrafterVerificationContinuePath,
   shouldRouteToKrafterProfileOnboarding,
   type KycStatus,
   type VerificationMyStatus,
@@ -122,6 +123,7 @@ function DiditReturnContent() {
 
   const kyc = myStatus?.kycStatus ?? null;
   const terminal = isTerminalKyc(kyc);
+  const krafterContinuePath = getKrafterVerificationContinuePath(myStatus);
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#faf8f5] px-5 pb-12 pt-14">
@@ -205,34 +207,23 @@ function DiditReturnContent() {
                       ? "Identity verification is complete. While we review your application, you can finish your Krafter profile."
                       : "Your identity verification is complete. Thank you!"}
                   </p>
-                  {shouldRouteToKrafterProfileOnboarding(myStatus) ? (
-                    <>
-                      <Button
-                        type="button"
-                        fullWidth
-                        className="font-poppins! font-semibold"
-                        onClick={() => router.push("/tasker/profile")}
-                      >
-                        Continue Krafter profile
-                      </Button>
-                      <button
-                        type="button"
-                        className="font-poppins text-[13px] text-[rgba(0,0,0,0.55)] underline-offset-4 hover:underline"
-                        onClick={() => router.push("/user/profile")}
-                      >
-                        Back to profile
-                      </button>
-                    </>
-                  ) : (
-                    <Button
-                      type="button"
-                      fullWidth
-                      className="font-poppins! font-semibold"
-                      onClick={() => router.push("/user/profile")}
-                    >
-                      Back to profile
-                    </Button>
-                  )}
+                  <Button
+                    type="button"
+                    fullWidth
+                    className="font-poppins! font-semibold"
+                    onClick={() => router.push(krafterContinuePath)}
+                  >
+                    {shouldRouteToKrafterProfileOnboarding(myStatus)
+                      ? "Continue Krafter profile"
+                      : "Continue verification"}
+                  </Button>
+                  <button
+                    type="button"
+                    className="font-poppins text-[13px] text-[rgba(0,0,0,0.55)] underline-offset-4 hover:underline cursor-pointer"
+                    onClick={() => router.push(krafterContinuePath)}
+                  >
+                    Back to profile
+                  </button>
                 </div>
               )}
 
@@ -247,10 +238,17 @@ function DiditReturnContent() {
                     type="button"
                     fullWidth
                     className="font-poppins! font-semibold"
-                    onClick={() => router.push("/user/profile")}
+                    onClick={() => router.push("/krafter/kyc")}
+                  >
+                    Retry
+                  </Button>
+                  <button
+                    type="button"
+                    className="font-poppins text-[13px] text-[rgba(0,0,0,0.55)] underline-offset-4 hover:underline cursor-pointer"
+                    onClick={() => router.push(krafterContinuePath)}
                   >
                     Back to profile
-                  </Button>
+                  </button>
                 </div>
               )}
 
@@ -276,10 +274,10 @@ function DiditReturnContent() {
                     Refresh status
                   </Button>
                   <Link
-                    href="/user/profile"
+                    href={krafterContinuePath}
                     className="block text-center font-poppins text-[13px] text-[#FF6600] underline-offset-4 hover:underline"
                   >
-                    Go to profile
+                    Back to Krafter profile
                   </Link>
                 </div>
               )}

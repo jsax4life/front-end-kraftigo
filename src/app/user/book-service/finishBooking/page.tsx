@@ -289,21 +289,31 @@ const Page = () => {
         logger.log("Marketplace Booking payload:", publishPayload);
         await publishToMarketplace(publishPayload);
       } else if (artisanId) {
-        if (!bookingId) {
-          toast.error(
-            "Missing booking reference. Please return to task details and go through the steps again.",
-          );
-          return;
+        if (bookingId) {
+          logger.log("Selecting Krafter on recommendation draft", {
+            bookingId,
+            artisanId,
+            durationHours,
+          });
+          pricingFromSelection = await selectKrafter(bookingId, {
+            krafterId: artisanId,
+            durationHours,
+          });
+        } else {
+          const pendingMedia = useBookingsStore.getState().pendingPublishMediaFiles;
+          logger.log("Direct Krafter booking payload:", {
+            ...basePayload,
+            artisanId,
+            durationHours,
+          });
+          await createBooking({
+            ...basePayload,
+            artisanId,
+            proposedPrice: hourlyRate * durationHours,
+            ...(pendingMedia.length > 0 ? { media: pendingMedia } : {}),
+          });
+          useBookingsStore.getState().clearPendingPublishMediaFiles();
         }
-        logger.log("Selecting Krafter on recommendation draft", {
-          bookingId,
-          artisanId,
-          durationHours,
-        });
-        pricingFromSelection = await selectKrafter(bookingId, {
-          krafterId: artisanId,
-          durationHours,
-        });
       } else {
         logger.log("Booking payload:", basePayload);
         await createBooking(basePayload);
@@ -334,7 +344,7 @@ const Page = () => {
         toast.error("Please log in to create a booking");
         router.push("/user/login");
       } else if (isSavedPaymentMethodRequiredError(err)) {
-        toast.error(SAVED_PAYMENT_METHOD_REQUIRED_TOAST, { duration: 6500 });
+        toast.error(SAVED_PAYMENT_METHOD_REQUIRED_TOAST, { duration: 4000 });
         setShowPaymentModal(true);
       } else {
         toast.error(

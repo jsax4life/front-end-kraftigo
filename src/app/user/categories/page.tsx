@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { useServicesStore } from "@/store/useServicesStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useAuthPromptStore } from "@/store/useAuthPromptStore";
+import { buildCategoryBookingUrl } from "@/constants/betaLaunch";
 
 const Page = () => {
   const router = useRouter();
@@ -28,9 +29,7 @@ const Page = () => {
   );
 
   const handleCategoryClick = (categoryId: string, categoryName: string) => {
-    // Navigate directly to booking page with category info
-    console.log("Navigate to booking for category:", categoryId, categoryName);
-    router.push(`/user/book-service?categoryId=${categoryId}&category=${encodeURIComponent(categoryName)}`);
+    router.push(buildCategoryBookingUrl(categoryId, categoryName));
   };
 
   const handleCustomKraft = () => {

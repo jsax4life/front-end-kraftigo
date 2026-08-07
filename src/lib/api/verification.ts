@@ -144,3 +144,20 @@ export const patchVerificationDraft = async (
   )
   return response.data
 }
+
+/** Krafter-facing route after Didit — never the customer profile. */
+export function getKrafterVerificationContinuePath(
+  status: VerificationMyStatus | null | undefined,
+): string {
+  if (shouldRouteToKrafterProfileOnboarding(status)) {
+    return "/krafter/profile-completion";
+  }
+  if (shouldRedirectToDiditKyc(status)) {
+    return "/krafter/kyc-welcome";
+  }
+  const { verificationState } = getVerificationWire(status);
+  if (verificationState === "PENDING") {
+    return "/krafter/verification";
+  }
+  return "/krafter/verification";
+}

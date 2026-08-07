@@ -12,6 +12,8 @@ type EmailVerificationFormProps = {
   onEmailChange?: (email: string) => void;
   allowEmailEdit?: boolean;
   isLoading?: boolean;
+  initialCode?: string;
+  otpLength?: number;
   onVerify: (otpCode: string) => void | Promise<void>;
   onResend: () => void | Promise<void>;
   submitLabel?: string;
@@ -22,6 +24,8 @@ export default function EmailVerificationForm({
   onEmailChange,
   allowEmailEdit = false,
   isLoading = false,
+  initialCode = "",
+  otpLength = AUTH_CONFIG.OTP_LENGTH,
   onVerify,
   onResend,
   submitLabel = "Verify Email",
@@ -33,7 +37,14 @@ export default function EmailVerificationForm({
     handleKeyDown,
     reset: resetCode,
     isComplete,
-  } = useOTPInput(AUTH_CONFIG.OTP_LENGTH);
+    setFromString,
+  } = useOTPInput(otpLength, initialCode);
+
+  useEffect(() => {
+    if (initialCode) {
+      setFromString(initialCode);
+    }
+  }, [initialCode, setFromString]);
 
   useEffect(() => {
     if (resendTimer <= 0) return;

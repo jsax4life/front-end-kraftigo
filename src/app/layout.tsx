@@ -79,7 +79,7 @@ export default function RootLayout({
             <DismissibleToaster
               position="top-right"
               toastOptions={{
-                duration: 8000,
+                duration: 3500,
                 style: {
                   background: "#fff",
                   color: "#333",
@@ -110,7 +110,7 @@ export default function RootLayout({
             <DismissibleToaster
               position="top-right"
               toastOptions={{
-                duration: 8000,
+                duration: 3500,
                 style: {
                   background: "#fff",
                   color: "#333",
