@@ -133,14 +133,25 @@ export const useAuthStore = create<AuthState>()(
         verifyEmail: async (email: string, code: string) => {
           set({ isLoading: true, error: null })
           try {
-            const { user, message } = await verifyEmail({ email, code })
-            
-            set({
-              user,
-              isLoading: false,
-            })
-            
-            return message as unknown as void // Original code implied returning void but caught message
+            const { user, message, accessToken, refreshToken } = await verifyEmail({ email, code })
+
+            if (accessToken) {
+              updateCachedToken(accessToken)
+              set({
+                user,
+                accessToken,
+                refreshToken: refreshToken ?? null,
+                isAuthenticated: true,
+                isLoading: false,
+              })
+            } else {
+              set({
+                user,
+                isLoading: false,
+              })
+            }
+
+            return message as unknown as void
           } catch (error: any) {
             set({
               error: error.response?.data?.message || 'Verification failed',

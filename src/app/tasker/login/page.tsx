@@ -12,6 +12,7 @@ import { isValidEmail, isNotEmpty } from "@/utils/validation";
 import { logger } from "@/utils/logger";
 import toast from "react-hot-toast";
 import { formatLoginApiError } from "@/lib/authApiErrors";
+import { KRAFTER_SIGNUP_SHORT_URL } from "@/lib/krafterSignupIntent";
 
 const Page = () => {
   const router = useRouter();
@@ -133,7 +134,7 @@ const Page = () => {
                 Don&apos;t have a tasker account?{" "}
               </span>
               <button
-                onClick={() => router.push("/krafter/verification")}
+                onClick={() => router.push(KRAFTER_SIGNUP_SHORT_URL)}
                 className="text-brand-blue font-semibold hover:underline"
               >
                 Sign Up

@@ -8,11 +8,16 @@ export interface LoginPayload {
   password: string;
 }
 
+export type SignupIntent = "krafter";
+
 export interface RegisterPayload {
   email: string;
   password: string;
   phone?: string;
+  firstName?: string;
+  lastName?: string;
   hasAcceptedTerms?: boolean;
+  signupIntent?: SignupIntent;
   role: "CUSTOMER" | "ARTISAN" | "TASKER";
 }
 
@@ -58,6 +63,8 @@ export interface RegisterResponse {
 export interface VerifyEmailResponse {
   user: User;
   message: string;
+  accessToken?: string;
+  refreshToken?: string;
 }
 
 export interface HomeProOfWeek {

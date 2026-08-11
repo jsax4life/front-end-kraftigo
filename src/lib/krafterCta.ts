@@ -4,6 +4,12 @@ import {
   shouldRedirectToDiditKyc,
   shouldRouteToKrafterProfileOnboarding,
 } from "@/lib/api/verification";
+import { useAuthStore } from "@/store/useAuthStore";
+import {
+  KRAFTER_SIGNUP_URL,
+  KRAFTER_VERIFICATION_ROUTE,
+  setKrafterSignupIntent,
+} from "@/lib/krafterSignupIntent";
 
 export type KrafterCtaState = {
   isKrafterEligible: boolean;
@@ -36,6 +42,7 @@ export function navigateKrafterCta(
   verificationStatus: VerificationMyStatus | null | undefined,
 ): void {
   const { isKrafterEligible } = getKrafterCtaState(verificationStatus);
+  const isAuthenticated = useAuthStore.getState().isAuthenticated;
 
   if (isKrafterEligible) {
     try {
@@ -46,6 +53,13 @@ export function navigateKrafterCta(
     router.push("/tasker/dashboard");
     return;
   }
+
+  if (!isAuthenticated) {
+    setKrafterSignupIntent();
+    router.push(KRAFTER_SIGNUP_URL);
+    return;
+  }
+
   if (shouldRedirectToDiditKyc(verificationStatus)) {
     router.push("/krafter/kyc-welcome");
     return;
@@ -54,5 +68,5 @@ export function navigateKrafterCta(
     router.push("/krafter/profile-completion");
     return;
   }
-  router.push("/krafter/verification");
+  router.push(KRAFTER_VERIFICATION_ROUTE);
 }

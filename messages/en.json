@@ -368,6 +368,11 @@
       "verify": "Verify"
     },
     "createAccount": {
+      "krafterSignupTitle": "Create your Krafter account",
+      "krafterSignupDesc": "After verifying your email, you'll continue straight to Krafter registration.",
+      "krafterSignupSuccess": "Account created! Continue your Krafter registration.",
+      "registrationSuccess": "Registration complete! Welcome to Kraftigo.",
+      "unverifiedEmailError": "This email is registered but not verified. Enter your verification code.",
       "stepOf": "Step {step} of {total}",
       "step1Title": "Tell Us About You",
       "firstNameLabel": "Enter Your First Name",

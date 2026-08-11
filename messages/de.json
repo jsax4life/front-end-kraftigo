@@ -368,6 +368,11 @@
       "verify": "Bestätigen"
     },
     "createAccount": {
+      "krafterSignupTitle": "Erstellen Sie Ihr Krafter-Konto",
+      "krafterSignupDesc": "Nach der Bestätigung Ihrer E-Mail-Adresse fahren Sie direkt mit der Krafter-Registrierung fort.",
+      "krafterSignupSuccess": "Konto erstellt! Fahren Sie mit Ihrer Krafter-Registrierung fort.",
+      "registrationSuccess": "Registrierung abgeschlossen! Willkommen bei Kraftigo.",
+      "unverifiedEmailError": "Diese E-Mail ist registriert, aber nicht verifiziert. Geben Sie Ihren Bestätigungscode ein.",
       "stepOf": "Schritt {step} von {total}",
       "step1Title": "Erzählen Sie uns von sich",
       "firstNameLabel": "Ihren Vornamen eingeben",
