@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import Button from "@/components/ui/button";
 import TaskerLoad from "@/components/shared/taskerLoad";
 import { useAuthStore } from "@/store/useAuthStore";
+import { KRAFTER_SIGNUP_SHORT_URL } from "@/lib/krafterSignupIntent";
 
 const Page = () => {
   const router = useRouter();
@@ -111,7 +112,7 @@ const Page = () => {
             <Button
               className="cursor-pointer hover:scale-105"
               variant="secondary"
-              onClick={() => router.push("/krafter/verification")}
+              onClick={() => router.push(KRAFTER_SIGNUP_SHORT_URL)}
               fullWidth
             >
               Create account

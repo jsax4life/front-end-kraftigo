@@ -3,15 +3,20 @@ const STORAGE_KEY = "kraftigo:pending-email-verification";
 export type PendingEmailVerification = {
   email: string;
   registeredAt: number;
+  krafterSignupIntent?: boolean;
 };
 
-export function setPendingEmailVerification(email: string): void {
+export function setPendingEmailVerification(
+  email: string,
+  options?: { krafterSignupIntent?: boolean },
+): void {
   if (typeof window === "undefined") return;
   const normalized = email.trim().toLowerCase();
   if (!normalized) return;
   const payload: PendingEmailVerification = {
     email: normalized,
     registeredAt: Date.now(),
+    ...(options?.krafterSignupIntent ? { krafterSignupIntent: true } : {}),
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
 }
@@ -29,6 +34,7 @@ export function getPendingEmailVerification(): PendingEmailVerification | null {
         typeof parsed.registeredAt === "number" && Number.isFinite(parsed.registeredAt)
           ? parsed.registeredAt
           : Date.now(),
+      krafterSignupIntent: parsed.krafterSignupIntent === true,
     };
   } catch {
     return null;

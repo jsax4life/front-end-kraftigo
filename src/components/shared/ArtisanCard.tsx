@@ -95,7 +95,7 @@ const ArtisanCard = ({ artisan, index, onSelect, onViewProfile }: ArtisanCardPro
               ({artisan.reviewCount || 23})
             </span> */}
             <span className="text-[14px] font-poppins text-[#2F2C2C]">
-              {artisan.taskCount || 72} Krafts
+              {artisan.taskCount ?? 0} Krafts
             </span>
           </div>
 

@@ -16,6 +16,7 @@ import { formatLoginApiError, isEmailNotVerifiedError } from "@/lib/authApiError
 import { setPendingEmailVerification } from "@/lib/pendingEmailVerification";
 import GoogleLoginButton from "@/components/auth/GoogleLoginButton";
 import { routeAfterAuthLogin } from "@/lib/postLoginRouting";
+import { syncKrafterSignupIntentFromSearchParams } from "@/lib/krafterSignupIntent";
 
 const LoginPageContent = () => {
   const router = useRouter();
@@ -39,12 +40,11 @@ const LoginPageContent = () => {
   } = useOTPInput(AUTH_CONFIG.OTP_LENGTH);
 
   useEffect(() => {
+    syncKrafterSignupIntentFromSearchParams(searchParams);
+
     const emailFromQuery = searchParams.get("email")?.trim() ?? "";
     if (emailFromQuery) {
       setFormData((prev) => ({ ...prev, email: emailFromQuery }));
-    }
-    if (searchParams.get("verified") === "1") {
-      toast.success("Email verified. Sign in to continue.");
     }
   }, [searchParams]);
 
@@ -98,7 +98,6 @@ const LoginPageContent = () => {
     try {
       await loginUser(formData.email, formData.password);
       toast.success("Login successful! Welcome back.");
-      await routeAfterAuthLogin(router);
     } catch (err: unknown) {
       const storeError = useAuthStore.getState().error;
       if (isEmailNotVerifiedError(err, storeError)) {

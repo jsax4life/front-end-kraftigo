@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import toast from "react-hot-toast";
@@ -13,6 +13,12 @@ import {
   getPendingEmailVerification,
   setPendingEmailVerification,
 } from "@/lib/pendingEmailVerification";
+import { routeAfterAuthLogin } from "@/lib/postLoginRouting";
+import {
+  getKrafterSignupIntent,
+  restoreKrafterSignupIntentFromPendingVerification,
+  syncKrafterSignupIntentFromSearchParams,
+} from "@/lib/krafterSignupIntent";
 import { isValidEmail } from "@/utils/validation";
 
 function readVerificationCodeFromSearch(
@@ -28,6 +34,20 @@ function readVerificationCodeFromSearch(
   return "";
 }
 
+function syncKrafterIntentFromContext(searchParams: URLSearchParams): void {
+  syncKrafterSignupIntentFromSearchParams(searchParams);
+  restoreKrafterSignupIntentFromPendingVerification();
+}
+
+const autoVerifyKeys = new Set<string>();
+let verifySuccessToastShown = false;
+
+function showVerifySuccessToast(message: string): void {
+  if (verifySuccessToastShown) return;
+  verifySuccessToastShown = true;
+  toast.success(message);
+}
+
 function VerifyEmailPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -35,16 +55,19 @@ function VerifyEmailPageContent() {
   const [email, setEmail] = useState("");
   const [initialCode, setInitialCode] = useState("");
   const [autoVerifying, setAutoVerifying] = useState(false);
-  const autoVerifyAttempted = useRef(false);
 
   useEffect(() => {
+    syncKrafterIntentFromContext(searchParams);
+
     const fromQuery = searchParams.get("email")?.trim().toLowerCase() ?? "";
     const fromStorage = getPendingEmailVerification()?.email ?? "";
     const fromAuth = useAuthStore.getState().user?.email?.trim().toLowerCase() ?? "";
     const resolved = fromQuery || fromStorage || fromAuth;
     if (resolved) {
       setEmail(resolved);
-      setPendingEmailVerification(resolved);
+      setPendingEmailVerification(resolved, {
+        krafterSignupIntent: getKrafterSignupIntent(),
+      });
     }
 
     const codeFromUrl = readVerificationCodeFromSearch(searchParams);
@@ -54,14 +77,37 @@ function VerifyEmailPageContent() {
   }, [searchParams]);
 
   const completeVerification = async (targetEmail: string, otpCode: string) => {
+    const verifyKey = `${targetEmail.trim().toLowerCase()}:${otpCode}`;
+    syncKrafterIntentFromContext(searchParams);
+
     await verifyEmail(targetEmail, otpCode);
     clearPendingEmailVerification();
-    toast.success("Email verified! Sign in to continue.");
-    router.replace(`/user/login?email=${encodeURIComponent(targetEmail)}&verified=1`);
+
+    const isKrafterFlow = getKrafterSignupIntent();
+
+    if (useAuthStore.getState().isAuthenticated) {
+      showVerifySuccessToast(
+        isKrafterFlow
+          ? "Email verified! Continue your Krafter registration."
+          : "Email verified!",
+      );
+      await routeAfterAuthLogin(router);
+      return;
+    }
+
+    showVerifySuccessToast("Email verified! Sign in to continue.");
+    const loginParams = new URLSearchParams({
+      email: targetEmail,
+      verified: "1",
+    });
+    if (isKrafterFlow) {
+      loginParams.set("intent", "krafter");
+    }
+    router.replace(`/user/login?${loginParams.toString()}`);
   };
 
   useEffect(() => {
-    if (autoVerifyAttempted.current || isLoading) {
+    if (isLoading) {
       return;
     }
 
@@ -70,10 +116,15 @@ function VerifyEmailPageContent() {
       return;
     }
 
-    autoVerifyAttempted.current = true;
+    const verifyKey = `${email.trim().toLowerCase()}:${codeFromUrl}`;
+    if (autoVerifyKeys.has(verifyKey)) {
+      return;
+    }
+    autoVerifyKeys.add(verifyKey);
     setAutoVerifying(true);
 
     void completeVerification(email, codeFromUrl).catch((err: unknown) => {
+      autoVerifyKeys.delete(verifyKey);
       setAutoVerifying(false);
       const e = err as { response?: { data?: { message?: string } } };
       toast.error(
@@ -104,7 +155,9 @@ function VerifyEmailPageContent() {
     }
     try {
       const message = await resendVerificationCode(email);
-      setPendingEmailVerification(email);
+      setPendingEmailVerification(email, {
+        krafterSignupIntent: getKrafterSignupIntent(),
+      });
       toast.success(message || "Verification code sent");
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };

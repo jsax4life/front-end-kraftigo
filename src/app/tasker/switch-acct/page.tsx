@@ -14,6 +14,11 @@ import {
   CheckCircle2,
   Search,
 } from "lucide-react";
+import {
+  KRAFTER_SIGNUP_URL,
+  clearKrafterSignupIntent,
+  setKrafterSignupIntent,
+} from "@/lib/krafterSignupIntent";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useProfileStore } from "@/store/useProfileStore";
 import Loader from "@/components/ui/loader";
@@ -42,7 +47,7 @@ const Page = () => {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 3;
-  const { isLoading: authLoading } = useAuthStore();
+  const { isAuthenticated, isLoading: authLoading } = useAuthStore();
   const {
     isLoading: saving,
     fetchKrafterOnboardingStatus,
@@ -215,6 +220,15 @@ const Page = () => {
 
   // Prefill from onboarding status on mount
   useEffect(() => {
+    if (authLoading) return;
+    if (!isAuthenticated) {
+      setKrafterSignupIntent();
+      router.replace(KRAFTER_SIGNUP_URL);
+      return;
+    }
+
+    clearKrafterSignupIntent();
+
     fetchKrafterOnboardingStatus().then(() => {
       const { onboardingStatus } = useProfileStore.getState();
       if (onboardingStatus) {
@@ -238,7 +252,7 @@ const Page = () => {
       }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [authLoading, isAuthenticated, router]);
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 

@@ -32,6 +32,11 @@ import {
   clearPendingEmailVerification,
 } from "@/lib/pendingEmailVerification";
 import { isEmailNotVerifiedError } from "@/lib/authApiErrors";
+import { routeAfterAuthLogin } from "@/lib/postLoginRouting";
+import {
+  getKrafterSignupIntent,
+  syncKrafterSignupIntentFromSearchParams,
+} from "@/lib/krafterSignupIntent";
 
 const Page = () => {
   const router = useRouter();
@@ -50,6 +55,13 @@ const Page = () => {
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [showWhyModal, setShowWhyModal] = useState(false);
   const [googleTermsAccepted, setGoogleTermsAccepted] = useState(false);
+  const [isKrafterSignupFlow] = useState(() => {
+    if (typeof window === "undefined") return false;
+    syncKrafterSignupIntentFromSearchParams(
+      new URLSearchParams(window.location.search),
+    );
+    return getKrafterSignupIntent();
+  });
 
   // Form data state
   const [formData, setFormData] = useState({
@@ -63,7 +75,7 @@ const Page = () => {
     termsAccepted: false,
   });
 
-  // Resume email verification after browser close or interrupted registration
+  // Resume interrupted email verification
   useEffect(() => {
     const pending = getPendingEmailVerification();
     const authUser = useAuthStore.getState().user;
@@ -163,6 +175,9 @@ const Page = () => {
       password: formData.password,
       phone: formattedPhone,
       hasAcceptedTerms: formData.termsAccepted,
+      ...(isKrafterSignupFlow || getKrafterSignupIntent()
+        ? { signupIntent: "krafter" as const }
+        : {}),
     };
 
     logger.log("Submitting registration data:", registrationData);
@@ -175,13 +190,17 @@ const Page = () => {
         result.message || "Registration successful! Please check your email.",
       );
 
-      setPendingEmailVerification(formData.email);
+      setPendingEmailVerification(formData.email, {
+        krafterSignupIntent: isKrafterSignupFlow,
+      });
       setCurrentStep(4);
     } catch (err: unknown) {
       logger.error("Registration failed:", err);
       const storeError = useAuthStore.getState().error;
       if (isEmailNotVerifiedError(err, storeError)) {
-        setPendingEmailVerification(formData.email);
+        setPendingEmailVerification(formData.email, {
+        krafterSignupIntent: isKrafterSignupFlow,
+      });
         toast.error("This email is registered but not verified. Enter your verification code.");
         setCurrentStep(4);
         return;
@@ -221,8 +240,16 @@ const Page = () => {
             {currentStep === 1 && (
               <div className="space-y-6">
                 <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-8">
-                  Tell Us About You
+                  {isKrafterSignupFlow
+                    ? "Create your Krafter account"
+                    : "Tell Us About You"}
                 </h1>
+                {isKrafterSignupFlow ? (
+                  <p className="text-[14px] font-poppins text-gray-600 -mt-4 mb-6">
+                    After verifying your email, you&apos;ll continue straight to Krafter
+                    registration.
+                  </p>
+                ) : null}
 
                 <Input
                   label="Enter Your First Name"
@@ -371,8 +398,12 @@ const Page = () => {
                     clearPendingEmailVerification();
                     if (formData.password) {
                       await loginUser(formData.email, formData.password);
-                      toast.success("Registration complete! Welcome to Kraftigo.");
-                      router.push("/");
+                      toast.success(
+                        getKrafterSignupIntent()
+                          ? "Account created! Continue your Krafter registration."
+                          : "Registration complete! Welcome to Kraftigo.",
+                      );
+                      await routeAfterAuthLogin(router);
                       return;
                     }
                     toast.success("Email verified! Sign in to continue.");
@@ -393,7 +424,9 @@ const Page = () => {
                   logger.log("Resending verification code to:", formData.email);
                   try {
                     const message = await resendVerificationCode(formData.email);
-                    setPendingEmailVerification(formData.email);
+                    setPendingEmailVerification(formData.email, {
+                      krafterSignupIntent: isKrafterSignupFlow,
+                    });
                     toast.success(message);
                   } catch (err: unknown) {
                     logger.error("Resend failed:", err);
