@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import mixpanel from '@/lib/mixpanel'
 import type { User } from '@/types'
 import { updateCachedToken } from '@/lib/axios'
 import type { RegisterPayload, ResetPasswordPayload, GoogleAuthPayload } from '@/lib/api/auth'
@@ -88,6 +89,7 @@ export const useAuthStore = create<AuthState>()(
           try {
             const { user, accessToken, refreshToken } = await loginUser({ email, password })
             
+            if (user?.id) mixpanel.identify(user.id)
             updateCachedToken(accessToken) // Update axios cache
             set({
               user,
@@ -110,6 +112,12 @@ export const useAuthStore = create<AuthState>()(
           set({ isLoading: true, error: null })
           try {
             const { user, verificationRequired, message } = await registerUser(userData)
+            
+            if (user?.id) mixpanel.identify(user.id)
+            mixpanel.track('user_onboarding_completed', {
+              account_type: 'customer',
+              sign_up_method: 'email'
+            })
             
             set({
               user,
@@ -134,6 +142,8 @@ export const useAuthStore = create<AuthState>()(
           set({ isLoading: true, error: null })
           try {
             const { user, message, accessToken, refreshToken } = await verifyEmail({ email, code })
+
+            if (user?.id) mixpanel.identify(user.id)
 
             if (accessToken) {
               updateCachedToken(accessToken)
@@ -233,6 +243,9 @@ export const useAuthStore = create<AuthState>()(
           try {
             const { user, accessToken, refreshToken } = await loginWithGoogleApi(payload)
             
+            if (user?.id) mixpanel.identify(user.id)
+            // Note: If we had a way to detect if it's a new sign up vs login, we could track user_onboarding_completed here.
+            
             updateCachedToken(accessToken)
             set({
               user,
@@ -256,6 +269,7 @@ export const useAuthStore = create<AuthState>()(
           try {
             const { user, accessToken, refreshToken } = await loginTasker({ email, password })
             
+            if (user?.id) mixpanel.identify(user.id)
             updateCachedToken(accessToken) // Update axios cache
             set({
               user,
@@ -278,6 +292,12 @@ export const useAuthStore = create<AuthState>()(
           set({ isLoading: true, error: null })
           try {
             const { user, verificationRequired, message } = await registerTasker(taskerData)
+            
+            if (user?.id) mixpanel.identify(user.id)
+            mixpanel.track('user_onboarding_completed', {
+              account_type: 'krafter',
+              sign_up_method: 'email'
+            })
             
             set({
               user,
@@ -310,6 +330,7 @@ export const useAuthStore = create<AuthState>()(
             // Even if logout fails, clear local state
             console.error('Logout API error:', error)
           } finally {
+            mixpanel.reset()
             useDomainNotificationHistoryStore.getState().clearAll()
             clearAuthState()
           }
@@ -323,6 +344,7 @@ export const useAuthStore = create<AuthState>()(
           } catch (error) {
             console.error('Logout all devices API error:', error)
           } finally {
+            mixpanel.reset()
             useDomainNotificationHistoryStore.getState().clearAll()
             clearAuthState()
           }

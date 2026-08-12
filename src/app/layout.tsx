@@ -9,6 +9,7 @@ import DomainEventsListener from "@/components/shared/DomainEventsListener";
 import GoogleTagManager from "@/components/shared/GoogleTagManager";
 import { NextIntlClientProvider } from "next-intl";
 import { cookies } from "next/headers";
+import CookieBanner from "@/components/ui/CookieBanner";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -81,57 +82,58 @@ export default async function RootLayout({
       >
         <GoogleTagManager />
         <NextIntlClientProvider locale={locale} messages={messages}>
-        {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? (
-          <GoogleOAuthProvider
-            clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}
-          >
-            <DismissibleToaster
-              position="top-right"
-              toastOptions={{
-                duration: 3500,
-                style: {
-                  background: "#fff",
-                  color: "#333",
-                  padding: "16px",
-                  borderRadius: "8px",
-                },
-                success: {
-                  iconTheme: {
-                    primary: "#FF6600",
-                    secondary: "#fff",
+          {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? (
+            <GoogleOAuthProvider
+              clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}
+            >
+              <DismissibleToaster
+                position="top-right"
+                toastOptions={{
+                  duration: 3500,
+                  style: {
+                    background: "#fff",
+                    color: "#333",
+                    padding: "16px",
+                    borderRadius: "8px",
                   },
-                },
-                error: {
-                  iconTheme: {
-                    primary: "#ef4444",
-                    secondary: "#fff",
+                  success: {
+                    iconTheme: {
+                      primary: "#FF6600",
+                      secondary: "#fff",
+                    },
                   },
-                },
-              }}
-            />
-            <AuthPromptModal />
-            <DomainEventsListener />
-            <main className="w-full min-h-screen bg-white">{children}</main>
-          </GoogleOAuthProvider>
-        ) : (
-          <>
-            <DismissibleToaster
-              position="top-right"
-              toastOptions={{
-                duration: 3500,
-                style: {
-                  background: "#fff",
-                  color: "#333",
-                  padding: "16px",
-                  borderRadius: "8px",
-                },
-              }}
-            />
-            <AuthPromptModal />
-            <DomainEventsListener />
-            <main className="w-full min-h-screen bg-white">{children}</main>
-          </>
-        )}
+                  error: {
+                    iconTheme: {
+                      primary: "#ef4444",
+                      secondary: "#fff",
+                    },
+                  },
+                }}
+              />
+              <AuthPromptModal />
+              <DomainEventsListener />
+              <main className="w-full min-h-screen bg-white">{children}</main>
+            </GoogleOAuthProvider>
+          ) : (
+            <>
+              <DismissibleToaster
+                position="top-right"
+                toastOptions={{
+                  duration: 3500,
+                  style: {
+                    background: "#fff",
+                    color: "#333",
+                    padding: "16px",
+                    borderRadius: "8px",
+                  },
+                }}
+              />
+              <AuthPromptModal />
+              <DomainEventsListener />
+              <main className="w-full min-h-screen bg-white">{children}</main>
+            </>
+          )}
+          <CookieBanner />
         </NextIntlClientProvider>
       </body>
     </html>
