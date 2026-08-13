@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import Button from "@/components/ui/button";
 import Image from "next/image";
 import { useCustomKraftsStore } from "@/store/useCustomKraftsStore";
+import { useTranslations } from "next-intl";
 
 // ─── Expiry enum → human label ─────────────────────────────────────────────
 const EXPIRY_LABEL: Record<string, string> = {
@@ -14,10 +15,10 @@ const EXPIRY_LABEL: Record<string, string> = {
   "1WEEK": "1 week",
   "CUSTOM": "Custom",
 };
-
 const Page = () => {
   const router = useRouter();
   const { selectedKraft, clearSelectedKraft } = useCustomKraftsStore();
+  const td = useTranslations("customKraft.finishedStep");
 
   // Guard: if somehow landed here without a kraft, go home
   useEffect(() => {
@@ -51,11 +52,10 @@ const Page = () => {
         {/* Success Message */}
         <div className="text-center mb-8">
           <h1 className="text-[28px] sm:text-[32px] font-gerat font-bold mb-3">
-            Kraft Created
+            {td("kraftSubmitted")}
           </h1>
           <p className="text-[14px] sm:text-[15px] font-poppins text-gray-600">
-            Your kraft is now live and visible to artisans. We&apos;ll notify
-            you when you receive your first response.
+            {td("kraftSubmittedDesc")}
           </p>
         </div>
 
@@ -79,7 +79,7 @@ const Page = () => {
         {/* Offer Summary */}
         {selectedKraft?.description && (
           <div>
-            <p className="font-poppins font-bold text-lg">Offer Summary</p>
+            <p className="font-poppins font-bold text-lg">{td("offerSummary")}</p>
             <p className="font-poppins text-sm text-gray-700 mt-1 leading-relaxed">
               {selectedKraft.description}
             </p>
@@ -99,7 +99,7 @@ const Page = () => {
               />
             </div>
             <div>
-              <p className="font-semibold">Task Valid for</p>
+              <p className="font-semibold">{td("taskValidFor")}</p>
               <p>{expiryLabel}</p>
             </div>
           </div>
@@ -115,7 +115,7 @@ const Page = () => {
               />
             </div>
             <div>
-              <p className="font-semibold">Your bid</p>
+              <p className="font-semibold">{td("yourBid")}</p>
               <p>{bidAmount}</p>
             </div>
           </div>
@@ -152,7 +152,7 @@ const Page = () => {
             height={25}
             className="text-brand-orange"
           />
-          <p>We will notify you the status of your task within 1 hour</p>
+          <p>{td("notifyNotice")}</p>
         </div>
 
         <div className="mt-15">
@@ -164,7 +164,7 @@ const Page = () => {
               router.push("/");
             }}
           >
-            Go back home
+            {td("backToHome")}
           </Button>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import api from '@/lib/axios'
 import { dummyArtisanBookings } from '@/data/dummyArtisanBookings'
+import mixpanel from '@/lib/mixpanel'
 
 export interface Booking {
   id: string;
@@ -64,6 +65,11 @@ export const useBookingStore = create<BookingState>((set) => ({
     set({ isLoading: true, error: null })
     try {
       await api.post('/api/bookings', bookingData)
+      mixpanel.track('krafter_booked', {
+        service_category: bookingData.category || 'unknown',
+        krafter_id: bookingData.artisanId || bookingData.taskerId || 'unknown',
+        price: Number(bookingData.price) || 0
+      })
       set({ isLoading: false })
     } catch (error: any) {
       set({

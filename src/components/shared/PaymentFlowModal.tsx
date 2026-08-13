@@ -3,15 +3,11 @@
 import { ArrowLeft, X, ChevronRight, Lock } from "lucide-react";
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
-import {
-  Elements,
-  CardElement,
-  useStripe,
-  useElements,
-} from "@stripe/react-stripe-js";
+import { useElements, useStripe, CardElement, Elements } from "@stripe/react-stripe-js";
 import toast from "react-hot-toast";
 import { usePaymentStore } from "@/store/usePaymentStore";
 import stripePromise from "@/lib/stripe";
+import { useTranslations } from "next-intl";
 
 interface PaymentFlowModalProps {
   onClose: () => void;
@@ -41,6 +37,7 @@ const StripeCardForm = ({
 }: StripeCardFormProps) => {
   const stripe = useStripe();
   const elements = useElements();
+  const t = useTranslations("modals.payment");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [nameOnCard, setNameOnCard] = useState("");
   const [elementReady, setElementReady] = useState(false);
@@ -54,12 +51,12 @@ const StripeCardForm = ({
 
     const card = elements.getElement(CardElement);
     if (!card) {
-      toast.error("Card field is not ready yet. Please wait a moment.");
+      toast.error(t("errors.cardNotReady"));
       return;
     }
 
     if (!nameOnCard.trim()) {
-      toast.error("Please enter the name on card");
+      toast.error(t("errors.nameRequired"));
       return;
     }
 
@@ -85,8 +82,8 @@ const StripeCardForm = ({
           (error.message ?? "").toLowerCase().includes("no such setupintent");
         toast.error(
           isMissingIntent
-            ? "Stripe keys don’t match. Your app’s publishable key must be from the same Stripe account (and test/live mode) as the API’s secret key."
-            : (error.message ?? "Card setup failed"),
+            ? t("errors.stripeKeysMismatch")
+            : (error.message ?? t("errors.cardSetupFailed")),
         );
         return;
       }
@@ -99,7 +96,7 @@ const StripeCardForm = ({
       if (pmId) {
         onSuccess(pmId);
       } else {
-        toast.error("Could not retrieve payment method ID");
+        toast.error(t("errors.noMethodId"));
       }
     } finally {
       setIsSubmitting(false);
@@ -111,9 +108,9 @@ const StripeCardForm = ({
   return (
     <div className="relative bg-white w-full max-w-4xl h-[90vh] rounded-t-2xl sm:rounded-2xl p-4 sm:p-6 pb-8 flex flex-col notranslate">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between p-5 border-b border-gray-100 relative">
         <h3 className="text-[18px] sm:text-[20px] font-poppins font-bold">
-          Add Payment Method
+          {t("buttons.addPaymentMethod")}
         </h3>
         <button
           type="button"
@@ -128,17 +125,17 @@ const StripeCardForm = ({
       <div className="flex-1 overflow-y-auto space-y-6">
         {!stripe && (
           <p className="text-[12px] font-poppins text-gray-500">
-            Connecting to Stripe…
+            {t("info.connecting")}
           </p>
         )}
 
         <div>
           <label className="block text-[14px] font-poppins font-bold text-gray-900 mb-2">
-            Name on Card
+            {t("labels.nameOnCard")}
           </label>
           <input
             type="text"
-            placeholder="Full Name"
+            placeholder={t("labels.fullName")}
             value={nameOnCard}
             onChange={(e) => setNameOnCard(e.target.value)}
             className="w-full p-4 border border-gray-200 rounded-xl text-[14px] font-poppins outline-none placeholder:text-gray-400 focus:border-brand-orange bg-[#FAFAFA]"
@@ -147,7 +144,7 @@ const StripeCardForm = ({
 
         <div>
           <label className="block text-[14px] font-poppins font-bold text-gray-900 mb-2">
-            Card Details
+            {t("labels.cardDetails")}
           </label>
           {!elementReady && stripe && (
             <p className="text-[12px] font-poppins text-gray-500 mb-2">
@@ -161,8 +158,8 @@ const StripeCardForm = ({
             />
           </div>
           <p className="text-[12px] font-poppins text-gray-400 mt-4 flex items-center gap-1">
-            <Lock size={12} />
-            Secured by Stripe. We never store your card details.
+            <Lock size={14} />
+            {t("info.securedByStripe")}
           </p>
         </div>
       </div>
@@ -171,11 +168,13 @@ const StripeCardForm = ({
       <div className="mt-4 pt-2">
         <button
           type="button"
-          className="w-full bg-brand-orange hover:bg-orange-600 text-white font-poppins text-[16px] py-3.5 rounded-xl transition-colors disabled:opacity-60"
+          className={`w-full p-4 rounded-xl font-poppins font-bold text-white transition-colors ${
+            saveDisabled ? "bg-gray-300" : "bg-black hover:bg-gray-800"
+          }`}
           onClick={handleDone}
           disabled={saveDisabled}
         >
-          {isSubmitting ? "Saving card…" : "Save Card"}
+          {isSubmitting ? "..." : t("buttons.saveCard")}
         </button>
       </div>
     </div>
@@ -184,6 +183,7 @@ const StripeCardForm = ({
 
 // ─── Main Modal ───────────────────────────────────────────────────────────────
 const PaymentFlowModal = ({ onClose }: PaymentFlowModalProps) => {
+  const t = useTranslations("modals.payment");
   const {
     savedMethods,
     selectedPaymentId,
@@ -290,6 +290,8 @@ const PaymentFlowModal = ({ onClose }: PaymentFlowModalProps) => {
       ? "Stripe is not configured. Add NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY to your environment (same Stripe account + mode as the API secret key)."
       : null;
 
+  const handleAddNew = () => setShowAddMethod(true);
+
   return (
     <div className="fixed inset-0 z-100 bg-black/50 flex items-end sm:items-center justify-center animate-in fade-in duration-200">
       <div className="w-full max-w-4xl h-full sm:max-h-[90vh] bg-white sm:rounded-2xl flex flex-col relative sm:shadow-xl overflow-hidden">
@@ -309,7 +311,7 @@ const PaymentFlowModal = ({ onClose }: PaymentFlowModalProps) => {
           <ArrowLeft size={24} />
         </button>
         <h2 className="text-[20px] sm:text-[22px] font-gerat font-bold mt-2">
-          Payment Methods
+          {t("buttons.paymentMethodsTitle")}
         </h2>
       </div>
 
@@ -323,22 +325,22 @@ const PaymentFlowModal = ({ onClose }: PaymentFlowModalProps) => {
           <div className="flex-1 flex flex-col items-center justify-center px-6 -mt-20">
             <Image src="/credit.svg" alt="credit" width={200} height={200} />
             <p className="text-gray-500 font-poppins text-[14px] sm:text-[15px] text-center max-w-xs mt-6">
-              You have not added any payment methods
+              {t("info.noSavedCards")}
             </p>
           </div>
           <div className="p-4 pb-8">
             <button
-              onClick={() => setShowAddMethod(true)}
+              onClick={handleAddNew}
               className="w-full bg-[#0200FF] hover:bg-blue-700 text-white font-poppins text-[16px] font-medium py-3.5 rounded-xl flex items-center justify-center gap-2 transition-colors"
             >
-              <span className="text-xl font-light leading-none">+</span> add new
+              {t("buttons.addNew")}
             </button>
           </div>
         </>
       ) : (
         <div className="flex-1 px-4 mt-4 overflow-y-auto no-scrollbar pb-32">
           <h3 className="text-[14px] sm:text-[15px] font-mabry font-bold text-gray-900 mb-4 px-1">
-            Saved Payment Methods
+            {t("labels.savedCards")}
           </h3>
           <div className="space-y-4">
             {savedMethods.map((method) => {
@@ -359,21 +361,13 @@ const PaymentFlowModal = ({ onClose }: PaymentFlowModalProps) => {
                 (method as any).cardLast4 ||
                 "****";
 
-              // Get name and address
-              // const holderName =
-              //   cardData?.holder ||
-              //   cardData?.name ||
-              //   (method as any).name ||
-              //   (method as any).billingDetails?.name ||
-              //   "John Doe";
-
               return (
                 <div
                   key={method.id}
                   onClick={() => selectPayment(method.id)}
                   className={`relative p-5 rounded-2xl border transition-all cursor-pointer ${
                     selectedPaymentId === method.id
-                      ? "bg-[#F4F4F5] border-gray-300" // Matches the light gray background in your image
+                      ? "bg-[#F4F4F5] border-gray-300" 
                       : "bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50"
                   }`}
                 >
@@ -413,11 +407,6 @@ const PaymentFlowModal = ({ onClose }: PaymentFlowModalProps) => {
 
                   {/* Bottom Details Row */}
                   <div className="flex flex-col gap-1.5">
-                    {/* Name */}
-                    {/* <h4 className="font-poppins font-bold text-[16px] text-gray-900 leading-none">
-                      {holderName}
-                    </h4> */}
-
                     {/* Card Number */}
                     <p className="font-poppins text-[15px] text-gray-800 tracking-widest mt-1 leading-none">
                       **** **** **** {last4}
@@ -430,10 +419,10 @@ const PaymentFlowModal = ({ onClose }: PaymentFlowModalProps) => {
 
           <div className="mt-8">
             <button
-              onClick={() => setShowAddMethod(true)}
-              className="w-full bg-[#0200FF] hover:bg-blue-700 text-white font-poppins text-[15px] py-3.5 rounded-[10px] transition-colors"
+              onClick={handleAddNew}
+              className="w-full flex items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-gray-500 hover:bg-gray-50 transition-all group"
             >
-              add new
+              {t("buttons.addNew")}
             </button>
           </div>
         </div>
@@ -450,7 +439,7 @@ const PaymentFlowModal = ({ onClose }: PaymentFlowModalProps) => {
           <div className="relative bg-white w-full max-w-4xl h-[90vh] rounded-t-2xl sm:rounded-2xl p-4 sm:p-6 pb-8 animate-in slide-in-from-bottom-full duration-300">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-[18px] sm:text-[20px] font-poppins font-bold">
-                Add a Payment Method
+                {t("buttons.addPaymentMethod")}
               </h3>
               <button
                 onClick={() => setShowAddMethod(false)}

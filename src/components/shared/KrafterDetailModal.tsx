@@ -11,6 +11,8 @@ import {
 } from "@/lib/krafterDetailDisplay";
 import { formatHourlyRate } from "@/utils/currency";
 import { DistanceBadge } from "@/components/ui/DistanceBadge";
+import { useLocale } from "next-intl";
+import { useTranslateContent } from "@/hooks/useTranslateContent";
 
 export interface KrafterDetail {
   id: string;
@@ -85,10 +87,36 @@ const KrafterDetailModal = ({
     (o) => o.serviceCategoryId === selectedOfferingId,
   );
 
+  const locale = useLocale();
+
+  const krafterDynamicTexts = useMemo(() => {
+    return [
+      krafter.bio || krafter.description || "",
+      krafter.occupationDescription || "",
+      krafter.uniqueSellingPoint || "",
+      ...(krafter.skillTags || []),
+      ...offerings.map((o) => o.serviceCategoryName),
+    ];
+  }, [krafter, offerings]);
+
+  const { translatedTexts } = useTranslateContent(krafterDynamicTexts, locale);
+
+  const bioDesc = translatedTexts[0] || krafter.bio || krafter.description;
+  const occupation = translatedTexts[1] || krafter.occupationDescription;
+  const uniqueSellingPoint = translatedTexts[2] || krafter.uniqueSellingPoint;
+  
+  const translatedSkillTags = krafter.skillTags 
+    ? translatedTexts.slice(3, 3 + krafter.skillTags.length).map((t, i) => t || krafter.skillTags![i])
+    : [];
+  
+  const translatedOfferingNames = translatedTexts.slice(
+    3 + (krafter.skillTags?.length || 0)
+  ).map((t, i) => t || offerings[i].serviceCategoryName);
+
   const displaySkills =
     krafter.skillTags && krafter.skillTags.length > 0
-      ? krafter.skillTags
-      : offerings.map((o) => o.serviceCategoryName);
+      ? translatedSkillTags
+      : translatedOfferingNames;
 
   const displayPrice = selectedOffering
     ? formatOfferingRate(selectedOffering)
@@ -183,10 +211,10 @@ const KrafterDetailModal = ({
             </div>
           </div>
 
-          {(krafter.bio || krafter.description) && (
+          {bioDesc && (
             <div className="mb-5 bg-[#F6F6F6] rounded-[8px] py-2 px-3">
               <p className="text-[14px] font-poppins leading-relaxed">
-                {krafter.bio || krafter.description}
+                {bioDesc}
               </p>
             </div>
           )}
@@ -216,7 +244,7 @@ const KrafterDetailModal = ({
             <div className="mt-8 space-y-3">
               <span className="flex items-center gap-2">
                 <Image src="/work.svg" alt="icon" width={22} height={22} />
-                My Work: {krafter.occupationDescription || "—"}
+                My Work: {occupation || "—"}
               </span>
               <span className="flex items-center gap-2">
                 <Image src="/speaks.svg" alt="icon" width={22} height={22} />
@@ -228,7 +256,7 @@ const KrafterDetailModal = ({
               </span>
               <span className="flex items-center gap-2">
                 <Image src="/unique.svg" alt="icon" width={22} height={22} />
-                What makes me unique: {krafter.uniqueSellingPoint || "—"}
+                What makes me unique: {uniqueSellingPoint || "—"}
               </span>
             </div>
           </div>
@@ -303,7 +331,7 @@ const KrafterDetailModal = ({
                       <div className="flex items-center justify-between gap-3">
                         <div>
                           <p className="font-poppins text-[14px] font-semibold text-gray-900">
-                            {offering.serviceCategoryName}
+                            {translatedOfferingNames[offerings.indexOf(offering)]}
                           </p>
                           {offering.experienceYears != null && offering.experienceYears > 0 ? (
                             <p className="font-poppins text-[12px] text-gray-500 mt-0.5">

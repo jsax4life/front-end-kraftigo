@@ -1,0 +1,970 @@
+{
+  "navigation": {
+    "home": "Startseite",
+    "krafts": "Krafts",
+    "chat": "Chat",
+    "support": "Support",
+    "profile": "Profil"
+  },
+  "footer": {
+    "home": "Startseite",
+    "aboutUs": "Über uns",
+    "privacyPolicy": "Datenschutzrichtlinie",
+    "contactUs": "Kontakt"
+  },
+  "chat": {
+    "title": "Nachrichten",
+    "openingConversation": "Unterhaltung wird geöffnet…",
+    "searchPlaceholder": "Nachrichten durchsuchen",
+    "noMessagesYet": "Noch keine Nachrichten",
+    "startConversation": "Beginnen Sie die Unterhaltung",
+    "openConversationError": "Diese Unterhaltung konnte noch nicht geöffnet werden. Öffnen Sie 'Nachrichten' von Ihrem Kraft aus oder versuchen Sie es in einem Moment erneut.",
+    "multiThreadLabel": "{count} Kraft Unterhaltungen · {contextLabel}",
+    "switchKraft": "Kraft wechseln",
+    "readOnly": " · schreibgeschützt",
+    "threadReadOnly": "Dieser Kraft ist abgeschlossen — diese Unterhaltung ist schreibgeschützt.",
+    "sendMessagePlaceholder": "Nachricht senden",
+    "camera": "Kamera",
+    "photos": "Fotos",
+    "location": "Standort",
+    "chooseConversation": "Unterhaltung wählen",
+    "oneChatPerKraft": "{name} — ein Chat pro Kraft",
+    "locked": "Gesperrt",
+    "active": "Aktiv"
+  },
+  "krafts": {
+    "title": "Krafts",
+    "tabs": {
+      "upcoming": "Anstehend",
+      "completed": "Abgeschlossen"
+    },
+    "filters": {
+      "all": "Alle",
+      "active": "Aktiv",
+      "waitingOpen": "Warten & Offen",
+      "waitingOpenHint": "Antworten & Community",
+      "drafts": "Entwürfe",
+      "draftsHint": "Handwerker wählen",
+      "declined": "Abgelehnt"
+    },
+    "status": {
+      "completed": "Abgeschlossen",
+      "expired": "Abgelaufen",
+      "cancelled": "Sie haben diesen Kraft storniert",
+      "disputed": "Umstritten",
+      "inProgress": "In Bearbeitung",
+      "confirmed": "Bestätigt",
+      "declined": "Abgelehnt",
+      "draft": "Entwurf",
+      "krafterSelected": "Handwerker ausgewählt",
+      "openListing": "Offenes Inserat",
+      "requested": "Angefragt",
+      "accepted": "Angenommen",
+      "paymentNeeded": "Zahlung erforderlich",
+      "countered": "Gegenangebot"
+    },
+    "searchPlaceholder": "Suchen",
+    "empty": {
+      "noUpcomingAll": "Keine anstehenden Krafts",
+      "noUpcomingAllDesc": "Ihre Buchungen und Anfragen werden hier angezeigt",
+      "noUpcomingFilter": "Keine Krafts in dieser Kategorie",
+      "noUpcomingFilterDesc": "Versuchen Sie einen anderen Filter oder wählen Sie 'Alle'",
+      "noCompleted": "Noch keine abgeschlossenen Krafts",
+      "noCompletedDesc": "Beendete Buchungen werden hier angezeigt"
+    },
+    "card": {
+      "posted": "Gepostet {date}",
+      "requestPending": "Anfrage ausstehend",
+      "viewOffers": "Angebote ansehen",
+      "edit": "Bearbeiten",
+      "confirmPayment": "Zahlung bestätigen",
+      "continue": "Weiter",
+      "messageKrafter": "Nachricht an Handwerker",
+      "offersReceived": "{count} Angebot{plural} erhalten",
+      "offersReceivedUnknown": "… Angebote erhalten"
+    },
+    "sections": {
+      "kraftRequests": "Kraft-Anfragen",
+      "awaitingKrafter": "Warten auf Handwerker",
+      "awaitingKrafterDesc": "Direkte Anfragen und Gegenangebote",
+      "publicListings": "Öffentliche Inserate",
+      "publicListingsDesc": "Offen für Bewerbungen von Handwerkern"
+    },
+    "discardModal": {
+      "title": "Diesen Entwurf verwerfen?",
+      "desc": "Dies kann nicht rückgängig gemacht werden. Alle von Ihnen hinzugefügten Fotos werden entfernt.",
+      "keep": "Entwurf behalten",
+      "discard": "Verwerfen",
+      "discarding": "Wird verworfen…",
+      "success": "Entwurf verworfen",
+      "error": "Dieser Entwurf konnte nicht verworfen werden. Versuchen Sie es erneut oder aktualisieren Sie die Seite."
+    }
+  },
+  "profile": {
+    "title": "Profil",
+    "accountClosedSuccess": "Konto erfolgreich geschlossen.",
+    "accountClosedError": "Konto konnte nicht geschlossen werden. Überprüfen Sie aktive Buchungen/Anfragen und versuchen Sie es erneut.",
+    "logoutSuccess": "Erfolgreich abgemeldet",
+    "logoutFailed": "Abmeldung fehlgeschlagen",
+    "logoutButton": "Abmelden",
+    "sections": {
+      "account": "Konto",
+      "paymentBilling": "Zahlung & Abrechnung",
+      "appPreferences": "App-Einstellungen"
+    },
+    "menu": {
+      "personalInfo": "Persönliche Informationen",
+      "security": "Sicherheit",
+      "paymentMethods": "Zahlungsmethoden",
+      "transactionHistory": "Transaktionsverlauf",
+      "savedAddresses": "Gespeicherte Adressen",
+      "notifications": "Benachrichtigungen",
+      "language": "Sprache",
+      "helpCenter": "Hilfecenter",
+      "closeAccount": "Konto schließen"
+    },
+    "cta": {
+      "krafterDashboard": "ZUM HANDWERKER-DASHBOARD",
+      "earnMoney": "GELD VERDIENEN MIT KRAFTS",
+      "switchToKrafter": "Zu Handwerker wechseln",
+      "becomeKrafter": "Handwerker werden"
+    },
+    "deleteAccount": {
+      "title": "Konto schließen",
+      "warning1": "Diese Aktion ist dauerhaft. Ihre Kontodaten werden anonymisiert und das Konto wird deaktiviert. Sie werden von allen Sitzungen abgemeldet.",
+      "warning2": "Die Löschung kann blockiert werden, wenn Sie noch aktive Buchungen/Bewerbungen haben.",
+      "passwordAccount": "Passwort-Konto",
+      "socialLogin": "Soziales Login",
+      "enterPasswordError": "Geben Sie Ihr Passwort ein, um fortzufahren.",
+      "typeExactlyError": "Tippen Sie genau {text}.",
+      "confirmPasswordLabel": "Bestätigen Sie Ihr Passwort",
+      "enterPasswordPlaceholder": "Passwort eingeben",
+      "typeToConfirmLabel": "Geben Sie {text} zur Bestätigung ein",
+      "cancel": "Abbrechen",
+      "closing": "Wird geschlossen...",
+      "closeAccountBtn": "Konto schließen"
+    },
+    "security": {
+      "title": "Sicherheit",
+      "desc": "Verwalten Sie Ihre Kontosicherheit und Ihr Passwort",
+      "changePassword": "Passwort ändern",
+      "googleSignInMsg": "Ihr Konto verwendet die Google-Anmeldung und hat noch kein Passwort. Verwenden Sie",
+      "forgotPassword": "Passwort vergessen",
+      "googleSignInMsgEnd": "um eines festzulegen, wenn Sie sich auch mit E-Mail/Passwort anmelden möchten.",
+      "currentPassword": "Aktuelles Passwort",
+      "enterCurrentPassword": "Aktuelles Passwort eingeben",
+      "newPassword": "Neues Passwort",
+      "enterNewPassword": "Neues Passwort eingeben",
+      "confirmPassword": "Passwort bestätigen",
+      "enterConfirmPassword": "Neues Passwort bestätigen",
+      "updating": "Wird aktualisiert…",
+      "deviceHistory": "Geräteverlauf",
+      "noDeviceHistory": "Kein Geräteverlauf verfügbar",
+      "deviceHistoryDesc": "Geräte, die auf Ihr Konto zugreifen, werden hier angezeigt",
+      "currentPasswordReq": "Geben Sie Ihr aktuelles Passwort ein.",
+      "newPasswordMin": "Das neue Passwort muss mindestens {min} Zeichen lang sein.",
+      "passwordMismatch": "Die Passwörter stimmen nicht überein.",
+      "newPasswordSame": "Das neue Passwort muss sich von Ihrem aktuellen Passwort unterscheiden.",
+      "passwordUpdated": "Ihr Passwort wurde aktualisiert. Bitte melden Sie sich erneut mit Ihrem neuen Passwort an.",
+      "passwordUpdateError": "Passwort konnte nicht aktualisiert werden."
+    },
+    "personalInfo": {
+      "title": "Persönliche Informationen",
+      "greeting": "Hallo {name}",
+      "editingProfile": "Profil bearbeiten",
+      "personalDetails": "Persönliche Angaben",
+      "fullName": "Vollständiger Name",
+      "enterFullName": "Geben Sie Ihren vollständigen Namen ein",
+      "email": "E-Mail",
+      "enterEmail": "Geben Sie Ihre E-Mail-Adresse ein",
+      "phone": "Telefon",
+      "enterPhone": "Geben Sie Ihre Telefonnummer ein",
+      "serviceAddress": "Service-Adresse",
+      "street": "Straße",
+      "searchAddress": "Suchen Sie nach Ihrer Adresse...",
+      "city": "Stadt",
+      "postalCode": "Postleitzahl",
+      "country": "Land",
+      "saving": "Wird gespeichert...",
+      "saveChanges": "Änderungen speichern",
+      "updateSuccess": "Profil erfolgreich aktualisiert!",
+      "updateError": "Fehler beim Aktualisieren des Profils",
+      "photoUpdateSuccess": "Profilbild aktualisiert!",
+      "photoUpdateFailed": "Fehler beim Hochladen des Profilbilds",
+      "photoUploadError": "Profilbild konnte nicht hochgeladen werden"
+    },
+    "transactions": {
+      "title": "Transaktionsverlauf",
+      "last30Days": "Letzte 30 Tage",
+      "allServices": "Alle Services",
+      "noTransactions": "Noch keine Transaktionen.",
+      "serviceBooking": "Service-Buchung"
+    },
+    "currency": {
+      "title": "Währung",
+      "desc": "Wählen Sie Ihre bevorzugte Währung für Zahlungen",
+      "selectCurrency": "Währung auswählen",
+      "infoText": "Preise werden basierend auf dem aktuellen Marktkurs umgerechnet. Einige Handwerker haben möglicherweise feste Währungspräferenzen."
+    },
+    "language": {
+      "title": "Sprache",
+      "desc": "Wählen Sie Ihre bevorzugte Sprache für die App",
+      "selectLanguage": "Sprache auswählen",
+      "infoText": "App-Inhalte werden übersetzt. Benutzergenerierte Inhalte wie Nachrichten und Bewertungen werden möglicherweise nicht vollständig übersetzt."
+    },
+    "notifications": {
+      "title": "Benachrichtigungen",
+      "desc": "Wählen Sie aus, worüber Sie benachrichtigt werden möchten",
+      "preferences": "Einstellungen",
+      "loadingPreferences": "Einstellungen werden geladen…",
+      "bookingInfo": "Buchungsinformationen",
+      "bookingInfoDesc": "Senden Sie eine Kraft-Anfrage, bestätigen und stornieren Sie Buchungen.",
+      "customerSupport": "Kundensupport",
+      "customerSupportDesc": "Kommunikation mit unserem Kundensupport-Team.",
+      "promo": "Werbebenachrichtigungen",
+      "promoDesc": "Bleiben Sie über Aktionen und exklusive Angebote auf dem Laufenden.",
+      "late": "Verspätungsmeldungen",
+      "lateDesc": "Aktivieren Sie Benachrichtigungen, wenn sich der Handwerker mehr als 5 Minuten verspätet.",
+      "news": "Newsletter & Artikel",
+      "newsDesc": "Aktivieren Sie diese Option, um Neuigkeiten, Produkte und alles rund um Kraft zu erhalten.",
+      "infoText": "Wir benachrichtigen Sie nur über wichtige Updates zu Ihren Krafts, auch wenn alle Schalter deaktiviert sind."
+    },
+    "paymentMethods": {
+      "title": "Zahlung & Adressen",
+      "savedPaymentMethods": "Gespeicherte Zahlungsmethoden",
+      "loadingPaymentMethods": "Zahlungsmethoden werden geladen...",
+      "noPaymentMethods": "Sie haben keine Zahlungsmethoden hinzugefügt",
+      "addNew": "Neue hinzufügen",
+      "view": "Anzeigen",
+      "savedAddresses": "Gespeicherte Adressen",
+      "loadingAddresses": "Adressen werden geladen...",
+      "noSavedAddresses": "Sie haben keine gespeicherten Adressen hinzugefügt",
+      "addNewAddress": "Neue Adresse hinzufügen",
+      "plusAddSavedAddress": "+ Gespeicherte Adresse hinzufügen",
+      "paymentMethodRemoved": "Zahlungsmethode entfernt",
+      "failedToRemovePaymentMethod": "Fehler beim Entfernen der Zahlungsmethode",
+      "setAsDefault": "Als Standard festlegen",
+      "failedToUpdateDefault": "Fehler beim Aktualisieren des Standards",
+      "pleaseEnterAddress": "Bitte geben Sie eine Adresse ein",
+      "addPaymentMethod": "Eine Zahlungsmethode hinzufügen",
+      "debitCreditCard": "Debit-/Kreditkarte",
+      "sepaDirectDebit": "SEPA-Lastschrift",
+      "paypal": "PayPal",
+      "googlePay": "Google Pay",
+      "encryptionInfo": "Ihre Zahlungsdaten sind verschlüsselt und werden niemals an Handwerker weitergegeben.",
+      "addDebitCreditCard": "Debit-/Kreditkarte hinzufügen",
+      "cardAdded": "Karte hinzugefügt",
+      "paymentMethodLabel": "Zahlungsmethode",
+      "number": "Nummer",
+      "required": "Erforderlich",
+      "expires": "Gültig bis",
+      "mmYyyy": "MM JJJJ",
+      "cv": "CV",
+      "securityCode": "Sicherheitscode",
+      "billingName": "Rechnungsname",
+      "fullName": "Vollständiger Name",
+      "billingAddress": "Rechnungsadresse",
+      "postCode": "Postleitzahl",
+      "countryRegion": "Land/Region",
+      "done": "Fertig",
+      "addSepaDirectDebit": "SEPA-Lastschrift hinzufügen",
+      "firstName": "Vorname",
+      "lastName": "Nachname",
+      "iban": "IBAN",
+      "sepaConfirm": "Ich bestätige hiermit das SEPA-Lastschriftmandat für Kraftigos.de",
+      "sepaAdded": "SEPA-Methode hinzugefügt",
+      "connectPaypal": "PayPal verbinden",
+      "launchingPaypal": "PayPal wird gestartet",
+      "loginToPaypal": "Bei PayPal anmelden",
+      "paypalConnected": "PayPal verbunden",
+      "editPaymentMethod": "Zahlungsmethode bearbeiten",
+      "notStoredForSecurity": "Aus Sicherheitsgründen nicht gespeichert",
+      "notAvailable": "Nicht verfügbar",
+      "changesSaved": "Änderungen gespeichert",
+      "save": "Speichern",
+      "setAsDefaultBtn": "Als Standard festlegen",
+      "deleteCard": "Karte löschen",
+      "editSavedAddress": "Gespeicherte Adresse bearbeiten",
+      "addSavedAddress": "Gespeicherte Adresse hinzufügen",
+      "streetHouseNumber": "Straße & Hausnummer",
+      "streetAddress": "Straßenadresse",
+      "city": "Stadt",
+      "saveAddressBtn": "Adresse speichern",
+      "deleteAddress": "Adresse löschen"
+    },
+    "receipt": {
+      "notFound": "Quittung nicht gefunden.",
+      "goBack": "Zurück",
+      "scheduled": "Geplant:",
+      "completedKrafts": "{count} Krafts abgeschlossen",
+      "reviews": "({count} Bewertungen)",
+      "priceBreakdown": "Preisaufschlüsselung",
+      "service": "Service",
+      "serviceFee": "Servicegebühr",
+      "discount": "Rabatt",
+      "totalPaid": "Gesamtbetrag",
+      "paymentTimeline": "Zahlungsverlauf",
+      "event": "Ereignis",
+      "transactionReference": "Transaktionsreferenz:",
+      "downloadPdf": "PDF-Quittung herunterladen",
+      "reportTransaction": "Diese Transaktion melden",
+      "transactionSuccessful": "Transaktion erfolgreich"
+    }
+  },
+  "home": {
+    "greeting": "Was brauchen Sie heute?",
+    "greetingDesktop1": "Was brauchen Sie",
+    "greetingDesktop2": "heute?",
+    "greetingMobile1": "Was brauchen",
+    "greetingMobile2": "Sie heute?",
+    "searchPlaceholder": "Klempner finden",
+    "popularSearches": "Beliebte Suchen",
+    "categories": "Kategorien",
+    "seeAll": "Alle ansehen",
+    "kraftersNearYou": "Handwerker in Ihrer Nähe",
+    "upcoming": "Anstehend",
+    "noUpcoming": "Keine anstehenden Buchungen",
+    "noUpcomingDesc": "Buchen Sie einen Service, um Ihre anstehenden Termine hier zu sehen.",
+    "services": "Dienstleistungen",
+    "artisans": "Handwerker",
+    "searching": "Suchen…",
+    "typeToSearch": "Geben Sie mindestens 3 Buchstaben ein.",
+    "noServicesFound": "Keine Dienstleistungen gefunden.",
+    "noArtisansFound": "Keine Handwerker gefunden.",
+    "cantFind": "Können Sie nicht finden, was Sie brauchen?",
+    "requestCustom": "Einen individuellen Service anfragen",
+    "recents": "Letzte Suchen",
+    "available": "Verfügbar",
+    "jobs": "Jobs",
+    "prosOfWeek": "Profis der Woche"
+  },
+  "common": {
+    "loading": "Wird geladen...",
+    "error": "Ein Fehler ist aufgetreten",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "done": "Fertig"
+  },
+  "auth": {
+    "common": {
+      "emailLabel": "E-Mail",
+      "emailPlaceholder": "E-Mail-Adresse eingeben",
+      "passwordLabel": "Passwort",
+      "passwordPlaceholder": "Passwort eingeben",
+      "phoneLabel": "Telefonnummer",
+      "termsOfUse": "Nutzungsbedingungen",
+      "privacyPolicy": "Datenschutzrichtlinie",
+      "and": "und",
+      "iAgreeTo": "Ich stimme den",
+      "signIn": "Anmelden",
+      "signUp": "Registrieren"
+    },
+    "login": {
+      "title": "Willkommen zurück",
+      "forgotPasswordLink": "Passwort vergessen?",
+      "orSignInWith": "Oder anmelden mit",
+      "googleTerms": "Mit der Anmeldung über Google stimmen Sie unseren",
+      "noAccount": "Noch kein Konto?",
+      "verify": "Bestätigen"
+    },
+    "createAccount": {
+      "krafterSignupTitle": "Erstellen Sie Ihr Krafter-Konto",
+      "krafterSignupDesc": "Nach der Bestätigung Ihrer E-Mail-Adresse fahren Sie direkt mit der Krafter-Registrierung fort.",
+      "krafterSignupSuccess": "Konto erstellt! Fahren Sie mit Ihrer Krafter-Registrierung fort.",
+      "registrationSuccess": "Registrierung abgeschlossen! Willkommen bei Kraftigo.",
+      "unverifiedEmailError": "Diese E-Mail ist registriert, aber nicht verifiziert. Geben Sie Ihren Bestätigungscode ein.",
+      "stepOf": "Schritt {step} von {total}",
+      "step1Title": "Erzählen Sie uns von sich",
+      "firstNameLabel": "Ihren Vornamen eingeben",
+      "firstNamePlaceholder": "Vorname eingeben",
+      "lastNameLabel": "Ihren Nachnamen eingeben",
+      "lastNamePlaceholder": "Nachname eingeben",
+      "orSignUpWithGoogle": "Oder mit Google registrieren",
+      "step2Title": "Passwort erstellen",
+      "confirmPasswordLabel": "Passwort bestätigen",
+      "confirmPasswordPlaceholder": "Passwort zur Bestätigung eingeben",
+      "step3Title": "Nutzungsbedingungen",
+      "step3Desc": "Mit Ihrem Klick stimmen Sie zu, Updates und Newsletter über Kraftigo-Dienste und -Produkte zu erhalten",
+      "alreadyHaveAccount": "Bereits ein Konto?",
+      "whyCollect": "Warum erheben wir diese Daten?",
+      "submit": "Absenden",
+      "continue": "Weiter"
+    },
+    "forgotPassword": {
+      "title": "Passwort vergessen?",
+      "desc": "Kein Problem! Bitte geben Sie die E-Mail-Adresse ein, die mit Ihrem Konto verknüpft ist.",
+      "checkEmailTitle": "Überprüfen Sie Ihre E-Mails",
+      "checkEmailDescPre": "Wir haben einen Link zum Zurücksetzen des Passworts an",
+      "checkEmailDescPost": "gesendet. Bitte prüfen Sie Ihren Posteingang und klicken Sie auf den Link, um fortzufahren.",
+      "rememberPassword": "Sie erinnern sich an Ihr Passwort?",
+      "sendInstructions": "Anweisungen senden",
+      "backToLogin": "Zurück zur Anmeldung"
+    },
+    "verifyEmail": {
+      "title": "Ihre E-Mail bestätigen",
+      "sentCodeTo": "Wir haben einen Bestätigungscode gesendet an",
+      "spamNote": "Nicht gefunden? Überprüfen Sie Ihren Spam- oder Junk-Ordner. Sie können den Code unten erneut anfordern.",
+      "resendIn": "Code erneut senden in",
+      "resendCode": "Code erneut senden",
+      "verifyButton": "E-Mail bestätigen",
+      "alreadyVerified": "Bereits bestätigt?",
+      "signIn": "Anmelden"
+    },
+    "resetPassword": {
+      "title": "Ihr Konto sichern",
+      "desc": "Erstellen Sie ein sicheres neues Passwort, um Ihre Daten und Privatsphäre zu schützen",
+      "newPasswordLabel": "Neues Passwort",
+      "newPasswordPlaceholder": "Neues Passwort eingeben",
+      "confirmPasswordLabel": "Neues Passwort bestätigen",
+      "confirmPasswordPlaceholder": "Neues Passwort zur Bestätigung eingeben",
+      "resetButton": "Passwort zurücksetzen"
+    }
+  },
+  "support": {
+    "title1": "Hallo, wie",
+    "title2": "können wir helfen?",
+    "helpBannerText": "Haben Sie ein Problem mit Zahlungen, Ihrem Konto oder Aktionen? Sprechen Sie mit unserem Support-Team",
+    "sendMessage": "Senden Sie uns eine Nachricht",
+    "clientHelpTopics": "Kunde — Hilfethemen",
+    "krafterHelpTopics": "Handwerker — Hilfethemen",
+    "clientFaqs": {
+      "q1": {
+        "question": "Wie storniere ich eine Buchung?",
+        "answer": "Gehen Sie zu 'Meine Buchungen', wählen Sie die Buchung aus und tippen Sie auf 'Stornieren'. Stornierungen, die mehr als 2 Stunden vor dem geplanten Beginn vorgenommen werden, sind kostenlos. Bei einer Stornierung nach Beginn der Arbeiten kann eine Teilgebühr basierend auf der abgeschlossenen Arbeit anfallen."
+      },
+      "q2": {
+        "question": "Wie melde ich ein Problem mit einem Handwerker?",
+        "answer": "Öffnen Sie die Buchung und tippen Sie auf 'Problem melden'. Beschreiben Sie, was passiert ist, und fügen Sie Fotos bei, falls vorhanden – unser Team prüft Meldungen innerhalb von 24–48 Stunden und wird sich direkt bei Ihnen melden."
+      },
+      "q3": {
+        "question": "Wie beantrage ich eine Rückerstattung?",
+        "answer": "Ihre Zahlung wird sicher verwahrt, bis der Auftrag als abgeschlossen markiert ist. Bei sofortigen Rückerstattungen (Nichterscheinen oder Stornierung vor Beginn) werden die Mittel automatisch freigegeben. Bei Qualitätsstreitigkeiten öffnen Sie die Buchung, tippen Sie auf 'Rückerstattung anfordern' und erklären Sie das Problem – bei Genehmigung wird das Geld innerhalb von 5–7 Werktagen auf Ihre ursprüngliche Zahlungsmethode zurückerstattet."
+      },
+      "q4": {
+        "question": "Was passiert, wenn ein Handwerker nicht erscheint?",
+        "answer": "Tippen Sie in der Buchung auf 'Nichterscheinen melden'. Da die Zahlung noch nicht freigegeben wurde, erhalten Sie automatisch eine vollständige Rückerstattung und können sofort bei einem anderen verfügbaren Handwerker neu buchen."
+      },
+      "q5": {
+        "question": "Wie aktualisiere ich meine Zahlungsmethode?",
+        "answer": "Gehen Sie zu Einstellungen → Zahlungsmethoden. Dort können Sie jederzeit eine neue Karte hinzufügen, eine Standardkarte festlegen oder eine alte entfernen."
+      }
+    },
+    "krafterFaqs": {
+      "q1": {
+        "question": "Was passiert, wenn ein Kunde bei mir storniert?",
+        "answer": "Wenn ein Kunde storniert, nachdem Sie den Auftrag bestätigt haben, haben Sie möglicherweise Anspruch auf eine Stornierungsgebühr. Dies hängt davon ab, wie viel Vorlaufzeit gegeben wurde und ob Sie bereits mit der Arbeit begonnen hatten. Stornierungen, die weit vor Ihrer geplanten Startzeit erfolgen, werden nicht vergütet."
+      },
+      "q2": {
+        "question": "Wie werde ich bezahlt?",
+        "answer": "Sobald Sie den Auftrag als abgeschlossen markieren und der Kunde bestätigt (oder das Bewertungsfenster ohne Streitfall abläuft), wird Ihre Zahlung vom Treuhandkonto auf Ihr verknüpftes Auszahlungskonto freigegeben. Auszahlungen gehen in der Regel innerhalb von 2–3 Werktagen ein."
+      },
+      "q3": {
+        "question": "Was passiert, wenn ein Kunde nicht erscheint?",
+        "answer": "Tippen Sie auf 'Nichterscheinen des Kunden melden' in der Buchung, sobald Ihre geplante Startzeit verstrichen ist. Nach der Bestätigung erhalten Sie Ihre vereinbarte Anfahrtsgebühr und die Buchung wird geschlossen – von Ihrer Seite aus sind keine weiteren Maßnahmen erforderlich."
+      },
+      "q4": {
+        "question": "Wie melde ich ein Problem mit einem Kunden?",
+        "answer": "Öffnen Sie die Buchung und tippen Sie auf 'Problem melden', um zu beschreiben, was passiert ist. Unser Team prüft gemeldete Buchungen und kann die Buchungsfähigkeit des Kunden einschränken, während wir die Angelegenheit untersuchen."
+      },
+      "q5": {
+        "question": "Wie aktualisiere ich meine Auszahlungsmethode?",
+        "answer": "Gehen Sie zu Einstellungen → Auszahlungsdetails, um Ihr verknüpftes Bankkonto oder Ihre Karte zu aktualisieren. Änderungen werden ab Ihrem nächsten Auszahlungszyklus wirksam."
+      }
+    }
+  },
+  "customKraft": {
+    "requestACustomKraft": "Einen individuellen Kraft anfragen",
+    "stepper": {
+      "description": "Beschreibung",
+      "details": "Details",
+      "budget": "Budget",
+      "review": "Überprüfung"
+    },
+    "nav": {
+      "next": "Weiter",
+      "saving": "Speichern…",
+      "saveAsDraft": "Als Entwurf speichern",
+      "draftSaved": "Entwurf gespeichert!",
+      "submit": "Einreichen"
+    },
+    "descriptionStep": {
+      "whatDoYouNeedHelpWith": "Wobei benötigen Sie Hilfe?",
+      "moreDetailsProvide": "Je mehr Details Sie angeben, desto besser können die Krafter die Aufgabe verstehen",
+      "descriptionPlaceholder": "Ich möchte, dass meine Kleidung in einem Dreifachzyklus gewaschen wird...",
+      "descriptionError": "Bitte geben Sie eine Beschreibung ein",
+      "addPhotosVideo": "Fotos/Videos hinzufügen",
+      "optional": "Optional",
+      "addWorkPhotosDesc": "Fügen Sie hier Ihre Arbeitsfotos und Videos hinzu",
+      "roughCategory": "Grobe Kategorie",
+      "selectCategory": "Wählen Sie eine Kategorie",
+      "other": "Sonstiges",
+      "customCategoryPlaceholder": "Bitte geben Sie die Art des benötigten Services an...",
+      "fallbackGardening": "Gartenarbeit & Hilfe im Freien",
+      "fallbackMoving": "Umzug",
+      "fallbackLaundry": "Wäsche",
+      "fallbackErrands": "Besorgungen",
+      "fallbackHomeRepairs": "Reparaturen am Haus",
+      "chooseDate": "Datum wählen",
+      "selectDates": "Daten auswählen",
+      "dateAndTime": "Datum & Uhrzeit",
+      "selectDate": "Datum auswählen",
+      "selectTime": "Uhrzeit auswählen",
+      "custom": "Benutzerdefiniert"
+    },
+    "detailsStep": {
+      "enterYourAddress": "Geben Sie Ihre Adresse ein",
+      "savedAddress": "Gespeicherte Adresse",
+      "selectAddressError": "Bitte wählen Sie eine Adresse aus",
+      "addNewLocation": "Neuen Standort hinzufügen",
+      "bookingHours": "Buchungsstunden",
+      "howManyHours": "Wie viele Stunden möchten Sie buchen",
+      "frequency": "Häufigkeit",
+      "howOften": "Wie oft wünschen Sie diesen Service",
+      "freqOptions": {
+        "justOnce": "Nur einmal",
+        "weekly": "Wöchentlich",
+        "every2Weeks": "Alle 2 Wochen",
+        "monthly": "Monatlich"
+      }
+    },
+    "budgetStep": {
+      "budgetForKraft": "Budget für individuellen Kraft",
+      "setReasonableBudget": "Legen Sie ein angemessenes Budget fest, um die besten Krafter anzuziehen",
+      "myOfferAmount": "Mein Angebotsbetrag",
+      "offerAmountPlaceholder": "Betrag eingeben (z.B. 50,00)",
+      "openToNegotiation": "Ich bin offen für Verhandlungen",
+      "kraftExpiry": "Ablauf des Krafts",
+      "urgentBoost": "Dringender Schub",
+      "urgentBoostDescription": "Werden Sie von 3x mehr Kraftern gesehen für nur 4,99 €",
+      "expiryOptions": {
+        "24h": "24h",
+        "3days": "3 Tage",
+        "1week": "1 Woche"
+      }
+    },
+    "reviewStep": {
+      "reviewDetails": "Überprüfen Sie Ihre Kraft-Details",
+      "makeSureEverythingIsCorrect": "Stellen Sie sicher, dass alles korrekt ist, bevor Sie es einreichen",
+      "description": "Beschreibung",
+      "location": "Standort",
+      "dateAndTime": "Datum & Uhrzeit",
+      "budget": "Budget",
+      "totalEstimated": "Geschätzte Gesamtsumme",
+      "kraftDetails": "Kraft-Details",
+      "priceBreakdown": "Preisaufschlüsselung",
+      "offerAmount": "Angebotsbetrag",
+      "serviceFee": "Servicegebühr",
+      "promo": "Gutschein",
+      "totalAmount": "Gesamtbetrag",
+      "apply": "Anwenden",
+      "paymentOptions": "Zahlungsoptionen",
+      "noSavedMethods": "Sie haben keine gespeicherten Zahlungsmethoden",
+      "addNew": "Neu hinzufügen",
+      "addNewPaymentMethod": "Neue Zahlungsmethode hinzufügen",
+      "change": "Ändern",
+      "termsPrivacyText": "Mit dem Klick auf 'Bestätigen & Bezahlen' stimmen Sie den Nutzungsbedingungen und der Datenschutzerklärung von Krafitgo zu. Zahlungen werden sicher verarbeitet.",
+      "confirmAndPay": "Bestätigen & Bezahlen",
+      "publishing": "Wird veröffentlicht…"
+    },
+    "finishedStep": {
+      "kraftSubmitted": "Kraft erstellt",
+      "kraftSubmittedDesc": "Ihr Kraft ist jetzt live und für Handwerker sichtbar. Wir benachrichtigen Sie, wenn Sie Ihre erste Antwort erhalten.",
+      "offerSummary": "Angebotszusammenfassung",
+      "taskValidFor": "Aufgabe gültig für",
+      "yourBid": "Ihr Gebot",
+      "notifyNotice": "Wir werden Sie innerhalb von 1 Stunde über den Status Ihrer Aufgabe informieren",
+      "goToMyKrafts": "Zu meinen Krafts",
+      "backToHome": "Zurück zur Startseite"
+    }
+  },
+  "booking": {
+    "nav": {
+      "cancel": "Abbrechen",
+      "next": "Weiter",
+      "saving": "Wird gespeichert…"
+    },
+    "serviceDetailsStep": {
+      "errorCustomTime": "Bitte geben Sie eine benutzerdefinierte Zeit ein.",
+      "errorRequired": "Bitte füllen Sie alle erforderlichen Felder aus",
+      "errorTooSoon": "Wählen Sie eine Zeit, die mindestens 30 Minuten in der Zukunft liegt.",
+      "errorMissingCategory": "Servicekategorie fehlt. Gehen Sie zurück und wählen Sie eine Kategorie aus.",
+      "errorMissingLocation": "Bitte wählen Sie Ihre Arbeitsadresse aus der Vorschlagsliste aus (oder verwenden Sie den aktuellen Standort), damit wir die Entfernung zu den Kraftern berechnen können.",
+      "errorGeneric": "Ihre Buchung konnte nicht gestartet werden. Bitte versuchen Sie es erneut.",
+      "kraftDetails": "Kraft-Details",
+      "selectLocation": "Standort auswählen",
+      "selectDate": "Datum auswählen",
+      "enterYourAddress": "Geben Sie Ihre Adresse ein",
+      "savedAddress": "Gespeicherte Adresse",
+      "chooseDate": "Datum wählen",
+      "selectDates": "Daten auswählen",
+      "when": "Wann?",
+      "selectTime": "Uhrzeit auswählen",
+      "custom": "Benutzerdefiniert",
+      "tellUsDetails": "Teilen Sie uns die Details Ihrer Aufgabe mit",
+      "startConversation": "Starten Sie das Gespräch und teilen Sie Ihrem Tasker mit, was erledigt werden muss. Keine Sorge, Sie können dies später bearbeiten.",
+      "detailsPlaceholder": "Ich möchte, dass meine Kleidung im Dreifachwaschgang gewaschen wird...",
+      "addPhotos": "Fotos hinzufügen",
+      "specialInstructions": "Besondere Anweisungen",
+      "specialInstructionsPlaceholder": "z.B. Vorsicht vor dem Hund, das Seitentor ist unverschlossen"
+    },
+    "selectArtisanStep": {
+      "errorMissingLocationCoords": "Wir benötigen Ihre Standortkoordinaten, um die Entfernung zum Krafter anzuzeigen. Gehen Sie zurück und wählen Sie Ihre Adresse aus der Vorschlagsliste aus.",
+      "krafter": "Krafter",
+      "back": "Zurück",
+      "selectLocation": "Standort auswählen",
+      "selectDate": "Datum auswählen",
+      "recommended": "Empfohlen",
+      "postToCommunity": "In der Community posten",
+      "postToCommunityDesc": "Machen Sie Ihre Anfrage öffentlich, damit alle qualifizierten Tasker Ihnen Angebote und Marktplatzpreise anbieten können",
+      "postPublicTask": "Öffentliche Aufgabe posten",
+      "filterPrice": "Preis",
+      "filterRating": "Bewertung",
+      "filterToday": "Heute",
+      "compare": "Vergleichen",
+      "loadingKrafters": "Krafter werden geladen…",
+      "kraftersAvailable": "{count} Krafter verfügbar",
+      "kraftersAvailablePlural": "{count} Krafter verfügbar",
+      "noKraftersFound": "Keine Krafter gefunden",
+      "noKraftersFoundDesc": "Versuchen Sie, eine öffentliche Aufgabe zu posten, damit Krafter auf Sie zukommen können"
+    },
+    "verifyDetailsStep": {
+      "verifyLabel": "Überprüfen",
+      "back": "Zurück",
+      "verifyYourDetails": "Überprüfen Sie Ihre Daten",
+      "kraftDetails": "Kraft-Details",
+      "noTaskDetails": "Keine Aufgabendetails angegeben",
+      "estimatedHours": "Geschätzte Stunden",
+      "howManyHours": "Wie viele Stunden möchten Sie buchen",
+      "youWillBeCharged": "Ihnen werden in Rechnung gestellt",
+      "frequency": "Häufigkeit",
+      "howOften": "Wie oft möchten Sie diesen Service",
+      "freqJustOnce": "Nur einmal",
+      "freqWeekly": "Wöchentlich",
+      "freqEvery2Weeks": "Alle 2 Wochen",
+      "freqMonthly": "Monatlich"
+    },
+    "finishBookingStep": {
+      "errorMissingLocationCoords": "Fehlende Standortkoordinaten. Gehen Sie zurück und wählen Sie Ihre Adresse aus der Vorschlagsliste aus.",
+      "successPublicTask": "Öffentliche Aufgabe erfolgreich gepostet!",
+      "successRequestSent": "Anfrage gesendet. Ihr Krafter muss akzeptieren, bevor die Buchung bestätigt wird.",
+      "successBookingConfirmed": "Buchung erfolgreich bestätigt!",
+      "errorLoginRequired": "Bitte loggen Sie sich ein, um eine Buchung zu erstellen",
+      "errorFailedToCreate": "Buchung konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
+      "detailsLabel": "Details",
+      "finishLabel": "Fertigstellen",
+      "back": "Zurück",
+      "postYourTask": "Ihre Aufgabe posten",
+      "completeOrder": "Bestellung abschließen",
+      "verifyYourDetails": "Überprüfen Sie Ihre Daten",
+      "budget": "Budget",
+      "perHour": "/Std",
+      "priceBreakdown": "Preisaufschlüsselung",
+      "yourOfferRate": "Ihr Angebotsatz",
+      "yourOfferBudget": "Ihr Angebotsbudget",
+      "hourlyRate": "Stundensatz",
+      "serviceFee": "Servicegebühr",
+      "serviceFeeEstimate": "Servicegebühr (geschätzt)",
+      "totalAmount": "Gesamtbetrag",
+      "totalEstimate": "Gesamt (geschätzt)",
+      "promoCode": "Gutscheincode",
+      "applyPromoCode": "Anwenden",
+      "paymentOptions": "Zahlungsoptionen",
+      "noPaymentMethods": "Sie haben keine gespeicherten Zahlungsmethoden",
+      "addNew": "neu hinzufügen",
+      "debitCreditCard": "Debit-/Kreditkarte",
+      "sepaDirectDebit": "SEPA-Lastschrift",
+      "payPal": "PayPal",
+      "default": "Standard",
+      "change": "Ändern",
+      "addNewPaymentMethod": "Neue Zahlungsmethode hinzufügen",
+      "termsPublicTask": "Durch Klicken auf 'Öffentliche Aufgabe posten' stimmen Sie den Nutzungsbedingungen und der Datenschutzrichtlinie von Kraftigo zu. Tasker werden mit Angeboten basierend auf Ihrem Budget antworten.",
+      "termsConfirmPay": "Durch Klicken auf 'Bestätigen & Bezahlen' stimmen Sie den Nutzungsbedingungen und der Datenschutzrichtlinie von Kraftigo zu. Zahlungen werden sicher verarbeitet.",
+      "processing": "Wird bearbeitet...",
+      "postPublicTaskBtn": "Öffentliche Aufgabe posten",
+      "confirmRequestsBtn": "Anfragen bestätigen"
+    },
+    "confirmationStep": {
+      "successPublicTitle": "Aufgabe erfolgreich gepostet",
+      "successRequestTitle": "Anfrage gesendet",
+      "successPublicDesc": "Sie haben Ihre {category}-Aufgabe erfolgreich auf dem Marktplatz gepostet.",
+      "successRequestDesc": "Wir haben Ihre {category}-Anfrage mit {name} geteilt. Die Buchung ist erst bestätigt, wenn sie akzeptiert wird – wir halten Sie auf dem Laufenden.",
+      "kraftsCount": "{count} Krafts",
+      "scheduledDate": "Geplantes Datum",
+      "estimatedWindow": "Geschätztes Zeitfenster",
+      "serviceAddress": "Service-Adresse",
+      "pricing": "Preise",
+      "hourlyRate": "Stundensatz",
+      "platformFee": "Plattformgebühr",
+      "totalFromBooking": "Gesamt (aus der Buchung)",
+      "finalChargesNotice": "Endgültige Gebühren von Kraftigo werden hier angezeigt, sobald die Buchung auf dem Server vollständig bepreist ist.",
+      "serviceArea": "Servicebereich",
+      "whatsNext": "Was kommt als Nächstes?",
+      "nextArrive": "Der Krafter wird zur vereinbarten Zeit ankommen",
+      "nextChat": "Sie können jederzeit mit ihnen chatten, um Zugangsinformationen oder Details zu teilen",
+      "nextGuarantee": "Sie sind durch die Zufriedenheitsgarantie von Kraftigo geschützt",
+      "messageKrafter": "Krafter kontaktieren",
+      "goBackHome": "Zurück zur Startseite",
+      "loading": "Wird geladen..."
+    },
+    "activeJob": {
+      "paymentAuthRequiredTitle": "Ihr Krafter hat akzeptiert — Zahlungsautorisierung erforderlich",
+      "paymentAuthRequiredDesc": "Bestätigen Sie unten, um eine Kartenreservierung vorzunehmen und diese Buchung in den bestätigten Status zu überführen (endgültige Bestätigung folgt nach der Stripe-Verarbeitung).",
+      "chooseKrafterDesc": "Wählen Sie einen Krafter, um Ihre Anfrage zu senden und die Buchung fortzusetzen.",
+      "jobLocation": "Einsatzort",
+      "serviceArea": "Servicebereich",
+      "kraftDetails": "Kraft-Details",
+      "priceBreakdown": "Preisaufschlüsselung",
+      "noPricingDetails": "Noch keine Preisdetails.",
+      "total": "Gesamt",
+      "confirmPaymentBtn": "Zahlung bestätigen",
+      "paymentConfirmedBtn": "Zahlung bestätigt",
+      "chooseKrafterBtn": "Einen Krafter wählen",
+      "rescheduleBtn": "Verschieben",
+      "acceptScheduleBtn": "Akzeptieren & Planen",
+      "reopenTaskBtn": "Aufgabe erneut öffnen",
+      "reportIssueBtn": "Problem melden",
+      "cancelKraftBtn": "Kraft stornieren"
+    },
+    "completedJob": {
+      "completed": "Abgeschlossen",
+      "hours": "Stunden",
+      "minutes": "Minuten",
+      "seconds": "Sekunden",
+      "jobLocation": "Einsatzort",
+      "serviceArea": "Servicebereich",
+      "kraftDetails": "Kraft-Details",
+      "noDetails": "Keine zusätzlichen Details angegeben.",
+      "priceBreakdown": "Preisaufschlüsselung",
+      "noPricingDetails": "Keine Preisdetails verfügbar.",
+      "totalPaid": "Insgesamt bezahlt",
+      "reviewSubmitted": "Bewertung abgegeben",
+      "rateName": "{name} bewerten",
+      "reportName": "{name} melden"
+    }
+  },
+  "reschedule": {
+    "title": "Termin verschieben",
+    "subtitle": "Möchten Sie Datum oder Uhrzeit ändern?",
+    "description": "Bitte wählen Sie Ihren neuen Wunschtermin für diesen Kraft.",
+    "selectDate": "Neues Datum wählen",
+    "selectTime": "Neue Uhrzeit wählen",
+    "policyTitle": "Richtlinie zur Terminverschiebung",
+    "policyDesc": "Bei einer Verschiebung innerhalb von 24 Stunden vor dem Termin kann eine Gebühr von 9,99 € anfallen.",
+    "learnMore": "Mehr erfahren",
+    "oldDate": "Altes Datum",
+    "newDate": "Neuer vorgeschlagener Termin",
+    "processing": "Wird verarbeitet...",
+    "confirm": "Verschiebung bestätigen",
+    "success": "Erfolgreich verschoben!",
+    "failed": "Verschiebung fehlgeschlagen",
+    "fallbackTitle": "Verschieben",
+    "modalSubtitle": "Wählen Sie ein neues Datum und eine neue Uhrzeit für diesen Kraft.",
+    "currentAppointment": "Aktueller Termin",
+    "selectTimeLabel": "Uhrzeit wählen",
+    "timeTooSoon": "Wählen Sie eine Zeit, die mindestens 30 Minuten in der Zukunft liegt."
+  },
+  "modals": {
+    "address": {
+      "errorNotSelected": "Bitte wählen Sie eine Adresse aus den Vorschlägen.",
+      "title": "Adressen",
+      "saved": "Gespeicherte Adressen",
+      "remove": "Adresse entfernen",
+      "noSaved": "Noch keine gespeicherten Adressen. Fügen Sie Ihre erste Adresse hinzu oder nutzen Sie Ihren aktuellen Standort.",
+      "addNewBtn": "neu hinzufügen",
+      "currentLocationTitle": "Aktueller Standort",
+      "useCurrentLocation": "Aktuellen Standort verwenden",
+      "done": "Fertig",
+      "addNewTitle": "Neue Adresse hinzufügen",
+      "nameLabel": "Diese Adresse benennen (Optional)",
+      "namePlaceholder": "Mein Büro",
+      "searchLabel": "Nach Gebiet, Straßenname suchen",
+      "searchPlaceholder": "Beispielstraße 123",
+      "or": "oder",
+      "cancel": "Abbrechen"
+    },
+    "cancel": {
+      "title": "Kraft Stornierung",
+      "subtitle": "Sind Sie sicher, dass Sie stornieren möchten?",
+      "description": "Bitte bestätigen Sie die Details der Buchung, die Sie stornieren möchten.",
+      "reasonTitle": "Grund für die Stornierung",
+      "reasons": {
+        "scheduleConflict": "Terminkonflikt",
+        "noLongerNeed": "Ich benötige den Service nicht mehr",
+        "foundDifferent": "Anderen Krafter gefunden",
+        "other": "Sonstiges"
+      },
+      "tellUsMore": "Bitte erzählen Sie uns mehr",
+      "describeReason": "Beschreiben Sie Ihren Grund (erforderlich)",
+      "policyTitle": "Stornierungsbedingungen",
+      "policyDesc": "Bei Stornierungen innerhalb von 24 Stunden vor dem Termin kann gemäß den Richtlinien eine Gebühr anfallen.",
+      "cancelling": "Wird storniert…",
+      "confirm": "Stornierung bestätigen",
+      "keepBooking": "Buchung behalten"
+    },
+    "payment": {
+      "errors": {
+        "manualConfirmation": "Dieser PaymentIntent verwendet noch die manuelle Stripe-Bestätigung (ältere Reservierung). Neue Reservierungen verwenden automatische Bestätigung im Browser; versuchen Sie es nach einem neuen Checkout erneut oder kontaktieren Sie den Support.",
+        "paymentFailed": "Zahlung konnte nicht abgeschlossen werden",
+        "cardNotReady": "Kartenfeld ist noch nicht bereit. Bitte warten Sie einen Moment.",
+        "nameRequired": "Bitte geben Sie den Namen auf der Karte ein",
+        "stripeKeysMismatch": "Stripe-Schlüssel stimmen nicht überein. Der Publishable-Key Ihrer App muss aus demselben Stripe-Konto (und Test-/Live-Modus) stammen wie der Secret-Key der API.",
+        "cardSetupFailed": "Karten-Setup fehlgeschlagen",
+        "noMethodId": "Zahlungsmethode-ID konnte nicht abgerufen werden"
+      },
+      "success": {
+        "paymentAuthorized": "Zahlung autorisiert. Ihre Buchung wird in Kürze aktualisiert.",
+        "cardSaved": "Karte erfolgreich gespeichert!",
+        "methodRemoved": "Zahlungsmethode entfernt"
+      },
+      "pending": {
+        "paymentPending": "Zahlung ist noch ausstehend. Aktualisieren Sie Ihre Krafts-Liste in Kürze."
+      },
+      "info": {
+        "singleUseCardInfo": "Diese Karte wird nur für diese Zahlung verwendet. Sie ersetzt nicht Ihre gespeicherten Karten, es sei denn, Sie fügen sie später in den Zahlungseinstellungen hinzu.",
+        "connecting": "Verbindung zu Stripe wird hergestellt…",
+        "securedByStripe": "Gesichert durch Stripe",
+        "selectSavedCard": "Wählen Sie eine gespeicherte Karte, um die Zahlungsreservierung für diese Buchung zu bestätigen.",
+        "noSavedCards": "Keine Zahlungsmethoden gespeichert."
+      },
+      "labels": {
+        "nameOnCard": "Name auf der Karte",
+        "fullName": "Vollständiger Name",
+        "cardDetails": "Kartendetails",
+        "savedCards": "Gespeicherte Karten"
+      },
+      "buttons": {
+        "addNew": "+ neu hinzufügen",
+        "saveCard": "Karte speichern",
+        "removeCard": "Karte entfernen",
+        "confirmPayment": "Zahlung bestätigen",
+        "confirmWithNew": "Mit neuer Karte bestätigen",
+        "newCard": "Neue Karte",
+        "confirmHold": "Reservierung für Buchung bestätigen",
+        "payWithNew": "Mit neuer Karte bezahlen",
+        "cancel": "Abbrechen",
+        "addPaymentMethod": "Zahlungsmethode hinzufügen",
+        "paymentMethodsTitle": "Zahlungsmethoden",
+        "confirmBookingHold": "Buchungsreservierung bestätigen",
+        "remove": "Entfernen"
+      }
+    },
+    "authPrompt": {
+      "title": "Anmeldung erforderlich",
+      "description": "Erstellen Sie ein Konto oder melden Sie sich an, um diese Aktion durchzuführen und auf alle Funktionen von Kraftigo zuzugreifen.",
+      "signUpNow": "Jetzt registrieren",
+      "login": "Sie haben bereits ein Konto? Anmelden"
+    },
+    "finishProfile": {
+      "title": "Profil vervollständigen",
+      "subtitle": "Sie haben bereits {completedPercentage}% geschafft! Schließen Sie diese Schritte ab, um Aufträge anzunehmen",
+      "steps": {
+        "eligibility": {
+          "label": "Fügen Sie Ihre Arbeitsberechtigung hinzu",
+          "sublabel": "Erzählen Sie ihnen von Ihrer Expertise"
+        },
+        "identity": {
+          "label": "Rechtsdokument hinzufügen",
+          "sublabel": "Lassen Sie Kunden Sie besser kennenlernen"
+        },
+        "personal": {
+          "label": "Persönliche Daten hinzufügen",
+          "sublabel": "Lassen Sie Kunden Sie besser kennenlernen"
+        },
+        "skills": {
+          "label": "Fügen Sie Ihre Fähigkeiten Ihrem Profil hinzu",
+          "sublabel": "Zeigen Sie Benutzern, woran Sie gearbeitet haben"
+        }
+      },
+      "status": {
+        "completed": "Abgeschlossen",
+        "waiting": "Warten auf Genehmigung"
+      }
+    }
+  },
+  "categories": {
+    "title": "Kategorien",
+    "search": "Suchen",
+    "loading": "Kategorien werden geladen...",
+    "noCategories": "Keine Kategorien gefunden",
+    "cantFind": "Nicht gefunden, was Sie suchen?",
+    "requestCustom": "Eine individuelle Anfrage stellen",
+    "details": {
+      "loading": "Wird geladen...",
+      "notFound": "Kategorie nicht gefunden",
+      "back": "Zurück zu Kategorien",
+      "servicesAvailable": "{count} Services verfügbar",
+      "expertsAvailable": "Experten verfügbar",
+      "selectService": "Wählen Sie eine Serviceart",
+      "loadingServices": "Services werden geladen...",
+      "byArtisan": "von {name}",
+      "pricePerHour": "€{price}/Std",
+      "noServices": "In dieser Kategorie sind noch keine Services verfügbar",
+      "checkBack": "Schauen Sie bald wieder vorbei oder stellen Sie eine individuelle Anfrage"
+    }
+  },
+  "publicTask": {
+    "krafter": "Krafter",
+    "back": "Zurück",
+    "budget": "Budget",
+    "offerPricingType": "Preisart für Angebot",
+    "pricingType": {
+      "FLAT": "PAUSCHAL",
+      "HOURLY": "STÜNDLICH"
+    },
+    "offerAmount": "Angebotsbetrag",
+    "estimatedDuration": "Geschätzte Dauer (Stunden)",
+    "durationPlaceholder": "z.B. 2",
+    "openToNegotiation": "Verhandelbar",
+    "kraftExpiry": "Ablauf der Anfrage",
+    "expiryOptions": {
+      "24h": "24 Std",
+      "3days": "3 Tage",
+      "1week": "1 Woche",
+      "custom": "Benutzerdefiniert"
+    },
+    "expiresOn": "Läuft ab am (Ortszeit)",
+    "krafterRequirement": "Krafter-Anforderung",
+    "requirementOptions": {
+      "any": "Beliebig"
+    },
+    "verifiedOnly": "Nur Verifizierte",
+    "reviewAndPost": "Überprüfen und öffentlich posten",
+    "errors": {
+      "invalidAmount": "Geben Sie einen gültigen numerischen Angebotsbetrag ein.",
+      "hourlyError": "Für STÜNDLICHE Preisgestaltung: {error}"
+    }
+  },
+  "shared": {
+    "datePicker": {
+      "chooseDate": "Datum wählen",
+      "done": "Fertig",
+      "weekDays": {
+        "mo": "Mo",
+        "tu": "Di",
+        "we": "Mi",
+        "th": "Do",
+        "fr": "Fr",
+        "sa": "Sa",
+        "su": "So"
+      },
+      "months": {
+        "january": "Januar",
+        "february": "Februar",
+        "march": "März",
+        "april": "April",
+        "may": "Mai",
+        "june": "Juni",
+        "july": "Juli",
+        "august": "August",
+        "september": "September",
+        "october": "Oktober",
+        "november": "November",
+        "december": "Dezember"
+      }
+    },
+    "timePicker": {
+      "chooseTime": "Uhrzeit wählen",
+      "done": "Fertig"
+    }
+  }
+}

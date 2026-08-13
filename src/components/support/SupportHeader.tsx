@@ -3,6 +3,7 @@ import { ArrowLeft, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 import toast from "react-hot-toast";
+import { useTranslations } from "next-intl";
 
 const avatars = [
   "/images/pro.jpg",
@@ -15,6 +16,7 @@ const avatars = [
 const SupportHeader = () => {
   const router = useRouter();
   const { logout } = useAuthStore();
+  const t = useTranslations("support");
 
   const handleLogout = async () => {
     try {
@@ -53,7 +55,7 @@ const SupportHeader = () => {
       </div>
       
       <h1 className="text-[36px] font-gerat font-extrabold leading-[1.2] text-[#1D2939] max-w-[300px]">
-        Hello, how <br /> can we help?
+        {t("title1")} <br /> {t("title2")}
       </h1>
     </div>
   );

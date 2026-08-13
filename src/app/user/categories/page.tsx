@@ -6,6 +6,8 @@ import { useState, useEffect } from "react";
 import { useServicesStore } from "@/store/useServicesStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useAuthPromptStore } from "@/store/useAuthPromptStore";
+import { useTranslations, useLocale } from "next-intl";
+import { useTranslateContent } from "@/hooks/useTranslateContent";
 import { buildCategoryBookingUrl } from "@/constants/betaLaunch";
 
 const Page = () => {
@@ -14,7 +16,13 @@ const Page = () => {
   const { isAuthenticated } = useAuthStore();
   const { openPrompt } = useAuthPromptStore();
   const { categories, isLoading, error, fetchCategories } = useServicesStore();
-  
+  const t = useTranslations("categories");
+  const locale = useLocale();
+
+  // Extract names to translate
+  const categoryNames = categories.map((c) => c.name);
+  const { translatedTexts: translatedNames } = useTranslateContent(categoryNames, locale);
+
   const handleProtectedAction = (path: string) => {
     if (!isAuthenticated) openPrompt();
     else router.push(path);
@@ -24,9 +32,10 @@ const Page = () => {
     fetchCategories();
   }, [fetchCategories]);
 
-  const filteredCategories = categories.filter((category) =>
-    category.name.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  const filteredCategories = categories.filter((c, index) => {
+    const translatedName = translatedNames[index] || c.name;
+    return translatedName.toLowerCase().includes(searchQuery.toLowerCase());
+  });
 
   const handleCategoryClick = (categoryId: string, categoryName: string) => {
     router.push(buildCategoryBookingUrl(categoryId, categoryName));
@@ -50,7 +59,7 @@ const Page = () => {
         </button>
 
         <h1 className="text-[28px] sm:text-[32px] font-gerat font-bold text-gray-900 mb-6">
-          Categories
+          {t("title")}
         </h1>
 
         {/* Search Bar */}
@@ -60,7 +69,7 @@ const Page = () => {
           </div>
           <input
             type="text"
-            placeholder="Search"
+            placeholder={t("search")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-12 pr-4 py-3 bg-[#F6F6F6] border border-[#0000001A] rounded-xl text-[15px] sm:text-[16px] font-poppins text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-orange focus:bg-white transition-all"
@@ -72,7 +81,7 @@ const Page = () => {
           {isLoading ? (
             <div className="py-8 text-center">
               <p className="text-[15px] font-poppins text-gray-500">
-                Loading categories...
+                {t("loading")}
               </p>
             </div>
           ) : error ? (
@@ -95,7 +104,7 @@ const Page = () => {
                     </div>
                   )}
                   <span className="text-[16px] sm:text-[17px] font-poppins text-gray-900 group-hover:text-brand-orange transition-colors">
-                    {category.name}
+                    {translatedNames[categories.findIndex(cat => cat.id === category.id)] || category.name}
                   </span>
                 </div>
                 <ChevronRight
@@ -107,7 +116,7 @@ const Page = () => {
           ) : (
             <div className="py-8 text-center">
               <p className="text-[15px] font-poppins text-gray-500">
-                No categories found
+                {t("noCategories")}
               </p>
             </div>
           )}
@@ -116,13 +125,13 @@ const Page = () => {
         {/* Bottom Section */}
         <div className="mt-12 text-center">
           <p className="text-[14px] sm:text-[15px] font-poppins text-gray-600 mb-2">
-            Cant find what you need?
+            {t("cantFind")}
           </p>
           <button
             onClick={handleCustomKraft}
             className="text-[16px] sm:text-[17px] font-poppins font-bold text-brand-orange hover:underline"
           >
-            Request A Custom Kraft
+            {t("requestCustom")}
           </button>
         </div>
       </div>

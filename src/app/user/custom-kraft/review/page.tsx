@@ -12,6 +12,7 @@ import Input from "@/components/ui/input";
 import { useCustomKraftsStore } from "@/store/useCustomKraftsStore";
 import { useAddressStore } from "@/store/useAddressStore";
 import { useServicesStore } from "@/store/useServicesStore";
+import { useTranslations } from "next-intl";
 import {
   isSavedPaymentMethodRequiredError,
   SAVED_PAYMENT_METHOD_REQUIRED_TOAST,
@@ -31,6 +32,9 @@ const Page = () => {
   const { categories, fetchCategories } = useServicesStore();
   const { savedMethods, selectedPaymentId, selectPayment, fetchSavedMethods } =
     usePaymentStore();
+  const t = useTranslations("customKraft");
+  const td = useTranslations("customKraft.reviewStep");
+  const tn = useTranslations("customKraft.nav");
 
   // ─── Resolve human-readable labels from IDs ─────────────────────────────
   const resolvedCategory =
@@ -125,7 +129,7 @@ const Page = () => {
         </button>
 
         <h1 className="text-[24px] sm:text-[28px] font-gerat font-bold text-gray-900 mb-6">
-          Request A Custom Kraft
+          {t("requestACustomKraft")}
         </h1>
 
         <ProgressStepper currentStep={4} />
@@ -152,7 +156,7 @@ const Page = () => {
         {/* ── Kraft Details ── */}
         <section className="mb-6">
           <h2 className="text-[18px] font-poppins font-semibold text-gray-900 mb-3">
-            Kraft Details
+            {td("kraftDetails")}
           </h2>
 
           {/* Photos */}
@@ -185,12 +189,12 @@ const Page = () => {
         {/* Price Breakdown */}
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 border-t border-[#0000001A]">
           <h3 className="text-[18px] sm:text-[20px] font-poppins font-semibold mb-4">
-            Price Breakdown
+            {td("priceBreakdown")}
           </h3>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-[13px] sm:text-[14px] font-poppins text-gray-700">
-                Offer Amount
+                {td("offerAmount")}
               </span>
               <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900">
                 €{offerAmount.toFixed(2)}
@@ -198,7 +202,7 @@ const Page = () => {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-[13px] sm:text-[14px] font-poppins text-gray-700">
-                Service fee
+                {td("serviceFee")}
               </span>
               <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900">
                 €{SERVICE_FEE.toFixed(2)}
@@ -207,7 +211,7 @@ const Page = () => {
             {boostFee > 0 && (
               <div className="flex items-center justify-between">
                 <span className="text-[13px] sm:text-[14px] font-poppins text-gray-700">
-                  Urgent Boost
+                  {td("urgentBoost", { fallback: "Urgent Boost" })}
                 </span>
                 <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900">
                   €{boostFee.toFixed(2)}
@@ -217,7 +221,7 @@ const Page = () => {
             {promoApplied && (
               <div className="flex items-center justify-between">
                 <span className="text-[13px] sm:text-[14px] font-poppins text-[#4CAF50]">
-                  Promo ({promoCode})
+                  {td("promo")} ({promoCode})
                 </span>
                 <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-[#4CAF50]">
                   −€{promoDiscount.toFixed(2)}
@@ -226,7 +230,7 @@ const Page = () => {
             )}
             <div className="pt-3 border-t border-[#0000001A] flex items-center justify-between">
               <span className="text-[15px] sm:text-[16px] font-poppins font-bold text-gray-900">
-                Total Amount
+                {td("totalAmount")}
               </span>
               <span className="text-[16px] sm:text-[18px] font-poppins font-bold text-gray-900">
                 €{total.toFixed(2)}
@@ -239,13 +243,13 @@ const Page = () => {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 -mt-8">
           <div className="flex items-center gap-1 relative">
             <Input
-              placeholder="Promo Code"
+              placeholder={td("promo")}
               value={promoCode}
               onChange={setPromoCode}
               className="flex-1"
             />
             <button className="absolute right-2 top-1/2 mt-1 transform -translate-y-1/2 px-6 py-2 bg-[#FFE5D9] text-brand-orange text-[14px] sm:text-[15px] font-poppins font-semibold rounded-lg hover:bg-[#FFD5C2] transition-colors">
-              Apply
+              {td("apply")}
             </button>
           </div>
         </div>
@@ -253,21 +257,21 @@ const Page = () => {
         {/* Payment Options */}
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 border-t border-[#0000001A]">
           <h3 className="text-[18px] sm:text-[20px] font-poppins font-semibold mb-4">
-            Payment Options
+            {td("paymentOptions")}
           </h3>
 
           {!savedMethods.length ? (
             // No Payment Methods State
             <div className="space-y-4 py-5">
               <p className="text-[13px] sm:text-[14px] font-poppins text-gray-500 text-center py-4">
-                You do not have any saved payment methods
+                {td("noSavedMethods")}
               </p>
               <button
                 onClick={handleAddPayment}
                 className="w-full py-3 bg-blue-600 text-white text-[15px] sm:text-[16px] font-poppins font-semibold rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
               >
                 <span className="text-xl">+</span>
-                Add new
+                {td("addNew")}
               </button>
             </div>
           ) : (
@@ -369,7 +373,7 @@ const Page = () => {
                           }}
                           className="font-poppins font-bold text-[13px] text-brand-orange hover:text-orange-600 transition-colors"
                         >
-                          Change
+                          {td("change")}
                         </button>
                       </div>
                     )}
@@ -382,7 +386,7 @@ const Page = () => {
                 className="w-full py-3 border-2 border-dashed border-gray-300 text-gray-600 text-[15px] sm:text-[16px] font-poppins font-semibold rounded-lg hover:border-brand-orange hover:text-brand-orange transition-colors flex items-center justify-center gap-2"
               >
                 <span className="text-xl">+</span>
-                Add new payment method
+                {td("addNewPaymentMethod")}
               </button>
             </div>
           )}
@@ -392,18 +396,14 @@ const Page = () => {
       {/* ── Sticky Footer ── */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#0000001A] px-4 py-4 pb-safe max-w-4xl mx-auto">
         <p className="text-[11px] font-poppins text-gray-500 text-center mb-3">
-          By clicking &apos;Confirm &amp; Pay&apos;, you agree to
-          Krafitgo&apos;s{" "}
-          <span className="underline cursor-pointer">Terms of Service</span> and{" "}
-          <span className="underline cursor-pointer">Privacy Policy</span>.
-          Payments are processed securely.
+          {td("termsPrivacyText")}
         </p>
         <button
           onClick={handleConfirmAndPay}
           disabled={isSubmitting}
           className="w-full py-4 bg-brand-orange text-white text-[16px] font-poppins font-semibold rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-60"
         >
-          {isSubmitting ? "Publishing…" : `Confirm & Pay €${total.toFixed(2)}`}
+          {isSubmitting ? td("publishing") : `${td("confirmAndPay")} €${total.toFixed(2)}`}
         </button>
       </div>
       {showPaymentModal && (

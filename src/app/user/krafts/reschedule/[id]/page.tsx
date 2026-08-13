@@ -8,6 +8,7 @@ import Button from "@/components/ui/button";
 import { useBookingsStore } from "@/store/useBookingsStore";
 import type { Booking } from "@/types";
 import toast from "react-hot-toast";
+import { useTranslations } from "next-intl";
 
 const ReschedulePage = () => {
   const router = useRouter();
@@ -16,6 +17,8 @@ const ReschedulePage = () => {
   
   const { bookings, updateBooking, isLoading } = useBookingsStore();
   const booking = bookings.find(b => b.id === bookingId);
+  const t = useTranslations("reschedule");
+  const tShared = useTranslations("shared.datePicker");
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date(2026, 1, 24)); 
@@ -30,8 +33,29 @@ const ReschedulePage = () => {
   }, [booking]);
 
   // Calendar logic
-  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-  const weekDays = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
+  const monthNames = [
+    tShared("months.january"),
+    tShared("months.february"),
+    tShared("months.march"),
+    tShared("months.april"),
+    tShared("months.may"),
+    tShared("months.june"),
+    tShared("months.july"),
+    tShared("months.august"),
+    tShared("months.september"),
+    tShared("months.october"),
+    tShared("months.november"),
+    tShared("months.december"),
+  ];
+  const weekDays = [
+    tShared("weekDays.mo"),
+    tShared("weekDays.tu"),
+    tShared("weekDays.we"),
+    tShared("weekDays.th"),
+    tShared("weekDays.fr"),
+    tShared("weekDays.sa"),
+    tShared("weekDays.su"),
+  ];
 
   const getDaysInMonth = (date: Date) => {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
@@ -92,10 +116,10 @@ const ReschedulePage = () => {
       try {
           const dateStr = formatDate(selectedDate);
           await updateBooking(bookingId, { scheduled_date: dateStr, scheduled_time: selectedTime });
-          toast.success("Successfully rescheduled!");
+          toast.success(t("success"));
           router.push("/user/krafts");
       } catch (error: any) {
-          toast.error(error.message || "Failed to reschedule");
+          toast.error(error.message || t("failed"));
       }
   };
 
@@ -120,7 +144,7 @@ const ReschedulePage = () => {
           <ArrowLeft className="w-6 h-6 text-[#1D2939]" />
         </button>
         <span className="text-[20px] font-gerat font-bold text-[#1D2939]">
-          {booking?.service?.title || "Reschedule"}
+          {booking?.service?.title || t("fallbackTitle")}
         </span>
         <button onClick={() => router.push("/user/krafts")} className="hover:opacity-70 p-2">
           <X className="w-6 h-6 text-[#1D2939]" strokeWidth={1.5} />
@@ -129,16 +153,16 @@ const ReschedulePage = () => {
 
       <div className="px-4 py-8 max-w-lg mx-auto pb-32">
         <div className="flex items-center justify-between mb-2">
-            <h1 className="text-[24px] font-gerat font-bold text-[#1D2939]">Reschedule Appointment</h1>
+            <h1 className="text-[24px] font-gerat font-bold text-[#1D2939]">{t("title")}</h1>
         </div>
-        <p className="text-[14px] font-poppins text-[#667085] mb-1">Need to change the date or time?</p>
+        <p className="text-[14px] font-poppins text-[#667085] mb-1">{t("subtitle")}</p>
         <p className="text-[14px] font-poppins text-[#667085] mb-8 leading-tight">
-            Please select your preferred new schedule for this kraft.
+            {t("description")}
         </p>
 
         {/* Date Selection */}
         <div className="mb-8">
-            <h2 className="text-[16px] font-poppins font-bold text-[#1D2939] mb-4">Select new date</h2>
+            <h2 className="text-[16px] font-poppins font-bold text-[#1D2939] mb-4">{t("selectDate")}</h2>
             
             <div className="bg-white rounded-2xl">
                 {/* Month Nav */}
@@ -170,7 +194,7 @@ const ReschedulePage = () => {
 
         {/* Time Selection */}
         <div className="mb-8">
-            <h2 className="text-[16px] font-poppins font-bold text-[#1D2939] mb-4">Select new Time</h2>
+            <h2 className="text-[16px] font-poppins font-bold text-[#1D2939] mb-4">{t("selectTime")}</h2>
             <div className="relative">
                 <button 
                     onClick={() => setShowTimePicker(!showTimePicker)}
@@ -207,9 +231,9 @@ const ReschedulePage = () => {
             <div className="flex gap-3">
                 <AlertCircle className="w-5 h-5 text-[#FF6600] shrink-0" />
                 <div className="space-y-1">
-                    <p className="text-[14px] font-poppins font-bold text-[#FF6600]">Reschedule Policy</p>
+                    <p className="text-[14px] font-poppins font-bold text-[#FF6600]">{t("policyTitle")}</p>
                     <p className="text-[13px] font-poppins text-[#FF6600] leading-tight">
-                        Rescheduling 24 hours of the agreed time may incur a €9.99 late notice fee. <span className="underline cursor-pointer">Learn more</span>
+                        {t("policyDesc")} <span className="underline cursor-pointer">{t("learnMore")}</span>
                     </p>
                 </div>
             </div>
@@ -218,7 +242,7 @@ const ReschedulePage = () => {
         {/* Comparison Cards */}
         <div className="grid grid-cols-2 gap-4 mb-8">
             <div className="bg-[#F9FAFB] p-4 rounded-2xl border border-[#00000008]">
-                <p className="text-[11px] font-poppins text-[#98A2B3] mb-2">Old Date</p>
+                <p className="text-[11px] font-poppins text-[#98A2B3] mb-2">{t("oldDate")}</p>
                 <div className="flex items-center gap-2">
                     <div className="p-1.5 bg-white rounded-md shadow-sm">
                          <CalendarIcon size={16} className="text-red-500" />
@@ -229,7 +253,7 @@ const ReschedulePage = () => {
                 </div>
             </div>
             <div className="bg-[#FFF9F6] p-4 rounded-2xl border border-[#FF660015]">
-                <p className="text-[11px] font-poppins text-[#FF660060] mb-2">New Proposed Date</p>
+                <p className="text-[11px] font-poppins text-[#FF660060] mb-2">{t("newDate")}</p>
                 <div className="flex items-center gap-2">
                     <div className="p-1.5 bg-white rounded-md shadow-sm">
                          <CalendarIcon size={16} className="text-red-500" />
@@ -247,7 +271,7 @@ const ReschedulePage = () => {
             disabled={isLoading}
             className="w-full bg-brand-orange text-white py-4 rounded-xl text-[16px] font-poppins font-bold hover:bg-orange-600 transition-colors shadow-lg shadow-orange-200 disabled:opacity-50"
         >
-            {isLoading ? "Processing..." : "Confirm reschedule"}
+            {isLoading ? t("processing") : t("confirm")}
         </button>
       </div>
 

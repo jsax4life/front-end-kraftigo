@@ -13,6 +13,7 @@ import {
   validateDurationHours,
   DURATION_HOURS_MIN,
 } from "@/lib/durationHours";
+import { useTranslations } from "next-intl";
 
 const Page = () => {
   const router = useRouter();
@@ -26,6 +27,9 @@ const Page = () => {
   const offerPricingType =
     searchParams.get("offerPricingType") === "HOURLY" ? "HOURLY" : "FLAT";
   const shouldShowEstimatedHours = !isPublic || offerPricingType === "HOURLY";
+
+  const tn = useTranslations("booking.nav");
+  const td = useTranslations("booking.verifyDetailsStep");
 
   // Artisan details passed from selection step
   const artisanName = searchParams.get("artisanName") || "";
@@ -81,10 +85,10 @@ const Page = () => {
   };
 
   const frequencyOptions = [
-    { id: "just-once", label: "Just Once" },
-    { id: "weekly", label: "Weekly" },
-    { id: "every-2-weeks", label: "Every 2 weeks" },
-    { id: "monthly", label: "Monthly" },
+    { id: "just-once", label: td("freqJustOnce") },
+    { id: "weekly", label: td("freqWeekly") },
+    { id: "every-2-weeks", label: td("freqEvery2Weeks") },
+    { id: "monthly", label: td("freqMonthly") },
   ];
 
   return (
@@ -103,7 +107,7 @@ const Page = () => {
               <Check size={20} className="text-white" />
             </span>
             <span className="w-fit px-3 py-2.5 text-xs sm:text-sm bg-brand-orange text-white rounded-full flex items-center justify-center cursor-pointer hover:bg-orange-600 transition-colors">
-              Verify
+              {td("verifyLabel")}
             </span>
             <span className="w-9 h-9 bg-white font-bold rounded-full text-[#00000066] flex items-center justify-center text-sm">
               5
@@ -113,11 +117,11 @@ const Page = () => {
             className="text-brand-orange text-[14px] sm:text-[16px] font-poppins font-semibold"
             onClick={() => router.back()}
           >
-            Back
+            {td("back")}
           </button>
         </div>
         <h2 className="text-[18px] sm:text-[20px] font-poppins font-semibold px-4 sm:px-0 max-w-4xl mx-auto">
-          Verify Your Details
+          {td("verifyYourDetails")}
         </h2>
       </div>
 
@@ -174,11 +178,11 @@ const Page = () => {
       {/* Kraft Details */}
       <div className="max-w-4xl mx-auto px-4 sm:px-0 py-8 border-t border-[#0000001A]">
         <h3 className="text-[18px] sm:text-[20px] font-poppins font-semibold mb-3">
-          Kraft Details
+          {td("kraftDetails")}
         </h3>
         <div className="bg-[#F6F6F6] rounded-lg p-4 border border-[#0000001A]">
           <p className="text-[13px] sm:text-[14px] text-gray-700 font-poppins leading-relaxed">
-            {taskDetails || "No task details provided"}
+            {taskDetails || td("noTaskDetails")}
           </p>
         </div>
       </div>
@@ -187,10 +191,10 @@ const Page = () => {
       {shouldShowEstimatedHours && (
         <div className="max-w-4xl mx-auto px-4 sm:px-0 py-6 border-t border-[#0000001A]">
           <h3 className="text-[18px] sm:text-[20px] font-poppins font-semibold mb-3">
-            Estimated hours
+            {td("estimatedHours")}
           </h3>
           <p className="text-[13px] sm:text-[14px] text-gray-700 font-poppins mb-4">
-            How many hours do you want to book
+            {td("howManyHours")}
           </p>
           <div className="flex items-center justify-center gap-4 mb-4">
             <button
@@ -213,7 +217,7 @@ const Page = () => {
           {!isPublic && pricePerHour > 0 && (
             <div className="text-center">
               <p className="text-[13px] sm:text-[14px] text-gray-600 font-poppins mb-1">
-                You will be charged
+                {td("youWillBeCharged")}
               </p>
               <div className="inline-block bg-[#FF66001A] px-6 py-2 rounded-full">
                 <span className="text-brand-orange text-[18px] sm:text-[20px] font-poppins font-bold">
@@ -228,10 +232,10 @@ const Page = () => {
       {/* Frequency */}
       <div className="max-w-4xl mx-auto px-4 sm:px-0 pt-6 pb-20 border-t border-[#0000001A]">
         <h3 className="text-[18px] sm:text-[20px] font-poppins font-semibold mb-3">
-          Frequency
+          {td("frequency")}
         </h3>
         <p className="text-[13px] sm:text-[14px] text-gray-700 font-poppins mb-4">
-          How often do you want this service
+          {td("howOften")}
         </p>
         <div className="space-y-3">
           {frequencyOptions.map((option) => (
@@ -266,7 +270,7 @@ const Page = () => {
             onClick={handleNext}
             className="text-[16px] sm:text-[17px]"
           >
-            Next
+            {tn("next")}
           </Button>
         </div>
       </div>

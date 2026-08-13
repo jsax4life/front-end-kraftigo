@@ -7,6 +7,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { useAuthPromptStore } from "@/store/useAuthPromptStore";
 import { useProfileStore } from "@/store/useProfileStore";
 import { getVerificationWire } from "@/lib/api/verification";
+import { useTranslations } from "next-intl";
 
 const UserNav = () => {
   const router = useRouter();
@@ -14,6 +15,7 @@ const UserNav = () => {
   const { isAuthenticated } = useAuthStore();
   const { openPrompt } = useAuthPromptStore();
   const { verificationStatus, fetchVerificationStatus } = useProfileStore();
+  const t = useTranslations("navigation");
 
   // Keep status fresh so Profile tab can route correctly.
   React.useEffect(() => {
@@ -22,31 +24,36 @@ const UserNav = () => {
 
   const navItems = [
     {
-      name: "Home",
+      id: "home",
+      name: t("home"),
       icon: "/home.svg",
       activeIcon: "/home.svg",
       path: "/",
     },
     {
-      name: "Krafts",
+      id: "krafts",
+      name: t("krafts"),
       icon: "/task.svg",
       activeIcon: "/task.svg",
       path: "/user/krafts",
     },
     {
-      name: "Chat",
+      id: "chat",
+      name: t("chat"),
       icon: "/chat.svg",
       activeIcon: "/chat.svg",
       path: "/user/chat",
     },
     {
-      name: "Support",
+      id: "support",
+      name: t("support"),
       icon: "/sopport.svg",
       activeIcon: "/sopport.svg",
       path: "/user/support",
     },
     {
-      name: "Profile",
+      id: "profile",
+      name: t("profile"),
       icon: "/taskerpro.svg",
       activeIcon: "/taskerpro.svg",
       path: "/user/profile",
@@ -110,7 +117,7 @@ const UserNav = () => {
                   className="object-contain"
                 />
                 {/* Red notification dot for Chat */}
-                {item.name === "Chat" && (
+                {item.id === "chat" && (
                   <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></div>
                 )}
               </div>

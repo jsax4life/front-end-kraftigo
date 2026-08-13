@@ -18,6 +18,7 @@ import {
 import { isPaymentIntentClientSecret } from "@/lib/bookingPaymentCheckout";
 import type { SavedPaymentMethod } from "@/lib/api/payments";
 import { usePaymentStore } from "@/store/usePaymentStore";
+import { useTranslations } from "next-intl";
 
 const NEW_CARD_CHOICE = "__new__";
 
@@ -60,9 +61,7 @@ async function runConfirmCardPayment(
   if (error) {
     const msg = error.message ?? "";
     if (msg.includes("confirmation_method") && msg.includes("manual")) {
-      toast.error(
-        "This PaymentIntent still uses Stripe manual confirmation (older hold). New holds use automatic confirmation in the browser; retry after a fresh checkout or contact support.",
-      );
+      toast.error("This PaymentIntent still uses Stripe manual confirmation (older hold). New holds use automatic confirmation in the browser; retry after a fresh checkout or contact support.");
       return false;
     }
     toast.error(msg || "Payment could not be completed");
@@ -78,9 +77,7 @@ async function runConfirmCardPayment(
     toast.success("Payment authorized. Your booking will update in a moment.");
     return true;
   }
-  toast.error(
-    "Payment is still pending. Refresh your Krafts list in a moment.",
-  );
+  toast.error("Payment is still pending. Refresh your Krafts list in a moment.");
   return true;
 }
 
@@ -96,6 +93,7 @@ function NewCardFields({
 }) {
   const stripe = useStripe();
   const elements = useElements();
+  const t = useTranslations("modals.payment");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [elementReady, setElementReady] = useState(false);
   const [nameOnCard, setNameOnCard] = useState("");
@@ -108,11 +106,11 @@ function NewCardFields({
     if (!stripe || !elements) return;
     const card = elements.getElement(CardElement);
     if (!card) {
-      toast.error("Card field is not ready yet.");
+      toast.error(t("errors.cardNotReady"));
       return;
     }
     if (!nameOnCard.trim()) {
-      toast.error("Please enter the name on card");
+      toast.error(t("errors.nameRequired"));
       return;
     }
     setIsSubmitting(true);
@@ -132,21 +130,20 @@ function NewCardFields({
   return (
     <div className="space-y-4">
       <p className="text-[13px] font-poppins text-gray-600">
-        This card is only used for this payment. It does not replace your saved
-        cards unless you add it in payment settings later.
+        {t("info.singleUseCardInfo")}
       </p>
       {!stripe && (
         <p className="text-[12px] font-poppins text-gray-500">
-          Connecting to Stripe…
+          {t("info.connecting")}
         </p>
       )}
       <div>
         <label className="block text-[14px] font-poppins font-bold text-gray-900 mb-2">
-          Name on card
+          {t("labels.nameOnCard")}
         </label>
         <input
           type="text"
-          placeholder="Full name"
+          placeholder={t("labels.fullName")}
           value={nameOnCard}
           onChange={(e) => setNameOnCard(e.target.value)}
           className="w-full p-4 border border-gray-200 rounded-xl text-[14px] font-poppins outline-none placeholder:text-gray-400 focus:border-brand-orange bg-[#FAFAFA]"
@@ -154,7 +151,7 @@ function NewCardFields({
       </div>
       <div>
         <label className="block text-[14px] font-poppins font-bold text-gray-900 mb-2">
-          Card
+          {t("labels.cardDetails")}
         </label>
         {!elementReady && stripe && (
           <p className="text-[12px] font-poppins text-gray-500 mb-2">
@@ -178,9 +175,9 @@ function NewCardFields({
           />
         </div>
       </div>
-      <p className="text-[12px] font-poppins text-gray-400 flex items-center gap-1">
+      <p className="text-[12px] font-poppins text-gray-400 mt-4 flex items-center gap-1">
         <Lock size={12} />
-        Secured by Stripe
+        {t("info.securedByStripe")}
       </p>
       <button
         type="button"
@@ -206,6 +203,7 @@ function NewCardStandalone({
   onSuccess: () => void;
   onCancel: () => void;
 }) {
+  const t = useTranslations("modals.payment");
   return (
     <div className="relative bg-white w-full max-h-[90vh] rounded-t-2xl p-4 sm:p-6 pb-8 flex flex-col shadow-xl pointer-events-auto">
       <div className="flex items-center justify-between mb-4">
@@ -221,10 +219,11 @@ function NewCardStandalone({
           <X size={24} strokeWidth={3} />
         </button>
       </div>
-      <p className="text-[13px] font-poppins text-amber-900 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 mb-4">
-        No saved card on file. Add your card below to authorize this booking, or
-        save a card from your profile first.
-      </p>
+      {isPaymentIntentClientSecret(clientSecret) ? (
+        <p className="text-[14px] font-poppins text-amber-900 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 mb-4">
+          {t("info.selectSavedCard")}
+        </p>
+      ) : null}
       <NewCardFields
         clientSecret={clientSecret}
         returnUrl={returnUrl}
@@ -265,6 +264,7 @@ function SavedOrNewCheckout({
   onSuccess: () => void;
   onCancel: () => void;
 }) {
+  const t = useTranslations("modals.payment");
   const [choice, setChoice] = useState<string>(() =>
     resolveInitialSavedRowId(savedMethods, storeSelectedId),
   );
@@ -355,11 +355,11 @@ function SavedOrNewCheckout({
           <X size={24} strokeWidth={3} />
         </button>
       </div>
-      <p className="text-[13px] font-poppins text-gray-600 mb-4">
-        Authorize the hold for this booking. Use a saved card or enter a
-        different card if you prefer (for example if your saved card has no
-        available balance).
-      </p>
+      <div>
+        <h2 className="text-[20px] font-gerat font-bold text-black">
+          {t("buttons.confirmBookingHold")}
+        </h2>
+      </div>
 
       <fieldset className="space-y-2 mb-4">
         <legend className="sr-only">Payment method</legend>
@@ -399,7 +399,7 @@ function SavedOrNewCheckout({
             className="w-4 h-4 accent-brand-orange shrink-0"
           />
           <span className="text-[14px] font-poppins font-semibold text-gray-900">
-            Use a different card
+            {t("buttons.newCard")}
           </span>
         </label>
       </fieldset>
@@ -477,6 +477,7 @@ export default function BookingPaymentConfirmModal({
   onClose,
   onComplete,
 }: BookingPaymentConfirmModalProps) {
+  const t = useTranslations("modals.payment");
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);

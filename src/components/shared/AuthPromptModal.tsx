@@ -4,10 +4,12 @@ import { useAuthPromptStore } from "@/store/useAuthPromptStore";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import Button from "@/components/ui/button";
+import { useTranslations } from "next-intl";
 
 const AuthPromptModal = () => {
   const { isOpen, closePrompt } = useAuthPromptStore();
   const router = useRouter();
+  const t = useTranslations("modals.authPrompt");
 
   if (!isOpen) return null;
 
@@ -33,11 +35,11 @@ const AuthPromptModal = () => {
           </div>
           
           <h2 className="text-[22px] sm:text-[24px] font-gerat font-bold text-gray-900 mb-3 leading-tight">
-            Sign Up Required
+            {t("title")}
           </h2>
           
           <p className="text-[14px] sm:text-[15px] font-poppins text-gray-500 mb-8 px-2 leading-relaxed">
-            Create an account or login to perform this action and access all features of Kraftigo.
+            {t("description")}
           </p>
 
           <div className="space-y-4">
@@ -49,7 +51,7 @@ const AuthPromptModal = () => {
                 router.push("/user/createacc");
               }}
             >
-              Sign Up Now
+              {t("signUpNow")}
             </Button>
             
             <button
@@ -59,7 +61,7 @@ const AuthPromptModal = () => {
               }}
               className="text-[14px] sm:text-[15px] font-poppins text-brand-orange font-semibold hover:underline w-full py-2"
             >
-              Already have an account? Login
+              {t("login")}
             </button>
           </div>
         </div>

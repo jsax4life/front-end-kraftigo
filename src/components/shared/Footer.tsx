@@ -5,9 +5,11 @@ import Image from "next/image";
 import Link from "next/link";
 import {LegalModal} from "@/components/ui/LegalModal";
 import { PrivacyContent } from "@/components/ui/PrivacyContent";
+import { useTranslations } from "next-intl";
 
 const Footer = () => {
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const t = useTranslations("footer");
 
   return (
     <>
@@ -15,12 +17,12 @@ const Footer = () => {
         <ul className="flex text-[12px] items-center gap-4">
           <li>
             <Link href="/" className="hover:text-brand-orange transition-colors">
-              Home
+              {t("home")}
             </Link>
           </li>
           <li>
             <Link href="/user/support" className="hover:text-brand-orange transition-colors">
-              About Us
+              {t("aboutUs")}
             </Link>
           </li>
           <li>
@@ -28,12 +30,12 @@ const Footer = () => {
               onClick={() => setShowPrivacyModal(true)}
               className="hover:text-brand-orange transition-colors"
             >
-              Privacy Policy
+              {t("privacyPolicy")}
             </button>
           </li>
           <li>
             <Link href="/user/support" className="hover:text-brand-orange transition-colors">
-              Contact Us
+              {t("contactUs")}
             </Link>
           </li>
         </ul>

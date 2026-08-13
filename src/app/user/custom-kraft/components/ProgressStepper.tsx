@@ -1,13 +1,17 @@
+import { useTranslations } from "next-intl";
+
 interface ProgressStepperProps {
   currentStep: 1 | 2 | 3 | 4;
 }
 
 const ProgressStepper = ({ currentStep }: ProgressStepperProps) => {
+  const t = useTranslations("customKraft.stepper");
+
   const steps = [
-    { number: 1, label: "Description" },
-    { number: 2, label: "Details" },
-    { number: 3, label: "Budget" },
-    { number: 4, label: "Review" },
+    { number: 1, label: t("description") },
+    { number: 2, label: t("details") },
+    { number: 3, label: t("budget") },
+    { number: 4, label: t("review") },
   ];
 
   return (

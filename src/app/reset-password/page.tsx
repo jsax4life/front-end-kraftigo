@@ -12,11 +12,13 @@ import PasswordStrength from "@/components/ui/PasswordStrength";
 import { AUTH_CONFIG } from "@/constants/auth";
 import { logger } from "@/utils/logger";
 import toast from "react-hot-toast";
+import { useTranslations } from "next-intl";
 
 const ResetPasswordContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
+  const t = useTranslations("auth.resetPassword");
 
   const { isLoading, resetPassword } = useAuthStore();
   const [formData, setFormData] = useState({
@@ -80,17 +82,17 @@ const ResetPasswordContent = () => {
           <div className="flex-1 overflow-y-auto mt-3">
             <div className="space-y-6">
               <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-4">
-                Secure Your Account
+                {t("title")}
               </h1>
               <p className="text-[14px] font-poppins text-gray-600 mb-8">
-                Create a strong new password to protect your information and privacy
+                {t("desc")}
               </p>
 
               {/* Password Input */}
               <Input
-                label="New Password"
+                label={t("newPasswordLabel")}
                 type="password"
-                placeholder="Enter your new password"
+                placeholder={t("newPasswordPlaceholder")}
                 value={formData.password}
                 onChange={(value) => handleInputChange("password", value)}
               />
@@ -98,9 +100,9 @@ const ResetPasswordContent = () => {
 
               {/* Confirm Password Input */}
               <Input
-                label="Confirm New Password"
+                label={t("confirmPasswordLabel")}
                 type="password"
-                placeholder="Confirm your new password"
+                placeholder={t("confirmPasswordPlaceholder")}
                 value={formData.confirmPassword}
                 onChange={(value) => handleInputChange("confirmPassword", value)}
               />
@@ -114,7 +116,7 @@ const ResetPasswordContent = () => {
               fullWidth
               disabled={!isValid()}
             >
-              Reset Password
+              {t("resetButton")}
             </Button>
           </div>
         </div>

@@ -6,6 +6,8 @@ import Image from "next/image";
 import { useEffect, useMemo } from "react";
 import { useServicesStore } from "@/store/useServicesStore";
 import type { ServiceCategory } from "@/types";
+import { useTranslations, useLocale } from "next-intl";
+import { useTranslateContent } from "@/hooks/useTranslateContent";
 import {
   BETA_UNAVAILABLE_ROUTE,
   buildCategoryBookingUrl,
@@ -16,6 +18,8 @@ const Page = () => {
   const router = useRouter();
   const params = useParams();
   const slug = params.slug as string;
+  const t = useTranslations("categories.details");
+  const locale = useLocale();
   
   const { services = [], categories = [], isLoading, error, fetchServices, fetchCategories } = useServicesStore();
 
@@ -25,6 +29,22 @@ const Page = () => {
       cat.slug === slug || cat.id === slug
     );
   }, [slug, categories]);
+
+  const { translatedTexts: translatedCategoryName } = useTranslateContent(
+    currentCategory ? [currentCategory.name] : [],
+    locale
+  );
+
+  const serviceStringsToTranslate = useMemo(() => {
+    const titles = services.map(s => s.title);
+    const descs = services.map(s => s.description || "");
+    return [...titles, ...descs];
+  }, [services]);
+
+  const { translatedTexts: translatedServices } = useTranslateContent(
+    serviceStringsToTranslate,
+    locale
+  );
 
   useEffect(() => {
     // Fetch categories if not already loaded
@@ -72,7 +92,7 @@ const Page = () => {
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
           <p className="text-[15px] font-poppins text-gray-500">
-            Loading...
+            {t("loading")}
           </p>
         </div>
       </div>
@@ -83,12 +103,12 @@ const Page = () => {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Category not found</h1>
+          <h1 className="text-2xl font-bold mb-4">{t("notFound")}</h1>
           <button
             onClick={() => router.push("/user/categories")}
             className="text-brand-orange hover:underline"
           >
-            Back to Categories
+            {t("back")}
           </button>
         </div>
       </div>
@@ -132,13 +152,13 @@ const Page = () => {
           {/* Badge */}
           <div className="mb-3">
             <span className="bg-[#6B46C1] text-white text-[11px] sm:text-[12px] font-poppins font-semibold px-3 py-1.5">
-              {services.length > 0 ? `${services.length} Services Available` : 'Experts Available'}
+              {services.length > 0 ? t("servicesAvailable", { count: services.length }) : t("expertsAvailable")}
             </span>
           </div>
 
           {/* Title */}
           <h1 className="text-[32px] sm:text-[40px] lg:text-[48px] font-gerat font-bold text-white leading-tight mb-4">
-            {currentCategory?.name}
+            {translatedCategoryName[0] || currentCategory?.name}
           </h1>
 
          
@@ -148,7 +168,7 @@ const Page = () => {
       {/* Service Types Section */}
       <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-4xl mx-auto">
         <h2 className="text-[20px] sm:text-[22px] font-poppins font-semibold text-gray-900 mb-4">
-          Select a service type
+          {t("selectService")}
         </h2>
 
         {/* Service Cards */}
@@ -156,7 +176,7 @@ const Page = () => {
           {isLoading ? (
             <div className="py-8 text-center">
               <p className="text-[15px] font-poppins text-gray-500">
-                Loading services...
+                {t("loadingServices")}
               </p>
             </div>
           ) : error ? (
@@ -190,18 +210,18 @@ const Page = () => {
                 {/* Content */}
                 <div className="flex-1 text-left">
                   <h3 className="text-[16px] sm:text-[17px] font-poppins font-bold text-gray-900 mb-1">
-                    {service.title}
+                    {translatedServices[services.findIndex(s => s.id === service.id)] || service.title}
                   </h3>
                   <p className="text-[13px] sm:text-[14px] font-poppins text-gray-600 mb-1 line-clamp-2">
-                    {service.description}
+                    {translatedServices[services.length + services.findIndex(s => s.id === service.id)] || service.description}
                   </p>
                   <div className="flex items-center gap-2">
                     <p className="text-[13px] sm:text-[14px] font-poppins font-semibold text-brand-orange bg-[#FF66001A] px-3 py-1 rounded-full w-fit">
-                      ${service.price_per_hour}/hr
+                      {t("pricePerHour", { price: service.price_per_hour })}
                     </p>
                     {service.artisan && (
                       <p className="text-[12px] font-poppins text-gray-500">
-                        by {service.artisan.fullName}
+                        {t("byArtisan", { name: service.artisan.fullName })}
                       </p>
                     )}
                   </div>
@@ -217,10 +237,10 @@ const Page = () => {
           ) : (
             <div className="py-8 text-center">
               <p className="text-[15px] font-poppins text-gray-500 mb-2">
-                No services available in this category yet
+                {t("noServices")}
               </p>
               <p className="text-[13px] font-poppins text-gray-400">
-                Check back soon or request a custom kraft
+                {t("checkBack")}
               </p>
             </div>
           )}

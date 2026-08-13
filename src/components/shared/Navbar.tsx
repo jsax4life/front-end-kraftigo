@@ -6,10 +6,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { X } from "lucide-react";
 import Userabt from "./userabt";
+import { useTranslations } from "next-intl";
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
+  const t = useTranslations("navigation");
 
   useEffect(() => {
     if (isMenuOpen) {
@@ -33,11 +35,11 @@ const Navbar = () => {
   }, [isMenuOpen]);
 
   const menuItems = [
-    { label: "Home", icon: "/home.svg", href: "/" },
-    { label: "Krafts", icon: "/task.svg", href: "/user/krafts" },
-    { label: "Chat", icon: "/chat.svg", href: "/user/chat" },
-    { label: "Support", icon: "/sopport.svg", href: "/user/support" },
-    { label: "Profile", icon: "/taskerpro.svg", href: "/user/profile" },
+    { label: t("home"), icon: "/home.svg", href: "/" },
+    { label: t("krafts"), icon: "/task.svg", href: "/user/krafts" },
+    { label: t("chat"), icon: "/chat.svg", href: "/user/chat" },
+    { label: t("support"), icon: "/sopport.svg", href: "/user/support" },
+    { label: t("profile"), icon: "/taskerpro.svg", href: "/user/profile" },
   ];
 
   return (

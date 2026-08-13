@@ -13,6 +13,7 @@ import {
   minScheduleTimeInputForToday,
 } from "@/utils/date";
 import TimePickerModal, { formatTime12h } from "@/components/shared/TimePickerModal";
+import { useTranslations } from "next-intl";
 
 interface RescheduleModalProps {
   booking: {
@@ -26,12 +27,6 @@ interface RescheduleModalProps {
   onConfirm: (newDateYmd: string, newTime24: string) => void;
 }
 
-const DAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
-const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
-
 const generateCalendar = (year: number, month: number) => {
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -42,6 +37,32 @@ const generateCalendar = (year: number, month: number) => {
 };
 
 const RescheduleModal = ({ booking, onClose, onConfirm }: RescheduleModalProps) => {
+  const t = useTranslations("reschedule");
+  const tShared = useTranslations("shared.datePicker");
+  
+  const DAYS = [
+    tShared("weekDays.mo"),
+    tShared("weekDays.tu"),
+    tShared("weekDays.we"),
+    tShared("weekDays.th"),
+    tShared("weekDays.fr"),
+    tShared("weekDays.sa"),
+    tShared("weekDays.su"),
+  ];
+  const MONTHS = [
+    tShared("months.january"),
+    tShared("months.february"),
+    tShared("months.march"),
+    tShared("months.april"),
+    tShared("months.may"),
+    tShared("months.june"),
+    tShared("months.july"),
+    tShared("months.august"),
+    tShared("months.september"),
+    tShared("months.october"),
+    tShared("months.november"),
+    tShared("months.december"),
+  ];
   const today = useMemo(() => new Date(), []);
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
@@ -96,7 +117,7 @@ const RescheduleModal = ({ booking, onClose, onConfirm }: RescheduleModalProps) 
   const handleConfirm = () => {
     if (!selectedDay || !selectedDate) return;
     if (isDateTimeTooSoon(selectedDate, selectedTime)) {
-      toast.error("Choose a time at least 30 minutes from now.");
+      toast.error(t("timeTooSoon"));
       return;
     }
     onConfirm(formatLocalDateYmd(selectedDate), selectedTime);
@@ -123,10 +144,10 @@ const RescheduleModal = ({ booking, onClose, onConfirm }: RescheduleModalProps) 
         <div className="flex items-start justify-between px-5 pt-4 pb-3 shrink-0">
           <div>
             <h2 id="reschedule-modal-title" className="text-[20px] font-gerat font-bold text-black">
-              Reschedule Appointment
+              {t("title")}
             </h2>
             <p className="text-[12px] font-poppins text-gray-500 mt-0.5">
-              Pick a new date and time for this Kraft.
+              {t("modalSubtitle")}
             </p>
           </div>
           <button type="button" onClick={onClose} className="text-gray-400 mt-1" aria-label="Close">
@@ -136,7 +157,7 @@ const RescheduleModal = ({ booking, onClose, onConfirm }: RescheduleModalProps) 
 
         <div className="flex-1 overflow-y-auto px-5 pb-6">
           <p className="text-[12px] font-poppins font-semibold text-black mb-2">
-            Current Appointment
+            {t("currentAppointment")}
           </p>
           <div className="flex items-center gap-3 bg-gray-50 rounded-2xl p-3 mb-5">
             <Image
@@ -160,7 +181,7 @@ const RescheduleModal = ({ booking, onClose, onConfirm }: RescheduleModalProps) 
           </div>
 
           <p className="text-[13px] font-poppins font-semibold text-black mb-3">
-            Select new date
+            {t("selectDate")}
           </p>
 
           <div className="grid grid-cols-7 mb-1">
@@ -215,7 +236,7 @@ const RescheduleModal = ({ booking, onClose, onConfirm }: RescheduleModalProps) 
           </div>
 
           <p className="text-[13px] font-poppins font-semibold text-black mb-2">
-            Select new time
+            {t("selectTime")}
           </p>
           <button 
             type="button"
@@ -224,7 +245,7 @@ const RescheduleModal = ({ booking, onClose, onConfirm }: RescheduleModalProps) 
           >
             <Clock size={16} className="text-gray-400 shrink-0" />
             <span className="flex-1 text-[14px] font-poppins text-gray-700">
-              {formatTime12h(selectedTime) || "Select a time"}
+              {formatTime12h(selectedTime) || t("selectTimeLabel")}
             </span>
           </button>
 
@@ -232,23 +253,23 @@ const RescheduleModal = ({ booking, onClose, onConfirm }: RescheduleModalProps) 
             <AlertCircle size={16} className="text-brand-orange shrink-0 mt-0.5" />
             <div>
               <p className="text-[12px] font-poppins font-semibold text-brand-orange mb-0.5">
-                Reschedule Policy
+                {t("policyTitle")}
               </p>
               <p className="text-[11px] font-poppins text-orange-500">
-                Rescheduling within 24 hours of the agreed time may incur a €9.99 late notice fee.
+                {t("policyDesc")}
               </p>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3 mb-5">
             <div className="bg-gray-50 rounded-xl p-3">
-              <p className="text-[10px] font-poppins text-gray-400 mb-1">Old Date</p>
+              <p className="text-[10px] font-poppins text-gray-400 mb-1">{t("oldDate")}</p>
               <div className="flex items-center gap-1.5 text-[12px] font-poppins text-gray-600">
                 <span>{booking.date}, {booking.time}</span>
               </div>
             </div>
             <div className="bg-orange-50 rounded-xl p-3">
-              <p className="text-[10px] font-poppins text-brand-orange mb-1">New Proposed Date</p>
+              <p className="text-[10px] font-poppins text-brand-orange mb-1">{t("newDate")}</p>
               <div className="flex items-center gap-1.5 text-[12px] font-poppins text-brand-orange">
                 <span>{newDateLabel}</span>
               </div>
@@ -265,7 +286,7 @@ const RescheduleModal = ({ booking, onClose, onConfirm }: RescheduleModalProps) 
                 : "bg-gray-100 text-gray-400 cursor-not-allowed"
             }`}
           >
-            Confirm reschedule
+            {t("confirm")}
           </button>
         </div>
       </div>
@@ -276,7 +297,7 @@ const RescheduleModal = ({ booking, onClose, onConfirm }: RescheduleModalProps) 
         selectedTime={selectedTime}
         onSelectTime={(time) => {
           if (selectedDate && isSelectedToday && time && isDateTimeTooSoon(selectedDate, time)) {
-            toast.error("Pick a time at least 30 minutes from now.");
+            toast.error(t("timeTooSoon"));
             setSelectedTime(minTimeToday);
           } else {
             setSelectedTime(time);

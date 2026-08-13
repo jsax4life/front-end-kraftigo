@@ -6,9 +6,11 @@ import Input from "@/components/ui/input";
 import Button from "@/components/ui/button";
 import toast from "react-hot-toast";
 import Header from "@/components/shared/Header";
-import { useAuthStore } from "@/store/useAuthStore";
+import { useAuthStore } from "@/store/useAuthStore"
 import { AUTH_CONFIG } from "@/constants/auth";
 import { isGoogleOnlyAccount } from "@/lib/googleAuth";
+import { useTranslations } from "next-intl";
+
 
 const SecurityPage = () => {
   const router = useRouter();
@@ -19,105 +21,106 @@ const SecurityPage = () => {
     new: "",
     confirm: "",
   });
+  const t = useTranslations("profile.security");
 
   const handleUpdate = async () => {
     if (!passwords.current.trim()) {
-      toast.error("Enter your current password.");
+      toast.error(t("currentPasswordReq"));
       return;
     }
     if (passwords.new.length < AUTH_CONFIG.MIN_PASSWORD_LENGTH) {
-      toast.error(`New password must be at least ${AUTH_CONFIG.MIN_PASSWORD_LENGTH} characters.`);
+      toast.error(t("newPasswordMin", { min: AUTH_CONFIG.MIN_PASSWORD_LENGTH }));
       return;
     }
     if (passwords.new !== passwords.confirm) {
-      toast.error("Passwords do not match.");
+      toast.error(t("passwordMismatch"));
       return;
     }
     if (passwords.new === passwords.current) {
-      toast.error("New password must be different from your current password.");
+      toast.error(t("newPasswordSame"));
       return;
     }
 
     try {
       const message = await changePassword(passwords.current, passwords.new);
-      toast.success(message || "Your password has been updated. Please sign in again with your new password.");
+      toast.success(message || t("passwordUpdated"));
       router.replace(isTasker() ? "/tasker/login" : "/user/login");
     } catch (error: unknown) {
       const ax = error as { response?: { data?: { message?: string } } };
       const msg = ax.response?.data?.message;
-      toast.error(Array.isArray(msg) ? msg.join(", ") : msg || "Could not update password.");
+      toast.error(Array.isArray(msg) ? msg.join(", ") : msg || t("passwordUpdateError"));
     }
   };
 
   return (
     <main className="min-h-screen bg-[#F9FAFB] flex flex-col">
-      <Header title="Security" showLogout={false} />
+      <Header title={t("title")} showLogout={false} />
 
       <div className="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-10">
           <h2 className="text-[32px] font-gerat font-[850] text-[#1D2939] leading-tight">
-            Security
+            {t("title")}
           </h2>
           <p className="text-[14px] text-[#667085] font-poppins mt-2">
-            Manage your account security and password
+            {t("desc")}
           </p>
         </div>
 
         <div className="bg-white p-6 rounded-2xl border border-[#F2F4F7] shadow-sm mb-10">
           <h3 className="text-[12px] font-poppins font-bold text-[#98A2B3] uppercase tracking-widest mb-6">
-            Change Password
+            {t("changePassword")}
           </h3>
           {googleOnly ? (
             <div className="space-y-4">
               <p className="text-[14px] font-poppins text-[#667085] leading-relaxed">
-                Your account uses Google sign-in and does not have a password yet. Use{" "}
+                {t("googleSignInMsg")}{" "}
                 <button
                   type="button"
                   onClick={() => router.push("/user/forgot-password")}
                   className="text-brand-blue font-semibold underline"
                 >
-                  Forgot password
+                  {t("forgotPassword")}
                 </button>{" "}
-                to set one if you want email/password login as well.
+                {t("googleSignInMsgEnd")}
               </p>
             </div>
           ) : (
-          <>
-          <div className="space-y-6">
-            <Input
-              label="Current password"
-              type="password"
-              value={passwords.current}
-              onChange={(val) => setPasswords({ ...passwords, current: val })}
-              placeholder="Enter current password"
-            />
-            <Input
-              label="New password"
-              type="password"
-              value={passwords.new}
-              onChange={(val) => setPasswords({ ...passwords, new: val })}
-              placeholder="Enter new password"
-            />
-            <Input
-              label="Confirm password"
-              type="password"
-              value={passwords.confirm}
-              onChange={(val) => setPasswords({ ...passwords, confirm: val })}
-              placeholder="Confirm new password"
-            />
-          </div>
-          <div className="pt-8">
-            <Button variant="primary" fullWidth onClick={() => void handleUpdate()} disabled={isLoading}>
-              {isLoading ? "Updating…" : "Change Password"}
-            </Button>
-          </div>
-          </>
+            <>
+              <div className="space-y-6">
+                <Input
+                  label={t("currentPassword")}
+                  type="password"
+                  value={passwords.current}
+                  onChange={(val) => setPasswords({ ...passwords, current: val })}
+                  placeholder={t("enterCurrentPassword")}
+                />
+                <Input
+                  label={t("newPassword")}
+                  type="password"
+                  value={passwords.new}
+                  onChange={(val) => setPasswords({ ...passwords, new: val })}
+                  placeholder={t("enterNewPassword")}
+                />
+                <Input
+                  label={t("confirmPassword")}
+                  type="password"
+                  value={passwords.confirm}
+                  onChange={(val) => setPasswords({ ...passwords, confirm: val })}
+                  placeholder={t("enterConfirmPassword")}
+                />
+              </div>
+              <div className="pt-8">
+                <Button variant="primary" fullWidth onClick={() => void handleUpdate()} disabled={isLoading}>
+                  {isLoading ? t("updating") : t("changePassword")}
+                </Button>
+              </div>
+            </>
           )}
         </div>
 
         <div className="bg-white p-6 rounded-2xl border border-[#F2F4F7] shadow-sm">
           <h3 className="text-[12px] font-poppins font-bold text-[#98A2B3] uppercase tracking-widest mb-6">
-            Device History
+            {t("deviceHistory")}
           </h3>
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <div className="w-12 h-12 bg-gray-50 text-gray-300 rounded-xl flex items-center justify-center mb-3">
@@ -130,9 +133,9 @@ const SecurityPage = () => {
                 />
               </svg>
             </div>
-            <p className="text-[14px] font-poppins font-semibold text-[#98A2B3]">No device history available</p>
+            <p className="text-[14px] font-poppins font-semibold text-[#98A2B3]">{t("noDeviceHistory")}</p>
             <p className="text-[12px] font-poppins text-[#D0D5DD] mt-1">
-              Devices that access your account will appear here
+              {t("deviceHistoryDesc")}
             </p>
           </div>
         </div>

@@ -32,6 +32,7 @@ import {
   clearPendingEmailVerification,
 } from "@/lib/pendingEmailVerification";
 import { isEmailNotVerifiedError } from "@/lib/authApiErrors";
+import { useTranslations } from "next-intl";
 import { routeAfterAuthLogin } from "@/lib/postLoginRouting";
 import {
   getKrafterSignupIntent,
@@ -55,6 +56,8 @@ const Page = () => {
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [showWhyModal, setShowWhyModal] = useState(false);
   const [googleTermsAccepted, setGoogleTermsAccepted] = useState(false);
+  const t = useTranslations("auth.createAccount");
+  const tc = useTranslations("auth.common");
   const [isKrafterSignupFlow] = useState(() => {
     if (typeof window === "undefined") return false;
     syncKrafterSignupIntentFromSearchParams(
@@ -201,7 +204,7 @@ const Page = () => {
         setPendingEmailVerification(formData.email, {
         krafterSignupIntent: isKrafterSignupFlow,
       });
-        toast.error("This email is registered but not verified. Enter your verification code.");
+        toast.error(t("unverifiedEmailError"));
         setCurrentStep(4);
         return;
       }
@@ -230,7 +233,7 @@ const Page = () => {
               <ArrowLeft />
             </button>
             <span className="text-[14px] text-gray-500 font-poppins">
-              Step {currentStep} of {totalSteps}
+              {t("stepOf", { step: currentStep, total: totalSteps })}
             </span>
           </div>
 
@@ -241,40 +244,39 @@ const Page = () => {
               <div className="space-y-6">
                 <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-8">
                   {isKrafterSignupFlow
-                    ? "Create your Krafter account"
-                    : "Tell Us About You"}
+                    ? t("krafterSignupTitle")
+                    : t("step1Title")}
                 </h1>
                 {isKrafterSignupFlow ? (
                   <p className="text-[14px] font-poppins text-gray-600 -mt-4 mb-6">
-                    After verifying your email, you&apos;ll continue straight to Krafter
-                    registration.
+                    {t("krafterSignupDesc")}
                   </p>
                 ) : null}
 
                 <Input
-                  label="Enter Your First Name"
-                  placeholder="Enter First Name"
+                  label={t("firstNameLabel")}
+                  placeholder={t("firstNamePlaceholder")}
                   value={formData.firstName}
                   onChange={(value) => handleInputChange("firstName", value)}
                   required
                 />
                 <Input
-                  label="Enter Your Last Name"
-                  placeholder="Enter Last Name"
+                  label={t("lastNameLabel")}
+                  placeholder={t("lastNamePlaceholder")}
                   value={formData.lastName}
                   onChange={(value) => handleInputChange("lastName", value)}
                   required
                 />
                 <Input
-                  label="Email"
+                  label={tc("emailLabel")}
                   type="email"
-                  placeholder="Enter your email"
+                  placeholder={tc("emailPlaceholder")}
                   value={formData.email}
                   onChange={(value) => handleInputChange("email", value)}
                   required
                 />
                 <PhoneInput
-                  label="Phone Number"
+                  label={tc("phoneLabel")}
                   placeholder="000 000 0000"
                   value={formData.phone}
                   onChange={(value) => handleInputChange("phone", value)}
@@ -285,14 +287,14 @@ const Page = () => {
                 {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? (
                   <div className="pt-4 border-t border-gray-100 space-y-4">
                     <p className="text-center text-[14px] font-mabry text-gray-500">
-                      Or sign up with Google
+                      {t("orSignUpWithGoogle")}
                     </p>
                     <Checkbox
                       checked={googleTermsAccepted}
                       onChange={setGoogleTermsAccepted}
                       labelNode={
                         <span className="text-[13px] font-poppins text-gray-700 leading-relaxed">
-                          I agree to the{" "}
+                          {tc("iAgreeTo")}{" "}
                           <button
                             type="button"
                             onClick={(e) => {
@@ -301,9 +303,9 @@ const Page = () => {
                             }}
                             className="text-brand-blue underline font-semibold"
                           >
-                            Terms of Use
+                            {tc("termsOfUse")}
                           </button>{" "}
-                          and{" "}
+                          {tc("and")}{" "}
                           <button
                             type="button"
                             onClick={(e) => {
@@ -312,7 +314,7 @@ const Page = () => {
                             }}
                             className="text-brand-blue underline font-semibold"
                           >
-                            Privacy Policy
+                            {tc("privacyPolicy")}
                           </button>
                         </span>
                       }
@@ -330,22 +332,22 @@ const Page = () => {
             {currentStep === 2 && (
               <div className="space-y-6">
                 <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-8">
-                  Create Password
+                  {t("step2Title")}
                 </h1>
 
                 <Input
-                  label="Password"
+                  label={tc("passwordLabel")}
                   type="password"
-                  placeholder="Enter your password"
+                  placeholder={tc("passwordPlaceholder")}
                   value={formData.password}
                   onChange={(value) => handleInputChange("password", value)}
                   required
                 />
                 <PasswordStrength password={formData.password} />
                 <Input
-                  label="Confirm Password"
+                  label={t("confirmPasswordLabel")}
                   type="password"
-                  placeholder="Enter your confirm password"
+                  placeholder={t("confirmPasswordPlaceholder")}
                   value={formData.confirmPassword}
                   onChange={(value) =>
                     handleInputChange("confirmPassword", value)
@@ -359,18 +361,17 @@ const Page = () => {
             {currentStep === 3 && (
               <div className="space-y-6">
                 <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-3">
-                  Terms Of Use
+                  {t("step3Title")}
                 </h1>
                 <p className="text-[14px] font-poppins text-gray-600">
-                  By clicking, you agree to receive updates and newsletters
-                  about Kraftigo services & products
+                  {t("step3Desc")}
                 </p>
 
                 {/* Terms of Use Modal */}
                 <LegalModal
                   isOpen={showTermsModal}
                   onClose={() => setShowTermsModal(false)}
-                  title="Terms of Use"
+                  title={tc("termsOfUse")}
                 >
                   <TermsContent />
                 </LegalModal>
@@ -379,14 +380,14 @@ const Page = () => {
                 <LegalModal
                   isOpen={showPrivacyModal}
                   onClose={() => setShowPrivacyModal(false)}
-                  title="Privacy Policy"
+                  title={tc("privacyPolicy")}
                 >
                   <PrivacyContent />
                 </LegalModal>
               </div>
             )}
 
-            {/* Step 3: Email Verification */}
+            {/* Step 4: Email Verification */}
             {currentStep === 4 && (
               <EmailVerificationForm
                 email={formData.email}
@@ -400,8 +401,8 @@ const Page = () => {
                       await loginUser(formData.email, formData.password);
                       toast.success(
                         getKrafterSignupIntent()
-                          ? "Account created! Continue your Krafter registration."
-                          : "Registration complete! Welcome to Kraftigo.",
+                          ? t("krafterSignupSuccess")
+                          : t("registrationSuccess"),
                       );
                       await routeAfterAuthLogin(router);
                       return;
@@ -442,21 +443,17 @@ const Page = () => {
             )}
           </div>
 
-          {/* <button className="fixed bottom-40 right-4 sm:right-6 lg:right-8 w-14 h-14 bg-white rounded-full shadow-lg flex items-center justify-center text-xl font-bold border border-gray-200 hover:shadow-xl transition-shadow">
-            ?
-          </button> */}
-
           <div className="mt-auto space-y-4">
             {currentStep === 1 && (
               <div className="text-center text-[14px] font-poppins">
                 <span className="text-brand-orange">
-                  Already have an account?{" "}
+                  {t("alreadyHaveAccount")}{" "}
                 </span>
                 <button
                   onClick={() => router.push("/user/login")}
                   className="text-brand-blue font-semibold hover:underline"
                 >
-                  Sign In
+                  {tc("signIn")}
                 </button>
               </div>
             )}
@@ -467,7 +464,7 @@ const Page = () => {
                   className="text-gray-600"
                   onClick={() => setShowWhyModal(true)}
                 >
-                  Why do we collect this information?
+                  {t("whyCollect")}
                 </span>
               </div>
             )}
@@ -481,7 +478,7 @@ const Page = () => {
                   }
                   labelNode={
                     <span className="text-[14px] font-poppins text-gray-700 leading-relaxed">
-                      I agree to the{" "}
+                      {tc("iAgreeTo")}{" "}
                       <button
                         type="button"
                         onClick={(e) => {
@@ -491,9 +488,9 @@ const Page = () => {
                         }}
                         className="text-brand-blue underline underline-offset-2 font-semibold hover:opacity-75 transition-opacity"
                       >
-                        Terms of Use
+                        {tc("termsOfUse")}
                       </button>{" "}
-                      and{" "}
+                      {tc("and")}{" "}
                       <button
                         type="button"
                         onClick={(e) => {
@@ -503,7 +500,7 @@ const Page = () => {
                         }}
                         className="text-brand-blue underline underline-offset-2 font-semibold hover:opacity-75 transition-opacity"
                       >
-                        Privacy Policy
+                        {tc("privacyPolicy")}
                       </button>
                     </span>
                   }
@@ -519,7 +516,7 @@ const Page = () => {
                 fullWidth
                 disabled={!isStepValid()}
               >
-                {currentStep === totalSteps ? "Submit" : "Continue"}
+                {currentStep === totalSteps ? t("submit") : t("continue")}
               </Button>
             </div>
             )}

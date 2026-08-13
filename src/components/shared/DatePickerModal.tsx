@@ -3,6 +3,7 @@
 import { X, ChevronLeft, ChevronRight, Clock } from "lucide-react";
 import { useState } from "react";
 import Button from "@/components/ui/button";
+import { useTranslations } from "next-intl";
 
 interface DatePickerModalProps {
   isOpen: boolean;
@@ -25,23 +26,33 @@ const DatePickerModal = ({
     selectedDate ? selectedDate.getDate() : null,
   );
 
+  const t = useTranslations("shared.datePicker");
+
   if (!isOpen) return null;
 
-  const weekDays = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
+  const weekDays = [
+    t("weekDays.mo"),
+    t("weekDays.tu"),
+    t("weekDays.we"),
+    t("weekDays.th"),
+    t("weekDays.fr"),
+    t("weekDays.sa"),
+    t("weekDays.su"),
+  ];
 
   const monthNames = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
+    t("months.january"),
+    t("months.february"),
+    t("months.march"),
+    t("months.april"),
+    t("months.may"),
+    t("months.june"),
+    t("months.july"),
+    t("months.august"),
+    t("months.september"),
+    t("months.october"),
+    t("months.november"),
+    t("months.december"),
   ];
 
   const getDaysInMonth = (date: Date) => {
@@ -138,7 +149,7 @@ const DatePickerModal = ({
         {/* Header */}
         <div className="flex items-center justify-between p-5">
           <h2 className="text-[18px] sm:text-[20px] font-poppins font-bold text-gray-900">
-            Choose Date
+            {t("chooseDate")}
           </h2>
           <button
             onClick={onClose}
@@ -186,7 +197,7 @@ const DatePickerModal = ({
 
           {/* Done Button */}
           <Button variant="primary" fullWidth onClick={handleDone}>
-            Done
+            {t("done")}
           </Button>
         </div>
       </div>

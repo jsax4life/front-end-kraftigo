@@ -12,6 +12,7 @@ import {
   parseDurationHoursParam,
   validateDurationHours,
 } from "@/lib/durationHours";
+import { useTranslations } from "next-intl";
 
 function parsePublicOfferAmount(raw: string): number {
   const t = raw.trim().replace(/^[€$]\s?/, "").replace(/,/g, "");
@@ -66,15 +67,17 @@ const Page = () => {
   });
   const [fixedPriceListingError, setFixedPriceListingError] = useState<string | null>(null);
 
+  const t = useTranslations("publicTask");
+
   const timeSlots = [
-    { id: "24h", label: "24h" },
-    { id: "3days", label: "3 days" },
-    { id: "1week", label: "1 Week" },
-    { id: "custom", label: "Custom" },
+    { id: "24h", label: t("expiryOptions.24h") },
+    { id: "3days", label: t("expiryOptions.3days") },
+    { id: "1week", label: t("expiryOptions.1week") },
+    { id: "custom", label: t("expiryOptions.custom") },
   ];
 
   const requirements = [
-    { id: "any", label: "Any" },
+    { id: "any", label: t("requirementOptions.any") },
     { id: "3.0+", label: "3.0+" },
     { id: "4.0+", label: "4.0+" },
     { id: "4.5+", label: "4.5+" },
@@ -83,7 +86,7 @@ const Page = () => {
   const handleNext = () => {
     const parsedOffer = parsePublicOfferAmount(formData.amount);
     if (!Number.isFinite(parsedOffer) || parsedOffer <= 0) {
-      setFixedPriceListingError("Enter a valid numeric offer amount.");
+      setFixedPriceListingError(t("errors.invalidAmount"));
       return;
     }
     const err = fixedPriceWhenNegotiationOffError(formData.amount, formData.openToNegotiation);
@@ -95,7 +98,7 @@ const Page = () => {
       const dur = Number(formData.durationHours);
       const durErr = validateDurationHours(dur);
       if (durErr) {
-        setFixedPriceListingError(`For HOURLY pricing, ${durErr}`);
+        setFixedPriceListingError(t("errors.hourlyError", { error: durErr }));
         return;
       }
     }
@@ -133,7 +136,7 @@ const Page = () => {
               <Check size={20} className="text-white" />
             </span>
             <span className="w-fit px-3 py-2.5 text-xs sm:text-sm bg-brand-orange text-white rounded-full flex items-center justify-center cursor-pointer hover:bg-orange-600 transition-colors">
-              Krafter
+              {t("krafter")}
             </span>
             <span className="w-9 h-9 bg-white font-bold rounded-full text-[#00000066] flex items-center justify-center text-sm">
               4
@@ -146,7 +149,7 @@ const Page = () => {
             className="text-brand-orange text-[14px] sm:text-[16px] font-poppins font-semibold"
             onClick={() => router.back()}
           >
-            Back
+            {t("back")}
           </button>
         </div>
 
@@ -181,34 +184,34 @@ const Page = () => {
       <div className="max-w-4xl mx-auto ">
         <div className="p-4 sm:p-5 border-b border-[#0000001A]">
           <h2 className="text-[20px] sm:text-[22px] font-poppins font-semibold mb-3">
-            Budget
+            {t("budget")}
           </h2>
           <span className="text-[14px] sm:text-[15px] font-poppins text-gray-800 block mb-2">
-            Offer pricing type
+            {t("offerPricingType")}
           </span>
           <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-4">
-            {(["FLAT", "HOURLY"] as const).map((t) => (
+            {(["FLAT", "HOURLY"] as const).map((typeKey) => (
               <button
-                key={t}
+                key={typeKey}
                 type="button"
                 onClick={() =>
                   setFormData((prev) => ({
                     ...prev,
-                    offerPricingType: t,
+                    offerPricingType: typeKey,
                   }))
                 }
                 className={`py-3 rounded-xl text-[13px] sm:text-[14px] font-poppins font-medium transition-colors border ${
-                  formData.offerPricingType === t
+                  formData.offerPricingType === typeKey
                     ? "text-brand-orange border-brand-orange bg-[#FF66001A]"
                     : "bg-[#F6F6F6] text-gray-800 border-transparent hover:bg-gray-100"
                 }`}
               >
-                {t}
+                {t(`pricingType.${typeKey}`)}
               </button>
             ))}
           </div>
           <span className="text-[14px] sm:text-[15px] font-poppins text-gray-800 block mb-2">
-            Offer Amount
+            {t("offerAmount")}
           </span>
           <Input
             placeholder="€ 0.00"
@@ -232,10 +235,10 @@ const Page = () => {
           {formData.offerPricingType === "HOURLY" && (
             <>
               <span className="text-[14px] sm:text-[15px] font-poppins text-gray-800 block mb-2">
-                Estimated duration (hours)
+                {t("estimatedDuration")}
               </span>
               <Input
-                placeholder="e.g. 2"
+                placeholder={t("durationPlaceholder")}
                 value={formData.durationHours}
                 onChange={(value) =>
                   setFormData((prev) => ({
@@ -253,7 +256,7 @@ const Page = () => {
             <div className="flex items-center gap-1 px-1">
               <Image src="/neg.svg" alt="icon" width={18} height={18} />
               <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-800">
-                Open to negotiation
+                {t("openToNegotiation")}
               </span>
             </div>
             <button
@@ -296,7 +299,7 @@ const Page = () => {
         {/* Kraft Expiry */}
         <div className="p-4 sm:p-5 border-b border-[#0000001A]">
           <h2 className="text-[20px] sm:text-[22px] font-poppins font-semibold mb-3 pt-2">
-            Kraft Expiry
+            {t("kraftExpiry")}
           </h2>
           <div className="grid grid-cols-4 gap-2 sm:gap-3 pb-3">
             {timeSlots.map((time) => (
@@ -319,7 +322,7 @@ const Page = () => {
           {formData.selectedExpiry === "custom" && (
             <label className="block pt-2 pb-1">
               <span className="text-[12px] font-poppins text-gray-600 mb-1 block">
-                Expires on (local time)
+                {t("expiresOn")}
               </span>
               <input
                 type="datetime-local"
@@ -336,7 +339,7 @@ const Page = () => {
         {/* Krafter Requirement */}
         <div className="p-4 sm:p-5 border-b border-[#0000001A]">
           <h2 className="text-[20px] sm:text-[22px] font-poppins font-semibold mb-3 pt-3">
-            Krafter Requirement
+            {t("krafterRequirement")}
           </h2>
           <div className="grid grid-cols-4 gap-2 sm:gap-3 mb-4">
             {requirements.map((req) => (
@@ -361,7 +364,7 @@ const Page = () => {
             <div className="flex items-center gap-1 ">
               <Image src="/verified.svg" alt="icon" width={22} height={22} />
               <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-800">
-                Verified Only
+                {t("verifiedOnly")}
               </span>
             </div>
             <button
@@ -394,7 +397,7 @@ const Page = () => {
             onClick={handleNext}
             className="text-[16px] sm:text-[17px]"
           >
-            Review and post publicly
+            {t("reviewAndPost")}
           </Button>
         </div>
       </div>

@@ -13,6 +13,7 @@ import { findMyReviewForBooking, type MyReview } from "@/lib/reviewDisplay";
 import SubmittedReviewSummary from "@/components/shared/SubmittedReviewSummary";
 import { createDispute } from "@/lib/api/disputes";
 import { bookingArtisanName, deriveActiveJobDisplay } from "@/lib/bookingDisplay";
+import { useTranslations } from "next-intl";
 
 function bookingTimeField(booking: Record<string, unknown>, ...keys: string[]): string | null {
   for (const key of keys) {
@@ -86,6 +87,8 @@ const CompletedJobContent = () => {
   const [showKraftDetails, setShowKraftDetails] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [existingReview, setExistingReview] = useState<MyReview | null>(null);
+  
+  const td = useTranslations("booking.completedJob");
 
   useEffect(() => {
     if (bookingId) {
@@ -228,7 +231,7 @@ const CompletedJobContent = () => {
             </div>
           ))}
           <span className="bg-brand-orange/10 text-brand-orange text-[12px] font-poppins font-semibold px-3 py-1 rounded-full border border-brand-orange/30">
-            Completed
+            {td("completed")}
           </span>
         </div>
       </div>
@@ -236,7 +239,7 @@ const CompletedJobContent = () => {
       {/* Completed badge */}
       <div className="px-4 mb-4">
         <span className="bg-orange-50 text-brand-orange text-[12px] font-poppins font-semibold px-3 py-1 rounded-full border border-orange-200">
-          Completed
+          {td("completed")}
         </span>
       </div>
 
@@ -245,15 +248,15 @@ const CompletedJobContent = () => {
         <div className="flex items-end justify-center gap-6">
           <div className="text-center">
             <p className="text-[48px] font-gerat font-bold text-brand-blue leading-none">{pad(elapsed.h)}</p>
-            <p className="text-[12px] font-poppins text-gray-400 mt-1">Hours</p>
+            <p className="text-[12px] font-poppins text-gray-400 mt-1">{td("hours")}</p>
           </div>
           <div className="text-center">
             <p className="text-[48px] font-gerat font-bold text-brand-orange leading-none">{pad(elapsed.m)}</p>
-            <p className="text-[12px] font-poppins text-gray-400 mt-1">Minutes</p>
+            <p className="text-[12px] font-poppins text-gray-400 mt-1">{td("minutes")}</p>
           </div>
           <div className="text-center">
             <p className="text-[48px] font-gerat font-bold text-gray-700 leading-none">{pad(elapsed.s)}</p>
-            <p className="text-[12px] font-poppins text-gray-400 mt-1">Seconds</p>
+            <p className="text-[12px] font-poppins text-gray-400 mt-1">{td("seconds")}</p>
           </div>
         </div>
       </div>
@@ -265,7 +268,7 @@ const CompletedJobContent = () => {
           <p className="text-[12px] font-poppins text-gray-500 mb-1">{location}</p>
           <p className="text-[12px] font-poppins text-gray-500 mb-2">{dateStr}</p>
           <span className="bg-orange-50 text-brand-orange text-[11px] font-poppins font-semibold px-2.5 py-1 rounded-full border border-orange-200">
-            Completed
+            {td("completed")}
           </span>
         </div>
         <Image
@@ -280,14 +283,14 @@ const CompletedJobContent = () => {
       {/* Map */}
       <div className="mx-4 mb-4">
         <div className="flex items-center justify-between mb-2">
-          <p className="text-[14px] font-poppins font-semibold text-black">Job Location</p>
+          <p className="text-[14px] font-poppins font-semibold text-black">{td("jobLocation")}</p>
           <p className="text-[13px] font-poppins text-gray-500">{location}</p>
         </div>
         <div className="relative rounded-2xl overflow-hidden h-44 bg-gray-100">
           <Image src="/images/map.png" alt="map" fill className="object-cover" />
           <div className="absolute bottom-3 left-3">
             <span className="bg-brand-orange text-white text-[12px] font-poppins font-semibold px-3 py-1.5 rounded-full shadow">
-              Service Area
+              {td("serviceArea")}
             </span>
           </div>
         </div>
@@ -299,12 +302,12 @@ const CompletedJobContent = () => {
           onClick={() => setShowKraftDetails(!showKraftDetails)}
           className="w-full flex items-center justify-between py-4 border-b border-gray-100"
         >
-          <span className="text-[15px] font-poppins font-semibold text-black">Kraft Details</span>
+          <span className="text-[15px] font-poppins font-semibold text-black">{td("kraftDetails")}</span>
           <ChevronRight size={18} className={`text-gray-400 transition-transform ${showKraftDetails ? "rotate-90" : ""}`} />
         </button>
         {showKraftDetails && (
           <p className="text-[13px] font-poppins text-gray-600 py-3 leading-relaxed">
-            {booking?.notes ?? "No additional details provided."}
+            {booking?.notes ?? td("noDetails")}
           </p>
         )}
       </div>
@@ -315,13 +318,13 @@ const CompletedJobContent = () => {
           onClick={() => setShowPriceBreakdown(!showPriceBreakdown)}
           className="w-full flex items-center justify-between py-4 border-b border-gray-100"
         >
-          <span className="text-[15px] font-poppins font-semibold text-black">Price Breakdown</span>
+          <span className="text-[15px] font-poppins font-semibold text-black">{td("priceBreakdown")}</span>
           <ChevronRight size={18} className={`text-gray-400 transition-transform ${showPriceBreakdown ? "rotate-90" : ""}`} />
         </button>
         {showPriceBreakdown && (
           <div className="py-3 space-y-2">
             {resolvedPriceRows.length === 0 ? (
-              <p className="text-[13px] font-poppins text-gray-500">No pricing details available.</p>
+              <p className="text-[13px] font-poppins text-gray-500">{td("noPricingDetails")}</p>
             ) : (
               resolvedPriceRows.map((row) => (
                 <div key={row.key} className="flex justify-between text-[13px] font-poppins text-gray-600">
@@ -332,7 +335,7 @@ const CompletedJobContent = () => {
             )}
             {resolvedTotal != null && (
               <div className="flex justify-between text-[14px] font-poppins font-bold text-black border-t border-gray-100 pt-2 mt-2">
-                <span>Total Paid</span>
+                <span>{td("totalPaid")}</span>
                 <span>€{resolvedTotal.toFixed(2)}</span>
               </div>
             )}
@@ -354,14 +357,14 @@ const CompletedJobContent = () => {
             disabled={!!existingReview}
             className="w-full py-4 bg-brand-blue text-white rounded-2xl text-[15px] font-poppins font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {existingReview ? "Review submitted" : `Rate ${artisanName}`}
+            {existingReview ? td("reviewSubmitted") : td("rateName", { name: artisanName })}
           </button>
         )}
         <button
           onClick={handleReport}
           className="w-full py-4 bg-red-50 text-red-500 rounded-2xl text-[15px] font-poppins font-semibold border border-red-100 hover:bg-red-100 transition-colors"
         >
-          Report {artisanName}
+          {td("reportName", { name: artisanName })}
         </button>
       </div>
 

@@ -13,7 +13,7 @@ import AddressModal from "./AddressModal";
 import { useAddressStore } from "@/store/useAddressStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useAuthPromptStore } from "@/store/useAuthPromptStore";
-import { switchLanguage, getActiveLanguage } from "@/lib/googleTranslate";
+import { switchLanguage } from "@/lib/googleTranslate";
 
 const Userabt = () => {
   const router = useRouter();
@@ -25,9 +25,10 @@ const Userabt = () => {
   const [language, setLanguage] = useState("en");
   const [currency, setCurrency] = useState("EUR");
 
-  // Sync language state with any active Google Translate cookie on mount
+  // Sync language state with the lang cookie on mount
   useEffect(() => {
-    setLanguage(getActiveLanguage());
+    const match = document.cookie.match(/(?:^|;\s*)lang=([^;]+)/);
+    setLanguage(match ? match[1] : "en");
   }, []);
 
   useEffect(() => {
@@ -168,7 +169,17 @@ const Userabt = () => {
                   value={language}
                   onChange={(val) => {
                     setLanguage(val);
-                    switchLanguage(val);
+                    // Set lang cookie for next-intl (1 year)
+                    document.cookie = `lang=${val}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
+                    // Also update googtrans cookie for Google Translate compatibility
+                    if (val === "en") {
+                      document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/`;
+                      document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname}`;
+                    } else {
+                      switchLanguage(val);
+                    }
+                    // Reload so the server re-renders with the new locale
+                    setTimeout(() => window.location.reload(), 150);
                   }}
                   options={[
                     { value: "en", label: "English", image: "/flag-en.svg" },

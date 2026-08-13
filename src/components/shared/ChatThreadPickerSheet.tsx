@@ -3,6 +3,7 @@
 import { X } from "lucide-react";
 import type { Conversation } from "@/types";
 import { getConversationContextLabel, sortConversationThreads } from "@/lib/chatInbox";
+import { useTranslations } from "next-intl";
 
 interface ChatThreadPickerSheetProps {
   participantName: string;
@@ -21,6 +22,7 @@ export default function ChatThreadPickerSheet({
   isSwitchMode = false,
 }: ChatThreadPickerSheetProps) {
   const sorted = sortConversationThreads(threads);
+  const t = useTranslations("chat");
 
   return (
     <div className="fixed inset-0 z-130 flex items-end sm:items-center justify-center bg-black/40">
@@ -29,10 +31,10 @@ export default function ChatThreadPickerSheet({
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-[18px] font-poppins font-bold text-[#1D2939]">
-              {isSwitchMode ? "Switch Kraft" : "Choose conversation"}
+              {isSwitchMode ? t("switchKraft") : t("chooseConversation")}
             </h3>
             <p className="text-[13px] font-poppins text-[#667085] mt-0.5">
-              {participantName} — one chat per Kraft
+              {t("oneChatPerKraft", { name: participantName })}
             </p>
           </div>
           <button
@@ -61,16 +63,16 @@ export default function ChatThreadPickerSheet({
                   </span>
                   {thread.isLocked ? (
                     <span className="text-[10px] font-poppins font-bold uppercase tracking-wide text-[#667085] bg-[#F2F4F7] px-2 py-0.5 rounded shrink-0">
-                      Locked
+                      {t("locked")}
                     </span>
                   ) : (
                     <span className="text-[10px] font-poppins font-bold uppercase tracking-wide text-[#00A651] bg-[#E7F8F0] px-2 py-0.5 rounded shrink-0">
-                      Active
+                      {t("active")}
                     </span>
                   )}
                 </div>
                 <p className="text-[13px] font-poppins text-[#667085] truncate">
-                  {thread.lastMessage || "No messages yet"}
+                  {thread.lastMessage || t("noMessagesYet")}
                 </p>
               </button>
             );

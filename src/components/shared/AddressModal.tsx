@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import Button from "@/components/ui/button";
 import { AddressAutocompleteInput } from "@/components/ui/AddressAutocompleteInput";
 import toast from "react-hot-toast";
+import { useTranslations } from "next-intl";
 
 interface Address {
   id: string;
@@ -15,9 +16,9 @@ interface Address {
 interface AddressModalProps {
   isOpen: boolean;
   onClose: () => void;
-  savedAddresses: Address[]; 
+  savedAddresses: Address[];
   selectedAddressId?: string;
-  onSelectAddress?: (addressId: string) => void; 
+  onSelectAddress?: (addressId: string) => void;
   onAddNewAddress?: (params: {
     label: string;
     address: string;
@@ -38,6 +39,7 @@ const AddressModal = ({
   onUseCurrentLocation,
   onRemoveAddress,
 }: AddressModalProps) => {
+  const t = useTranslations("modals.address");
   const [selectedAddress, setSelectedAddress] = useState(selectedAddressId);
   const [showAddNewForm, setShowAddNewForm] = useState(false);
   const [newAddressLabel, setNewAddressLabel] = useState("");
@@ -92,7 +94,7 @@ const AddressModal = ({
   const handleAddNew = () => {
     if (newAddressValue) {
       if (!newAddressCoords) {
-        toast.error("Please pick an address from the dropdown suggestions.");
+        toast.error(t("errorNotSelected"));
         return;
       }
       if (onAddNewAddress) {
@@ -119,18 +121,18 @@ const AddressModal = ({
   };
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center sm:justify-center"
       onClick={onClose}
     >
-      <div 
+      <div
         className="bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md max-h-[90vh] overflow-y-auto overscroll-contain modal-scrollable-content"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-5 ">
           <h2 className="text-[18px] sm:text-[20px] font-poppins font-bold text-gray-900">
-            Addresses
+            {t("title")}
           </h2>
           <button
             onClick={onClose}
@@ -147,7 +149,7 @@ const AddressModal = ({
             <>
               <div>
                 <h3 className="text-[14px] font-poppins font-semibold text-gray-900 mb-3">
-                  Saved Addresses
+                  {t("saved")}
                 </h3>
                 {savedAddresses.length > 0 ? (
                   <div className="space-y-3">
@@ -156,20 +158,20 @@ const AddressModal = ({
                         key={addr.id}
                         className="relative group bg-[#F6F6F6] p-4 border border-[#0000001A] rounded-xl hover:bg-gray-100 transition-colors"
                       >
-                         {/* Delete Button */}
-                         {onRemoveAddress && (
+                        {/* Delete Button */}
+                        {onRemoveAddress && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               onRemoveAddress(addr.id);
                             }}
                             className="absolute top-2 right-2 p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors z-10"
-                            title="Remove address"
+                            title={t("remove")}
                           >
                             <X size={16} />
                           </button>
                         )}
-                        
+
                         <label className="flex items-start gap-3 cursor-pointer">
                           <input
                             type="radio"
@@ -194,8 +196,7 @@ const AddressModal = ({
                 ) : (
                   <div className="bg-[#F6F6F6] border border-[#0000001A] rounded-xl p-6 text-center">
                     <p className="text-[14px] font-poppins text-gray-500">
-                      No saved addresses yet. Add your first address or use your
-                      current location.
+                      {t("noSaved")}
                     </p>
                   </div>
                 )}
@@ -207,13 +208,13 @@ const AddressModal = ({
                 fullWidth
                 onClick={() => setShowAddNewForm(true)}
               >
-                add new
+                {t("addNewBtn")}
               </Button>
 
               {/* Current Location */}
               <div>
                 <h3 className="text-[14px] font-poppins font-semibold text-gray-900 mb-3">
-                  Current Location
+                  {t("currentLocationTitle")}
                 </h3>
                 <button
                   onClick={onUseCurrentLocation}
@@ -224,7 +225,7 @@ const AddressModal = ({
                       <div className="w-2.5 h-2.5 rounded-full bg-gray-900"></div>
                     </div>
                     <span className="text-[14px] font-poppins font-semibold text-gray-900">
-                      Use current location
+                      {t("useCurrentLocation")}
                     </span>
                   </div>
                 </button>
@@ -233,7 +234,7 @@ const AddressModal = ({
               {/* Done Button */}
               <div className="mb-30">
                 <Button variant="primary" fullWidth onClick={handleDone}>
-                  Done
+                  {t("done")}
                 </Button>
               </div>
             </>
@@ -244,27 +245,27 @@ const AddressModal = ({
             <>
               <div className="bg-[#F6F6F6] border border-[#0000001A] p-4 rounded-xl mt-4">
                 <h3 className="text-[14px] font-poppins font-semibold text-gray-900 mb-3">
-                  Add New Address
+                  {t("addNewTitle")}
                 </h3>
                 <div className="space-y-3">
                   {/* Address Label */}
                   <div>
                     <label className="text-[13px] font-mabry text-gray-600 mb-1 block">
-                      Name this address (Optional)
+                      {t("nameLabel")}
                     </label>
                     <input
                       type="text"
                       value={newAddressLabel}
                       onChange={(e) => setNewAddressLabel(e.target.value)}
-                      placeholder="My Office"
+                      placeholder={t("namePlaceholder")}
                       className="w-full p-3 bg-[#F6F6F6] border border-[#0000001A] rounded-xl text-[14px] font-poppins text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-orange"
                     />
                   </div>
 
                   {/* Address Input */}
-                  <AddressAutocompleteInput 
-                    label="Search for Area, Street Name"
-                    placeholder="2383 Timber Oak Drive Circuit"
+                  <AddressAutocompleteInput
+                    label={t("searchLabel")}
+                    placeholder={t("searchPlaceholder")}
                     value={newAddressValue}
                     onChange={(val) => {
                       setNewAddressValue(val);
@@ -287,7 +288,7 @@ const AddressModal = ({
                   />
 
                   <span className="text-[13px] font-poppins flex justify-center text-gray-500 pt-3">
-                    or
+                    {t("or")}
                   </span>
 
                   {/* Use Current Location Button */}
@@ -300,7 +301,7 @@ const AddressModal = ({
                         <div className="w-2.5 h-2.5 rounded-full bg-gray-900"></div>
                       </div>
                       <span className="text-[14px] font-poppins font-semibold text-gray-900">
-                        Use current location
+                        {t("useCurrentLocation")}
                       </span>
                     </div>
                   </button>
@@ -314,7 +315,7 @@ const AddressModal = ({
                 onClick={handleAddNew}
                 disabled={!newAddressValue}
               >
-                Done
+                {t("done")}
               </Button>
 
               {/* Cancel/Back */}
@@ -322,7 +323,7 @@ const AddressModal = ({
                 onClick={() => setShowAddNewForm(false)}
                 className="w-full text-[14px] font-poppins text-gray-600 hover:text-gray-900 transition-colors"
               >
-                Cancel
+                {t("cancel")}
               </button>
             </>
           )}

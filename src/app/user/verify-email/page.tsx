@@ -20,6 +20,7 @@ import {
   syncKrafterSignupIntentFromSearchParams,
 } from "@/lib/krafterSignupIntent";
 import { isValidEmail } from "@/utils/validation";
+import { useTranslations } from "next-intl";
 
 function readVerificationCodeFromSearch(
   searchParams: URLSearchParams,
@@ -53,6 +54,7 @@ function VerifyEmailPageContent() {
   const searchParams = useSearchParams();
   const { verifyEmail, resendVerificationCode, isLoading } = useAuthStore();
   const [email, setEmail] = useState("");
+  const t = useTranslations("auth.verifyEmail");
   const [initialCode, setInitialCode] = useState("");
   const [autoVerifying, setAutoVerifying] = useState(false);
 
@@ -203,13 +205,13 @@ function VerifyEmailPageContent() {
           </div>
 
           <p className="text-center text-[14px] font-poppins text-gray-600 mt-8">
-            Already verified?{" "}
+            {t("alreadyVerified")}{" "}
             <button
               type="button"
               onClick={() => router.push("/user/login")}
               className="text-brand-blue font-semibold hover:underline"
             >
-              Sign in
+              {t("signIn")}
             </button>
           </p>
         </div>

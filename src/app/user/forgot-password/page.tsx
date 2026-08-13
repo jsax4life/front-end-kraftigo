@@ -10,9 +10,12 @@ import Input from "@/components/ui/input";
 import Button from "@/components/ui/button";
 import { logger } from "@/utils/logger";
 import toast from "react-hot-toast";
+import { useTranslations } from "next-intl";
 
 const ForgotPasswordContent = () => {
   const router = useRouter();
+  const t = useTranslations("auth.forgotPassword");
+  const tc = useTranslations("auth.common");
 
   const { isLoading, forgotPassword } = useAuthStore();
   const [currentStep, setCurrentStep] = useState(1);
@@ -87,17 +90,15 @@ const ForgotPasswordContent = () => {
             {currentStep === 1 && (
               <div className="space-y-6">
                 <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-2">
-                  Forgot password?
+                  {t("title")}
                 </h1>
                 <p className="text-[13px] font-poppins">
-                  Don&apos;t worry! It happens. Please enter the email{" "}
-                  <br className="hidden sm:block" /> associated with your
-                  account.
+                  {t("desc")}
                 </p>
                 <Input
-                  label="Email"
+                  label={tc("emailLabel")}
                   type="email"
-                  placeholder="Enter your email"
+                  placeholder={tc("emailPlaceholder")}
                   value={formData.email}
                   onChange={(value) => handleInputChange("email", value)}
                 />
@@ -110,14 +111,14 @@ const ForgotPasswordContent = () => {
                   <MailCheck size={40} />
                 </div>
                 <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-2">
-                  Check Your Email
+                  {t("checkEmailTitle")}
                 </h1>
                 <p className="text-[14px] font-poppins text-gray-600 mb-8 max-w-md mx-auto">
-                  We&apos;ve sent a password reset link to{" "}
+                  {t("checkEmailDescPre")}{" "}
                   <span className="font-semibold text-gray-900">
                     {formData.email}
                   </span>
-                  . Please check your inbox and click the link to continue.
+                  {t("checkEmailDescPost")}
                 </p>
               </div>
             )}
@@ -127,13 +128,13 @@ const ForgotPasswordContent = () => {
             {currentStep === 1 && (
               <div className="text-center text-[14px] font-poppins">
                 <span className="text-brand-orange">
-                  Remember your password?{" "}
+                  {t("rememberPassword")}{" "}
                 </span>
                 <button
                   onClick={() => router.push("/user/login")}
                   className="text-brand-blue font-semibold hover:underline"
                 >
-                  Sign In
+                  {tc("signIn")}
                 </button>
               </div>
             )}
@@ -146,8 +147,8 @@ const ForgotPasswordContent = () => {
                 disabled={!isStepValid()}
               >
                 {currentStep === 1
-                  ? "Send Instructions"
-                  : "Back to Login"}
+                  ? t("sendInstructions")
+                  : t("backToLogin")}
               </Button>
             </div>
           </div>

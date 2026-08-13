@@ -1,0 +1,970 @@
+{
+  "navigation": {
+    "home": "Home",
+    "krafts": "Krafts",
+    "chat": "Chat",
+    "support": "Support",
+    "profile": "Profile"
+  },
+  "footer": {
+    "home": "Home",
+    "aboutUs": "About Us",
+    "privacyPolicy": "Privacy Policy",
+    "contactUs": "Contact Us"
+  },
+  "chat": {
+    "title": "Messages",
+    "openingConversation": "Opening conversation…",
+    "searchPlaceholder": "Search messages",
+    "noMessagesYet": "No messages yet",
+    "startConversation": "Start the conversation",
+    "openConversationError": "Could not open this conversation yet. Open Messages from your Kraft, or try again in a moment.",
+    "multiThreadLabel": "{count} Kraft conversations · {contextLabel}",
+    "switchKraft": "Switch Kraft",
+    "readOnly": " · read-only",
+    "threadReadOnly": "This Kraft is finished — this thread is read-only.",
+    "sendMessagePlaceholder": "Send a message",
+    "camera": "Camera",
+    "photos": "Photos",
+    "location": "Location",
+    "chooseConversation": "Choose conversation",
+    "oneChatPerKraft": "{name} — one chat per Kraft",
+    "locked": "Locked",
+    "active": "Active"
+  },
+  "krafts": {
+    "title": "Krafts",
+    "tabs": {
+      "upcoming": "Upcoming",
+      "completed": "Completed"
+    },
+    "filters": {
+      "all": "All",
+      "active": "Active",
+      "waitingOpen": "Waiting & open",
+      "waitingOpenHint": "Responses & community",
+      "drafts": "Drafts",
+      "draftsHint": "Pick a Krafter",
+      "declined": "Declined"
+    },
+    "status": {
+      "completed": "Completed",
+      "expired": "Expired",
+      "cancelled": "You cancelled this Kraft",
+      "disputed": "Disputed",
+      "inProgress": "In Progress",
+      "confirmed": "Confirmed",
+      "declined": "Declined",
+      "draft": "Draft",
+      "krafterSelected": "Krafter selected",
+      "openListing": "Open listing",
+      "requested": "Requested",
+      "accepted": "Accepted",
+      "paymentNeeded": "Payment needed",
+      "countered": "Countered"
+    },
+    "searchPlaceholder": "Search",
+    "empty": {
+      "noUpcomingAll": "No upcoming krafts",
+      "noUpcomingAllDesc": "Your bookings and requests will appear here",
+      "noUpcomingFilter": "No krafts in this category",
+      "noUpcomingFilterDesc": "Try another filter or choose All",
+      "noCompleted": "No completed krafts yet",
+      "noCompletedDesc": "Finished bookings will appear here"
+    },
+    "card": {
+      "posted": "Posted {date}",
+      "requestPending": "Request Pending",
+      "viewOffers": "View Offers",
+      "edit": "Edit",
+      "confirmPayment": "Confirm payment",
+      "continue": "Continue",
+      "messageKrafter": "Message Krafter",
+      "offersReceived": "{count} Offer{plural} Received",
+      "offersReceivedUnknown": "… Offers Received"
+    },
+    "sections": {
+      "kraftRequests": "Kraft Requests",
+      "awaitingKrafter": "Awaiting Krafter",
+      "awaitingKrafterDesc": "Direct requests and counter-offers",
+      "publicListings": "Public listings",
+      "publicListingsDesc": "Open to applications from Krafters"
+    },
+    "discardModal": {
+      "title": "Discard this draft?",
+      "desc": "This cannot be undone. Any photos you added will be removed.",
+      "keep": "Keep draft",
+      "discard": "Discard",
+      "discarding": "Discarding…",
+      "success": "Draft discarded",
+      "error": "Could not discard this draft. Try again or refresh the page."
+    }
+  },
+  "profile": {
+    "title": "Profile",
+    "accountClosedSuccess": "Account closed successfully.",
+    "accountClosedError": "Could not close account. Check active bookings/applications and try again.",
+    "logoutSuccess": "Logged out successfully",
+    "logoutFailed": "Logout failed",
+    "logoutButton": "Log out",
+    "sections": {
+      "account": "Account",
+      "paymentBilling": "Payment & Billing",
+      "appPreferences": "App Preferences"
+    },
+    "menu": {
+      "personalInfo": "Personal Information",
+      "security": "Security",
+      "paymentMethods": "Payment Methods",
+      "transactionHistory": "Transaction History",
+      "savedAddresses": "Saved Addresses",
+      "notifications": "Notifications",
+      "language": "Language",
+      "helpCenter": "Help Center",
+      "closeAccount": "Close Account"
+    },
+    "cta": {
+      "krafterDashboard": "GO TO KRAFTER DASHBOARD",
+      "earnMoney": "EARN MONEY BY COMPLETING KRAFTS",
+      "switchToKrafter": "Switch to Krafter",
+      "becomeKrafter": "Become a Krafter"
+    },
+    "deleteAccount": {
+      "title": "Close account",
+      "warning1": "This action is permanent. Your account data will be anonymized and the account will be deactivated. You will be logged out from all sessions.",
+      "warning2": "Deletion may be blocked if you still have active bookings/applications.",
+      "passwordAccount": "Password account",
+      "socialLogin": "Social login",
+      "enterPasswordError": "Enter your password to continue.",
+      "typeExactlyError": "Type {text} exactly.",
+      "confirmPasswordLabel": "Confirm your password",
+      "enterPasswordPlaceholder": "Enter password",
+      "typeToConfirmLabel": "Type {text} to confirm",
+      "cancel": "Cancel",
+      "closing": "Closing...",
+      "closeAccountBtn": "Close account"
+    },
+    "security": {
+      "title": "Security",
+      "desc": "Manage your account security and password",
+      "changePassword": "Change Password",
+      "googleSignInMsg": "Your account uses Google sign-in and does not have a password yet. Use",
+      "forgotPassword": "Forgot password",
+      "googleSignInMsgEnd": "to set one if you want email/password login as well.",
+      "currentPassword": "Current password",
+      "enterCurrentPassword": "Enter current password",
+      "newPassword": "New password",
+      "enterNewPassword": "Enter new password",
+      "confirmPassword": "Confirm password",
+      "enterConfirmPassword": "Confirm new password",
+      "updating": "Updating…",
+      "deviceHistory": "Device History",
+      "noDeviceHistory": "No device history available",
+      "deviceHistoryDesc": "Devices that access your account will appear here",
+      "currentPasswordReq": "Enter your current password.",
+      "newPasswordMin": "New password must be at least {min} characters.",
+      "passwordMismatch": "Passwords do not match.",
+      "newPasswordSame": "New password must be different from your current password.",
+      "passwordUpdated": "Your password has been updated. Please sign in again with your new password.",
+      "passwordUpdateError": "Could not update password."
+    },
+    "personalInfo": {
+      "title": "Personal Information",
+      "greeting": "Hi {name}",
+      "editingProfile": "Editing Profile",
+      "personalDetails": "Personal Details",
+      "fullName": "Full name",
+      "enterFullName": "Enter your full name",
+      "email": "Email",
+      "enterEmail": "Enter your email",
+      "phone": "Phone",
+      "enterPhone": "Enter your phone number",
+      "serviceAddress": "Service Address",
+      "street": "Street",
+      "searchAddress": "Search for your address...",
+      "city": "City",
+      "postalCode": "Postal Code",
+      "country": "Country",
+      "saving": "Saving...",
+      "saveChanges": "Save Changes",
+      "updateSuccess": "Profile updated successfully!",
+      "updateError": "Failed to update profile",
+      "photoUpdateSuccess": "Profile photo updated!",
+      "photoUpdateFailed": "Profile photo upload failed",
+      "photoUploadError": "Failed to upload profile photo"
+    },
+    "transactions": {
+      "title": "Transaction History",
+      "last30Days": "Last 30 Days",
+      "allServices": "All services",
+      "noTransactions": "No transactions yet.",
+      "serviceBooking": "Service booking"
+    },
+    "currency": {
+      "title": "Currency",
+      "desc": "Select your preferred currency for payments",
+      "selectCurrency": "Select Currency",
+      "infoText": "Prices will be converted based on the current market rate. Some artisans may have forced currency preferences."
+    },
+    "language": {
+      "title": "Language",
+      "desc": "Choose your preferred language for the app",
+      "selectLanguage": "Select Language",
+      "infoText": "App content will be translated. User-generated content like messages and reviews might not be fully translated."
+    },
+    "notifications": {
+      "title": "Notifications",
+      "desc": "Select what you want to be notified about",
+      "preferences": "Preferences",
+      "loadingPreferences": "Loading preferences…",
+      "bookingInfo": "Booking Info",
+      "bookingInfoDesc": "Submit a Kraft request, confirm and cancel bookings.",
+      "customerSupport": "Customer Support",
+      "customerSupportDesc": "Communication with our customer support team.",
+      "promo": "Promotional Notifications",
+      "promoDesc": "Keep up with promotions and exclusive deals.",
+      "late": "Late Notifications",
+      "lateDesc": "Activate notifications if the artisan is delayed more than 5 mins.",
+      "news": "Newsletter & Articles",
+      "newsDesc": "Activate to receive news, products and everything happening in Kraft.",
+      "infoText": "We'll only notify you about important updates regarding your krafts even if all toggles are off."
+    },
+    "paymentMethods": {
+      "title": "Payment & Addresses",
+      "savedPaymentMethods": "Saved Payment Methods",
+      "loadingPaymentMethods": "Loading payment methods...",
+      "noPaymentMethods": "You have not added any payment methods",
+      "addNew": "add new",
+      "view": "View",
+      "savedAddresses": "Saved Addresses",
+      "loadingAddresses": "Loading addresses...",
+      "noSavedAddresses": "You have not added any saved addresses",
+      "addNewAddress": "add new address",
+      "plusAddSavedAddress": "+ add saved address",
+      "paymentMethodRemoved": "Payment method removed",
+      "failedToRemovePaymentMethod": "Failed to remove payment method",
+      "setAsDefault": "Set as default",
+      "failedToUpdateDefault": "Failed to update default",
+      "pleaseEnterAddress": "Please enter an address",
+      "addPaymentMethod": "Add a Payment Method",
+      "debitCreditCard": "Debit/Credit Card",
+      "sepaDirectDebit": "SEPA Direct Debit",
+      "paypal": "PayPal",
+      "googlePay": "Google Pay",
+      "encryptionInfo": "Your payment details are encrypted and never shared with Krafters.",
+      "addDebitCreditCard": "Add Debit/Credit Card",
+      "cardAdded": "Card added",
+      "paymentMethodLabel": "Payment Method",
+      "number": "Number",
+      "required": "Required",
+      "expires": "Expires",
+      "mmYyyy": "MM YYYY",
+      "cv": "cv",
+      "securityCode": "Security Code",
+      "billingName": "Billing Name",
+      "fullName": "Full Name",
+      "billingAddress": "Billing Address",
+      "postCode": "Post Code",
+      "countryRegion": "Country/Region",
+      "done": "Done",
+      "addSepaDirectDebit": "Add SEPA Direct Debit",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "iban": "IBAN",
+      "sepaConfirm": "I hereby confirm the SEPA Direct Debit Mandate to Kraftigos.de",
+      "sepaAdded": "SEPA method added",
+      "connectPaypal": "Connect Paypal",
+      "launchingPaypal": "Launching paypal",
+      "loginToPaypal": "Log in to PayPal",
+      "paypalConnected": "PayPal connected",
+      "editPaymentMethod": "Edit Payment Method",
+      "notStoredForSecurity": "Not stored for security",
+      "notAvailable": "Not available",
+      "changesSaved": "Changes saved",
+      "save": "Save",
+      "setAsDefaultBtn": "Set as Default",
+      "deleteCard": "Delete card",
+      "editSavedAddress": "Edit Saved Address",
+      "addSavedAddress": "Add Saved Address",
+      "streetHouseNumber": "Street & House Number",
+      "streetAddress": "Street Address",
+      "city": "City",
+      "saveAddressBtn": "Save Address",
+      "deleteAddress": "Delete address"
+    },
+    "receipt": {
+      "notFound": "Receipt not found.",
+      "goBack": "Go Back",
+      "scheduled": "Scheduled:",
+      "completedKrafts": "{count} krafts completed",
+      "reviews": "({count} reviews)",
+      "priceBreakdown": "Price Breakdown",
+      "service": "Service",
+      "serviceFee": "Service fee",
+      "discount": "Discount",
+      "totalPaid": "Total Paid",
+      "paymentTimeline": "Payment timeline",
+      "event": "Event",
+      "transactionReference": "Transaction reference:",
+      "downloadPdf": "Download PDF Receipt",
+      "reportTransaction": "Report this Transaction",
+      "transactionSuccessful": "Transaction Successful"
+    }
+  },
+  "home": {
+    "greeting": "What do you need today?",
+    "greetingDesktop1": "What do you need",
+    "greetingDesktop2": "today?",
+    "greetingMobile1": "What do you",
+    "greetingMobile2": "need today?",
+    "searchPlaceholder": "Find a plumber",
+    "popularSearches": "Popular Searches",
+    "categories": "Categories",
+    "seeAll": "See all",
+    "kraftersNearYou": "Krafter's near you",
+    "upcoming": "Upcoming",
+    "noUpcoming": "No upcoming bookings",
+    "noUpcomingDesc": "Book a service to see your upcoming appointments here.",
+    "services": "Services",
+    "artisans": "Artisans",
+    "searching": "Searching…",
+    "typeToSearch": "Type at least 3 letters to search.",
+    "noServicesFound": "No services found.",
+    "noArtisansFound": "No artisans found.",
+    "cantFind": "Cant find what you need?",
+    "requestCustom": "Request A Custom Kraft",
+    "recents": "Recents",
+    "available": "Available",
+    "jobs": "jobs",
+    "prosOfWeek": "Pros of the week"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "save": "Save",
+    "cancel": "Cancel",
+    "done": "Done"
+  },
+  "auth": {
+    "common": {
+      "emailLabel": "Email",
+      "emailPlaceholder": "Enter your email",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Enter your password",
+      "phoneLabel": "Phone Number",
+      "termsOfUse": "Terms of Use",
+      "privacyPolicy": "Privacy Policy",
+      "and": "and",
+      "iAgreeTo": "I agree to the",
+      "signIn": "Sign In",
+      "signUp": "Sign Up"
+    },
+    "login": {
+      "title": "Welcome Back",
+      "forgotPasswordLink": "Forgot password?",
+      "orSignInWith": "Or sign in with",
+      "googleTerms": "By signing in with Google you agree to our",
+      "noAccount": "Don't have an account?",
+      "verify": "Verify"
+    },
+    "createAccount": {
+      "krafterSignupTitle": "Create your Krafter account",
+      "krafterSignupDesc": "After verifying your email, you'll continue straight to Krafter registration.",
+      "krafterSignupSuccess": "Account created! Continue your Krafter registration.",
+      "registrationSuccess": "Registration complete! Welcome to Kraftigo.",
+      "unverifiedEmailError": "This email is registered but not verified. Enter your verification code.",
+      "stepOf": "Step {step} of {total}",
+      "step1Title": "Tell Us About You",
+      "firstNameLabel": "Enter Your First Name",
+      "firstNamePlaceholder": "Enter First Name",
+      "lastNameLabel": "Enter Your Last Name",
+      "lastNamePlaceholder": "Enter Last Name",
+      "orSignUpWithGoogle": "Or sign up with Google",
+      "step2Title": "Create Password",
+      "confirmPasswordLabel": "Confirm Password",
+      "confirmPasswordPlaceholder": "Enter your confirm password",
+      "step3Title": "Terms Of Use",
+      "step3Desc": "By clicking, you agree to receive updates and newsletters about Kraftigo services & products",
+      "alreadyHaveAccount": "Already have an account?",
+      "whyCollect": "Why do we collect this information?",
+      "submit": "Submit",
+      "continue": "Continue"
+    },
+    "forgotPassword": {
+      "title": "Forgot password?",
+      "desc": "Don't worry! It happens. Please enter the email associated with your account.",
+      "checkEmailTitle": "Check Your Email",
+      "checkEmailDescPre": "We've sent a password reset link to",
+      "checkEmailDescPost": ". Please check your inbox and click the link to continue.",
+      "rememberPassword": "Remember your password?",
+      "sendInstructions": "Send Instructions",
+      "backToLogin": "Back to Login"
+    },
+    "verifyEmail": {
+      "title": "Confirm Your Email",
+      "sentCodeTo": "We've sent a verification code to",
+      "spamNote": "Can't find it? Check your spam or junk folder. You can resend the code below if needed.",
+      "resendIn": "Resend code in",
+      "resendCode": "Resend code",
+      "verifyButton": "Verify Email",
+      "alreadyVerified": "Already verified?",
+      "signIn": "Sign in"
+    },
+    "resetPassword": {
+      "title": "Secure Your Account",
+      "desc": "Create a strong new password to protect your information and privacy",
+      "newPasswordLabel": "New Password",
+      "newPasswordPlaceholder": "Enter your new password",
+      "confirmPasswordLabel": "Confirm New Password",
+      "confirmPasswordPlaceholder": "Enter new password to confirm",
+      "resetButton": "Reset Password"
+    }
+  },
+  "support": {
+    "title1": "Hello, how",
+    "title2": "can we help?",
+    "helpBannerText": "Have an issue with payments, your account, or promotions? Speak to our support team",
+    "sendMessage": "Send us a message",
+    "clientHelpTopics": "Client — Help Topics",
+    "krafterHelpTopics": "Krafter — Help Topics",
+    "clientFaqs": {
+      "q1": {
+        "question": "How do I cancel a booking?",
+        "answer": "Go to My Bookings, select the booking, and tap Cancel. Cancellations made more than 2 hours before the scheduled start are free. Cancelling after work has begun may incur a partial fee based on work completed."
+      },
+      "q2": {
+        "question": "How do I report a problem with a Krafter?",
+        "answer": "Open the booking and tap Report an Issue. Describe what happened and attach photos if you have them — our team reviews reports within 24–48 hours and will follow up directly."
+      },
+      "q3": {
+        "question": "How do I request a refund?",
+        "answer": "Your payment is held securely until the job is marked complete. For instant refunds (no-show or cancelled before the start), funds are released automatically. For quality disputes, open the booking, tap Request Refund, and explain the issue — if approved, funds are returned to your original payment method within 5–7 business days."
+      },
+      "q4": {
+        "question": "What happens if a Krafter doesn't show up?",
+        "answer": "Tap Report No-Show on the booking. Since payment hasn't been released yet, you'll get a full refund automatically, and you can rebook with another available Krafter right away."
+      },
+      "q5": {
+        "question": "How do I update my payment method?",
+        "answer": "Go to Settings → Payment Methods, where you can add a new card, set a default, or remove an old one anytime."
+      }
+    },
+    "krafterFaqs": {
+      "q1": {
+        "question": "What happens if a client cancels on me?",
+        "answer": "If a client cancels after you've confirmed the job, you may be entitled to a cancellation fee depending on how much notice they gave and whether you'd already started work. Cancellations made well ahead of your scheduled start time are not compensated."
+      },
+      "q2": {
+        "question": "How do I get paid?",
+        "answer": "Once you mark the job complete and the client confirms (or the review window passes without a dispute), your payment is released from escrow to your linked payout account. Payouts typically land within 2–3 business days."
+      },
+      "q3": {
+        "question": "What happens if a client doesn't show up?",
+        "answer": "Tap Report Client No-Show on the booking once your scheduled start time has passed. Once confirmed, you'll receive your agreed-upon callout fee and the booking closes — no further action needed on your end."
+      },
+      "q4": {
+        "question": "How do I report a problem with a client?",
+        "answer": "Open the booking and tap Report an Issue, describing what happened. Our team reviews flagged bookings and may restrict that client's ability to book again while we investigate."
+      },
+      "q5": {
+        "question": "How do I update my payout method?",
+        "answer": "Go to Settings → Payout Details to update your linked bank account or card. Changes take effect from your next payout cycle."
+      }
+    }
+  },
+  "customKraft": {
+    "requestACustomKraft": "Request A Custom Kraft",
+    "stepper": {
+      "description": "Description",
+      "details": "Details",
+      "budget": "Budget",
+      "review": "Review"
+    },
+    "nav": {
+      "next": "Next",
+      "saving": "Saving…",
+      "saveAsDraft": "Save as draft",
+      "draftSaved": "Draft saved!",
+      "submit": "Submit"
+    },
+    "descriptionStep": {
+      "whatDoYouNeedHelpWith": "What Do You Need Help With?",
+      "moreDetailsProvide": "The More Details You Provide, The Better Krafters Can Understand The Job",
+      "descriptionPlaceholder": "I want my clothes washed in a triple cycle...",
+      "descriptionError": "Please enter a description",
+      "addPhotosVideo": "Add Photos/Video",
+      "optional": "Optional",
+      "addWorkPhotosDesc": "Add your work photos and video here",
+      "roughCategory": "Rough Category",
+      "selectCategory": "Select a category",
+      "other": "Other",
+      "customCategoryPlaceholder": "Please specify the type of service you need...",
+      "fallbackGardening": "Gardening & Outdoor Help",
+      "fallbackMoving": "Moving",
+      "fallbackLaundry": "Laundry",
+      "fallbackErrands": "Errands",
+      "fallbackHomeRepairs": "Home repairs",
+      "chooseDate": "Choose Date",
+      "selectDates": "Select Dates",
+      "dateAndTime": "Date & Time",
+      "selectDate": "Select Date",
+      "selectTime": "Select Time",
+      "custom": "Custom"
+    },
+    "detailsStep": {
+      "enterYourAddress": "Enter Your Address",
+      "savedAddress": "Saved Address",
+      "selectAddressError": "Please select an address",
+      "addNewLocation": "Add new location",
+      "bookingHours": "Booking Hours",
+      "howManyHours": "How many hours do you want to book",
+      "frequency": "Frequency",
+      "howOften": "How often do you want this service",
+      "freqOptions": {
+        "justOnce": "Just Once",
+        "weekly": "Weekly",
+        "every2Weeks": "Every 2 weeks",
+        "monthly": "Monthly"
+      }
+    },
+    "budgetStep": {
+      "budgetForKraft": "Budget For Custom Kraft",
+      "setReasonableBudget": "Set a reasonable budget to attract the best Krafters",
+      "myOfferAmount": "My Offer Amount",
+      "offerAmountPlaceholder": "Enter amount (e.g., 50.00)",
+      "openToNegotiation": "I am open to negotiation",
+      "kraftExpiry": "Kraft Expiry",
+      "urgentBoost": "Urgent Boost",
+      "urgentBoostDescription": "Get seen by 3x more Krafters for just €4.99",
+      "expiryOptions": {
+        "24h": "24h",
+        "3days": "3 days",
+        "1week": "1 Week"
+      }
+    },
+    "reviewStep": {
+      "reviewDetails": "Review Your Kraft Details",
+      "makeSureEverythingIsCorrect": "Make sure everything is correct before submitting",
+      "description": "Description",
+      "location": "Location",
+      "dateAndTime": "Date & Time",
+      "budget": "Budget",
+      "totalEstimated": "Total Estimated",
+      "kraftDetails": "Kraft Details",
+      "priceBreakdown": "Price Breakdown",
+      "offerAmount": "Offer Amount",
+      "serviceFee": "Service fee",
+      "promo": "Promo",
+      "totalAmount": "Total Amount",
+      "apply": "Apply",
+      "paymentOptions": "Payment Options",
+      "noSavedMethods": "You do not have any saved payment methods",
+      "addNew": "Add new",
+      "addNewPaymentMethod": "Add new payment method",
+      "change": "Change",
+      "termsPrivacyText": "By clicking 'Confirm & Pay', you agree to Krafitgo's Terms of Service and Privacy Policy. Payments are processed securely.",
+      "confirmAndPay": "Confirm & Pay",
+      "publishing": "Publishing…"
+    },
+    "finishedStep": {
+      "kraftSubmitted": "Kraft Created",
+      "kraftSubmittedDesc": "Your kraft is now live and visible to artisans. We'll notify you when you receive your first response.",
+      "offerSummary": "Offer Summary",
+      "taskValidFor": "Task Valid for",
+      "yourBid": "Your bid",
+      "notifyNotice": "We will notify you the status of your task within 1 hour",
+      "goToMyKrafts": "Go to My Krafts",
+      "backToHome": "Go back home"
+    }
+  },
+  "booking": {
+    "nav": {
+      "cancel": "Cancel",
+      "next": "Next",
+      "saving": "Saving…"
+    },
+    "serviceDetailsStep": {
+      "errorCustomTime": "Please enter a custom time.",
+      "errorRequired": "Please fill in all required fields",
+      "errorTooSoon": "Choose a time at least 30 minutes from now.",
+      "errorMissingCategory": "Missing service category. Go back and pick a category.",
+      "errorMissingLocation": "Please pick your job address from the suggestions list (or use current location) so we can calculate distance to Krafters.",
+      "errorGeneric": "Could not start your booking. Please try again.",
+      "kraftDetails": "Kraft Details",
+      "selectLocation": "Select a location",
+      "selectDate": "Select a date",
+      "enterYourAddress": "Enter Your Address",
+      "savedAddress": "Saved Address",
+      "chooseDate": "Choose Date",
+      "selectDates": "Select Dates",
+      "when": "When?",
+      "selectTime": "Select a time",
+      "custom": "Custom",
+      "tellUsDetails": "Tell Us The Details Of Your Task",
+      "startConversation": "Start The Conversation And Tell Your Tasker What You Need Done. Don't Worry, You Can Edit This Later.",
+      "detailsPlaceholder": "I want my clothes washed in triple cycle...",
+      "addPhotos": "Add Photos",
+      "specialInstructions": "Special Instructions",
+      "specialInstructionsPlaceholder": "eg. Beware of dog, Side gate is unlocked"
+    },
+    "selectArtisanStep": {
+      "errorMissingLocationCoords": "We need your job location coordinates to show Krafter distance. Go back and pick your address from the suggestions list.",
+      "krafter": "Krafter",
+      "back": "Back",
+      "selectLocation": "Select a location",
+      "selectDate": "Select a date",
+      "recommended": "Recommended",
+      "postToCommunity": "Post To The Community",
+      "postToCommunityDesc": "Make your request public so all qualified taskers can serve you offers and marketplace pricing",
+      "postPublicTask": "Post public task",
+      "filterPrice": "Price",
+      "filterRating": "Rating",
+      "filterToday": "Today",
+      "compare": "Compare",
+      "loadingKrafters": "Loading Krafters…",
+      "kraftersAvailable": "{count} Krafter Available",
+      "kraftersAvailablePlural": "{count} Krafters Available",
+      "noKraftersFound": "No Krafters found",
+      "noKraftersFoundDesc": "Try posting a public task so Krafters can come to you"
+    },
+    "verifyDetailsStep": {
+      "verifyLabel": "Verify",
+      "back": "Back",
+      "verifyYourDetails": "Verify Your Details",
+      "kraftDetails": "Kraft Details",
+      "noTaskDetails": "No task details provided",
+      "estimatedHours": "Estimated hours",
+      "howManyHours": "How many hours do you want to book",
+      "youWillBeCharged": "You will be charged",
+      "frequency": "Frequency",
+      "howOften": "How often do you want this service",
+      "freqJustOnce": "Just Once",
+      "freqWeekly": "Weekly",
+      "freqEvery2Weeks": "Every 2 weeks",
+      "freqMonthly": "Monthly"
+    },
+    "finishBookingStep": {
+      "errorMissingLocationCoords": "Missing job location coordinates. Go back and select your address from the suggestions list.",
+      "successPublicTask": "Public task posted successfully!",
+      "successRequestSent": "Request sent. Your Krafter will need to accept before the booking is confirmed.",
+      "successBookingConfirmed": "Booking confirmed successfully!",
+      "errorLoginRequired": "Please log in to create a booking",
+      "errorFailedToCreate": "Failed to create booking. Please try again.",
+      "detailsLabel": "Details",
+      "finishLabel": "Finish",
+      "back": "Back",
+      "postYourTask": "Post Your Task",
+      "completeOrder": "Complete Order",
+      "verifyYourDetails": "Verify Your Details",
+      "budget": "Budget",
+      "perHour": "/hr",
+      "priceBreakdown": "Price Breakdown",
+      "yourOfferRate": "Your offer rate",
+      "yourOfferBudget": "Your offer budget",
+      "hourlyRate": "Hourly rate",
+      "serviceFee": "Service fee",
+      "serviceFeeEstimate": "Service fee (estimate)",
+      "totalAmount": "Total Amount",
+      "totalEstimate": "Total (estimate)",
+      "promoCode": "Promo Code",
+      "applyPromoCode": "Apply",
+      "paymentOptions": "Payment Options",
+      "noPaymentMethods": "You do not have any saved payment methods",
+      "addNew": "add new",
+      "debitCreditCard": "Debit/Credit Card",
+      "sepaDirectDebit": "SEPA Direct Debit",
+      "payPal": "PayPal",
+      "default": "Default",
+      "change": "Change",
+      "addNewPaymentMethod": "Add new payment method",
+      "termsPublicTask": "By clicking 'Post Public Task', you agree to Kraftigos Terms of Service and Privacy Policy. Taskers will reply with offers based on your budget.",
+      "termsConfirmPay": "By Clicking 'Confirm & Pay', you agree to Kraftigos Terms of Service and Privacy Policy. Payments are processed securely.",
+      "processing": "Processing...",
+      "postPublicTaskBtn": "Post Public Task",
+      "confirmRequestsBtn": "Confirm Requests"
+    },
+    "confirmationStep": {
+      "successPublicTitle": "Task Posted Successfully",
+      "successRequestTitle": "Request sent",
+      "successPublicDesc": "You've successfully posted your {category} task to the marketplace.",
+      "successRequestDesc": "We've shared your {category} request with {name}. The booking is not confirmed until they accept — we'll keep you updated.",
+      "kraftsCount": "{count} Krafts",
+      "scheduledDate": "Scheduled Date",
+      "estimatedWindow": "Estimated Window",
+      "serviceAddress": "Service Address",
+      "pricing": "Pricing",
+      "hourlyRate": "Hourly rate",
+      "platformFee": "Platform fee",
+      "totalFromBooking": "Total (from booking)",
+      "finalChargesNotice": "Final charges from Kraftigo will appear here once the booking is fully priced on the server.",
+      "serviceArea": "Service Area",
+      "whatsNext": "What's Next?",
+      "nextArrive": "Krafter will arrive at the scheduled time",
+      "nextChat": "You can chat with them anytime to share entry instructions or details",
+      "nextGuarantee": "You're protected by Kraftigo's satisfaction guarantee",
+      "messageKrafter": "Message Krafter",
+      "goBackHome": "Go Back Home",
+      "loading": "Loading..."
+    },
+    "activeJob": {
+      "paymentAuthRequiredTitle": "Your Krafter accepted — payment authorization required",
+      "paymentAuthRequiredDesc": "Confirm below to place a card hold and move this booking toward confirmed status (final confirmation follows Stripe processing).",
+      "chooseKrafterDesc": "Choose a Krafter to send your request and continue booking.",
+      "jobLocation": "Job Location",
+      "serviceArea": "Service Area",
+      "kraftDetails": "Kraft Details",
+      "priceBreakdown": "Price Breakdown",
+      "noPricingDetails": "No pricing details yet.",
+      "total": "Total",
+      "confirmPaymentBtn": "Confirm payment",
+      "paymentConfirmedBtn": "Payment confirmed",
+      "chooseKrafterBtn": "Choose a Krafter",
+      "rescheduleBtn": "Reschedule",
+      "acceptScheduleBtn": "Accept & Schedule",
+      "reopenTaskBtn": "Reopen Task",
+      "reportIssueBtn": "Report Issue",
+      "cancelKraftBtn": "Cancel Kraft"
+    },
+    "completedJob": {
+      "completed": "Completed",
+      "hours": "Hours",
+      "minutes": "Minutes",
+      "seconds": "Seconds",
+      "jobLocation": "Job Location",
+      "serviceArea": "Service Area",
+      "kraftDetails": "Kraft Details",
+      "noDetails": "No additional details provided.",
+      "priceBreakdown": "Price Breakdown",
+      "noPricingDetails": "No pricing details available.",
+      "totalPaid": "Total Paid",
+      "reviewSubmitted": "Review submitted",
+      "rateName": "Rate {name}",
+      "reportName": "Report {name}"
+    }
+  },
+  "reschedule": {
+    "title": "Reschedule Appointment",
+    "subtitle": "Need to change the date or time?",
+    "description": "Please select your preferred new schedule for this kraft.",
+    "selectDate": "Select new date",
+    "selectTime": "Select new Time",
+    "policyTitle": "Reschedule Policy",
+    "policyDesc": "Rescheduling 24 hours of the agreed time may incur a €9.99 late notice fee.",
+    "learnMore": "Learn more",
+    "oldDate": "Old Date",
+    "newDate": "New Proposed Date",
+    "processing": "Processing...",
+    "confirm": "Confirm reschedule",
+    "success": "Successfully rescheduled!",
+    "failed": "Failed to reschedule",
+    "fallbackTitle": "Reschedule",
+    "modalSubtitle": "Pick a new date and time for this Kraft.",
+    "currentAppointment": "Current Appointment",
+    "selectTimeLabel": "Select a time",
+    "timeTooSoon": "Choose a time at least 30 minutes from now."
+  },
+  "modals": {
+    "address": {
+      "errorNotSelected": "Please pick an address from the dropdown suggestions.",
+      "title": "Addresses",
+      "saved": "Saved Addresses",
+      "remove": "Remove address",
+      "noSaved": "No saved addresses yet. Add your first address or use your current location.",
+      "addNewBtn": "add new",
+      "currentLocationTitle": "Current Location",
+      "useCurrentLocation": "Use current location",
+      "done": "Done",
+      "addNewTitle": "Add New Address",
+      "nameLabel": "Name this address (Optional)",
+      "namePlaceholder": "My Office",
+      "searchLabel": "Search for Area, Street Name",
+      "searchPlaceholder": "2383 Timber Oak Drive Circuit",
+      "or": "or",
+      "cancel": "Cancel"
+    },
+    "cancel": {
+      "title": "Kraft Cancellation",
+      "subtitle": "Are You Sure You Want To Cancel?",
+      "description": "Please confirm the details of the booking you wish to cancel.",
+      "reasonTitle": "Reason for cancellation",
+      "reasons": {
+        "scheduleConflict": "Schedule conflict",
+        "noLongerNeed": "No longer need the service",
+        "foundDifferent": "Found a different Krafter",
+        "other": "Other"
+      },
+      "tellUsMore": "Please tell us more",
+      "describeReason": "Describe your reason (required)",
+      "policyTitle": "Cancellation Policy",
+      "policyDesc": "Cancellations made within 24 hours of the booking time may incur a fee per policy.",
+      "cancelling": "Cancelling…",
+      "confirm": "Confirm cancellation",
+      "keepBooking": "Keep booking"
+    },
+    "payment": {
+      "errors": {
+        "manualConfirmation": "This PaymentIntent still uses Stripe manual confirmation (older hold). New holds use automatic confirmation in the browser; retry after a fresh checkout or contact support.",
+        "paymentFailed": "Payment could not be completed",
+        "cardNotReady": "Card field is not ready yet. Please wait a moment.",
+        "nameRequired": "Please enter the name on card",
+        "stripeKeysMismatch": "Stripe keys don’t match. Your app’s publishable key must be from the same Stripe account (and test/live mode) as the API’s secret key.",
+        "cardSetupFailed": "Card setup failed",
+        "noMethodId": "Could not retrieve payment method ID"
+      },
+      "success": {
+        "paymentAuthorized": "Payment authorized. Your booking will update in a moment.",
+        "cardSaved": "Card saved successfully!",
+        "methodRemoved": "Payment method removed"
+      },
+      "pending": {
+        "paymentPending": "Payment is still pending. Refresh your Krafts list in a moment."
+      },
+      "info": {
+        "singleUseCardInfo": "This card is only used for this payment. It does not replace your saved cards unless you add it in payment settings later.",
+        "connecting": "Connecting to Stripe…",
+        "securedByStripe": "Secured by Stripe",
+        "selectSavedCard": "Select a saved card to confirm this booking’s payment hold.",
+        "noSavedCards": "No payment methods saved."
+      },
+      "labels": {
+        "nameOnCard": "Name on card",
+        "fullName": "Full name",
+        "cardDetails": "Card details",
+        "savedCards": "Saved Cards"
+      },
+      "buttons": {
+        "addNew": "+ add new",
+        "saveCard": "Save card",
+        "removeCard": "Remove card",
+        "confirmPayment": "Confirm payment",
+        "confirmWithNew": "Confirm with new card",
+        "newCard": "New card",
+        "confirmHold": "Confirm hold for booking",
+        "payWithNew": "Pay with new card",
+        "cancel": "Cancel",
+        "addPaymentMethod": "Add Payment Method",
+        "paymentMethodsTitle": "Payment Methods",
+        "confirmBookingHold": "Confirm Booking Hold",
+        "remove": "Remove"
+      }
+    },
+    "authPrompt": {
+      "title": "Sign Up Required",
+      "description": "Create an account or login to perform this action and access all features of Kraftigo.",
+      "signUpNow": "Sign Up Now",
+      "login": "Already have an account? Login"
+    },
+    "finishProfile": {
+      "title": "Finish Your Profile",
+      "subtitle": "You're already {completedPercentage}% of the way there! Complete these steps to start accepting jobs",
+      "steps": {
+        "eligibility": {
+          "label": "Add Your Work Eligibility",
+          "sublabel": "Tell them about your expertise"
+        },
+        "identity": {
+          "label": "Add Legal Document",
+          "sublabel": "Let customers know you better"
+        },
+        "personal": {
+          "label": "Add Personal Details",
+          "sublabel": "Let customers know you better"
+        },
+        "skills": {
+          "label": "Add Your Skills To Your Profile",
+          "sublabel": "Show users what you worked"
+        }
+      },
+      "status": {
+        "completed": "Completed",
+        "waiting": "Waiting for approval"
+      }
+    }
+  },
+  "categories": {
+    "title": "Categories",
+    "search": "Search",
+    "loading": "Loading categories...",
+    "noCategories": "No categories found",
+    "cantFind": "Cant find what you need?",
+    "requestCustom": "Request A Custom Kraft",
+    "details": {
+      "loading": "Loading...",
+      "notFound": "Category not found",
+      "back": "Back to Categories",
+      "servicesAvailable": "{count} Services Available",
+      "expertsAvailable": "Experts Available",
+      "selectService": "Select a service type",
+      "loadingServices": "Loading services...",
+      "byArtisan": "by {name}",
+      "pricePerHour": "${price}/hr",
+      "noServices": "No services available in this category yet",
+      "checkBack": "Check back soon or request a custom kraft"
+    }
+  },
+  "publicTask": {
+    "krafter": "Krafter",
+    "back": "Back",
+    "budget": "Budget",
+    "offerPricingType": "Offer pricing type",
+    "pricingType": {
+      "FLAT": "FLAT",
+      "HOURLY": "HOURLY"
+    },
+    "offerAmount": "Offer Amount",
+    "estimatedDuration": "Estimated duration (hours)",
+    "durationPlaceholder": "e.g. 2",
+    "openToNegotiation": "Open to negotiation",
+    "kraftExpiry": "Kraft Expiry",
+    "expiryOptions": {
+      "24h": "24h",
+      "3days": "3 days",
+      "1week": "1 Week",
+      "custom": "Custom"
+    },
+    "expiresOn": "Expires on (local time)",
+    "krafterRequirement": "Krafter Requirement",
+    "requirementOptions": {
+      "any": "Any"
+    },
+    "verifiedOnly": "Verified Only",
+    "reviewAndPost": "Review and post publicly",
+    "errors": {
+      "invalidAmount": "Enter a valid numeric offer amount.",
+      "hourlyError": "For HOURLY pricing, {error}"
+    }
+  },
+  "shared": {
+    "datePicker": {
+      "chooseDate": "Choose Date",
+      "done": "Done",
+      "weekDays": {
+        "mo": "Mo",
+        "tu": "Tu",
+        "we": "We",
+        "th": "Th",
+        "fr": "Fr",
+        "sa": "Sa",
+        "su": "Su"
+      },
+      "months": {
+        "january": "January",
+        "february": "February",
+        "march": "March",
+        "april": "April",
+        "may": "May",
+        "june": "June",
+        "july": "July",
+        "august": "August",
+        "september": "September",
+        "october": "October",
+        "november": "November",
+        "december": "December"
+      }
+    },
+    "timePicker": {
+      "chooseTime": "Choose Time",
+      "done": "Done"
+    }
+  }
+}
