@@ -29,6 +29,8 @@ export interface Address {
   postalCode?: string;
   country?: string;
   externalPlaceId?: string;
+  /** Backend persisted pin — current row is also returned first from GET /api/addresses. */
+  isCurrent?: boolean;
 }
 
 // ─── Services ─────────────────────────────────────────────────────────────────

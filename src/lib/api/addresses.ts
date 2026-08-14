@@ -10,6 +10,7 @@ export interface CreateAddressPayload {
   postalCode?: string;
   country?: string;
   externalPlaceId?: string;
+  isCurrent?: boolean;
 }
 
 const COORD_MATCH_EPSILON = 0.0001;
@@ -39,11 +40,23 @@ function coordsMatch(
 
 /** Normalise API / store address for UI (`address` display field). */
 export function normalizeAddressRecord(addr: Address): Address {
+  const isCurrent =
+    addr.isCurrent ??
+    (addr as Address & { is_current?: boolean }).is_current ??
+    undefined;
+
   return {
     ...addr,
     address: addr.address || addr.fullAddress || addr.label || "Unnamed Location",
     label: addr.label || "Unnamed Location",
+    isCurrent,
   };
+}
+
+/** Pick the backend's active service pin from a list (current row is first). */
+export function pickCurrentAddress(addresses: Address[]): Address | null {
+  if (addresses.length === 0) return null;
+  return addresses.find((a) => a.isCurrent === true) ?? addresses[0];
 }
 
 export interface AddressMatchInput {
@@ -102,6 +115,10 @@ export async function findOrCreateAddress(
   });
 
   if (match) {
+    if (payload.isCurrent) {
+      const current = await setCurrentAddress(match.id);
+      return { address: current, created: false };
+    }
     return { address: match, created: false };
   }
 
@@ -118,7 +135,9 @@ export const createAddress = async (
   payload: CreateAddressPayload,
 ): Promise<Address> => {
   const response = await api.post("/api/addresses", payload);
-  return response.data;
+  const body = response.data;
+  const record = (body?.data ?? body) as Address;
+  return normalizeAddressRecord(record);
 };
 
 /**
@@ -126,7 +145,31 @@ export const createAddress = async (
  */
 export const getAddresses = async (): Promise<Address[]> => {
   const response = await api.get("/api/addresses");
-  return response.data;
+  const raw = response.data;
+  const list = Array.isArray(raw) ? raw : (raw?.data ?? []);
+  return (list as Address[]).map(normalizeAddressRecord);
+};
+
+/**
+ * GET /api/addresses/current — the active service pin (or null)
+ */
+export const getCurrentAddress = async (): Promise<Address | null> => {
+  const response = await api.get("/api/addresses/current");
+  const body = response.data;
+  if (body == null || body === "") return null;
+  const record = (body?.data ?? body) as Address;
+  if (!record?.id) return null;
+  return normalizeAddressRecord(record);
+};
+
+/**
+ * PATCH /api/addresses/{id}/current — persist the active service pin on the backend
+ */
+export const setCurrentAddress = async (id: string): Promise<Address> => {
+  const response = await api.patch(`/api/addresses/${id}/current`);
+  const body = response.data;
+  const record = (body?.data ?? body) as Address;
+  return normalizeAddressRecord(record);
 };
 
 /**
@@ -134,6 +177,8 @@ export const getAddresses = async (): Promise<Address[]> => {
  */
 export const getAddressById = async (id: string): Promise<Address> => {
   const response = await api.get(`/api/addresses/${id}`);
-  return response.data;
+  const body = response.data;
+  const record = (body?.data ?? body) as Address;
+  return normalizeAddressRecord(record);
 };
  

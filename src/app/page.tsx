@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import Userabt from "@/components/shared/userabt";
 import ProCard from "@/components/ui/proCard";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useProfileStore } from "@/store/useProfileStore";
@@ -138,7 +138,7 @@ const Page = () => {
   const { user, isAuthenticated } = useAuthStore();
   const { openPrompt } = useAuthPromptStore();
   const { customerProfile, fetchCustomerProfile } = useProfileStore();
-  const { currentLatitude, currentLongitude } = useAddressStore();
+  const { currentLatitude, currentLongitude, selectedAddressId } = useAddressStore();
   const t = useTranslations("home");
   const locale = useLocale();
 
@@ -170,6 +170,7 @@ const Page = () => {
     null,
   );
   const [isLoadingKrafterProfile, setIsLoadingKrafterProfile] = useState(false);
+  const prevSelectedAddressIdRef = useRef<string | null>(null);
 
   // ── Fetch profile (auth only) + home feed (`GET /api/home`) for everyone ───
   useEffect(() => {
@@ -178,6 +179,18 @@ const Page = () => {
     }
     void fetchHomeData();
   }, [isAuthenticated, customerProfile, fetchCustomerProfile, fetchHomeData]);
+
+  // After the backend current address changes, reload home (no GPS params — BE uses persisted pin).
+  useEffect(() => {
+    if (!isAuthenticated || !selectedAddressId) return;
+
+    const previousId = prevSelectedAddressIdRef.current;
+    prevSelectedAddressIdRef.current = selectedAddressId;
+
+    if (previousId != null && previousId !== selectedAddressId) {
+      void fetchHomeData({ force: true });
+    }
+  }, [isAuthenticated, selectedAddressId, fetchHomeData]);
 
   useEffect(() => {
     if (serviceCategories.length === 0) {

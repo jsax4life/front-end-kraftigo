@@ -8,6 +8,8 @@ import {
   getAddresses,
   getAddressById,
   normalizeAddressRecord,
+  pickCurrentAddress,
+  setCurrentAddress,
 } from "@/lib/api/addresses";
 
 interface AddressStore {
@@ -87,6 +89,21 @@ function coordsFromAddress(
   };
 }
 
+function applySelectedAddress(
+  address: Address,
+): Pick<
+  AddressStore,
+  "selectedAddressId" | "currentAddress" | "currentLatitude" | "currentLongitude"
+> {
+  const coords = coordsFromAddress(address);
+  return {
+    selectedAddressId: address.id,
+    currentAddress: address.address,
+    currentLatitude: coords.latitude,
+    currentLongitude: coords.longitude,
+  };
+}
+
 export const useAddressStore = create<AddressStore>()(
   persist(
     (set, get) => ({
@@ -105,36 +122,13 @@ export const useAddressStore = create<AddressStore>()(
 
           const normalised = backendAddresses.map(normalizeAddressRecord);
 
-          set((state) => {
-            let selectedAddressId = state.selectedAddressId;
-            let currentAddress = state.currentAddress;
-            let currentLatitude = state.currentLatitude;
-            let currentLongitude = state.currentLongitude;
-
-            // If nothing is selected yet but we have addresses, default to the first one
-            if (!selectedAddressId && normalised.length > 0) {
-              const first = normalised[0];
-              selectedAddressId = first.id;
-              currentAddress = first.address;
-              const firstCoords = coordsFromAddress(first);
-              currentLatitude = firstCoords.latitude;
-              currentLongitude = firstCoords.longitude;
-            } else if (selectedAddressId) {
-              const selected = normalised.find((a) => a.id === selectedAddressId);
-              if (selected) {
-                currentAddress = selected.address;
-                const selectedCoords = coordsFromAddress(selected);
-                currentLatitude = selectedCoords.latitude;
-                currentLongitude = selectedCoords.longitude;
-              }
-            }
+          set(() => {
+            const current = pickCurrentAddress(normalised);
+            const selection = current ? applySelectedAddress(current) : {};
 
             return {
               addresses: normalised,
-              selectedAddressId,
-              currentAddress,
-              currentLatitude,
-              currentLongitude,
+              ...selection,
               isLoadingAddresses: false,
             };
           });
@@ -227,22 +221,24 @@ export const useAddressStore = create<AddressStore>()(
             postalCode,
             country,
             externalPlaceId,
+            isCurrent: true,
           });
           savedAddress = saved;
 
           set((state) => {
             const idx = state.addresses.findIndex((a) => a.id === saved.id);
-            const addresses =
+            const base =
               idx === -1
                 ? [...state.addresses, saved]
-                : state.addresses.map((a, i) => (i === idx ? saved : a));
+                : state.addresses.map((a) => (a.id === saved.id ? saved : a));
+            const addresses = base.map((a) => ({
+              ...a,
+              isCurrent: a.id === saved.id,
+            }));
 
             return {
               addresses,
-              selectedAddressId: saved.id,
-              currentAddress: saved.address,
-              currentLatitude: finalLat ?? parseStoredCoord(saved.latitude),
-              currentLongitude: finalLng ?? parseStoredCoord(saved.longitude),
+              ...applySelectedAddress(saved),
             };
           });
 
@@ -284,6 +280,15 @@ export const useAddressStore = create<AddressStore>()(
         let address = get().addresses.find((addr) => addr.id === id);
         if (!address) return;
 
+        try {
+          const persisted = await setCurrentAddress(id);
+          address = persisted;
+        } catch (error) {
+          logger.error("Failed to set current address on backend:", error);
+          toast.error("Could not switch to that address. Please try again.");
+          return;
+        }
+
         let { latitude, longitude } = coordsFromAddress(address);
 
         if (latitude == null || longitude == null) {
@@ -294,12 +299,13 @@ export const useAddressStore = create<AddressStore>()(
           }
         }
 
-        set({
-          selectedAddressId: id,
-          currentAddress: address.address,
-          currentLatitude: latitude,
-          currentLongitude: longitude,
-        });
+        set((state) => ({
+          addresses: state.addresses.map((a) => ({
+            ...a,
+            isCurrent: a.id === id,
+          })),
+          ...applySelectedAddress(address),
+        }));
         logger.log("Address selected:", address);
       },
 

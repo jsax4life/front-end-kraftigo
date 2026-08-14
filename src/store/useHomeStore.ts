@@ -44,7 +44,7 @@ interface HomeState {
   clearRecentSearches: () => void;
 
   // Actions
-  fetchHomeData: () => Promise<void>;
+  fetchHomeData: (options?: { force?: boolean }) => Promise<void>;
   reset: () => void;
 }
 
@@ -75,9 +75,9 @@ export const useHomeStore = create<HomeState>()(
 
       clearRecentSearches: () => set({ recentSearches: [] }),
 
-  fetchHomeData: async () => {
-    // Avoid duplicate in-flight requests
-    if (get().isLoading) return;
+  fetchHomeData: async (options) => {
+    // Avoid duplicate in-flight requests unless explicitly forced (e.g. address switch).
+    if (get().isLoading && !options?.force) return;
 
     set({ isLoading: true, error: null });
     try {
