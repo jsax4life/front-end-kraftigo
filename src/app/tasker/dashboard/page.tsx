@@ -22,6 +22,7 @@ import {
   UpdateLocationBanner,
 } from "@/components/shared/DashboardWidgets";
 import FinishProfileModal from "@/components/shared/FinishProfileModal";
+import { useFinishProfileModalAutoOpen } from "@/hooks/useFinishProfileModalAutoOpen";
 import { useProfileStore } from "@/store/useProfileStore";
 import { startDiditKycSession, getVerificationMyStatus, hasOpenDiditKycSession } from "@/lib/api/verification";
 import { hasKrafterProfileCoords } from "@/lib/taskLocation";
@@ -37,19 +38,25 @@ const DashboardContent = () => {
     fetchKrafterPersonalDetailsStatus,
   } = useProfileStore();
   const { bookings, isLoading, fetchArtisanBookings } = useBookingsStore();
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [forceFinishProfileModal, setForceFinishProfileModal] = useState(false);
   const [isStartingKyc, setIsStartingKyc] = useState(false);
   const searchParams = useSearchParams();
 
-  // Auto-open modal when returning from a completion page
+  const {
+    isOpen: isFinishProfileModalOpen,
+    open: openFinishProfileModal,
+    close: closeFinishProfileModal,
+  } = useFinishProfileModalAutoOpen(profileCompletionSummary, {
+    forceOpen: forceFinishProfileModal,
+  });
+
+  // Returning from a profile step with ?modal=open — reopen the checklist.
   useEffect(() => {
-    if (searchParams.get("modal") === "open") {
-      setIsModalOpen(true);
-      // Remove the param from the URL without triggering a navigation
-      const url = new URL(window.location.href);
-      url.searchParams.delete("modal");
-      window.history.replaceState({}, "", url.toString());
-    }
+    if (searchParams.get("modal") !== "open") return;
+    setForceFinishProfileModal(true);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("modal");
+    window.history.replaceState({}, "", url.toString());
   }, [searchParams]);
 
   useEffect(() => {
@@ -139,7 +146,7 @@ const DashboardContent = () => {
       return;
     }
 
-    setIsModalOpen(false);
+    closeFinishProfileModal();
 
     const routeMap: Record<string, string> = {
       register: "/tasker/switch-acct",
@@ -200,7 +207,7 @@ const DashboardContent = () => {
             <ProfileCompletionWidget
               totalSteps={totalSteps}
               completedSteps={completedSteps}
-              onClick={() => setIsModalOpen(true)}
+              onClick={openFinishProfileModal}
             />
           )}
 
@@ -307,10 +314,10 @@ const DashboardContent = () => {
       <TaskerNav />
 
       <FinishProfileModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        isOpen={isFinishProfileModalOpen}
+        onClose={closeFinishProfileModal}
         onComplete={() => {
-          setIsModalOpen(false);
+          closeFinishProfileModal();
           router.push("/tasker/profile/complete");
         }}
         completedPercentage={completedPercentage}
