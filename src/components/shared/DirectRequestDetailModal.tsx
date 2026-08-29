@@ -6,7 +6,10 @@ import { useRouter } from "next/navigation";
 import { X, Calendar, MessageCircle, ZoomIn } from "lucide-react";
 import type { DirectArtisanBookingRequest } from "@/lib/api/bookings";
 import { isDirectRequestPendingPayment } from "@/lib/directRequestStatus";
-import { buildTaskerMessageCustomerUrlFromDirectRequest } from "@/lib/chatDeepLinks";
+import {
+  buildTaskerMessageCustomerUrlFromDirectRequest,
+  canTaskerMessageCustomerFromDirectRequest,
+} from "@/lib/chatDeepLinks";
 import ImageLightbox from "@/components/shared/ImageLightbox";
 import { formatDistanceDisplay, readDistanceFields } from "@/utils/distance";
 import { DistanceBadge } from "@/components/ui/DistanceBadge";
@@ -288,7 +291,7 @@ export default function DirectRequestDetailModal({
         </div>
 
         <div className="border-t border-gray-100 px-5 py-4 space-y-3 shrink-0 bg-white">
-          {customerChatUrl ? (
+          {canTaskerMessageCustomerFromDirectRequest(request) && customerChatUrl ? (
             <button
               type="button"
               onClick={() => {
@@ -300,6 +303,10 @@ export default function DirectRequestDetailModal({
               <MessageCircle size={18} strokeWidth={2} aria-hidden />
               Message customer
             </button>
+          ) : pendingCustomerPayment ? (
+            <p className="text-[12px] font-poppins text-amber-900 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 text-center">
+              Chat opens after the customer authorizes payment.
+            </p>
           ) : null}
           {/* <button
             type="button"

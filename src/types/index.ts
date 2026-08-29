@@ -75,6 +75,7 @@ export type BookingStatus =
   | "COUNTERED"
   | "CONFIRMED"
   | "IN_PROGRESS"
+  | "COMPLETION_SUBMITTED"
   | "COMPLETED"
   | "EXPIRED"
   | "CANCELLED"
@@ -109,6 +110,31 @@ export interface Booking {
   /** Backend-computed elapsed work duration in seconds (preferred for completed jobs). */
   workDurationSeconds?: number | null;
   work_duration_seconds?: number | null;
+  completionSubmittedAt?: string | null;
+  completion_submitted_at?: string | null;
+  completionConfirmationDueAt?: string | null;
+  completion_confirmation_due_at?: string | null;
+  completionConfirmedAt?: string | null;
+  completion_confirmed_at?: string | null;
+  completionConfirmedBy?: "CUSTOMER" | "ADMIN" | "AUTO" | "LEGACY" | string | null;
+  completion_confirmed_by?: string | null;
+  completionConfirmedByUserId?: string | null;
+  completion_confirmed_by_user_id?: string | null;
+  completionNotes?: string | null;
+  completion_notes?: string | null;
+  completionAnomalyFlags?: string[];
+  completion_anomaly_flags?: string[];
+  completionMediaEvidence?: Array<{
+    id?: string;
+    url: string;
+    mimeType?: string | null;
+    createdAt?: string | null;
+    [key: string]: unknown;
+  }>;
+  completion_media_evidence?: Array<Record<string, unknown>>;
+  /** Short-lived signed URLs. Never copy these into persistent client state. */
+  completionMediaUrls?: string[];
+  completion_media_urls?: string[];
   // Optional enriched fields returned by the backend in some responses
   title?: string;
   image?: string;
@@ -270,7 +296,19 @@ export interface Payment {
   currency?: string;
   paymentIntentId?: string;
   payment_intent_id?: string;
-  status: "PENDING" | "HELD" | "ESCROWED" | "RELEASED" | "REFUNDED" | string;
+  status:
+    | "PENDING"
+    | "INITIATED"
+    | "AUTHORIZED"
+    | "HELD"
+    | "ESCROWED"
+    | "ESCROW_HELD"
+    | "CAPTURED"
+    | "RELEASED"
+    | "DISPUTED"
+    | "FAILED"
+    | "REFUNDED"
+    | string;
   created_at?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -294,7 +332,7 @@ export interface Dispute {
   booking_id: string;
   raised_by: string;
   reason: string;
-  status: "OPEN" | "UNDER_REVIEW" | "RESOLVED";
+  status: "OPEN" | "UNDER_REVIEW" | "RESOLVING" | "RESOLVED";
   created_at: string;
 }
 

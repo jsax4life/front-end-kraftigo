@@ -4,6 +4,7 @@ import api from '@/lib/axios'
 import { getBookingById } from '@/lib/api/bookings'
 import { getConversationByBookingId, getOrHydrateConversationForRoom } from '@/lib/api/conversations'
 import { readDmConversationIdFromBooking } from '@/lib/bookingChat'
+import { isBookingChatAvailable } from '@/lib/chatDeepLinks'
 import {
   coerceApiMessage,
   ensureMessageHasConversationId,
@@ -185,7 +186,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     if (existing) return existing
 
     try {
-      const byBooking = await getConversationByBookingId(bid, { createIfMissing: true })
+      const byBooking = await getConversationByBookingId(bid, { createIfMissing: false })
       if (byBooking?.conversationId) {
         const conv = await getOrHydrateConversationForRoom(byBooking.conversationId, fallbacks)
         upsertList({ ...conv, contextType: conv.contextType ?? 'BOOKING', contextId: bid })
@@ -195,13 +196,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
       /* by-booking unavailable or forbidden */
     }
 
+    let bookingForGate: Awaited<ReturnType<typeof getBookingById>> | null = null
     try {
-      const booking = await getBookingById(bid)
-      const room = readDmConversationIdFromBooking(booking)
+      bookingForGate = await getBookingById(bid)
+      const room = readDmConversationIdFromBooking(bookingForGate)
       if (room) {
         const oid =
           otherUserId?.trim() ||
-          String(booking.artisanId ?? booking.artisan_id ?? '').trim() ||
+          String(bookingForGate.artisanId ?? bookingForGate.artisan_id ?? '').trim() ||
           fallbacks.otherUserId
         const conv = await getOrHydrateConversationForRoom(room, {
           ...fallbacks,
@@ -212,6 +214,19 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
     } catch {
       /* booking fetch failed */
+    }
+
+    if (bookingForGate && isBookingChatAvailable(bookingForGate)) {
+      try {
+        const created = await getConversationByBookingId(bid, { createIfMissing: true })
+        if (created?.conversationId) {
+          const conv = await getOrHydrateConversationForRoom(created.conversationId, fallbacks)
+          upsertList({ ...conv, contextType: conv.contextType ?? 'BOOKING', contextId: bid })
+          return conv
+        }
+      } catch {
+        /* create forbidden */
+      }
     }
 
     return null

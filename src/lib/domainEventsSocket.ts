@@ -20,10 +20,15 @@ let sessionUnknownRetries = 0;
 
 export type DomainEventHandler = (msg: Record<string, unknown>) => void;
 
+export const DOMAIN_EVENTS_RECONNECT_EVENT = "kraftigo:domain-events-reconnect";
+
 function attachEventSocketHandlers(s: Socket, onEvent: DomainEventHandler) {
   s.on("event", onEvent);
   s.on("connect", () => {
     sessionUnknownRetries = 0;
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent(DOMAIN_EVENTS_RECONNECT_EVENT));
+    }
     if (process.env.NODE_ENV === "development") {
       console.info("[events] connected", s.io.opts.path, s.id);
     }
@@ -86,7 +91,7 @@ async function runEventsSocketConnect(
         path,
         transports,
         auth: { token: accessToken },
-        query: { token: accessToken },
+        withCredentials: true,
         reconnection: true,
         reconnectionAttempts: 12,
         reconnectionDelay: 2000,
@@ -138,4 +143,11 @@ export function disconnectDomainEventsSocket(opts?: { keepReconnectHint?: boolea
 
 export function isDomainEventsSocketConnected(): boolean {
   return Boolean(socket?.connected);
+}
+
+/** After axios silent refresh: reconnect `/events` with the new JWT if a session was already open. */
+export function notifyDomainEventsAccessTokenRefreshed(accessToken: string): void {
+  const t = accessToken.trim();
+  if (!t || !eventsReconnectCache) return;
+  connectDomainEventsSocket(t, eventsReconnectCache.onEvent);
 }

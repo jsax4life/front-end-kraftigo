@@ -15,6 +15,7 @@ import {
   MapPin,
   MessageCircle,
   UserX,
+  Gavel,
 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useProfileStore } from "@/store/useProfileStore";
@@ -143,6 +144,11 @@ const Page = () => {
              icon={Clock} 
              label={t("menu.transactionHistory")} 
              onClick={() => router.push("/user/profile/transactions")}
+           />
+           <SettingsItem
+             icon={Gavel}
+             label="Disputes"
+             onClick={() => router.push("/user/disputes")}
              showBorder={false}
            />
         </div>

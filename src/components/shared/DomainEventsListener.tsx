@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
+import { getStoredAccessToken } from "@/lib/axios";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useBookingsStore } from "@/store/useBookingsStore";
 import { useCustomKraftsStore } from "@/store/useCustomKraftsStore";
@@ -8,11 +9,14 @@ import { useChatStore } from "@/store/useChatStore";
 import {
   connectDomainEventsSocket,
   disconnectDomainEventsSocket,
+  DOMAIN_EVENTS_RECONNECT_EVENT,
 } from "@/lib/domainEventsSocket";
 import { showDomainEventNotification } from "@/lib/domainEventNotifications";
 import { clearRecommendationDraftBookingIdFromSession } from "@/lib/recommendationDraftBooking";
 import { isKycDomainEventType } from "@/lib/kycNotifications";
 import { useProfileStore } from "@/store/useProfileStore";
+import { useDisputesStore } from "@/store/useDisputesStore";
+import { emitWalletSummaryInvalidate } from "@/lib/api/payouts";
 
 let refetchDebounce: ReturnType<typeof setTimeout> | null = null;
 let pendingChatListRefetch = false;
@@ -88,6 +92,22 @@ export default function DomainEventsListener() {
       void useProfileStore.getState().fetchVerificationStatusSilent().catch(() => {});
       void useProfileStore.getState().fetchArtisanProfile().catch(() => {});
     }
+    const bookingId = typeof msg.bookingId === "string" ? msg.bookingId : "";
+    if (bookingId) {
+      void useBookingsStore.getState().refetchBookingSilent(bookingId).catch(() => {});
+    }
+    if (eventType.startsWith("DISPUTE_") || eventType === "KRAFTER_NOT_HERE_REPORTED") {
+      void useDisputesStore.getState().fetchMyDisputes().catch(() => {});
+      // DISPUTE_UNDER_REVIEW / DISPUTE_RESOLVED may omit bookingId — list refetch above is enough.
+    }
+    if (
+      eventType.startsWith("PAYMENT_") ||
+      eventType.startsWith("ARTISAN_WALLET_") ||
+      eventType === "BOOKING_COMPLETED" ||
+      eventType === "DISPUTE_RESOLVED"
+    ) {
+      emitWalletSummaryInvalidate();
+    }
     scheduleStoresRefresh(msg);
   };
 
@@ -96,12 +116,26 @@ export default function DomainEventsListener() {
   }, []);
 
   useEffect(() => {
-    if (!accessToken || !isAuthenticated) {
+    const handshakeToken = getStoredAccessToken() || accessToken;
+    if (!handshakeToken || !isAuthenticated) {
       disconnectDomainEventsSocket();
       return;
     }
-    connectDomainEventsSocket(accessToken, stableHandler);
+    connectDomainEventsSocket(handshakeToken, stableHandler);
+
+    const onReconnect = () => {
+      scheduleStoresRefresh();
+      const selectedId = useBookingsStore.getState().selectedBooking?.id;
+      if (selectedId) {
+        void useBookingsStore.getState().refetchBookingSilent(selectedId).catch(() => {});
+      }
+      void useDisputesStore.getState().fetchMyDisputes().catch(() => {});
+      emitWalletSummaryInvalidate();
+    };
+    window.addEventListener(DOMAIN_EVENTS_RECONNECT_EVENT, onReconnect);
+
     return () => {
+      window.removeEventListener(DOMAIN_EVENTS_RECONNECT_EVENT, onReconnect);
       disconnectDomainEventsSocket();
     };
   }, [accessToken, isAuthenticated, stableHandler]);

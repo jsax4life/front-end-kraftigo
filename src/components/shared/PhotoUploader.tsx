@@ -18,6 +18,8 @@ interface PhotoUploaderProps {
   title?: string;
   /** Strip outer section chrome when nested inside another panel/modal. */
   embedded?: boolean;
+  /** Completion evidence accepts images only (no video). */
+  acceptImagesOnly?: boolean;
 }
 
 export default function PhotoUploader({
@@ -26,6 +28,7 @@ export default function PhotoUploader({
   maxPhotos = 3,
   title,
   embedded = false,
+  acceptImagesOnly = false,
 }: PhotoUploaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -47,7 +50,14 @@ export default function PhotoUploader({
     }
 
     const remaining = maxPhotos - photos.length;
-    const allFiles = Array.from(files);
+    const allFiles = Array.from(files).filter((file) =>
+      acceptImagesOnly ? file.type.startsWith("image/") : true,
+    );
+
+    if (allFiles.length === 0) {
+      setShowOptions(false);
+      return;
+    }
 
     if (allFiles.length > remaining) {
       showLimitError();
@@ -113,7 +123,7 @@ export default function PhotoUploader({
             >
               <Camera size={24} className="text-gray-600" />
               <span className="text-[11px] sm:text-[12px] font-poppins text-gray-600 text-center px-1">
-                Add Media
+                {acceptImagesOnly ? "Add photo" : "Add Media"}
               </span>
             </button>
 
@@ -138,7 +148,7 @@ export default function PhotoUploader({
                 >
                   <Camera size={18} className="text-gray-600" />
                   <span className="text-[13px] font-poppins text-gray-700">
-                    Take photo/video
+                    {acceptImagesOnly ? "Take photo" : "Take photo/video"}
                   </span>
                 </button>
               </div>
@@ -150,7 +160,7 @@ export default function PhotoUploader({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*,video/*"
+          accept={acceptImagesOnly ? "image/*" : "image/*,video/*"}
           multiple
           className="hidden"
           onChange={(e) => handleFiles(e.target.files)}
@@ -158,7 +168,7 @@ export default function PhotoUploader({
         <input
           ref={cameraInputRef}
           type="file"
-          accept="image/*,video/*"
+          accept={acceptImagesOnly ? "image/*" : "image/*,video/*"}
           capture="environment"
           className="hidden"
           onChange={(e) => handleFiles(e.target.files)}

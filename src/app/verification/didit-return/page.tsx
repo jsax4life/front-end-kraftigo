@@ -9,7 +9,13 @@ import Button from "@/components/ui/button";
 import {
   getVerificationMyStatus,
   getKrafterVerificationContinuePath,
+  isProviderDiditApproved,
+  isTerminalEffectiveKyc,
+  normalizeKycStatusToken,
+  resolveEffectiveKycStatus,
+  shouldPollVerificationMyStatus,
   shouldRouteToKrafterProfileOnboarding,
+  syncDiditVerificationReturn,
   type KycStatus,
   type VerificationMyStatus,
 } from "@/lib/api/verification";
@@ -29,12 +35,12 @@ function formatProviderStatusParam(raw: string | null): string {
   }
 }
 
-function isTerminalKyc(kyc: string | null | undefined): kyc is KycStatus {
+function isTerminalKyc(kyc: KycStatus | null | undefined): kyc is KycStatus {
   return kyc === "APPROVED" || kyc === "REJECTED";
 }
 
-function shouldKeepPolling(kyc: string | null | undefined): boolean {
-  return kyc === "PENDING" || kyc === "NOT_STARTED";
+function shouldKeepPolling(status: VerificationMyStatus | null): boolean {
+  return shouldPollVerificationMyStatus(status);
 }
 
 const KYC_DISPLAY: Record<string, string> = {
@@ -57,6 +63,7 @@ function DiditReturnContent() {
   const [polling, setPolling] = useState(false);
   const [timedOut, setTimedOut] = useState(false);
   const [pollAttempt, setPollAttempt] = useState(0);
+  const [syncAttempted, setSyncAttempted] = useState(false);
   const pollCountRef = useRef(0);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -67,10 +74,30 @@ function DiditReturnContent() {
     return data;
   }, []);
 
+  const runServerSync = useCallback(async () => {
+    const sessionId = verificationSessionId?.trim();
+    if (!sessionId) return null;
+    try {
+      return await syncDiditVerificationReturn({
+        verificationSessionId: sessionId,
+        providerStatus: providerStatusRaw,
+      });
+    } catch {
+      return null;
+    }
+  }, [providerStatusRaw, verificationSessionId]);
+
+  const applyStatus = useCallback((data: VerificationMyStatus) => {
+    setMyStatus(data);
+    useProfileStore.setState({ verificationStatus: data });
+    return data;
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     pollCountRef.current = 0;
     setTimedOut(false);
+    if (verificationSessionId?.trim()) setSyncAttempted(true);
 
     const scheduleNext = () => {
       if (cancelled) return;
@@ -83,14 +110,13 @@ function DiditReturnContent() {
         setLoadError(null);
         const data = await refreshStatus();
         if (cancelled) return;
-        const kyc = data.kycStatus ?? null;
 
-        if (isTerminalKyc(kyc)) {
+        if (isTerminalEffectiveKyc(data)) {
           setPolling(false);
           return;
         }
 
-        if (shouldKeepPolling(kyc)) {
+        if (shouldKeepPolling(data)) {
           pollCountRef.current += 1;
           if (pollCountRef.current >= MAX_POLLS) {
             setPolling(false);
@@ -113,17 +139,38 @@ function DiditReturnContent() {
       }
     }
 
-    void runPoll();
+    void (async () => {
+      const synced = await runServerSync();
+      if (cancelled) return;
+      if (synced) {
+        applyStatus(synced);
+        if (isTerminalEffectiveKyc(synced)) {
+          setPolling(false);
+          return;
+        }
+      }
+      void runPoll();
+    })();
 
     return () => {
       cancelled = true;
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, [refreshStatus, pollAttempt]);
+  }, [applyStatus, refreshStatus, runServerSync, pollAttempt, verificationSessionId]);
 
-  const kyc = myStatus?.kycStatus ?? null;
+  const handleRefreshStatus = () => {
+    void (async () => {
+      const synced = await runServerSync();
+      if (synced) applyStatus(synced);
+      setPollAttempt((n) => n + 1);
+    })();
+  };
+
+  const kyc = resolveEffectiveKycStatus(myStatus);
   const terminal = isTerminalKyc(kyc);
   const krafterContinuePath = getKrafterVerificationContinuePath(myStatus);
+  const providerApproved = isProviderDiditApproved(providerStatusRaw);
+  const showProviderSyncDelay = !terminal && providerApproved && (polling || timedOut);
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#faf8f5] px-5 pb-12 pt-14">
@@ -196,7 +243,10 @@ function DiditReturnContent() {
                 Current status
               </p>
               <p className="mt-1 font-poppins text-[20px] font-bold text-[rgba(0,0,0,0.88)]">
-                {(kyc && KYC_DISPLAY[kyc]) || kyc?.replace(/_/g, " ") || "—"}
+                {(kyc && KYC_DISPLAY[kyc]) ||
+                  normalizeKycStatusToken(myStatus?.kycStatus)?.replace(/_/g, " ") ||
+                  myStatus?.kycStatus?.replace(/_/g, " ") ||
+                  "—"}
               </p>
 
               {kyc === "APPROVED" && (
@@ -252,10 +302,19 @@ function DiditReturnContent() {
                 </div>
               )}
 
-              {!terminal && !timedOut && (kyc === "PENDING" || kyc === "NOT_STARTED") && (
+              {!terminal && !timedOut && shouldKeepPolling(myStatus) && (
                 <p className="mt-4 text-center font-poppins text-[13px] leading-relaxed text-[rgba(0,0,0,0.55)]">
-                  Waiting for our servers to confirm your Didit session… This usually takes a few
-                  seconds.
+                  {showProviderSyncDelay
+                    ? "Didit marked your check as approved. Waiting for Kraftigo to finish syncing — this usually takes a few seconds."
+                    : "Waiting for our servers to confirm your Didit session… This usually takes a few seconds."}
+                </p>
+              )}
+
+              {showProviderSyncDelay && timedOut && (
+                <p className="mt-4 text-center font-poppins text-[13px] leading-relaxed text-amber-900 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
+                  Didit shows approved, but our servers have not updated yet. Try refresh below, or
+                  continue and check your Krafter dashboard in a moment. If this persists, the Didit
+                  webhook may need attention on the backend.
                 </p>
               )}
 
@@ -269,10 +328,20 @@ function DiditReturnContent() {
                     fullWidth
                     variant="outline"
                     className="font-poppins! font-semibold"
-                    onClick={() => setPollAttempt((n) => n + 1)}
+                    onClick={handleRefreshStatus}
                   >
                     Refresh status
                   </Button>
+                  {providerApproved ? (
+                    <Button
+                      type="button"
+                      fullWidth
+                      className="font-poppins! font-semibold"
+                      onClick={() => router.push(krafterContinuePath)}
+                    >
+                      Continue to Krafter profile
+                    </Button>
+                  ) : null}
                   <Link
                     href={krafterContinuePath}
                     className="block text-center font-poppins text-[13px] text-[#FF6600] underline-offset-4 hover:underline"
@@ -286,8 +355,8 @@ function DiditReturnContent() {
         </div>
 
         <p className="mx-auto mt-8 max-w-[340px] text-center font-poppins text-[11px] leading-relaxed text-[rgba(0,0,0,0.38)]">
-          The Didit webhook updates your account on our servers. This page only reads{" "}
-          <code className="rounded bg-black/5 px-1">GET /api/verification/my-status</code>.
+          Kraftigo reads <code className="rounded bg-black/5 px-1">GET /api/verification/my-status</code>
+          {syncAttempted ? " and requests a server sync when you land here." : "."}
         </p>
       </div>
     </main>

@@ -14,7 +14,7 @@ import {
   bookingNeedsKrafterSelection,
 } from "@/lib/bookingDisplay";
 import { DistanceBadge } from "@/components/ui/DistanceBadge";
-import { buildCustomerMessageKrafterUrl, canCustomerMessageKrafter, getKrafterUserIdFromBooking } from "@/lib/chatDeepLinks";
+import { buildCustomerMessageKrafterUrl, canCustomerMessageKrafter, bookingChatUnavailableHint, getKrafterUserIdFromBooking } from "@/lib/chatDeepLinks";
 import { useBookingsStore } from "@/store/useBookingsStore";
 import CancelModal from "@/components/shared/CancelModal";
 import RescheduleModal from "@/components/shared/RescheduleModal";
@@ -22,6 +22,8 @@ import {
   canCustomerCancelBookingStatus,
   customerCancelDisabledReason,
 } from "@/lib/customerBookingCancel";
+import CustomerBookingSafetyPanel from "@/components/shared/CustomerBookingSafetyPanel";
+import { BOOKING_DETAIL_INVALIDATE_EVENT } from "@/lib/safetyInvalidation";
 
 function parseJobDescription(raw: string): { description: string; specialFromBody: string } {
   if (!raw?.trim()) return { description: "", specialFromBody: "" };
@@ -92,6 +94,19 @@ export default function CustomerKraftTaskDetailModal({
     };
   }, [open, booking.id, booking]);
 
+  useEffect(() => {
+    if (!open) return;
+    const onInvalidate = (event: Event) => {
+      const id = (event as CustomEvent<{ bookingId?: string }>).detail?.bookingId;
+      if (id && id !== booking.id) return;
+      void getBookingById(booking.id)
+        .then((fresh) => setEnriched(fresh))
+        .catch(() => {});
+    };
+    window.addEventListener(BOOKING_DETAIL_INVALIDATE_EVENT, onInvalidate);
+    return () => window.removeEventListener(BOOKING_DETAIL_INVALIDATE_EVENT, onInvalidate);
+  }, [open, booking.id]);
+
   if (!open) return null;
 
   const b = enriched;
@@ -108,6 +123,7 @@ export default function CustomerKraftTaskDetailModal({
     apiStatus === "CONFIRMED" ||
     apiStatus === "ACCEPTED" ||
     apiStatus === "IN_PROGRESS" ||
+    apiStatus === "COMPLETION_SUBMITTED" ||
     apiStatus === "PAYMENT_PENDING";
 
   const canCustomerCancel = Boolean(apiStatus && canCustomerCancelBookingStatus(apiStatus));
@@ -121,6 +137,7 @@ export default function CustomerKraftTaskDetailModal({
     b.id &&
     !needsKrafterSelection &&
     apiStatus !== "IN_PROGRESS" &&
+    apiStatus !== "COMPLETION_SUBMITTED" &&
     !["DECLINED", "COMPLETED", "EXPIRED", "CANCELLED", "DISPUTED", "RECOMMENDATION_PENDING", "PAYMENT_PENDING"].includes(
       String(apiStatus ?? ""),
     );
@@ -446,6 +463,13 @@ export default function CustomerKraftTaskDetailModal({
           </div>
 
           <div className="space-y-3 pb-2">
+            <CustomerBookingSafetyPanel
+              booking={b}
+              onUpdated={(updated) => {
+                setEnriched(updated);
+                onBookingUpdated?.();
+              }}
+            />
             {isPaymentPending && b.id && (
               <button
                 type="button"
@@ -493,6 +517,10 @@ export default function CustomerKraftTaskDetailModal({
                 <MessageCircle size={20} strokeWidth={2} aria-hidden />
                 Message Krafter
               </button>
+            ) : !isTerminal && isPaymentPending ? (
+              <p className="w-full py-2 text-center text-[12px] font-poppins text-amber-900 bg-amber-50 border border-amber-100 rounded-xl px-3">
+                {bookingChatUnavailableHint(b, "customer")}
+              </p>
             ) : null}
 
             {isExpired && (

@@ -219,6 +219,7 @@ class ChatSocketManager {
               const latest = this.resolveHandshakeToken(this.token ?? "");
               cb({ token: latest });
             },
+            withCredentials: true,
             transports,
             reconnection: true,
             reconnectionAttempts: 12,

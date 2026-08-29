@@ -17,6 +17,7 @@ import {
   customerCancelDisabledReason,
 } from "@/lib/customerBookingCancel";
 import BookingPaymentConfirmModal from "@/components/shared/BookingPaymentConfirmModal";
+import CustomerBookingSafetyPanel from "@/components/shared/CustomerBookingSafetyPanel";
 import { bookingPaymentClientSecret } from "@/lib/bookingPaymentCheckout";
 import { DistanceBadge } from "@/components/ui/DistanceBadge";
 import { useTranslations } from "next-intl";
@@ -97,6 +98,7 @@ const ActiveJobContent = () => {
     selectedBooking &&
     !needsKrafterSelection &&
     apiStatus !== "IN_PROGRESS" &&
+    apiStatus !== "COMPLETION_SUBMITTED" &&
     !["DECLINED", "COMPLETED", "CANCELLED", "DISPUTED", "RECOMMENDATION_PENDING", "PAYMENT_PENDING"].includes(
       String(apiStatus ?? ""),
     );
@@ -309,6 +311,17 @@ const ActiveJobContent = () => {
           </div>
         )}
       </div>
+
+      {bookingId && selectedBooking && (
+        <div className="px-4 mb-4">
+          <CustomerBookingSafetyPanel
+            booking={selectedBooking}
+            onUpdated={(updated) => {
+              useBookingsStore.getState().applyCanonicalBooking(updated);
+            }}
+          />
+        </div>
+      )}
 
       {/* Action Buttons */}
       <div className="px-4 space-y-3">

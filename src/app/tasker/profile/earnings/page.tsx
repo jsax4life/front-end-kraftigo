@@ -309,6 +309,10 @@ const EarningsPage = () => {
 
   const handleWithdraw = async () => {
     if (!wallet || withdrawableAmount <= 0 || withdrawLoading) return;
+    if (wallet.recoveryDebtAmount > 0) {
+      toast.error("Withdrawals are blocked while recovery debt is outstanding.");
+      return;
+    }
 
     setWithdrawLoading(true);
     try {
@@ -492,7 +496,7 @@ const EarningsPage = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-white p-5 rounded-2xl border border-[#EAECF0] shadow-sm">
-                  <p className="text-[12px] font-poppins text-[#667085] mb-1 font-medium">On 24h hold</p>
+                  <p className="text-[12px] font-poppins text-[#667085] mb-1 font-medium">On payout hold</p>
                   <p className="text-[24px] font-gerat font-bold text-[#1D2939]">{fmt(wallet.pendingHoldAmount)}</p>
                   <p className="text-[11px] font-poppins text-[#98A2B3] mt-1">
                     {wallet.pendingHoldCount} payout{wallet.pendingHoldCount === 1 ? "" : "s"}
@@ -511,6 +515,25 @@ const EarningsPage = () => {
                   <p className="text-[11px] font-poppins text-[#98A2B3] mt-1">Completed payouts</p>
                 </div>
               </div>
+
+              {(wallet.disputedHoldAmount > 0 || wallet.recoveryDebtAmount > 0) && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-red-50 p-5 rounded-2xl border border-red-100">
+                    <p className="text-[12px] font-poppins text-red-800 mb-1 font-medium">Disputed hold</p>
+                    <p className="text-[24px] font-gerat font-bold text-red-900">{fmt(wallet.disputedHoldAmount)}</p>
+                    <p className="text-[11px] font-poppins text-red-700 mt-1">
+                      {wallet.disputedHoldCount} frozen · never withdrawable while unresolved
+                    </p>
+                  </div>
+                  <div className="bg-amber-50 p-5 rounded-2xl border border-amber-100">
+                    <p className="text-[12px] font-poppins text-amber-800 mb-1 font-medium">Recovery debt</p>
+                    <p className="text-[24px] font-gerat font-bold text-amber-900">{fmt(wallet.recoveryDebtAmount)}</p>
+                    <p className="text-[11px] font-poppins text-amber-800 mt-1">
+                      Withdrawals are blocked while this is greater than zero
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <div className="rounded-2xl border border-[#EAECF0] bg-white px-5 py-4 shadow-sm">
                 <p className="text-[12px] font-poppins text-[#667085] font-medium">Lifetime earnings</p>
@@ -569,7 +592,8 @@ const EarningsPage = () => {
                 withdrawLoading ||
                 walletLoading ||
                 !wallet ||
-                withdrawableAmount <= 0
+                withdrawableAmount <= 0 ||
+                (wallet?.recoveryDebtAmount ?? 0) > 0
               }
               className="w-full bg-brand-orange py-4 rounded-2xl text-white font-gerat font-bold text-[16px] hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >

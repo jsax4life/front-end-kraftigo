@@ -24,6 +24,7 @@ import {
   rememberPreferredChatThread,
   resolvePreferredChatThread,
 } from "@/lib/chatThreadPreference";
+import { getOrHydrateConversationForRoom } from "@/lib/api/conversations";
 import type { Conversation } from "@/types";
 
 const ChatPageContent = () => {
@@ -57,6 +58,7 @@ const ChatPageContent = () => {
     const userId = searchParams.get("userId");
     const name = searchParams.get("name");
     const bookingId = searchParams.get("bookingId");
+    const conversationIdParam = searchParams.get("conversationId")?.trim();
 
     if (!userId?.trim() || !name?.trim()) {
       setDeepLinkBusy(false);
@@ -68,6 +70,24 @@ const ChatPageContent = () => {
 
     void (async () => {
       try {
+        const fallbacks = {
+          otherUserId: userId.trim(),
+          displayName: name.trim(),
+          displayAvatar: "/images/abt.jpg",
+        };
+
+        if (conversationIdParam) {
+          const conv = await getOrHydrateConversationForRoom(conversationIdParam, fallbacks);
+          if (cancelled) return;
+          rememberPreferredChatThread(fallbacks.otherUserId, conv);
+          setCurrentConversation({
+            ...conv,
+            contextType: conv.contextType ?? (bookingId?.trim() ? "BOOKING" : conv.contextType),
+            contextId: conv.contextId ?? bookingId?.trim(),
+          });
+          return;
+        }
+
         const store = useChatStore.getState();
         const conv = bookingId?.trim()
           ? await store.ensureChatConversationForBooking({
@@ -90,7 +110,9 @@ const ChatPageContent = () => {
         } else {
           setCurrentConversation(null);
           toast.error(
-            "Could not open this conversation yet. Open Messages from the request, or try again in a moment.",
+            bookingId?.trim()
+              ? "Chat opens after the customer authorizes payment."
+              : "Could not open this conversation yet. Open Messages from the request, or try again in a moment.",
           );
         }
       } finally {

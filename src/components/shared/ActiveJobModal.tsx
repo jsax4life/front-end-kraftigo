@@ -11,20 +11,27 @@ import RateCustomerModal from "@/components/shared/RateCustomerModal";
 import { getMyReviews, submitReview } from "@/lib/api/reviews";
 import { findMyReviewForBooking, type MyReview } from "@/lib/reviewDisplay";
 import SubmittedReviewSummary from "@/components/shared/SubmittedReviewSummary";
-import { buildTaskerMessageCustomerUrlFromBooking } from "@/lib/chatDeepLinks";
+import { buildTaskerMessageCustomerUrlFromBooking, canTaskerMessageCustomer } from "@/lib/chatDeepLinks";
 import type { Booking } from "@/types";
 import { useBookingsStore } from "@/store/useBookingsStore";
 import { parseBookingMoney, deriveBookingCustomerPresentation } from "@/lib/bookingDisplay";
 import { getBookingById } from "@/lib/api/bookings";
 import { formatDistanceDisplay, readDistanceFields } from "@/utils/distance";
 import { DistanceBadge } from "@/components/ui/DistanceBadge";
+import VerifiedStartModal from "@/components/shared/VerifiedStartModal";
+import { captureFreshLocation, getOrCreateDeviceId } from "@/lib/workVerification";
+import { isCompletionSubmittedStatus, isDisputedStatus, isCompletedStatus } from "@/lib/bookingSafety";
+import { looksLikePaymentReauthorizationError, apiErrorMessage } from "@/lib/apiErrorMessage";
+import OpenDisputeModal from "@/components/shared/OpenDisputeModal";
+import DisputeEvidenceModal from "@/components/shared/DisputeEvidenceModal";
 
-type JobPhase = "not-started" | "in-progress" | "completed";
+type JobPhase = "not-started" | "in-progress" | "awaiting-confirmation" | "completed";
 
 const STATUS_STEPS = [
   { key: "not-started", label: "Confirmed", step: 1 },
   { key: "in-progress", label: "In progress", step: 2 },
-  { key: "completed", label: "Completed", step: 3 },
+  { key: "awaiting-confirmation", label: "Awaiting confirmation", step: 3 },
+  { key: "completed", label: "Completed", step: 4 },
 ] as const;
 
 function normStatus(status: string | undefined): string {
@@ -156,7 +163,6 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
   const { startBooking, completeBooking } = useBookingsStore();
 
   const [phase, setPhase] = useState<JobPhase>("not-started");
-  const [showReportIssue, setShowReportIssue] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [timer, setTimer] = useState({ hours: 0, minutes: 0, seconds: 0 });
   const [isPaused, setIsPaused] = useState(false);
@@ -166,8 +172,11 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
   const [showKraftDetails, setShowKraftDetails] = useState(false);
   const [showPriceBreakdown, setShowPriceBreakdown] = useState(false);
   const [isActionLoading, setIsActionLoading] = useState(false);
+  const [showVerifiedStart, setShowVerifiedStart] = useState(false);
   const [isReviewSubmitting, setIsReviewSubmitting] = useState(false);
   const [existingReview, setExistingReview] = useState<MyReview | null>(null);
+  const [openDispute, setOpenDispute] = useState(false);
+  const [evidenceDisputeId, setEvidenceDisputeId] = useState<string | null>(null);
   const estimatedHours = 2;
 
   const buildReviewPayload = (rating: number, tags: string[], feedback: string) => ({
@@ -205,6 +214,11 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
       if (typeof window !== "undefined") {
         window.sessionStorage.removeItem(jobWorkStartStorageKey(booking.id));
       }
+    } else if (s === "COMPLETION_SUBMITTED") {
+      setPhase("awaiting-confirmation");
+      setTimer(msToTimer(resolveJobCompletedDurationMs(booking)));
+    } else if (s === "DISPUTED") {
+      setPhase("awaiting-confirmation");
     } else if (s === "IN_PROGRESS") {
       setPhase("in-progress");
       workAnchorMsRef.current = resolveJobWorkStartedAtMs(booking);
@@ -302,34 +316,8 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
   const stepIndex = STATUS_STEPS.findIndex((s) => s.key === phase);
   const isOvertime = () => timer.hours * 60 + timer.minutes > estimatedHours * 60;
 
-  const handleStartJob = async () => {
-    if (!isConfirmed) return;
-    setIsActionLoading(true);
-    try {
-      const updated = await startBooking(booking.id);
-      onBookingUpdated?.(updated);
-      if (typeof window !== "undefined") {
-        window.sessionStorage.setItem(jobWorkStartStorageKey(booking.id), String(Date.now()));
-        window.localStorage.removeItem(jobWorkDurationStorageKey(booking.id));
-      }
-      workAnchorMsRef.current = resolveJobWorkStartedAtMs(updated);
-      pausedTotalMsRef.current = 0;
-      pauseStartedAtRef.current = null;
-      setTimer(msToTimer(computeElapsedMs()));
-      toast.success("Job started. Coordinate with your customer while you work.");
-      setPhase("in-progress");
-    } catch (err: unknown) {
-      const ax = err as { response?: { data?: { message?: string } } };
-      toast.error(
-        ax.response?.data?.message ??
-          "Could not start the job. It is only allowed once the booking is confirmed and payment is authorized.",
-      );
-    } finally {
-      setIsActionLoading(false);
-    }
-  };
-
   const customerChatUrl = buildTaskerMessageCustomerUrlFromBooking(booking);
+  const canMessageCustomer = canTaskerMessageCustomer(booking);
 
   const handleMessageCustomer = () => {
     if (!customerChatUrl) {
@@ -348,21 +336,37 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
     }
     setIsActionLoading(true);
     try {
+      const location = await captureFreshLocation();
       const updated = await completeBooking(booking.id, {
         completionImages: files.slice(0, 3),
         notes: ongoingNotes.trim() || undefined,
+        ...location,
+        deviceId: getOrCreateDeviceId(),
       });
       onBookingUpdated?.(updated);
       if (typeof window !== "undefined") {
         window.localStorage.setItem(jobWorkDurationStorageKey(booking.id), String(Math.max(0, computeElapsedMs())));
         window.sessionStorage.removeItem(jobWorkStartStorageKey(booking.id));
       }
-      toast.success("Job completed.");
-      setPhase("completed");
-      setShowRatingModal(true);
+      if (isCompletedStatus(updated.status)) {
+        toast.success("Job completed.");
+        setPhase("completed");
+        return;
+      }
+      toast.success("Completion proof submitted. Awaiting customer confirmation.");
+      setPhase("awaiting-confirmation");
     } catch (err: unknown) {
-      const ax = err as { response?: { data?: { message?: string } } };
-      toast.error(ax.response?.data?.message ?? "Could not complete the job. Try again.");
+      const canonical = useBookingsStore.getState().bookings.find((b) => b.id === booking.id);
+      if (canonical && isCompletionSubmittedStatus(canonical.status)) {
+        onBookingUpdated?.(canonical);
+        setPhase("awaiting-confirmation");
+        toast.success("Completion was recorded. Awaiting customer confirmation.");
+        if (looksLikePaymentReauthorizationError(err)) {
+          toast.error("Payment reauthorization is required. Ask the customer to reauthorize, then retry Complete.");
+        }
+        return;
+      }
+      toast.error(apiErrorMessage(err, "Could not submit completion. Try again."));
     } finally {
       setIsActionLoading(false);
     }
@@ -437,7 +441,9 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
           </div>
 
           <div className="px-5 py-5 space-y-4">
-            {(phase === "in-progress" || phase === "completed") && (
+            {(phase === "in-progress" ||
+              phase === "awaiting-confirmation" ||
+              phase === "completed") && (
               <div className="flex items-center justify-center gap-4">
                 {(["hours", "minutes", "seconds"] as const).map((unit) => (
                   <div key={unit} className="bg-gray-100 rounded-2xl p-4 text-center min-w-20">
@@ -456,10 +462,55 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
 
             {phase === "completed" && (
               <div className="text-center">
-                <p className="text-sm text-gray-600 mb-1">Total earned</p>
-                <p className="text-3xl font-bold text-green-600">
-                  +€{booking.price != null ? Number(booking.price).toFixed(2) : "0.00"}
+                <p className="text-sm text-gray-600 mb-1">Payout follows the wallet hold</p>
+                <p className="text-[13px] text-gray-500">
+                  Do not treat this amount as available. Check Earnings for hold, dispute freeze,
+                  and withdrawable balance.
                 </p>
+              </div>
+            )}
+
+            {phase === "awaiting-confirmation" && (
+              <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 space-y-3">
+                <p className="font-semibold text-blue-950">
+                  {isDisputedStatus(booking.status)
+                    ? "This booking is disputed"
+                    : "Awaiting customer confirmation"}
+                </p>
+                <p className="text-[13px] leading-relaxed text-blue-800">
+                  {isDisputedStatus(booking.status)
+                    ? "Payout is frozen. Submit evidence if you have not already. Frozen dispute holds never appear as available to withdraw."
+                    : "Your proof was submitted. This is not withdrawable earnings yet. The wallet is authoritative after confirmation and the payout hold."}
+                </p>
+                {isCompletionSubmittedStatus(booking.status) && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    fullWidth
+                    disabled={isActionLoading}
+                    onClick={() => {
+                      setIsActionLoading(true);
+                      void captureFreshLocation()
+                        .then((location) =>
+                          completeBooking(
+                            booking.id,
+                            { ...location, deviceId: getOrCreateDeviceId() },
+                            { captureRetry: true },
+                          ),
+                        )
+                        .then((updated) => {
+                          onBookingUpdated?.(updated);
+                          toast.success("Capture retry sent.");
+                        })
+                        .catch((err: unknown) => {
+                          toast.error(apiErrorMessage(err, "Retry failed. Refetching booking."));
+                        })
+                        .finally(() => setIsActionLoading(false));
+                    }}
+                  >
+                    Retry payment capture
+                  </Button>
+                )}
               </div>
             )}
 
@@ -500,11 +551,12 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
                     </p>
                   </div>
               </div>
-                {phase !== "completed" && !isExpired ? (
+                {phase !== "completed" && !isExpired && canMessageCustomer ? (
                   <button
                     type="button"
                     onClick={handleMessageCustomer}
                     className="w-11 h-11 bg-[#FFE5D9] rounded-full flex items-center justify-center hover:bg-[#FFD5C2] transition-colors"
+                    aria-label="Message customer"
                   >
                     <MessageCircle size={18} className="text-brand-orange" />
                   </button>
@@ -604,7 +656,7 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
                 <h3 className="text-[15px] font-bold text-gray-900 mb-2">Notes (optional)</h3>
                 <textarea
                   value={ongoingNotes}
-                  onChange={(e) => setOngoingNotes(e.target.value)}
+                  onChange={(e) => setOngoingNotes(e.target.value.slice(0, 2000))}
                   placeholder="Optional notes sent with completion (access, handover, etc.)"
                   className="w-full h-28 p-3 bg-[#F6F6F6] border border-[#0000001A] rounded-xl text-[14px] resize-none focus:outline-none focus:border-brand-orange"
                 />
@@ -619,6 +671,7 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
                   onChange={setProofPhotos}
                   maxPhotos={3}
                   embedded
+                  acceptImagesOnly
                 />
               </div>
             )}
@@ -662,7 +715,7 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
               {phase === "not-started" && isConfirmed && (
                 <Button
                   type="button"
-                  onClick={handleStartJob}
+                  onClick={() => setShowVerifiedStart(true)}
                   variant="primary"
                   fullWidth
                   disabled={isActionLoading}
@@ -733,7 +786,7 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
                 </button>
               )}
 
-              <Button type="button" onClick={() => setShowReportIssue(true)} variant="secondary" fullWidth>
+              <Button type="button" onClick={() => setOpenDispute(true)} variant="secondary" fullWidth>
                 Report issue
               </Button>
             </div>
@@ -741,57 +794,19 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
         </div>
       </div>
 
-      {showReportIssue && (
-        <div
-          className="fixed inset-0 bg-black/60 z-60 flex items-end justify-center"
-          onClick={() => setShowReportIssue(false)}
-        >
-          <div
-            className="bg-white rounded-t-3xl w-full max-w-md mx-auto p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-[20px] font-bold font-gerat">Report issue</h2>
-              <button
-                type="button"
-                onClick={() => setShowReportIssue(false)}
-                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-              >
-                <X size={22} className="text-gray-500" />
-              </button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="text-[14px] font-semibold text-gray-700 mb-2 block">Issue type</label>
-                <select className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-[14px] focus:outline-none focus:border-brand-orange">
-                  <option>Customer not available</option>
-                  <option>Wrong address</option>
-                  <option>Safety concern</option>
-                  <option>Equipment issue</option>
-                  <option>Other</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-[14px] font-semibold text-gray-700 mb-2 block">Description</label>
-                <textarea
-                  placeholder="Describe the issue…"
-                  className="w-full h-28 p-3 bg-gray-50 border border-gray-200 rounded-xl text-[14px] resize-none focus:outline-none focus:border-brand-orange"
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowReportIssue(false);
-                  toast.success("Issue reported.");
-                }}
-                className="w-full py-3 bg-brand-orange text-white text-[15px] font-semibold rounded-xl hover:opacity-90 transition-opacity"
-              >
-                Submit report
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <OpenDisputeModal
+        open={openDispute}
+        bookingId={booking.id}
+        bookingStatus={booking.status}
+        onClose={() => setOpenDispute(false)}
+        onOpened={(id) => setEvidenceDisputeId(id)}
+      />
+      <DisputeEvidenceModal
+        open={Boolean(evidenceDisputeId)}
+        disputeId={evidenceDisputeId ?? ""}
+        disputeStatus="OPEN"
+        onClose={() => setEvidenceDisputeId(null)}
+      />
 
       <RateCustomerModal
         isOpen={showRatingModal}
@@ -800,6 +815,23 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
         customerAvatar={booking.image ?? "/images/pro.jpg"}
         onSubmit={handleRatingSubmit}
         isSubmitting={isReviewSubmitting}
+      />
+      <VerifiedStartModal
+        open={showVerifiedStart}
+        booking={booking}
+        onClose={() => setShowVerifiedStart(false)}
+        onStart={(payload) => startBooking(booking.id, payload)}
+        onStarted={(updated) => {
+          onBookingUpdated?.(updated);
+          if (typeof window !== "undefined") {
+            window.sessionStorage.setItem(jobWorkStartStorageKey(booking.id), String(Date.now()));
+            window.localStorage.removeItem(jobWorkDurationStorageKey(booking.id));
+          }
+          workAnchorMsRef.current = resolveJobWorkStartedAtMs(updated);
+          pausedTotalMsRef.current = 0;
+          pauseStartedAtRef.current = null;
+          setPhase("in-progress");
+        }}
       />
     </>
   );

@@ -53,6 +53,7 @@
       "cancelled": "Sie haben diesen Kraft storniert",
       "disputed": "Umstritten",
       "inProgress": "In Bearbeitung",
+      "completionSubmitted": "Wartet auf Bestätigung",
       "confirmed": "Bestätigt",
       "declined": "Abgelehnt",
       "draft": "Entwurf",
@@ -336,7 +337,20 @@
     "recents": "Letzte Suchen",
     "available": "Verfügbar",
     "jobs": "Jobs",
-    "prosOfWeek": "Profis der Woche"
+    "prosOfWeek": "Profis der Woche",
+    "comingSoon": {
+      "eyebrow": "Demnächst",
+      "title": "Kraftigo startet bald",
+      "subtitle": "Wir finalisieren Ihren Marktplatz für Dienstleistungen zu Hause. Krafter können sich jetzt anmelden und sich auf den Start vorbereiten.",
+      "days": "Tage",
+      "hours": "Std.",
+      "minutes": "Min.",
+      "seconds": "Sek.",
+      "launchOn": "Start am {date}",
+      "launchingNow": "Wir starten gerade — bitte Seite in Kürze neu laden.",
+      "krafterCta": "Als Krafter registrieren",
+      "krafterHint": "Direkter Krafter-Link:"
+    }
   },
   "common": {
     "loading": "Wird geladen...",

@@ -7,6 +7,7 @@ import RequestCard from "@/components/ui/RequestCard";
 import DirectRequestDetailModal from "@/components/shared/DirectRequestDetailModal";
 import ActiveJobModal from "@/components/shared/ActiveJobModal";
 import TaskDetailModal from "@/components/shared/TaskDetailModal";
+import VerifiedStartModal from "@/components/shared/VerifiedStartModal";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Input from "@/components/ui/input";
@@ -52,7 +53,13 @@ function isWithin24Hours(dateIso: string | null | undefined): boolean {
 
 function shouldOpenActiveJobModal(booking: Booking): boolean {
   const status = String(booking.status ?? "").toUpperCase();
-  if (status === "COMPLETED" || status === "EXPIRED" || status === "IN_PROGRESS") {
+  if (
+    status === "COMPLETED" ||
+    status === "EXPIRED" ||
+    status === "IN_PROGRESS" ||
+    status === "COMPLETION_SUBMITTED" ||
+    status === "DISPUTED"
+  ) {
     return true;
   }
   return isWithin24Hours(booking.scheduled_date);
@@ -196,8 +203,8 @@ const RequestsPage = () => {
   const [assignedLoading, setAssignedLoading] = useState(false);
   const [assignedError, setAssignedError] = useState<string | null>(null);
   const [assignedTab, setAssignedTab] = useState<KrafterAssignedTabId>("needs_attention");
-  const [assignedActionId, setAssignedActionId] = useState<string | null>(null);
   const [selectedAssignedBooking, setSelectedAssignedBooking] = useState<Booking | null>(null);
+  const [startAssignedBooking, setStartAssignedBooking] = useState<Booking | null>(null);
 
   const loadAssignedBookings = useCallback(async () => {
     setAssignedLoading(true);
@@ -394,26 +401,6 @@ const RequestsPage = () => {
     () => filterBookingsByKrafterTab(assignedBookings, assignedTab),
     [assignedBookings, assignedTab],
   );
-
-  const handleStartAssignedBooking = async (bookingId: string) => {
-    setAssignedActionId(bookingId);
-    try {
-      await startBooking(bookingId);
-      if (typeof window !== "undefined") {
-        window.sessionStorage.setItem(`kraftigo:jobWorkStart:${bookingId}`, String(Date.now()));
-      }
-      toast.success("Job started.");
-      await loadAssignedBookings();
-    } catch (err: unknown) {
-      const ax = err as { response?: { data?: { message?: string } } };
-      toast.error(
-        ax.response?.data?.message ??
-          "Could not start the job. It is only allowed when the booking is confirmed and payment is authorized.",
-      );
-    } finally {
-      setAssignedActionId(null);
-    }
-  };
 
   const handleCompleteAssignedBooking = (bookingId: string) => {
     router.push(`/tasker/schedule?openJob=${encodeURIComponent(bookingId)}`);
@@ -954,10 +941,9 @@ const RequestsPage = () => {
                             variant="primary"
                             fullWidth={false}
                             className="!h-auto !min-h-0 !py-2 !px-3 !text-[13px] sm:!min-w-0"
-                            disabled={assignedActionId === booking.id}
-                            onClick={() => void handleStartAssignedBooking(booking.id)}
+                            onClick={() => setStartAssignedBooking(booking)}
                           >
-                            {assignedActionId === booking.id ? "Starting…" : "Start job"}
+                            Start job
                           </Button>
                         )}
                         {booking.status === "IN_PROGRESS" && (
@@ -1022,6 +1008,20 @@ const RequestsPage = () => {
         minAmount={selectedCounterMinAmount}
         pricingType={selectedCounterPricingType}
       />
+
+      {startAssignedBooking && (
+        <VerifiedStartModal
+          open
+          booking={startAssignedBooking}
+          onClose={() => setStartAssignedBooking(null)}
+          onStart={(payload) => startBooking(startAssignedBooking.id, payload)}
+          onStarted={(updated) => {
+            setStartAssignedBooking(null);
+            setSelectedAssignedBooking(updated);
+            void loadAssignedBookings();
+          }}
+        />
+      )}
 
       {selectedAssignedBooking &&
         (shouldOpenActiveJobModal(selectedAssignedBooking) ? (

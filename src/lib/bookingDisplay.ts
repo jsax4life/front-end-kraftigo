@@ -181,6 +181,12 @@ export function upcomingStatusLabel(status: string | undefined, urlAccepted: boo
       return "Payment needed";
     case "IN_PROGRESS":
       return "In progress";
+    case "COMPLETION_SUBMITTED":
+      return "Awaiting confirmation";
+    case "DISPUTED":
+      return "Disputed";
+    case "COMPLETED":
+      return "Completed";
     case "EXPIRED":
       return "Expired";
     case "OPEN_FOR_APPLICATIONS":

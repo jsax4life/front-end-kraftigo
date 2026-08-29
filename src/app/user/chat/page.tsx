@@ -24,6 +24,7 @@ import {
   rememberPreferredChatThread,
   resolvePreferredChatThread,
 } from "@/lib/chatThreadPreference";
+import { getOrHydrateConversationForRoom } from "@/lib/api/conversations";
 import type { Conversation } from "@/types";
 import { useTranslations } from "next-intl";
 
@@ -59,6 +60,7 @@ const ChatPage = () => {
     const artisanId = searchParams.get("artisanId");
     const name = searchParams.get("name");
     const bookingId = searchParams.get("bookingId");
+    const conversationIdParam = searchParams.get("conversationId")?.trim();
 
     if (!artisanId?.trim() || !name?.trim()) {
       setDeepLinkBusy(false);
@@ -70,6 +72,24 @@ const ChatPage = () => {
 
     void (async () => {
       try {
+        const fallbacks = {
+          otherUserId: artisanId.trim(),
+          displayName: name.trim(),
+          displayAvatar: "/images/pro.jpg",
+        };
+
+        if (conversationIdParam) {
+          const conv = await getOrHydrateConversationForRoom(conversationIdParam, fallbacks);
+          if (cancelled) return;
+          rememberPreferredChatThread(fallbacks.otherUserId, conv);
+          setCurrentConversation({
+            ...conv,
+            contextType: conv.contextType ?? (bookingId?.trim() ? "BOOKING" : conv.contextType),
+            contextId: conv.contextId ?? bookingId?.trim(),
+          });
+          return;
+        }
+
         const store = useChatStore.getState();
         const conv = bookingId?.trim()
           ? await store.ensureChatConversationForBooking({
@@ -91,7 +111,11 @@ const ChatPage = () => {
           setCurrentConversation(conv);
         } else {
           setCurrentConversation(null);
-          toast.error(t("openConversationError"));
+          toast.error(
+            bookingId?.trim()
+              ? "Complete payment to message your Krafter."
+              : t("openConversationError"),
+          );
         }
       } finally {
         if (!cancelled) setDeepLinkBusy(false);
@@ -101,7 +125,7 @@ const ChatPage = () => {
     return () => {
       cancelled = true;
     };
-  }, [searchParams, setCurrentConversation]);
+  }, [searchParams, setCurrentConversation, t]);
 
   const chatGroups = groupConversationsByParticipant(conversations);
   const filteredGroups = filterChatGroups(chatGroups, searchQuery);

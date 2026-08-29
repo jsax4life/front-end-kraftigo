@@ -11,8 +11,10 @@ import { useBookingsStore } from "@/store/useBookingsStore";
 import { getMyReviews, submitReview } from "@/lib/api/reviews";
 import { findMyReviewForBooking, type MyReview } from "@/lib/reviewDisplay";
 import SubmittedReviewSummary from "@/components/shared/SubmittedReviewSummary";
-import { createDispute } from "@/lib/api/disputes";
+import { createSafetyDispute } from "@/lib/api/fraudPrevention";
 import { bookingArtisanName, deriveActiveJobDisplay } from "@/lib/bookingDisplay";
+import CustomerBookingSafetyPanel from "@/components/shared/CustomerBookingSafetyPanel";
+import { isCompletedStatus, isCompletionSubmittedStatus, isDisputedStatus } from "@/lib/bookingSafety";
 import { useTranslations } from "next-intl";
 
 function bookingTimeField(booking: Record<string, unknown>, ...keys: string[]): string | null {
@@ -182,15 +184,16 @@ const CompletedJobContent = () => {
   const handleReport = async () => {
     if (bookingId) {
       try {
-        await createDispute({
-          booking_id: bookingId,
+        await createSafetyDispute({
+          bookingId,
           reason: "Service issue",
+          description: "Customer reported an issue from the completed job screen.",
         });
       } catch (err) {
         console.error("Failed to create dispute:", err);
       }
     }
-    router.push("/user/support");
+    router.push("/user/disputes");
   };
 
   if (isLoading && bookingId) {
@@ -231,7 +234,11 @@ const CompletedJobContent = () => {
             </div>
           ))}
           <span className="bg-brand-orange/10 text-brand-orange text-[12px] font-poppins font-semibold px-3 py-1 rounded-full border border-brand-orange/30">
-            {td("completed")}
+            {isCompletionSubmittedStatus(booking?.status)
+              ? "Awaiting confirmation"
+              : isDisputedStatus(booking?.status)
+                ? "Disputed"
+                : td("completed")}
           </span>
         </div>
       </div>
@@ -343,7 +350,16 @@ const CompletedJobContent = () => {
         )}
       </div>
 
-      {existingReview && (
+      {booking && (
+        <div className="mx-4 mb-4">
+          <CustomerBookingSafetyPanel
+            booking={booking}
+            onUpdated={(updated) => useBookingsStore.getState().applyCanonicalBooking(updated)}
+          />
+        </div>
+      )}
+
+      {existingReview && isCompletedStatus(booking?.status) && (
         <div className="mx-4 mb-4">
           <SubmittedReviewSummary review={existingReview} revieweeLabel={artisanName} />
         </div>

@@ -42,6 +42,7 @@ export type CancelBookingReason =
   | 'SCHEDULE_CONFLICT'
   | 'NO_LONGER_NEED_SERVICE'
   | 'FOUND_DIFFERENT_KRAFTER'
+  | 'KRAFTER_NO_SHOW'
   | 'OTHER'
 
 export interface CancelBookingPayload {
@@ -367,6 +368,17 @@ function asRecord(v: unknown): Record<string, unknown> {
   return v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : {}
 }
 
+function pickStrFromRecord(
+  record: Record<string, unknown>,
+  ...keys: string[]
+): string | undefined {
+  for (const key of keys) {
+    const value = record[key]
+    if (typeof value === 'string' && value.trim()) return value.trim()
+  }
+  return undefined
+}
+
 /**
  * Some environments return `{ booking }`, `{ data }`, or `{ data: { booking } }`.
  * Also maps snake_case aliases onto the `Booking` fields the UI reads.
@@ -410,6 +422,36 @@ export function normalizeBookingDetailResponse(data: unknown): Booking {
   const mediaRaw = r.mediaUrls ?? r.media_urls
   const mediaUrls = Array.isArray(mediaRaw)
     ? (mediaRaw as unknown[]).filter((u): u is string => typeof u === 'string' && u.trim().length > 0)
+    : undefined
+  const completionMediaRaw = r.completionMediaEvidence ?? r.completion_media_evidence
+  const completionMediaEvidence = Array.isArray(completionMediaRaw)
+    ? completionMediaRaw
+        .map((item) => {
+          const evidence = asRecord(item)
+          const url =
+            (typeof evidence.url === 'string' && evidence.url.trim()) ||
+            (typeof evidence.signedUrl === 'string' && evidence.signedUrl.trim()) ||
+            (typeof evidence.signed_url === 'string' && evidence.signed_url.trim()) ||
+            ''
+          if (!url) return null
+          return {
+            ...evidence,
+            url,
+            mimeType: pickStrFromRecord(evidence, 'mimeType', 'mime_type') ?? null,
+            createdAt: pickStrFromRecord(evidence, 'createdAt', 'created_at') ?? null,
+          }
+        })
+        .filter((item): item is NonNullable<typeof item> => item !== null)
+    : undefined
+  const completionMediaUrlsRaw = r.completionMediaUrls ?? r.completion_media_urls
+  const completionMediaUrls = Array.isArray(completionMediaUrlsRaw)
+    ? completionMediaUrlsRaw.filter(
+        (url): url is string => typeof url === 'string' && url.trim().length > 0,
+      )
+    : undefined
+  const anomalyFlagsRaw = r.completionAnomalyFlags ?? r.completion_anomaly_flags
+  const completionAnomalyFlags = Array.isArray(anomalyFlagsRaw)
+    ? anomalyFlagsRaw.filter((flag): flag is string => typeof flag === 'string')
     : undefined
 
   const proposedPrice = r.proposedPrice ?? r.proposed_price ?? r.price
@@ -488,6 +530,20 @@ export function normalizeBookingDetailResponse(data: unknown): Booking {
       ? { proposedDurationHours: proposedDurationHours as Booking['proposedDurationHours'] }
       : {}),
     mediaUrls,
+    ...(completionMediaEvidence ? { completionMediaEvidence } : {}),
+    ...(completionMediaUrls ? { completionMediaUrls } : {}),
+    ...(completionAnomalyFlags ? { completionAnomalyFlags } : {}),
+    completionSubmittedAt:
+      pickStr('completionSubmittedAt', 'completion_submitted_at') ?? null,
+    completionConfirmationDueAt:
+      pickStr('completionConfirmationDueAt', 'completion_confirmation_due_at') ?? null,
+    completionConfirmedAt:
+      pickStr('completionConfirmedAt', 'completion_confirmed_at') ?? null,
+    completionConfirmedBy:
+      pickStr('completionConfirmedBy', 'completion_confirmed_by') ?? null,
+    completionConfirmedByUserId:
+      pickStr('completionConfirmedByUserId', 'completion_confirmed_by_user_id') ?? null,
+    completionNotes: pickStr('completionNotes', 'completion_notes') ?? null,
     customer: customer ?? undefined,
     ...(customerName ? { customerName } : {}),
     serviceCategory: serviceCategory ?? undefined,
@@ -505,8 +561,13 @@ export function normalizeBookingDetailResponse(data: unknown): Booking {
 }
 
 /** GET /api/bookings/{id} — booking details */
-export const getBookingById = async (id: string): Promise<Booking> => {
-  const response = await api.get(`/api/bookings/${id}`)
+export const getBookingById = async (
+  id: string,
+  opts?: { includePaymentSummary?: boolean },
+): Promise<Booking> => {
+  const response = await api.get(`/api/bookings/${id}`, {
+    params: opts?.includePaymentSummary ? { includePaymentSummary: true } : undefined,
+  })
   return normalizeBookingDetailResponse(response.data)
 }
 
@@ -1219,28 +1280,54 @@ export const declineArtisanBooking = async (id: string): Promise<Booking> => {
   return response.data
 }
 
-/** POST /api/artisan/bookings/{id}/start — CONFIRMED → IN_PROGRESS (after customer payment is held). */
-export const startBooking = async (id: string): Promise<Booking> => {
-  const response = await api.post(`/api/artisan/bookings/${id}/start`)
+export type ArtisanStartBookingPayload = {
+  arrivalPin: string
+  latitude: number
+  longitude: number
+  accuracyMeters: number
+  capturedAt: string
+  deviceId: string
+}
+
+/** POST /api/artisan/bookings/{id}/start — verified CONFIRMED → IN_PROGRESS. */
+export const startBooking = async (
+  id: string,
+  payload: ArtisanStartBookingPayload,
+): Promise<Booking> => {
+  const response = await api.post(`/api/artisan/bookings/${id}/start`, payload)
   return normalizeArtisanBookingWriteResponse(response.data)
 }
 
 /** Multipart body for `POST /api/artisan/bookings/:id/complete`. */
 export type ArtisanCompleteBookingPayload = {
-  /** Required: 1–3 images. */
-  completionImages: File[];
+  /** Required on first submission (1–3 images). Omitted on capture retry. */
+  completionImages?: File[];
   /** Optional completion notes. */
   notes?: string;
+  latitude: number;
+  longitude: number;
+  accuracyMeters: number;
+  capturedAt: string;
+  deviceId: string;
 };
 
-/** POST /api/artisan/bookings/{id}/complete — IN_PROGRESS → COMPLETED (multipart). */
+export type CompleteBookingOptions = {
+  /** When booking is already COMPLETION_SUBMITTED, retry capture with GPS + deviceId only. */
+  captureRetry?: boolean;
+};
+
+/** POST /api/artisan/bookings/{id}/complete — IN_PROGRESS → COMPLETION_SUBMITTED (multipart). */
 export const completeBooking = async (
   id: string,
   payload: ArtisanCompleteBookingPayload,
+  options?: CompleteBookingOptions,
 ): Promise<Booking> => {
-  const files = payload.completionImages.filter((f): f is File => f instanceof File);
-  if (files.length < 1 || files.length > 3) {
+  const files = (payload.completionImages ?? []).filter((f): f is File => f instanceof File);
+  if (!options?.captureRetry && (files.length < 1 || files.length > 3)) {
     throw new Error("completionImages: provide between 1 and 3 files");
+  }
+  if (payload.notes && payload.notes.trim().length > 2_000) {
+    throw new Error("Completion notes cannot exceed 2,000 characters");
   }
   const formData = new FormData();
   for (const file of files.slice(0, 3)) {
@@ -1250,6 +1337,11 @@ export const completeBooking = async (
   if (notes) {
     formData.append("notes", notes);
   }
+  formData.append("latitude", String(payload.latitude));
+  formData.append("longitude", String(payload.longitude));
+  formData.append("accuracyMeters", String(payload.accuracyMeters));
+  formData.append("capturedAt", payload.capturedAt);
+  formData.append("deviceId", payload.deviceId);
   const response = await api.post(`/api/artisan/bookings/${id}/complete`, formData);
   return normalizeArtisanBookingWriteResponse(response.data);
 };

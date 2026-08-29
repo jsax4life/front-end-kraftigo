@@ -64,7 +64,7 @@ const UPCOMING_FILTER_STATUSES: Record<
   readonly BookingStatus[] | null
 > = {
   all: null,
-  active: ["ACCEPTED", "CONFIRMED", "IN_PROGRESS", "PAYMENT_PENDING"],
+  active: ["ACCEPTED", "CONFIRMED", "IN_PROGRESS", "COMPLETION_SUBMITTED", "PAYMENT_PENDING"],
   open_and_waiting: ["REQUESTED", "KRAFTER_SELECTED", "COUNTERED", "OPEN_FOR_APPLICATIONS"],
   drafts: ["RECOMMENDATION_PENDING"],
   declined: ["DECLINED"],
@@ -257,6 +257,8 @@ const KraftsPage = () => {
       return <span className="text-[11px] font-poppins font-semibold text-red-500 bg-red-50 px-2.5 py-1 rounded-full">{t("status.cancelled")}</span>;
     if (status === "DISPUTED")
       return <span className="text-[11px] font-poppins font-semibold text-brand-orange bg-orange-50 px-2.5 py-1 rounded-full">{t("status.disputed")}</span>;
+    if (status === "COMPLETION_SUBMITTED")
+      return <span className="text-[11px] font-poppins font-semibold text-orange-800 bg-orange-50 px-2.5 py-1 rounded-full">{t("status.completionSubmitted")}</span>;
     if (status === "IN_PROGRESS")
       return <span className="text-[11px] font-poppins font-semibold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">{t("status.inProgress")}</span>;
     if (status === "CONFIRMED")

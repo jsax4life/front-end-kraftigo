@@ -16,6 +16,7 @@ import {
 import { bookingPaymentClientSecret } from "@/lib/bookingPaymentCheckout";
 import { useBookingsStore } from "@/store/useBookingsStore";
 import { DEFAULT_DURATION_HOURS } from "@/lib/durationHours";
+import { isBookingChatAvailable, bookingChatUnavailableHint } from "@/lib/chatDeepLinks";
 import { formatHourlyRate } from "@/utils/currency";
 
 interface OffersModalProps {
@@ -60,6 +61,8 @@ const OffersModal = ({ booking, onClose, onMarketplacePaymentReady }: OffersModa
 
   const isMarketplaceOpen = booking?.status === "OPEN_FOR_APPLICATIONS";
   const isBookingExpired = booking?.status === "EXPIRED";
+  const canMessageApplicants = booking ? isBookingChatAvailable(booking) : false;
+  const chatBlockedHint = booking ? bookingChatUnavailableHint(booking, "customer") : null;
 
   const loadApplicants = useCallback(async () => {
     if (!booking?.id || !isMarketplaceOpen) return;
@@ -284,19 +287,25 @@ const OffersModal = ({ booking, onClose, onMarketplacePaymentReady }: OffersModa
               </p>
 
               <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const qp = new URLSearchParams();
-                    qp.set("artisanId", app.artisan_id);
-                    qp.set("name", app.artisan_name);
-                    if (app.job_id?.trim()) qp.set("bookingId", app.job_id.trim());
-                    router.push(`/user/chat?${qp.toString()}`);
-                  }}
-                  className="bg-[#FF66001A] flex items-center justify-center gap-2 px-5 py-3 border border-gray-200 rounded-xl text-[13px] font-poppins font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  Chat
-                </button>
+                {canMessageApplicants ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const qp = new URLSearchParams();
+                      qp.set("artisanId", app.artisan_id);
+                      qp.set("name", app.artisan_name);
+                      if (app.job_id?.trim()) qp.set("bookingId", app.job_id.trim());
+                      router.push(`/user/chat?${qp.toString()}`);
+                    }}
+                    className="bg-[#FF66001A] flex items-center justify-center gap-2 px-5 py-3 border border-gray-200 rounded-xl text-[13px] font-poppins font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    Chat
+                  </button>
+                ) : chatBlockedHint ? (
+                  <p className="flex-1 text-[11px] font-poppins text-amber-900 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 self-center">
+                    {chatBlockedHint}
+                  </p>
+                ) : null}
                 <button
                   type="button"
                   disabled={Boolean(selectingId) || isBookingExpired}

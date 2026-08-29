@@ -53,6 +53,7 @@
       "cancelled": "You cancelled this Kraft",
       "disputed": "Disputed",
       "inProgress": "In Progress",
+      "completionSubmitted": "Awaiting confirmation",
       "confirmed": "Confirmed",
       "declined": "Declined",
       "draft": "Draft",
@@ -336,7 +337,20 @@
     "recents": "Recents",
     "available": "Available",
     "jobs": "jobs",
-    "prosOfWeek": "Pros of the week"
+    "prosOfWeek": "Pros of the week",
+    "comingSoon": {
+      "eyebrow": "Coming soon",
+      "title": "Kraftigo is almost here",
+      "subtitle": "We're putting the finishing touches on your marketplace for home services. Krafters can sign up now and get ready for launch.",
+      "days": "Days",
+      "hours": "Hours",
+      "minutes": "Minutes",
+      "seconds": "Seconds",
+      "launchOn": "Launching {date}",
+      "launchingNow": "We're launching now — refresh in a moment.",
+      "krafterCta": "Sign up as a Krafter",
+      "krafterHint": "Krafter signup link:"
+    }
   },
   "common": {
     "loading": "Loading...",

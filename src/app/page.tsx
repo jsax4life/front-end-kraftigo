@@ -42,6 +42,8 @@ import { DistanceBadge } from "@/components/ui/DistanceBadge";
 import type { HomeProOfWeek } from "@/lib/api/auth";
 import { useTranslations, useLocale } from "next-intl";
 import { useTranslateContent } from "@/hooks/useTranslateContent";
+import HomeComingSoon from "@/components/shared/HomeComingSoon";
+import { isHomeComingSoonActive } from "@/constants/launch";
 
 // ─── Static fallbacks ─────────────────────────────────────────────────────────
 
@@ -133,7 +135,7 @@ function mapHomeKrafterToCard(p: HomeProOfWeek): HomeKrafterCard {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-const Page = () => {
+const HomePageContent = () => {
   const router = useRouter();
   const { user, isAuthenticated } = useAuthStore();
   const { openPrompt } = useAuthPromptStore();
@@ -1209,4 +1211,11 @@ const Page = () => {
   );
 };
 
-export default Page;
+function HomePage() {
+  if (isHomeComingSoonActive()) {
+    return <HomeComingSoon />;
+  }
+  return <HomePageContent />;
+}
+
+export default HomePage;

@@ -10,7 +10,10 @@ import { applyToBooking } from "@/lib/api/bookings";
 import type { Booking } from "@/types";
 import TaskerNav from "@/components/shared/taskerNav";
 import toast from "react-hot-toast";
-import { buildTaskerMessageCustomerUrlFromBooking } from "@/lib/chatDeepLinks";
+import {
+  buildTaskerMessageCustomerUrlFromBooking,
+  canTaskerMessageCustomer,
+} from "@/lib/chatDeepLinks";
 import { formatDistanceDisplay, readDistanceFields } from "@/utils/distance";
 import { DistanceBadge } from "@/components/ui/DistanceBadge";
 
@@ -462,7 +465,7 @@ export default function MarketplaceKraftDetailPanel({
         </div>
 
         <div className="space-y-3 border-t border-gray-200 pt-5 pb-4">
-          {customerChatUrl ? (
+          {canTaskerMessageCustomer(booking) && customerChatUrl ? (
             <Button
               type="button"
               variant="secondary"

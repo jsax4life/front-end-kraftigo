@@ -6,6 +6,12 @@ import Image from "next/image";
 import { useEffect, useState, Suspense } from "react";
 import { parseBookingMoney } from "@/lib/bookingDisplay";
 import { formatHourlyRate, formatMoney } from "@/utils/currency";
+import { useBookingsStore } from "@/store/useBookingsStore";
+import {
+  buildCustomerMessageKrafterUrl,
+  canCustomerMessageKrafter,
+  bookingChatUnavailableHint,
+} from "@/lib/chatDeepLinks";
 import { useTranslations } from "next-intl";
 
 const ConfirmationContent = () => {
@@ -59,6 +65,16 @@ const ConfirmationContent = () => {
   const artisanImage =
     searchParams.get("artisanImage")?.trim() || "/images/pro.jpg";
 
+  const bookingIdParam = searchParams.get("bookingId")?.trim() ?? "";
+  const { fetchBookingById, selectedBooking } = useBookingsStore();
+
+  const bookingForChat =
+    bookingIdParam && selectedBooking?.id === bookingIdParam ? selectedBooking : null;
+  const canMessageKrafter = bookingForChat ? canCustomerMessageKrafter(bookingForChat) : false;
+  const chatBlockedHint = bookingForChat
+    ? bookingChatUnavailableHint(bookingForChat, "customer")
+    : null;
+
   const td = useTranslations("booking.confirmationStep");
 
   const parsedDate = new Date(rawDate);
@@ -77,6 +93,12 @@ const ConfirmationContent = () => {
   >([]);
 
   useEffect(() => {
+    if (bookingIdParam) {
+      void fetchBookingById(bookingIdParam);
+    }
+  }, [bookingIdParam, fetchBookingById]);
+
+  useEffect(() => {
     // Generate random particles for confetti effect
     const particleCount = 10;
     const newParticles = Array.from({ length: particleCount }, (_, i) => ({
@@ -90,15 +112,10 @@ const ConfirmationContent = () => {
   }, []);
 
   const handleMessageKrafter = () => {
-    const artisanId = searchParams.get("artisanId")?.trim();
-    const name = (searchParams.get("artisanName") || "Your Krafter").trim();
-    const bookingId = searchParams.get("bookingId")?.trim();
-    const params = new URLSearchParams();
-    if (artisanId) params.set("artisanId", artisanId);
-    params.set("name", name);
-    if (bookingId) params.set("bookingId", bookingId);
-    const q = params.toString();
-    router.push(q ? `/user/chat?${q}` : "/user/chat");
+    if (!bookingForChat || !canMessageKrafter) return;
+    const url = buildCustomerMessageKrafterUrl(bookingForChat);
+    if (!url) return;
+    router.push(url);
   };
 
   const handleViewDetails = () => {
@@ -359,14 +376,18 @@ const ConfirmationContent = () => {
 
         {/* Action Buttons */}
         <div className="space-y-3 mb-6 mt-7">
-          {!isPublic && (
+          {!isPublic && canMessageKrafter ? (
             <button
               onClick={handleMessageKrafter}
               className="text-[16px] sm:text-[17px] w-full py-3 bg-brand-orange text-white  font-poppins  rounded-xl hover: transition-colors  "
             >
               {td("messageKrafter")}
             </button>
-          )}
+          ) : !isPublic && chatBlockedHint ? (
+            <p className="text-[13px] font-poppins text-amber-900 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 text-center">
+              {chatBlockedHint}
+            </p>
+          ) : null}
           <button
             onClick={handleViewDetails}
             className="w-full py-3 bg-[#0000FF] text-white text-[16px] sm:text-[17px] font-poppins rounded-xl hover:bg-blue-700 transition-colors"

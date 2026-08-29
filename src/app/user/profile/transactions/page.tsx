@@ -12,8 +12,14 @@ import { useTranslations } from "next-intl";
 const statusStyles: Record<string, string> = {
   HELD: "bg-[#EEF0FF] text-[#5A64FF]",
   PENDING: "bg-[#EEF0FF] text-[#5A64FF]",
+  INITIATED: "bg-[#EEF0FF] text-[#5A64FF]",
+  AUTHORIZED: "bg-[#EEF0FF] text-[#5A64FF]",
   ESCROWED: "bg-[#EEF0FF] text-[#5A64FF]",
+  ESCROW_HELD: "bg-[#EEF0FF] text-[#5A64FF]",
+  CAPTURED: "bg-[#FEF6EE] text-[#B54708]",
   RELEASED: "bg-[#FFF4ED] text-[#FF6600]",
+  DISPUTED: "bg-[#FEECEB] text-[#F04438]",
+  FAILED: "bg-[#FEECEB] text-[#F04438]",
   REFUNDED: "bg-[#98A2B3] text-white",
   CANCELLED: "bg-[#FEECEB] text-[#F04438]",
 };
@@ -21,8 +27,14 @@ const statusStyles: Record<string, string> = {
 const legacyStatusLabel: Record<string, string> = {
   HELD: "Upcoming",
   PENDING: "Upcoming",
+  INITIATED: "Upcoming",
+  AUTHORIZED: "Authorized",
   ESCROWED: "Upcoming",
+  ESCROW_HELD: "Held in escrow",
+  CAPTURED: "Captured",
   RELEASED: "Completed",
+  DISPUTED: "Disputed",
+  FAILED: "Failed",
   REFUNDED: "Refunded",
   CANCELLED: "Cancelled",
 };

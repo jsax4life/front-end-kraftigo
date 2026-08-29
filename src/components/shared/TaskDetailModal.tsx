@@ -13,6 +13,8 @@ import { formatDistanceDisplay, readDistanceFields } from "@/utils/distance";
 import { deriveBookingCustomerPresentation } from "@/lib/bookingDisplay";
 import { getBookingById } from "@/lib/api/bookings";
 import { DistanceBadge } from "@/components/ui/DistanceBadge";
+import VerifiedStartModal from "@/components/shared/VerifiedStartModal";
+import { captureFreshLocation, getOrCreateDeviceId } from "@/lib/workVerification";
 
 interface TaskDetailModalProps {
   booking: Booking | null;
@@ -31,6 +33,7 @@ const STATUS_STEP: Record<string, number> = {
   PAYMENT_PENDING: 1,
   IN_PROGRESS: 2,
   COMPLETED: 3,
+  COMPLETION_SUBMITTED: 3,
   EXPIRED: 0,
   CANCELLED: 0,
   COUNTERED: 0,
@@ -64,6 +67,7 @@ export default function TaskDetailModal({
   const [jobActionLoading, setJobActionLoading] = useState(false);
   const [completionPhotos, setCompletionPhotos] = useState<Photo[]>([]);
   const [completionNotesInput, setCompletionNotesInput] = useState("");
+  const [showVerifiedStart, setShowVerifiedStart] = useState(false);
 
   useEffect(() => {
     if (!booking?.id) return;
@@ -103,6 +107,7 @@ export default function TaskDetailModal({
   const isConfirmed = booking.status === "CONFIRMED";
   const isPaymentPending = booking.status === "PAYMENT_PENDING";
   const isInProgress = booking.status === "IN_PROGRESS";
+  const isCompletionSubmitted = booking.status === "COMPLETION_SUBMITTED";
   const isExpired = booking.status === "EXPIRED";
   const displayTitle = booking.title || booking.service?.title || "Craft";
   const distanceText = formatDistanceDisplay(readDistanceFields(booking));
@@ -267,7 +272,9 @@ export default function TaskDetailModal({
         <div className="mx-5 mb-2 rounded-2xl overflow-hidden divide-y divide-gray-100">
           <button
             className="w-full flex items-center justify-between border-b border-[#0000001A] px-4 py-4 hover:bg-gray-50 transition-colors"
-            onClick={() => router.push(`/tasker/active-job/${booking.id}`)}
+            onClick={() =>
+              router.push(`/tasker/schedule?openJob=${encodeURIComponent(booking.id)}`)
+            }
           >
             <span className="text-[15px] font-bold text-gray-900">
               Kraft Details
@@ -302,25 +309,7 @@ export default function TaskDetailModal({
                 variant="primary"
                 fullWidth
                 disabled={jobActionLoading}
-                onClick={async () => {
-                  setJobActionLoading(true);
-                  try {
-                    const updated = await startBooking(booking.id);
-                    if (typeof window !== "undefined") {
-                      window.sessionStorage.setItem(`kraftigo:jobWorkStart:${booking.id}`, String(Date.now()));
-                    }
-                    onBookingUpdated?.(updated);
-                    toast.success("Job started. Coordinate with your customer while you work.");
-                  } catch (err: unknown) {
-                    const ax = err as { response?: { data?: { message?: string } } };
-                    toast.error(
-                      ax.response?.data?.message ??
-                        "Could not start the job. It may only be allowed after payment is confirmed.",
-                    );
-                  } finally {
-                    setJobActionLoading(false);
-                  }
-                }}
+                onClick={() => setShowVerifiedStart(true)}
               >
                 {jobActionLoading ? "Starting…" : "Start job"}
               </Button>
@@ -328,12 +317,18 @@ export default function TaskDetailModal({
             {isInProgress && (
               <div className="px-5 pb-2 space-y-3">
                 <h3 className="text-[15px] font-bold text-gray-900">Completion photos (1–3 required)</h3>
-                <PhotoUploader photos={completionPhotos} onChange={setCompletionPhotos} maxPhotos={3} title="" />
+                <PhotoUploader
+                  photos={completionPhotos}
+                  onChange={setCompletionPhotos}
+                  maxPhotos={3}
+                  title=""
+                  acceptImagesOnly
+                />
                 <div>
                   <label className="text-[14px] font-semibold text-gray-700 mb-1 block">Notes (optional)</label>
                   <textarea
                     value={completionNotesInput}
-                    onChange={(e) => setCompletionNotesInput(e.target.value)}
+                    onChange={(e) => setCompletionNotesInput(e.target.value.slice(0, 2000))}
                     placeholder="Optional notes sent with completion"
                     className="w-full h-24 p-3 bg-[#F6F6F6] border border-[#0000001A] rounded-xl text-[14px] resize-none focus:outline-none focus:border-brand-orange"
                   />
@@ -357,16 +352,28 @@ export default function TaskDetailModal({
                     }
                     setJobActionLoading(true);
                     try {
+                      const location = await captureFreshLocation();
                       const updated = await completeBooking(booking.id, {
                         completionImages: files.slice(0, 3),
                         notes: completionNotesInput.trim() || undefined,
+                        ...location,
+                        deviceId: getOrCreateDeviceId(),
                       });
                       onBookingUpdated?.(updated);
-                      toast.success("Job completed.");
+                      toast.success("Completion proof submitted. Awaiting customer confirmation.");
                       onClose();
                     } catch (err: unknown) {
-                      const ax = err as { response?: { data?: { message?: string } } };
-                      toast.error(ax.response?.data?.message ?? "Could not complete the job. Try again.");
+                      const canonical = useBookingsStore.getState().bookings.find((b) => b.id === booking.id);
+                      if (canonical?.status === "COMPLETION_SUBMITTED") {
+                        onBookingUpdated?.(canonical);
+                        toast.success("Completion was recorded. Awaiting customer confirmation.");
+                      } else {
+                        const ax = err as { response?: { data?: { message?: string } } };
+                        toast.error(
+                          ax.response?.data?.message ??
+                            (err instanceof Error ? err.message : "Could not submit completion. Try again."),
+                        );
+                      }
                     } finally {
                       setJobActionLoading(false);
                     }
@@ -378,6 +385,23 @@ export default function TaskDetailModal({
                   The customer is notified when you complete the job; payout steps run on the server.
                 </p>
               </>
+            )}
+            {isCompletionSubmitted && (
+              <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+                <p className="text-sm font-semibold text-blue-950">Awaiting customer confirmation</p>
+                <p className="mt-1 text-xs leading-relaxed text-blue-800">
+                  Completion proof is under review. No earnings are withdrawable until the booking
+                  becomes completed and the wallet records the payout.
+                </p>
+              </div>
+            )}
+            {booking.status === "DISPUTED" && (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+                <p className="text-sm font-semibold text-red-950">Disputed — payout frozen</p>
+                <p className="mt-1 text-xs leading-relaxed text-red-800">
+                  Submit evidence from this job. Frozen dispute holds never appear as available to withdraw.
+                </p>
+              </div>
             )}
             <Button
               onClick={() => onReschedule?.(booking)}
@@ -400,6 +424,21 @@ export default function TaskDetailModal({
           </div>
         )}
       </div>
+      <VerifiedStartModal
+        open={showVerifiedStart}
+        booking={booking}
+        onClose={() => setShowVerifiedStart(false)}
+        onStart={(payload) => startBooking(booking.id, payload)}
+        onStarted={(updated) => {
+          if (typeof window !== "undefined") {
+            window.sessionStorage.setItem(
+              `kraftigo:jobWorkStart:${booking.id}`,
+              String(Date.now()),
+            );
+          }
+          onBookingUpdated?.(updated);
+        }}
+      />
     </div>
   );
 }

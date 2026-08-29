@@ -15,6 +15,7 @@ import {
   Wallet,
   Target,
   UserX,
+  Gavel,
 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useProfileStore } from "@/store/useProfileStore";
@@ -26,60 +27,6 @@ import DeleteAccountModal from "@/components/shared/DeleteAccountModal";
 import { isGoogleOnlyAccount } from "@/lib/googleAuth";
 import { UpdateLocationBanner } from "@/components/shared/DashboardWidgets";
 import { hasKrafterProfileCoords } from "@/lib/taskLocation";
-
-const SimpleLineChart = () => {
-  return (
-    <div className="w-full h-32 relative mt-4">
-      <svg viewBox="0 0 400 120" className="w-full h-full">
-        {/* Background Grid Lines (Horizontal) */}
-        {[0, 40, 80].map((y) => (
-          <line 
-            key={y} 
-            x1="0" y1={y} x2="400" y2={y} 
-            stroke="#F2F4F7" 
-            strokeWidth="1" 
-          />
-        ))}
-        
-        {/* The Line - Simple wave pattern */}
-        <path 
-          d="M 10 90 L 60 70 L 110 85 L 160 60 L 210 50 L 260 40 L 310 55 L 360 45 L 400 50" 
-          fill="none" 
-          stroke="#FF6600" 
-          strokeWidth="2.5" 
-          strokeLinecap="round" 
-          strokeLinejoin="round" 
-        />
-        
-        {/* Points with shadows */}
-        {[
-          {x: 60, y: 70}, 
-          {x: 110, y: 85}, 
-          {x: 160, y: 60}, 
-          {x: 210, y: 50}, 
-          {x: 260, y: 40}, 
-          {x: 310, y: 55}
-        ].map((p, i) => (
-          <circle 
-            key={i} 
-            cx={p.x} cy={p.y} r="3" 
-            fill="#1D2939" 
-            stroke="white" 
-            strokeWidth="1.5" 
-          />
-        ))}
-        
-        {/* Labels */}
-        <text x="45" y="115" fontSize="10" fill="#98A2B3" fontFamily="Poppins">Mon</text>
-        <text x="95" y="115" fontSize="10" fill="#98A2B3" fontFamily="Poppins">Tue</text>
-        <text x="145" y="115" fontSize="10" fill="#98A2B3" fontFamily="Poppins">Wed</text>
-        <text x="195" y="115" fontSize="10" fill="#98A2B3" fontFamily="Poppins">Thu</text>
-        <text x="245" y="115" fontSize="10" fill="#98A2B3" fontFamily="Poppins">Fri</text>
-        <text x="295" y="115" fontSize="10" fill="#98A2B3" fontFamily="Poppins">Sat</text>
-      </svg>
-    </div>
-  );
-};
 
 const SettingsRow = ({ icon: Icon, label, onClick }: { icon: any, label: string, onClick: () => void }) => (
   <button 
@@ -98,7 +45,7 @@ const Page = () => {
   const router = useRouter();
   const { user, logout } = useAuthStore();
   const { artisanProfile, fetchArtisanProfile, verificationStatus, fetchVerificationStatus } = useProfileStore();
-  const { fetchArtisanBookings, getCompletedBookings } = useBookingsStore();
+  const { fetchArtisanBookings } = useBookingsStore();
 
   useEffect(() => {
     fetchArtisanProfile();
@@ -112,8 +59,6 @@ const Page = () => {
   const displayName = artisanProfile?.displayName || artisanProfile?.legalFullName || (user?.firstName ? `${user.firstName} ${user.lastName}` : "User");
   const avatar = artisanProfile?.profilePhotoUrl || user?.avatar;
  
-  const completedBookings = getCompletedBookings();
-  const totalEarnings = completedBookings.reduce((sum, b) => sum + (b.price || 0), 0);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
   const handleLogout = async () => {
@@ -194,15 +139,19 @@ const Page = () => {
           />
         )}
 
-        {/* Weekly Earnings Card */}
-        <div className="bg-[#F9FAFB] rounded-3xl p-6 border border-[#EAECF0]">
+        <button
+          type="button"
+          onClick={() => router.push("/tasker/profile/earnings")}
+          className="bg-[#F9FAFB] rounded-3xl p-6 border border-[#EAECF0] w-full text-left"
+        >
           <div className="space-y-1">
-            <p className="text-[14px] font-poppins text-[#667085]">Total Earnings</p>
-            <h3 className="text-[32px] font-gerat font-bold text-[#1D2939] leading-tight">£{totalEarnings.toFixed(2)}</h3>
-            <p className="text-[12px] font-poppins text-[#98A2B3]">Lifetime earnings from {completedBookings.length} completed jobs</p>
+            <p className="text-[14px] font-poppins text-[#667085]">Wallet</p>
+            <h3 className="text-[22px] font-gerat font-bold text-[#1D2939] leading-tight">Open earnings</h3>
+            <p className="text-[12px] font-poppins text-[#98A2B3]">
+              Available, hold, dispute freeze, and recovery debt come from the wallet API — not from completed jobs.
+            </p>
           </div>
-          <SimpleLineChart />
-        </div>
+        </button>
 
         {/* Switch to customer CTA banner */}
         <div className="pt-2">
@@ -259,6 +208,7 @@ const Page = () => {
             <h5 className="text-[14px] font-gerat font-bold text-[#1D2939] px-2 mb-4">Earnings & Billing</h5>
             <div className="bg-white border border-[#F2F4F7] rounded-3xl overflow-hidden shadow-sm">
               <SettingsRow icon={Wallet} label="Earnings & Activity" onClick={() => router.push("/tasker/profile/earnings")} />
+              <SettingsRow icon={Gavel} label="Disputes" onClick={() => router.push("/tasker/disputes")} />
             </div>
           </div>
 

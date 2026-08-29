@@ -15,11 +15,14 @@ import type { Booking } from "@/types";
 import { bookingArtisanName } from "@/lib/bookingDisplay";
 
 // Map API booking status to KraftStatusCard display status
-const toDisplayStatus = (status: Booking["status"]): "Completed" | "In Progress" | "Cancelled" | "Upcoming" => {
+const toDisplayStatus = (
+  status: Booking["status"],
+): "Completed" | "In Progress" | "Awaiting confirmation" | "Disputed" | "Cancelled" | "Upcoming" => {
   if (status === "COMPLETED") return "Completed";
   if (status === "IN_PROGRESS") return "In Progress";
-  if (status === "EXPIRED") return "Cancelled";
-  if (status === "CANCELLED" || status === "DISPUTED") return "Cancelled";
+  if (status === "COMPLETION_SUBMITTED") return "Awaiting confirmation";
+  if (status === "DISPUTED") return "Disputed";
+  if (status === "EXPIRED" || status === "CANCELLED") return "Cancelled";
   return "Upcoming";
 };
 

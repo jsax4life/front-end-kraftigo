@@ -8,6 +8,7 @@ import {
   type DomainNotificationFeedAction,
 } from "@/store/useDomainNotificationHistoryStore";
 import { emitWalletSummaryInvalidate, emitPayoutAccountStatusInvalidate } from "@/lib/api/payouts";
+import { emitBookingDetailInvalidate, emitDisputesInvalidate } from "@/lib/safetyInvalidation";
 import {
   emitKycVerificationStatusInvalidate,
   logKycPushStub,
@@ -316,6 +317,34 @@ export function showDomainEventNotification(raw: unknown): void {
       );
       break;
     }
+    case "BOOKING_COMPLETION_SUBMITTED": {
+      emitBookingDetailInvalidate(typeof msg.bookingId === "string" ? msg.bookingId : undefined);
+      const isTasker = useAuthStore.getState().isTasker();
+      pushToast(
+        "info",
+        <ClipboardList className="h-5 w-5" />,
+        "Completion submitted",
+        isTasker
+          ? "Awaiting customer confirmation. Earnings are not withdrawable yet."
+          : "Your Krafter submitted completion proof. Confirm or dispute the work.",
+        isTasker
+          ? { actionLabel: "View schedule", onAction: () => goTaskerSchedule(msg.bookingId) }
+          : { actionLabel: "View Krafts", onAction: goKrafts },
+        hist("BOOKING_COMPLETION_SUBMITTED", isTasker ? "schedule" : "krafts"),
+      );
+      break;
+    }
+    case "BOOKING_COMPLETION_REMINDER":
+      emitBookingDetailInvalidate(typeof msg.bookingId === "string" ? msg.bookingId : undefined);
+      pushToast(
+        "amber",
+        <ClipboardList className="h-5 w-5" />,
+        "Confirm completion",
+        "Reminder: confirm or dispute the submitted work before the server deadline.",
+        { actionLabel: "View Krafts", onAction: goKrafts },
+        hist("BOOKING_COMPLETION_REMINDER", "krafts"),
+      );
+      break;
     case "BOOKING_COMPLETED": {
       const isTasker = useAuthStore.getState().isTasker();
       pushToast(
@@ -443,6 +472,17 @@ export function showDomainEventNotification(raw: unknown): void {
         hist("PAYMENT_PENDING", "krafts"),
       );
       break;
+    case "PAYMENT_CAPTURED":
+      emitWalletSummaryInvalidate();
+      pushToast(
+        "info",
+        <Wallet className="h-5 w-5" />,
+        "Payment captured",
+        money ? `${money} was captured.` : "The customer charge was captured. Payout credit is not available yet.",
+        undefined,
+        hist("PAYMENT_CAPTURED", null),
+      );
+      break;
     case "PAYMENT_RELEASED":
       pushToast(
         "success",
@@ -484,6 +524,8 @@ export function showDomainEventNotification(raw: unknown): void {
       );
       break;
     case "PAYMENT_DISPUTED":
+      emitWalletSummaryInvalidate();
+      emitDisputesInvalidate();
       pushToast(
         "danger",
         <ShieldAlert className="h-5 w-5" />,
@@ -613,7 +655,44 @@ export function showDomainEventNotification(raw: unknown): void {
       );
       break;
     }
+    case "KRAFTER_NOT_HERE_REPORTED":
+      emitBookingDetailInvalidate(typeof msg.bookingId === "string" ? msg.bookingId : undefined);
+      emitDisputesInvalidate();
+      pushToast(
+        "danger",
+        <AlertTriangle className="h-5 w-5" />,
+        "Krafter not here reported",
+        "An incident was reported at the service address.",
+        { actionLabel: "View Krafts", onAction: goKrafts },
+        hist("KRAFTER_NOT_HERE_REPORTED", "krafts"),
+      );
+      break;
+    case "KRAFTER_NO_SHOW_PENALTY":
+      emitWalletSummaryInvalidate();
+      pushToast(
+        "amber",
+        <ShieldAlert className="h-5 w-5" />,
+        "No-show recorded",
+        "A provisional no-show strike was recorded.",
+        undefined,
+        hist("KRAFTER_NO_SHOW_PENALTY", null),
+      );
+      break;
+    case "KRAFTER_NO_SHOW_REVERSED":
+      emitWalletSummaryInvalidate();
+      pushToast(
+        "success",
+        <BadgeCheck className="h-5 w-5" />,
+        "No-show reversed",
+        "A no-show strike was reversed after review.",
+        undefined,
+        hist("KRAFTER_NO_SHOW_REVERSED", null),
+      );
+      break;
     case "DISPUTE_OPENED":
+      emitDisputesInvalidate();
+      emitWalletSummaryInvalidate();
+      emitBookingDetailInvalidate(typeof msg.bookingId === "string" ? msg.bookingId : undefined);
       pushToast(
         "danger",
         <Gavel className="h-5 w-5" />,
@@ -624,6 +703,7 @@ export function showDomainEventNotification(raw: unknown): void {
       );
       break;
     case "DISPUTE_UNDER_REVIEW":
+      emitDisputesInvalidate();
       pushToast(
         "amber",
         <Gavel className="h-5 w-5" />,
@@ -634,6 +714,8 @@ export function showDomainEventNotification(raw: unknown): void {
       );
       break;
     case "DISPUTE_RESOLVED":
+      emitDisputesInvalidate();
+      emitWalletSummaryInvalidate();
       pushToast(
         "success",
         <Gavel className="h-5 w-5" />,

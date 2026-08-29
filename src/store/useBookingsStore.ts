@@ -45,11 +45,18 @@ import {
   type DirectArtisanBookingRequest,
   type CancelBookingPayload,
   type ArtisanCompleteBookingPayload,
+  type ArtisanStartBookingPayload,
+  type CompleteBookingOptions,
   type BookingSavedPaymentPayload,
 } from '@/lib/api/bookings'
 import { usePaymentStore } from '@/store/usePaymentStore'
 import { useChatStore } from '@/store/useChatStore'
 import { bookingApiErrorUserMessage } from '@/lib/paymentCardRequired'
+import {
+  clearRetainedCompletePayload,
+  retainCompletePayload,
+} from '@/lib/completeWorkflow'
+import { emitBookingDetailInvalidate } from '@/lib/safetyInvalidation'
 
 function scheduleChatRefreshAfterKrafterSelection(booking: Booking) {
   const raw = booking.artisanId ?? booking.artisan_id
@@ -142,8 +149,11 @@ interface BookingsState {
   ) => Promise<{ data: Booking[]; total: number; offset: number; limit: number }>
   respondToBooking: (id: string, payload: ArtisanRespondPayload) => Promise<Booking>
   applyToBooking: (id: string, payload: ArtisanApplyPayload) => Promise<Booking>
-  startBooking: (id: string) => Promise<Booking>
-  completeBooking: (id: string, payload: ArtisanCompleteBookingPayload) => Promise<Booking>
+  startBooking: (id: string, payload: ArtisanStartBookingPayload) => Promise<Booking>
+  completeBooking: (id: string, payload: ArtisanCompleteBookingPayload, options?: CompleteBookingOptions) => Promise<Booking>
+  /** Replace list/selected rows with server canonical booking. Never use for optimistic UI. */
+  applyCanonicalBooking: (booking: Booking) => void
+  refetchBookingSilent: (id: string, opts?: { includePaymentSummary?: boolean }) => Promise<Booking | null>
 
   // Selectors
   getUpcomingBookings: () => Booking[]
@@ -657,10 +667,11 @@ export const useBookingsStore = create<BookingsState>()((set, get) => ({
     }
   },
 
-  startBooking: async (id) => {
+  startBooking: async (id, payload) => {
     set({ isSubmitting: true, error: null })
     try {
-      const updated = await startBookingApi(id)
+      await startBookingApi(id, payload)
+      const updated = await getBookingById(id)
       set((state) => {
         const idx = state.bookings.findIndex((b) => b.id === id)
         const bookings =
@@ -675,15 +686,29 @@ export const useBookingsStore = create<BookingsState>()((set, get) => ({
       })
       return updated
     } catch (err: any) {
+      try {
+        const canonical = await getBookingById(id)
+        set((state) => ({
+          bookings: state.bookings.map((b) => (b.id === id ? canonical : b)),
+          selectedBooking: state.selectedBooking?.id === id ? canonical : state.selectedBooking,
+        }))
+      } catch {
+        /* Preserve the last known canonical state when refetch is unavailable. */
+      }
       set({ error: err.response?.data?.message || 'Failed to start booking', isSubmitting: false })
       throw err
     }
   },
 
-  completeBooking: async (id, payload) => {
+  completeBooking: async (id, payload, options) => {
+    retainCompletePayload(id, payload)
     set({ isSubmitting: true, error: null })
     try {
-      const updated = await completeBookingApi(id, payload)
+      await completeBookingApi(id, payload, options)
+      const updated = await getBookingById(id)
+      if (updated.status === 'COMPLETED' || updated.status === 'DISPUTED') {
+        clearRetainedCompletePayload(id)
+      }
       set((state) => {
         const idx = state.bookings.findIndex((b) => b.id === id)
         const bookings =
@@ -698,8 +723,48 @@ export const useBookingsStore = create<BookingsState>()((set, get) => ({
       })
       return updated
     } catch (err: any) {
+      try {
+        const canonical = await getBookingById(id)
+        if (canonical.status === 'COMPLETED' || canonical.status === 'DISPUTED') {
+          clearRetainedCompletePayload(id)
+        }
+        set((state) => ({
+          bookings: state.bookings.map((b) => (b.id === id ? canonical : b)),
+          selectedBooking: state.selectedBooking?.id === id ? canonical : state.selectedBooking,
+        }))
+      } catch {
+        /* Provider errors may occur after submission; refetch was attempted. */
+      }
       set({ error: err.response?.data?.message || 'Failed to complete booking', isSubmitting: false })
       throw err
+    }
+  },
+
+  applyCanonicalBooking: (booking) => {
+    if (!booking?.id) return
+    set((state) => {
+      const idx = state.bookings.findIndex((b) => b.id === booking.id)
+      const bookings =
+        idx >= 0
+          ? state.bookings.map((b) => (b.id === booking.id ? booking : b))
+          : [...state.bookings, booking]
+      return {
+        bookings,
+        selectedBooking: state.selectedBooking?.id === booking.id ? booking : state.selectedBooking,
+      }
+    })
+  },
+
+  refetchBookingSilent: async (id, opts) => {
+    try {
+      const updated = await getBookingById(id, {
+        includePaymentSummary: opts?.includePaymentSummary,
+      })
+      get().applyCanonicalBooking(updated)
+      emitBookingDetailInvalidate(id)
+      return updated
+    } catch {
+      return null
     }
   },
 

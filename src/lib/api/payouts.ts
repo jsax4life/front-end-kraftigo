@@ -50,6 +50,9 @@ export type ArtisanWalletSummary = {
   pendingClearance: number;
   availableToWithdrawAmount: number;
   availableForWithdrawal: number;
+  disputedHoldAmount: number;
+  disputedHoldCount: number;
+  recoveryDebtAmount: number;
   totalWithdrawnAmount: number;
   lifetimeEarnings: number;
   pendingHoldCount: number;
@@ -144,6 +147,9 @@ function normalizeWalletSummary(data: unknown): ArtisanWalletSummary {
       "availableForWithdrawal",
       "available_for_withdrawal",
     ),
+    disputedHoldAmount: pickNum(raw, "disputedHoldAmount", "disputed_hold_amount"),
+    disputedHoldCount: pickInt(raw, "disputedHoldCount", "disputed_hold_count"),
+    recoveryDebtAmount: pickNum(raw, "recoveryDebtAmount", "recovery_debt_amount"),
     totalWithdrawnAmount: pickNum(raw, "totalWithdrawnAmount", "total_withdrawn_amount"),
     lifetimeEarnings: pickNum(raw, "lifetimeEarnings", "lifetime_earnings"),
     pendingHoldCount: pickInt(raw, "pendingHoldCount", "pending_hold_count"),

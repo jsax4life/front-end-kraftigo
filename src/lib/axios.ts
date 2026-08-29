@@ -193,6 +193,11 @@ api.interceptors.response.use(
                         void import('@/lib/socket').then(({ chatSocketManager }) => {
                             chatSocketManager.notifyAccessTokenRefreshed(newAccessToken)
                         })
+                        void import('@/lib/domainEventsSocket').then(
+                            ({ notifyDomainEventsAccessTokenRefreshed }) => {
+                                notifyDomainEventsAccessTokenRefreshed(newAccessToken)
+                            },
+                        )
 
                         // Process queue
                         processQueue(null, newAccessToken)
