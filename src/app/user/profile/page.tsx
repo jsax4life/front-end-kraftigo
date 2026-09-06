@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import UserNav from "@/components/shared/userNav";
 import Navbar from "@/components/shared/Navbar";
+import Footer from "@/components/shared/Footer"
 import { 
   User, 
   Lock, 
@@ -49,7 +50,7 @@ const SectionHeader = ({ label }: { label: string }) => (
 
 const Page = () => {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
   const { customerProfile, fetchCustomerProfile, isLoading } = useProfileStore();
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const t = useTranslations("profile");
@@ -187,23 +188,29 @@ const Page = () => {
            />
         </div>
 
-        <button 
-           onClick={async () => {
-             try {
-               await useAuthStore.getState().logout();
-               toast.success(t("logoutSuccess"));
-               router.push("/user/login");
-             } catch (error) {
-               toast.error(t("logoutFailed"));
-             }
-           }}
-           className="w-full mt-[12px] flex justify-center items-center py-[14px] bg-[rgba(254,41,41,0.1)] rounded-[12px]"
-        >
-           <span className="text-[14px] font-poppins text-[#FE2929]">{t("logoutButton")}</span>
-        </button>
+        {isAuthenticated && (
+          <button 
+             onClick={async () => {
+               try {
+                 await useAuthStore.getState().logout();
+                 toast.success(t("logoutSuccess"));
+                 router.push("/user/login");
+               } catch (error) {
+                 toast.error(t("logoutFailed"));
+               }
+             }}
+             className="w-full mt-[12px] flex justify-center items-center py-[14px] bg-[rgba(254,41,41,0.1)] rounded-[12px]"
+          >
+             <span className="text-[14px] font-poppins text-[#FE2929]">{t("logoutButton")}</span>
+          </button>
+        )}
       </div>
 
       <UserNav />
+      <div className="hidden md:block bottom-0 inset-x-0 mx-auto max-w-4xl w-full px-4 md:px-0 lg:px-0 pt-10">
+        <Footer />
+      </div>
+      
       <DeleteAccountModal
         open={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}

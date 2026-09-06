@@ -10,6 +10,7 @@ import GoogleTagManager from "@/components/shared/GoogleTagManager";
 import { NextIntlClientProvider } from "next-intl";
 import { cookies } from "next/headers";
 import CookieBanner from "@/components/ui/CookieBanner";
+import GlobalSplashLoader from "@/components/shared/GlobalSplashLoader";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -112,7 +113,9 @@ export default async function RootLayout({
               />
               <AuthPromptModal />
               <DomainEventsListener />
-              <main className="w-full min-h-screen bg-white">{children}</main>
+              <main className="w-full min-h-screen bg-white">
+                <GlobalSplashLoader>{children}</GlobalSplashLoader>
+              </main>
             </GoogleOAuthProvider>
           ) : (
             <>
@@ -130,7 +133,9 @@ export default async function RootLayout({
               />
               <AuthPromptModal />
               <DomainEventsListener />
-              <main className="w-full min-h-screen bg-white">{children}</main>
+              <main className="w-full min-h-screen bg-white">
+                <GlobalSplashLoader>{children}</GlobalSplashLoader>
+              </main>
             </>
           )}
           <CookieBanner />

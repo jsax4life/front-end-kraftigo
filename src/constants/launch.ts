@@ -6,7 +6,7 @@
  * Set `NEXT_PUBLIC_HOME_COMING_SOON=0` to show the full home before launch (preview / QA).
  */
 
-const DEFAULT_LAUNCH_AT = "2026-09-15T10:00:00+01:00";
+const DEFAULT_LAUNCH_AT = "2026-10-01T10:00:00+01:00";
 
 export function getLaunchAt(): Date {
   const raw = process.env.NEXT_PUBLIC_LAUNCH_AT?.trim() || DEFAULT_LAUNCH_AT;
@@ -19,8 +19,9 @@ export function getLaunchAt(): Date {
 
 /** True while the public customer home should show the coming-soon landing. */
 export function isHomeComingSoonActive(): boolean {
-  if (process.env.NEXT_PUBLIC_HOME_COMING_SOON?.trim() === "0") {
+    if (process.env.NEXT_PUBLIC_HOME_COMING_SOON?.trim() === "0") {
     return false;
   }
   return Date.now() < getLaunchAt().getTime();
+  // return true; // Force enabled for design work
 }

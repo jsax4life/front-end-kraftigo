@@ -339,17 +339,21 @@
     "jobs": "Jobs",
     "prosOfWeek": "Profis der Woche",
     "comingSoon": {
-      "eyebrow": "Demnächst",
-      "title": "Kraftigo startet bald",
-      "subtitle": "Wir finalisieren Ihren Marktplatz für Dienstleistungen zu Hause. Krafter können sich jetzt anmelden und sich auf den Start vorbereiten.",
-      "days": "Tage",
-      "hours": "Std.",
-      "minutes": "Min.",
-      "seconds": "Sek.",
-      "launchOn": "Start am {date}",
-      "launchingNow": "Wir starten gerade — bitte Seite in Kürze neu laden.",
+      "title": "Demnächst",
+      "subtitle": "Kraftigo verbindet dich mit echten, verifizierten Menschen in deiner Nähe, die bereit sind, bei alltäglichen Aufgaben zu helfen. Wir starten zuerst in Soest und wachsen Nachbarschaft für Nachbarschaft. Sei von Anfang an dabei.",
+      "joinWaitlistHeader": "Tritt unserer Warteliste bei!",
+      "firstNamePlaceholder": "Vorname",
+      "lastNamePlaceholder": "Nachname",
+      "emailPlaceholder": "Gib deine E-Mail ein",
+      "joinWaitlistBtn": "Warteliste beitreten",
+      "joiningBtn": "Beitreten...",
+      "waitlistCount": "~1K+ Leute haben sich angemeldet",
+      "successTitle": "Danke für die Anmeldung!",
+      "successSubtitle": "Wir benachrichtigen dich, sobald Kraftigo in Soest startet. In der Zwischenzeit, falls du Fähigkeiten anzubieten hast...",
       "krafterCta": "Als Krafter registrieren",
-      "krafterHint": "Direkter Krafter-Link:"
+      "imgText1": "Was brauchst du heute?",
+      "imgText2": "Brauchst du Hilfe bei einer schnellen Reparatur?",
+      "imgText3": "Stelle deine Anfrage."
     }
   },
   "common": {
@@ -448,11 +452,11 @@
       },
       "q2": {
         "question": "Wie melde ich ein Problem mit einem Handwerker?",
-        "answer": "Öffnen Sie die Buchung und tippen Sie auf 'Problem melden'. Beschreiben Sie, was passiert ist, und fügen Sie Fotos bei, falls vorhanden – unser Team prüft Meldungen innerhalb von 24–48 Stunden und wird sich direkt bei Ihnen melden."
+        "answer": "Öffnen Sie die Buchung und tippen Sie auf 'Problem melden'. Beschreiben Sie, was passiert ist, und fügen Sie Fotos bei, falls vorhanden  unser Team prüft Meldungen innerhalb von 24–48 Stunden und wird sich direkt bei Ihnen melden."
       },
       "q3": {
         "question": "Wie beantrage ich eine Rückerstattung?",
-        "answer": "Ihre Zahlung wird sicher verwahrt, bis der Auftrag als abgeschlossen markiert ist. Bei sofortigen Rückerstattungen (Nichterscheinen oder Stornierung vor Beginn) werden die Mittel automatisch freigegeben. Bei Qualitätsstreitigkeiten öffnen Sie die Buchung, tippen Sie auf 'Rückerstattung anfordern' und erklären Sie das Problem – bei Genehmigung wird das Geld innerhalb von 5–7 Werktagen auf Ihre ursprüngliche Zahlungsmethode zurückerstattet."
+        "answer": "Ihre Zahlung wird sicher verwahrt, bis der Auftrag als abgeschlossen markiert ist. Bei sofortigen Rückerstattungen (Nichterscheinen oder Stornierung vor Beginn) werden die Mittel automatisch freigegeben. Bei Qualitätsstreitigkeiten öffnen Sie die Buchung, tippen Sie auf 'Rückerstattung anfordern' und erklären Sie das Problem  bei Genehmigung wird das Geld innerhalb von 5–7 Werktagen auf Ihre ursprüngliche Zahlungsmethode zurückerstattet."
       },
       "q4": {
         "question": "Was passiert, wenn ein Handwerker nicht erscheint?",
@@ -460,7 +464,7 @@
       },
       "q5": {
         "question": "Wie aktualisiere ich meine Zahlungsmethode?",
-        "answer": "Gehen Sie zu Einstellungen → Zahlungsmethoden. Dort können Sie jederzeit eine neue Karte hinzufügen, eine Standardkarte festlegen oder eine alte entfernen."
+        "answer": "Gehen Sie zu Einstellungen Zahlungsmethoden. Dort können Sie jederzeit eine neue Karte hinzufügen, eine Standardkarte festlegen oder eine alte entfernen."
       }
     },
     "krafterFaqs": {
@@ -474,7 +478,7 @@
       },
       "q3": {
         "question": "Was passiert, wenn ein Kunde nicht erscheint?",
-        "answer": "Tippen Sie auf 'Nichterscheinen des Kunden melden' in der Buchung, sobald Ihre geplante Startzeit verstrichen ist. Nach der Bestätigung erhalten Sie Ihre vereinbarte Anfahrtsgebühr und die Buchung wird geschlossen – von Ihrer Seite aus sind keine weiteren Maßnahmen erforderlich."
+        "answer": "Tippen Sie auf 'Nichterscheinen des Kunden melden' in der Buchung, sobald Ihre geplante Startzeit verstrichen ist. Nach der Bestätigung erhalten Sie Ihre vereinbarte Anfahrtsgebühr und die Buchung wird geschlossen  von Ihrer Seite aus sind keine weiteren Maßnahmen erforderlich."
       },
       "q4": {
         "question": "Wie melde ich ein Problem mit einem Kunden?",
@@ -482,7 +486,7 @@
       },
       "q5": {
         "question": "Wie aktualisiere ich meine Auszahlungsmethode?",
-        "answer": "Gehen Sie zu Einstellungen → Auszahlungsdetails, um Ihr verknüpftes Bankkonto oder Ihre Karte zu aktualisieren. Änderungen werden ab Ihrem nächsten Auszahlungszyklus wirksam."
+        "answer": "Gehen Sie zu Einstellungen  Auszahlungsdetails, um Ihr verknüpftes Bankkonto oder Ihre Karte zu aktualisieren. Änderungen werden ab Ihrem nächsten Auszahlungszyklus wirksam."
       }
     }
   },
