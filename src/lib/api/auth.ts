@@ -119,6 +119,39 @@ export interface HomePageResponse {
   upcoming: HomeUpcomingBooking[];
 }
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+/** Unwrap `{ data: { user, accessToken, refreshToken } }` or flat auth payloads. */
+export function normalizeAuthResponse(raw: unknown): AuthResponse {
+  const root = asRecord(raw);
+  if (!root) {
+    throw new Error("Invalid login response");
+  }
+  const source = asRecord(root.data) ?? root;
+  const user = source.user as User;
+  const accessToken =
+    (typeof source.accessToken === "string" && source.accessToken) ||
+    (typeof source.access_token === "string" && source.access_token) ||
+    "";
+  const refreshToken =
+    (typeof source.refreshToken === "string" && source.refreshToken) ||
+    (typeof source.refresh_token === "string" && source.refresh_token) ||
+    "";
+
+  if (!accessToken) {
+    throw new Error("Login response missing access token");
+  }
+  if (!user || typeof user !== "object") {
+    throw new Error("Login response missing user");
+  }
+
+  return { user, accessToken, refreshToken };
+}
+
 // ─── Home Page ────────────────────────────────────────────────────────────────
 
 export interface HomeCategory {
@@ -138,7 +171,7 @@ export const loginUser = async (
   payload: LoginPayload,
 ): Promise<AuthResponse> => {
   const response = await api.post("/api/auth/login", payload);
-  return response.data;
+  return normalizeAuthResponse(response.data);
 };
 
 /** POST /api/auth/register — register a new customer or artisan account */
@@ -197,7 +230,7 @@ export const loginWithGoogle = async (
   payload: GoogleAuthPayload,
 ): Promise<AuthResponse> => {
   const response = await api.post("/api/auth/google", payload);
-  return response.data;
+  return normalizeAuthResponse(response.data);
 };
 
 /** POST /api/auth/logout — revoke current refresh token */
@@ -378,7 +411,7 @@ export const loginTasker = async (
   payload: LoginPayload,
 ): Promise<AuthResponse> => {
   const response = await api.post("/api/auth/login", payload);
-  return response.data;
+  return normalizeAuthResponse(response.data);
 };
 
 /** POST /api/auth/register — register a new artisan account */

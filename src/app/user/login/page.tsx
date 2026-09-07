@@ -101,6 +101,7 @@ const LoginPageContent = () => {
     try {
       await loginUser(formData.email, formData.password);
       toast.success("Login successful! Welcome back.");
+      await routeAfterAuthLogin(router);
     } catch (err: unknown) {
       const storeError = useAuthStore.getState().error;
       if (isEmailNotVerifiedError(err, storeError)) {

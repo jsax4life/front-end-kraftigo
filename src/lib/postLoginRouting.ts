@@ -6,22 +6,20 @@ import {
   KRAFTER_VERIFICATION_ROUTE,
 } from "@/lib/krafterSignupIntent";
 
-let postLoginRoutingInFlight = false;
-
 /** Same routing as email login — Krafter dashboard vs customer home. */
 export async function routeAfterAuthLogin(router: AppRouterInstance): Promise<void> {
-  if (postLoginRoutingInFlight) {
-    return;
-  }
-  postLoginRoutingInFlight = true;
-
   try {
     if (getKrafterSignupIntent()) {
       router.replace(KRAFTER_VERIFICATION_ROUTE);
       return;
     }
 
-    await useProfileStore.getState().fetchVerificationStatus();
+    try {
+      await useProfileStore.getState().fetchVerificationStatusSilent();
+    } catch {
+      /* fall through to default route */
+    }
+
     const { verificationState, kycStatus } = getVerificationWire(
       useProfileStore.getState().verificationStatus,
     );
@@ -32,14 +30,9 @@ export async function routeAfterAuthLogin(router: AppRouterInstance): Promise<vo
       router.replace("/tasker/dashboard");
       return;
     }
+
     router.replace("/");
-  } finally {
-    if (typeof window !== "undefined") {
-      window.setTimeout(() => {
-        postLoginRoutingInFlight = false;
-      }, 1500);
-    } else {
-      postLoginRoutingInFlight = false;
-    }
+  } catch {
+    router.replace("/");
   }
 }
