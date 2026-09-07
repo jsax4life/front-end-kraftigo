@@ -345,7 +345,7 @@ function normalizeHomeProRow(raw: unknown): HomeProOfWeek | null {
   };
 }
 
-function normalizeHomeProList(raw: unknown): HomeProOfWeek[] {
+export function normalizeHomeProList(raw: unknown): HomeProOfWeek[] {
   if (!Array.isArray(raw)) return [];
   return raw
     .map(normalizeHomeProRow)

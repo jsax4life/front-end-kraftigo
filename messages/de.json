@@ -338,6 +338,11 @@
     "available": "Verfügbar",
     "jobs": "Jobs",
     "prosOfWeek": "Profis der Woche",
+    "browseByLocation": "Nach Standort suchen",
+    "allLocations": "Alle",
+    "kraftersInLocation": "Krafter in {location}",
+    "noKraftersInLocation": "In diesem Standort gibt es noch keine Krafter.",
+    "locationBrowseError": "Krafter für diesen Standort konnten nicht geladen werden.",
     "comingSoon": {
       "title": "Demnächst",
       "subtitle": "Kraftigo verbindet dich mit echten, verifizierten Menschen in deiner Nähe, die bereit sind, bei alltäglichen Aufgaben zu helfen. Wir starten zuerst in Soest und wachsen Nachbarschaft für Nachbarschaft. Sei von Anfang an dabei.",

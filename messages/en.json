@@ -338,6 +338,11 @@
     "available": "Available",
     "jobs": "jobs",
     "prosOfWeek": "Pros of the week",
+    "browseByLocation": "Browse by location",
+    "allLocations": "All",
+    "kraftersInLocation": "Krafters in {location}",
+    "noKraftersInLocation": "No Krafters in this location yet.",
+    "locationBrowseError": "Could not load Krafters for this location.",
     "comingSoon": {
       "title": "Coming Soon",
       "subtitle": "Kraftigo connects you with real, verified people nearby, ready to help with everyday tasks. We're launching in Soest first, and growing one neighborhood at a time. Be part of it from day one.",

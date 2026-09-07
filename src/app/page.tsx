@@ -43,7 +43,13 @@ import type { HomeProOfWeek } from "@/lib/api/auth";
 import { useTranslations, useLocale } from "next-intl";
 import { useTranslateContent } from "@/hooks/useTranslateContent";
 import HomeComingSoon from "@/components/shared/HomeComingSoon";
+import KrafterLocationFilter from "@/components/shared/KrafterLocationFilter";
 import { isHomeComingSoonActive } from "@/constants/launch";
+import {
+  browseCustomerKrafters,
+  getCustomerKrafterLocations,
+  type KrafterLocationOption,
+} from "@/lib/api/customerKrafters";
 
 // ─── Static fallbacks ─────────────────────────────────────────────────────────
 
@@ -172,6 +178,12 @@ const HomePageContent = () => {
     null,
   );
   const [isLoadingKrafterProfile, setIsLoadingKrafterProfile] = useState(false);
+  const [locationOptions, setLocationOptions] = useState<KrafterLocationOption[]>([]);
+  const [selectedLocation, setSelectedLocation] = useState<KrafterLocationOption | null>(null);
+  const [locationKrafters, setLocationKrafters] = useState<HomeProOfWeek[]>([]);
+  const [isLoadingLocations, setIsLoadingLocations] = useState(false);
+  const [isLoadingLocationBrowse, setIsLoadingLocationBrowse] = useState(false);
+  const [locationBrowseFailed, setLocationBrowseFailed] = useState(false);
   const prevSelectedAddressIdRef = useRef<string | null>(null);
 
   // ── Fetch profile (auth only) + home feed (`GET /api/home`) for everyone ───
@@ -181,6 +193,66 @@ const HomePageContent = () => {
     }
     void fetchHomeData();
   }, [isAuthenticated, customerProfile, fetchCustomerProfile, fetchHomeData]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setLocationOptions([]);
+      setSelectedLocation(null);
+      setLocationKrafters([]);
+      setLocationBrowseFailed(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsLoadingLocations(true);
+    void getCustomerKrafterLocations()
+      .then((locations) => {
+        if (!cancelled) setLocationOptions(locations);
+      })
+      .catch(() => {
+        if (!cancelled) setLocationOptions([]);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingLocations(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !selectedLocation) {
+      setLocationKrafters([]);
+      setLocationBrowseFailed(false);
+      setIsLoadingLocationBrowse(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsLoadingLocationBrowse(true);
+    setLocationBrowseFailed(false);
+    void browseCustomerKrafters({
+      locationCity: selectedLocation.city,
+      locationCountry: selectedLocation.country || undefined,
+    })
+      .then((rows) => {
+        if (!cancelled) setLocationKrafters(rows);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setLocationKrafters([]);
+          setLocationBrowseFailed(true);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingLocationBrowse(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, selectedLocation]);
 
   // After the backend current address changes, reload home (no GPS params — BE uses persisted pin).
   useEffect(() => {
@@ -275,13 +347,20 @@ const HomePageContent = () => {
     }
   };
 
-  const rawNearYou = useMemo(() =>
-    kraftersNearYou.length > 0
-      ? kraftersNearYou.map(mapHomeKrafterToCard)
-      : isAuthenticated
-        ? []
-        : STATIC_PROS,
-  [kraftersNearYou, isAuthenticated]);
+  const activeNearYouRows = useMemo(
+    () => (selectedLocation ? locationKrafters : kraftersNearYou),
+    [selectedLocation, locationKrafters, kraftersNearYou],
+  );
+
+  const rawNearYou = useMemo(() => {
+    if (selectedLocation) {
+      return locationKrafters.map(mapHomeKrafterToCard);
+    }
+    if (kraftersNearYou.length > 0) {
+      return kraftersNearYou.map(mapHomeKrafterToCard);
+    }
+    return isAuthenticated ? [] : STATIC_PROS;
+  }, [selectedLocation, locationKrafters, kraftersNearYou, isAuthenticated]);
 
   const rawProsOfWeek = useMemo(() =>
     prosOfWeek.length > 0 ? prosOfWeek.map(mapHomeKrafterToCard) : [],
@@ -305,6 +384,18 @@ const HomePageContent = () => {
     ...p,
     description: translatedProDescriptions[rawNearYou.length + i] || p.description,
   })), [rawProsOfWeek, rawNearYou.length, translatedProDescriptions]);
+
+  const showLocationFilter =
+    isAuthenticated && (isLoadingLocations || locationOptions.length > 0);
+  const kraftersSectionTitle = selectedLocation
+    ? t("kraftersInLocation", { location: selectedLocation.label })
+    : t("kraftersNearYou");
+  const showKraftersSection =
+    showLocationFilter ||
+    selectedLocation != null ||
+    (isLoading && !hasFetched && !selectedLocation) ||
+    displayNearYouKrafters.length > 0 ||
+    isLoadingLocationBrowse;
 
   // ── Handlers ────────────────────────────────────────────────────────────────
   const handleProtectedAction = (path: string) => {
@@ -656,14 +747,29 @@ const HomePageContent = () => {
             ) : null}
           </div>
 
-          {/* Krafters near you */}
-          {(isLoading && !hasFetched) || displayNearYouKrafters.length > 0 ? (
+          {/* Krafters near you / by location */}
+          {showKraftersSection ? (
             <div className="mb-8">
               <h2 className="text-[20px] sm:text-[20px] font-poppins font-semibold mb-4">
-                {t("kraftersNearYou")}
+                {kraftersSectionTitle}
               </h2>
 
-              {isLoading && !hasFetched ? (
+              {showLocationFilter ? (
+                <div className="mb-2">
+                  <p className="mb-2 font-poppins text-[13px] font-medium text-gray-500">
+                    {t("browseByLocation")}
+                  </p>
+                  <KrafterLocationFilter
+                    locations={locationOptions}
+                    selected={selectedLocation}
+                    onSelect={setSelectedLocation}
+                    allLabel={t("allLocations")}
+                    loading={isLoadingLocations}
+                  />
+                </div>
+              ) : null}
+
+              {isLoadingLocationBrowse || (isLoading && !hasFetched && !selectedLocation) ? (
                 <div className="flex gap-4">
                   {[...Array(2)].map((_, i) => (
                     <div
@@ -672,11 +778,19 @@ const HomePageContent = () => {
                     />
                   ))}
                 </div>
+              ) : locationBrowseFailed ? (
+                <p className="font-poppins text-[14px] text-gray-600">
+                  {t("locationBrowseError")}
+                </p>
+              ) : displayNearYouKrafters.length === 0 && selectedLocation ? (
+                <p className="font-poppins text-[14px] text-gray-600">
+                  {t("noKraftersInLocation")}
+                </p>
               ) : displayNearYouKrafters.length > 1 ? (
                 <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
                   <div className="flex gap-4">
                     {displayNearYouKrafters.map((pro, index) => {
-                      const raw = kraftersNearYou[index];
+                      const raw = activeNearYouRows[index];
                       return (
                         <ProCard
                           key={raw?.krafterId ?? index}
@@ -698,7 +812,7 @@ const HomePageContent = () => {
               ) : (
                 <div>
                   {displayNearYouKrafters.map((pro, index) => {
-                    const raw = kraftersNearYou[index];
+                    const raw = activeNearYouRows[index];
                     return (
                       <ProCard
                         key={raw?.krafterId ?? index}
