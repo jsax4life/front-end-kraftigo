@@ -339,17 +339,21 @@
     "jobs": "jobs",
     "prosOfWeek": "Pros of the week",
     "comingSoon": {
-      "eyebrow": "Coming soon",
-      "title": "Kraftigo is almost here",
-      "subtitle": "We're putting the finishing touches on your marketplace for home services. Krafters can sign up now and get ready for launch.",
-      "days": "Days",
-      "hours": "Hours",
-      "minutes": "Minutes",
-      "seconds": "Seconds",
-      "launchOn": "Launching {date}",
-      "launchingNow": "We're launching now — refresh in a moment.",
-      "krafterCta": "Sign up as a Krafter",
-      "krafterHint": "Krafter signup link:"
+      "title": "Coming Soon",
+      "subtitle": "Kraftigo connects you with real, verified people nearby, ready to help with everyday tasks. We're launching in Soest first, and growing one neighborhood at a time. Be part of it from day one.",
+      "joinWaitlistHeader": "Join our waitlist!",
+      "firstNamePlaceholder": "First Name",
+      "lastNamePlaceholder": "Last Name",
+      "emailPlaceholder": "Enter your email",
+      "joinWaitlistBtn": "Join waitlist",
+      "joiningBtn": "Joining...",
+      "waitlistCount": "~1K+ people signed up",
+      "successTitle": "Thanks for signing up!",
+      "successSubtitle": "We'll notify you as soon as Kraftigo launches in Soest. Meanwhile, if you have skills to offer...",
+      "krafterCta": "Become a Krafter",
+      "imgText1": "What do you need today?",
+      "imgText2": "Need help with a quick fix?",
+      "imgText3": "Post your request."
     }
   },
   "common": {
@@ -448,19 +452,19 @@
       },
       "q2": {
         "question": "How do I report a problem with a Krafter?",
-        "answer": "Open the booking and tap Report an Issue. Describe what happened and attach photos if you have them — our team reviews reports within 24–48 hours and will follow up directly."
+        "answer": "Open the booking and tap Report an Issue. Describe what happened and attach photos if you have them our team reviews reports within 24–48 hours and will follow up directly."
       },
       "q3": {
         "question": "How do I request a refund?",
-        "answer": "Your payment is held securely until the job is marked complete. For instant refunds (no-show or cancelled before the start), funds are released automatically. For quality disputes, open the booking, tap Request Refund, and explain the issue — if approved, funds are returned to your original payment method within 5–7 business days."
+        "answer": "Your payment is held securely until the job is marked complete. For instant refunds (no show or cancelled before the start), funds are released automatically. For quality disputes, open the booking, tap Request Refund, and explain the issue if approved, funds are returned to your original payment method within 5–7 business days."
       },
       "q4": {
         "question": "What happens if a Krafter doesn't show up?",
-        "answer": "Tap Report No-Show on the booking. Since payment hasn't been released yet, you'll get a full refund automatically, and you can rebook with another available Krafter right away."
+        "answer": "Tap Report No Show on the booking. Since payment hasn't been released yet, you'll get a full refund automatically, and you can rebook with another available Krafter right away."
       },
       "q5": {
         "question": "How do I update my payment method?",
-        "answer": "Go to Settings → Payment Methods, where you can add a new card, set a default, or remove an old one anytime."
+        "answer": "Go to Settings Payment Methods, where you can add a new card, set a default, or remove an old one anytime."
       }
     },
     "krafterFaqs": {
@@ -474,7 +478,7 @@
       },
       "q3": {
         "question": "What happens if a client doesn't show up?",
-        "answer": "Tap Report Client No-Show on the booking once your scheduled start time has passed. Once confirmed, you'll receive your agreed-upon callout fee and the booking closes — no further action needed on your end."
+        "answer": "Tap Report Client No Show on the booking once your scheduled start time has passed. Once confirmed, you'll receive your agreed upon callout fee and the booking closes no further action needed on your end."
       },
       "q4": {
         "question": "How do I report a problem with a client?",
@@ -482,7 +486,7 @@
       },
       "q5": {
         "question": "How do I update my payout method?",
-        "answer": "Go to Settings → Payout Details to update your linked bank account or card. Changes take effect from your next payout cycle."
+        "answer": "Go to Settings Payout Details to update your linked bank account or card. Changes take effect from your next payout cycle."
       }
     }
   },

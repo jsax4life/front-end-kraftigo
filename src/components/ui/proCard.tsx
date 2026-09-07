@@ -30,7 +30,7 @@ const ProCard = ({
   onViewProfile,
 }: ProCardProps) => {
   return (
-    <div className="bg-[#F6F6F6] rounded-xl p-3 sm:p-3 border border-[#0000001A] w-[95%] sm:w-[80%] lg:w-[46%] shrink-0 flex flex-col h-full min-w-0 overflow-hidden">
+    <div className="bg-[#F6F6F6] rounded-xl p-3 sm:p-3 border border-[#0000001A] w-[95%] sm:w-[80%] lg:w-[46%] shrink-0 flex flex-col h-full min-w-0 overflow-hidden hover:scale-105">
       <div className="flex gap-4 min-w-0">
         {/* Pro Image */}
         <div className="relative shrink-0">

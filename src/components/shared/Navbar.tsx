@@ -64,14 +64,16 @@ const Navbar = () => {
             />
           )}
         </button>
-        <Image
-          src="/craft.svg"
-          alt="kraftigö logo"
-          width={108}
-          height={58}
-          priority
-          className="w-28 h-auto object-contain z-50 relative"
-        />
+        <Link href="/">
+          <Image
+            src="/craft.svg"
+            alt="kraftigö logo"
+            width={108}
+            height={58}
+            priority
+            className="w-28 h-auto object-contain z-50 relative"
+          />
+        </Link>
       </div>
       <div className="z-50 relative">
         <Userabt />

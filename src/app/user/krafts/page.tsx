@@ -4,6 +4,8 @@ import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import UserNav from "@/components/shared/userNav";
+import Navbar from "@/components/shared/Navbar";
+import Footer from "@/components/shared/Footer"
 import { ArrowLeft, Search, MapPin, Tag, MessageCircle, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 import OffersModal from "@/components/shared/OffersModal";
@@ -513,11 +515,9 @@ const KraftsPage = () => {
   return (
     <main className="relative w-full min-h-screen bg-white pb-24">
       <div className="px-4 py-6 max-w-4xl mx-auto w-full">
+       <Navbar />
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
-          <button onClick={() => router.push("/")} className="p-1">
-            <ArrowLeft size={24} />
-          </button>
           <h1 className="text-[28px] font-gerat font-bold">{t("title")}</h1>
         </div>
 
@@ -787,6 +787,9 @@ const KraftsPage = () => {
             ))
           )
         )}
+        <div className="hidden md:block absolute bottom-0 inset-x-0 mx-auto max-w-4xl w-full px-4 md:px-0 lg:px-0">
+          <Footer />
+        </div>
       </div>
 
       {showOffers && selectedJob && (

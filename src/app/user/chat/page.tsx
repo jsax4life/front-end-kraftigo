@@ -7,6 +7,7 @@ import { Search, User as UserIcon, MoreHorizontal } from "lucide-react";
 import toast from "react-hot-toast";
 import UserNav from "@/components/shared/userNav";
 import Navbar from "@/components/shared/Navbar";
+import Footer from "@/components/shared/Footer";
 import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { getStoredAccessToken } from "@/lib/axios";
@@ -246,6 +247,10 @@ const ChatPage = () => {
                </button>
             )})}
          </div>
+      </div>
+
+      <div className="hidden md:block absolute bottom-0 inset-x-0 mx-auto max-w-4xl w-full px-4 md:px-0 lg:px-0">
+        <Footer />
       </div>
 
       {threadPickerGroup && (

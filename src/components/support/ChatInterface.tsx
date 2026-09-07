@@ -99,7 +99,7 @@ const ChatInterface = ({
 
   return (
     <>
-      <div className="fixed inset-x-0 top-0 bottom-[96px] z-60 bg-[#F9FAFB] flex flex-col animate-in slide-in-from-bottom duration-300">
+      <div className="fixed inset-x-0 mx-auto max-w-4xl top-0 bottom-[96px] md:bottom-0 z-60 bg-[#F9FAFB] flex flex-col animate-in slide-in-from-bottom duration-300 shadow-xl md:border-x border-[#F2F4F7]">
         {/* Header - Centered Style */}
         <div className="flex flex-col items-center bg-white border-b border-[#F2F4F7] pt-4 pb-4">
           <div className="w-full flex justify-between px-6 mb-2">

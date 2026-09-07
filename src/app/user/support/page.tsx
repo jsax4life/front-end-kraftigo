@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import UserNav from "@/components/shared/userNav";
 import Navbar from "@/components/shared/Navbar";
+import Footer from '@/components/shared/Footer'
 import SupportHeader from "@/components/support/SupportHeader";
 import KraftStatusCard from "@/components/support/KraftStatusCard";
 import HelpBanner from "@/components/support/HelpBanner";
@@ -176,6 +177,9 @@ const Page = () => {
         conversation={currentConversation}
       />
       <UserNav />
+       <div className="hidden md:block bottom-0 inset-x-0 mx-auto max-w-4xl w-full px-4 md:px-0 lg:px-0 pt-10">
+          <Footer />
+        </div>
     </main>
   );
 };

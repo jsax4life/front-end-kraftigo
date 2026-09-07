@@ -39,7 +39,7 @@ function UnavailableContent() {
           </p>
           <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm">
             <Button variant="primary" fullWidth onClick={() => router.push("/")}>
-              Browse available services
+            Available services
             </Button>
             <Button variant="secondary" fullWidth onClick={() => router.push("/user/categories")}>
               View categories
