@@ -17,12 +17,12 @@ export default function GlobalSplashLoader({ children }: { children: React.React
 
     const fadeTimer = setTimeout(() => {
       setFade(true);
-    }, 10000);
+    }, 7000);
 
     const removeTimer = setTimeout(() => {
       setLoading(false);
       sessionStorage.setItem("hasSeenSplashLoader", "true");
-    }, 10000);
+    }, 7000);
 
     return () => {
       clearTimeout(fadeTimer);
