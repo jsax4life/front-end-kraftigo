@@ -16,26 +16,31 @@ export function useKrafterCta(options?: UseKrafterCtaOptions) {
   const enabled = options?.enabled ?? true;
   const router = useRouter();
   const verificationStatus = useProfileStore((s) => s.verificationStatus);
+  const profileCompletionSummary = useProfileStore((s) => s.profileCompletionSummary);
   const fetchVerificationStatusSilent = useProfileStore((s) => s.fetchVerificationStatusSilent);
+  const fetchKrafterProfileCompletionSummary = useProfileStore(
+    (s) => s.fetchKrafterProfileCompletionSummary,
+  );
 
   useEffect(() => {
     if (!enabled) return;
     void fetchVerificationStatusSilent();
-  }, [enabled, fetchVerificationStatusSilent]);
+    void fetchKrafterProfileCompletionSummary();
+  }, [enabled, fetchVerificationStatusSilent, fetchKrafterProfileCompletionSummary]);
 
   const t = useTranslations("profile.cta");
   const cta = useMemo(() => {
-    const baseCta = getKrafterCtaState(verificationStatus);
+    const baseCta = getKrafterCtaState(verificationStatus, profileCompletionSummary);
     return {
       ...baseCta,
       bannerTitle: baseCta.isKrafterEligible ? t("krafterDashboard") : t("earnMoney"),
       buttonLabel: baseCta.isKrafterEligible ? t("switchToKrafter") : t("becomeKrafter")
     };
-  }, [verificationStatus, t]);
+  }, [verificationStatus, profileCompletionSummary, t]);
 
   const handleAction = useCallback(() => {
-    navigateKrafterCta(router, verificationStatus);
-  }, [router, verificationStatus]);
+    navigateKrafterCta(router, verificationStatus, profileCompletionSummary);
+  }, [router, verificationStatus, profileCompletionSummary]);
 
   return { ...cta, handleAction, verificationStatus };
 }

@@ -880,6 +880,7 @@
     "finishProfile": {
       "title": "Profil vervollständigen",
       "subtitle": "Sie haben bereits {completedPercentage}% geschafft! Schließen Sie diese Schritte ab, um Aufträge anzunehmen",
+      "optional": "Optional",
       "steps": {
         "eligibility": {
           "label": "Fügen Sie Ihre Arbeitsberechtigung hinzu",

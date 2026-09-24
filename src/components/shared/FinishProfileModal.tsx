@@ -4,6 +4,10 @@ import React from "react";
 import Image from "next/image";
 import { X, Check } from "lucide-react";
 import { useTranslations } from "next-intl";
+import type {
+  FinishProfileStepId,
+  FinishProfileStepView,
+} from "@/lib/krafterProfileCompletionDisplay";
 
 interface FinishProfileModalProps {
   isOpen: boolean;
@@ -12,15 +16,9 @@ interface FinishProfileModalProps {
   completedPercentage: number;
   completedStepIds: string[];
   pendingStepIds?: string[];
-  onStepClick?: (stepId: string) => void;
+  steps: FinishProfileStepView[];
+  onStepClick?: (stepId: FinishProfileStepId) => void;
 }
-
-const steps = [
-  { id: "eligibility" },
-  { id: "identity" },
-  { id: "personal" },
-  { id: "skills" },
-];
 
 const FinishProfileModal: React.FC<FinishProfileModalProps> = ({
   isOpen,
@@ -29,6 +27,7 @@ const FinishProfileModal: React.FC<FinishProfileModalProps> = ({
   completedPercentage,
   completedStepIds = [],
   pendingStepIds = [],
+  steps,
   onStepClick,
 }) => {
   const t = useTranslations("modals.finishProfile");
@@ -110,10 +109,17 @@ const FinishProfileModal: React.FC<FinishProfileModalProps> = ({
                         }`}
                       >
                         {t(`steps.${step.id}.label` as any)}
+                        {step.optional ? (
+                          <span className="ml-1.5 text-[11px] font-poppins font-medium text-[#667085]">
+                            ({t("optional")})
+                          </span>
+                        ) : null}
                       </h4>
                       {!isChecked && (
                         <p className="text-[13px] font-poppins text-[#667085]">
-                          {t(`steps.${step.id}.sublabel` as any)}
+                          {step.optional && step.optionalBenefits
+                            ? step.optionalBenefits
+                            : t(`steps.${step.id}.sublabel` as any)}
                         </p>
                       )}
                       {isCompleted && (

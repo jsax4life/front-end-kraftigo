@@ -1,11 +1,16 @@
+import type { SignupIntent } from "@/lib/api/auth";
+
 /** Backend `POST /api/auth/google` requires the Google ID token and terms acceptance. */
 export function buildGoogleAuthPayload(
   idToken: string,
   hasAcceptedTerms: boolean,
+  options?: { signupIntent?: SignupIntent },
 ) {
+  const intent = options?.signupIntent;
   return {
     idToken,
     hasAcceptedTerms: Boolean(hasAcceptedTerms),
+    ...(intent ? { signupIntent: intent, intent } : {}),
   };
 }
 

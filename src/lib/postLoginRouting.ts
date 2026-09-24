@@ -1,12 +1,18 @@
 import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
+import { useAuthStore } from "@/store/useAuthStore";
 import { useProfileStore } from "@/store/useProfileStore";
-import { getVerificationWire } from "@/lib/api/verification";
 import {
   getKrafterSignupIntent,
   KRAFTER_VERIFICATION_ROUTE,
 } from "@/lib/krafterSignupIntent";
+import { canAccessKrafterDashboard } from "@/lib/krafterProfileCompletionDisplay";
 
-/** Same routing as email login — Krafter dashboard vs customer home. */
+function userIsArtisan(): boolean {
+  const roles = useAuthStore.getState().user?.roles ?? [];
+  return roles.includes("ARTISAN") || roles.includes("TASKER") || roles.includes("tasker");
+}
+
+/** Same routing as email login — Krafter dashboard when marketplace-ready per backend summary. */
 export async function routeAfterAuthLogin(router: AppRouterInstance): Promise<void> {
   try {
     if (getKrafterSignupIntent()) {
@@ -14,21 +20,24 @@ export async function routeAfterAuthLogin(router: AppRouterInstance): Promise<vo
       return;
     }
 
-    try {
-      await useProfileStore.getState().fetchVerificationStatusSilent();
-    } catch {
-      /* fall through to default route */
-    }
-
-    const { verificationState, kycStatus } = getVerificationWire(
-      useProfileStore.getState().verificationStatus,
-    );
-    if (
-      kycStatus === "APPROVED" &&
-      (verificationState === "PENDING" || verificationState === "APPROVED")
-    ) {
-      router.replace("/tasker/dashboard");
-      return;
+    if (userIsArtisan()) {
+      try {
+        await useProfileStore.getState().fetchKrafterProfileCompletionSummary();
+      } catch {
+        /* fall through */
+      }
+      if (
+        canAccessKrafterDashboard(
+          useProfileStore.getState().profileCompletionSummary,
+        )
+      ) {
+        router.replace("/tasker/dashboard");
+        return;
+      }
+      if (userIsArtisan()) {
+        router.replace("/tasker/switch-acct");
+        return;
+      }
     }
 
     router.replace("/");

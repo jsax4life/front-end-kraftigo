@@ -50,6 +50,10 @@ import {
   getCustomerKrafterLocations,
   type KrafterLocationOption,
 } from "@/lib/api/customerKrafters";
+import {
+  pickPrimaryKrafterBadge,
+  krafterVerifiedTooltip,
+} from "@/lib/krafterMarketplaceDisplay";
 
 // ─── Static fallbacks ─────────────────────────────────────────────────────────
 
@@ -118,6 +122,7 @@ type HomeKrafterCard = {
   distance?: string;
   image: string;
   badge?: string;
+  badgeTitle?: string | null;
 };
 
 function formatHomeKrafterDisplayName(displayName: string): string {
@@ -135,7 +140,15 @@ function mapHomeKrafterToCard(p: HomeProOfWeek): HomeKrafterCard {
     price: formatHourlyRate(p.hourlyRate),
     distance: formatDistanceDisplay(readDistanceFields(p)) ?? undefined,
     image: normSrc(p.profilePhotoUrl) ?? "/images/pro.jpg",
-    badge: p.badges[0] ? p.badges[0].replace(/_/g, " ") : undefined,
+    badge:
+      pickPrimaryKrafterBadge({
+        badges: p.badges,
+        identityVerified: p.identityVerified,
+      }) ?? undefined,
+    badgeTitle: krafterVerifiedTooltip({
+      badges: p.badges,
+      identityVerified: p.identityVerified,
+    }),
   };
 }
 
@@ -803,6 +816,7 @@ const HomePageContent = () => {
                           distance={pro.distance}
                           image={pro.image}
                           badge={pro.badge}
+                          badgeTitle={"badgeTitle" in pro ? pro.badgeTitle : undefined}
                           onViewProfile={() => openKrafterModal(pro, raw)}
                         />
                       );
@@ -825,6 +839,7 @@ const HomePageContent = () => {
                         distance={pro.distance}
                         image={pro.image}
                         badge={pro.badge}
+                        badgeTitle={"badgeTitle" in pro ? pro.badgeTitle : undefined}
                         onViewProfile={() => openKrafterModal(pro, raw)}
                       />
                     );
@@ -856,6 +871,7 @@ const HomePageContent = () => {
                         distance={pro.distance}
                         image={pro.image}
                         badge={pro.badge}
+                        badgeTitle={pro.badgeTitle ?? undefined}
                         onViewProfile={() => openKrafterModal(pro, raw)}
                       />
                     );

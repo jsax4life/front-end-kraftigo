@@ -7,6 +7,7 @@ import Button from "@/components/ui/button";
 import TaskerLoad from "@/components/shared/taskerLoad";
 import { useAuthStore } from "@/store/useAuthStore";
 import { KRAFTER_SIGNUP_SHORT_URL } from "@/lib/krafterSignupIntent";
+import { routeAfterAuthLogin } from "@/lib/postLoginRouting";
 
 const Page = () => {
   const router = useRouter();
@@ -15,7 +16,7 @@ const Page = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      router.replace("/tasker/dashboard");
+      void routeAfterAuthLogin(router);
     }
   }, [isAuthenticated, router]);
 

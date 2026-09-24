@@ -14,6 +14,7 @@ export interface ProCardProps {
   distance?: number | string;
   image: string;
   badge?: string;
+  badgeTitle?: string | null;
   onViewProfile?: () => void;
 }
 
@@ -27,6 +28,7 @@ const ProCard = ({
   distance,
   image,
   badge,
+  badgeTitle,
   onViewProfile,
 }: ProCardProps) => {
   return (
@@ -51,7 +53,10 @@ const ProCard = ({
                 {name}
               </h3>
               {badge && (
-                <span className="text-[10px] font-poppins bg-[#014F2A1A] text-[#014F2A] px-1.5 py-0.5 whitespace-nowrap">
+                <span
+                  title={badgeTitle ?? undefined}
+                  className="text-[10px] font-poppins bg-[#014F2A1A] text-[#014F2A] px-1.5 py-0.5 whitespace-nowrap"
+                >
                   {badge}
                 </span>
               )}

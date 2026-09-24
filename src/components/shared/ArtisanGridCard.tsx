@@ -8,6 +8,7 @@ interface ArtisanGridCardProps {
     name: string;
     profileImage: string;
     badge?: string | null;
+    badgeTitle?: string | null;
     rating: number;
     reviewCount: number;
     taskCount: number;
@@ -48,7 +49,10 @@ const ArtisanGridCard = ({ artisan, onSelect, onViewProfile }: ArtisanGridCardPr
                 {artisan.name}
               </h3>
               {artisan.badge && (
-                <span className="bg-[#E2EBE5] text-[#014F2A] px-2 py-0.5 rounded text-[10px] font-poppins font-semibold">
+                <span
+                  title={artisan.badgeTitle ?? undefined}
+                  className="bg-[#E2EBE5] text-[#014F2A] px-2 py-0.5 rounded text-[10px] font-poppins font-semibold"
+                >
                   {artisan.badge.replace(/_/g, " ")}
                 </span>
               )}

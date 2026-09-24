@@ -179,7 +179,7 @@ const Page = () => {
       phone: formattedPhone,
       hasAcceptedTerms: formData.termsAccepted,
       ...(isKrafterSignupFlow || getKrafterSignupIntent()
-        ? { signupIntent: "krafter" as const }
+        ? { signupIntent: "krafter" as const, intent: "krafter" as const }
         : {}),
     };
 

@@ -26,10 +26,20 @@ import { useFinishProfileModalAutoOpen } from "@/hooks/useFinishProfileModalAuto
 import { useProfileStore } from "@/store/useProfileStore";
 import { startDiditKycSession, getVerificationMyStatus, hasOpenDiditKycSession } from "@/lib/api/verification";
 import { hasKrafterProfileCoords } from "@/lib/taskLocation";
+import {
+  buildFinishProfileStepStatus,
+  buildFinishProfileSteps,
+  computeMarketplaceRequiredProgress,
+  routeForFinishProfileStep,
+  routeForRecommendedNextStep,
+  canAccessKrafterDashboard,
+  type FinishProfileStepId,
+} from "@/lib/krafterProfileCompletionDisplay";
+import { resolveEffectiveKycStatus } from "@/lib/api/verification";
 
 const DashboardContent = () => {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
   const {
     artisanProfile,
     fetchArtisanProfile,
@@ -67,6 +77,27 @@ const DashboardContent = () => {
     fetchKrafterPersonalDetailsStatus();
   }, [fetchArtisanBookings, fetchArtisanProfile, fetchKrafterProfileCompletionSummary, fetchKrafterPersonalDetailsStatus]);
 
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        await fetchKrafterProfileCompletionSummary();
+      } catch {
+        return;
+      }
+      if (cancelled) return;
+      const summary = useProfileStore.getState().profileCompletionSummary;
+      if (!summary) return;
+      if (!canAccessKrafterDashboard(summary)) {
+        router.replace("/tasker/switch-acct");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, fetchKrafterProfileCompletionSummary, router]);
+
   const needsLocationUpdate =
     artisanProfile != null && !hasKrafterProfileCoords(artisanProfile);
 
@@ -79,49 +110,26 @@ const DashboardContent = () => {
   );
   const nextTask = upcomingTasks[0]; // Get the most recent one
 
-  // Determination logic for profile status
+  const finishProfileSteps = buildFinishProfileSteps(profileCompletionSummary);
+  const { completedStepIds, pendingStepIds } =
+    buildFinishProfileStepStatus(profileCompletionSummary);
+  const { completed: completedSteps, total: totalSteps, percentage: completedPercentage } =
+    computeMarketplaceRequiredProgress(profileCompletionSummary);
+
   const isPendingApproval =
     profileCompletionSummary?.workEligibility?.hasSubmittedAwaitingReview;
   const isProfileIncomplete =
     profileCompletionSummary ? !profileCompletionSummary.allComplete : true;
 
-  // Dynamically build completed steps from the backend summary payload
-  const completedStepIds: string[] = [];
-  const pendingStepIds: string[] = [];
-  
-  if (profileCompletionSummary?.initialOnboarding?.isComplete) completedStepIds.push("register");
-  if (profileCompletionSummary?.personalDetails?.isComplete) completedStepIds.push("personal");
-  if (profileCompletionSummary?.skills?.isComplete) completedStepIds.push("skills");
-  
-  if (profileCompletionSummary?.workEligibility?.hasSubmittedAwaitingReview) {
-    pendingStepIds.push("eligibility");
-  } else if (profileCompletionSummary?.workEligibility?.isComplete) {
-    completedStepIds.push("eligibility");
-  }
-  
-  if (profileCompletionSummary?.legalIdentity?.kycStatus === "APPROVED") completedStepIds.push("identity");
-
-  // Fallback visual logic until the API handles everything for all users smoothly
-  // e.g., if we still want to force register to be checked on this dashboard:
-  if (!completedStepIds.includes("register")) completedStepIds.push("register");
-
-  const completedSteps = completedStepIds.length;
-  const totalSteps = 5;
-  const completedPercentage = Math.round((completedSteps / totalSteps) * 100);
-
-  const handleStepClick = async (stepId: string) => {
-    // Don't navigate if step is already done
+  const handleStepClick = async (stepId: FinishProfileStepId) => {
     if (completedStepIds.includes(stepId)) return;
 
-    // Legal identity goes straight to Didit — no intermediate page needed
     if (stepId === "identity") {
       setIsStartingKyc(true);
       try {
-        // Check current KYC status first
         const status = await getVerificationMyStatus();
-        const kycStatus = status?.kycStatus;
+        const kycStatus = resolveEffectiveKycStatus(status);
 
-        // Already approved — nothing to do
         if (kycStatus === "APPROVED") {
           const { toast } = await import("react-hot-toast");
           toast.success("Your identity is already verified!");
@@ -148,14 +156,7 @@ const DashboardContent = () => {
 
     closeFinishProfileModal();
 
-    const routeMap: Record<string, string> = {
-      register: "/tasker/switch-acct",
-      personal: "/tasker/profile/complete",
-      skills: "/tasker/profile/complete?step=5",
-      eligibility: "/tasker/dashboard/work-eligible",
-    };
-
-    const route = routeMap[stepId];
+    const route = routeForFinishProfileStep(stepId);
     if (route) router.push(route);
   };
 
@@ -318,11 +319,15 @@ const DashboardContent = () => {
         onClose={closeFinishProfileModal}
         onComplete={() => {
           closeFinishProfileModal();
-          router.push("/tasker/profile/complete");
+          const next =
+            routeForRecommendedNextStep(profileCompletionSummary?.recommendedNextStep) ??
+            "/tasker/profile/complete";
+          router.push(next);
         }}
         completedPercentage={completedPercentage}
         completedStepIds={completedStepIds}
         pendingStepIds={pendingStepIds}
+        steps={finishProfileSteps}
         onStepClick={handleStepClick}
       />
     </main>

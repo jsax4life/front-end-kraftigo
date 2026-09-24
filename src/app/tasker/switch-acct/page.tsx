@@ -30,9 +30,13 @@ import { PrivacyContent } from "@/components/ui/PrivacyContent";
 import toast from "react-hot-toast";
 import { SearchCombobox } from "@/components/ui/SearchCombobox";
 import {
-  parseGeoapifyLatLon,
+  fetchGermanStreetSuggestions,
+  lookupGermanPostcode,
+  normalizeGermanPostcode,
   resolveKrafterLocationCoords,
 } from "@/lib/geoapify";
+import KrafterProfileSkillsEditor from "@/components/tasker/KrafterProfileSkillsEditor";
+import type { SkillOfferingDraft } from "@/lib/krafterSkillsDraft";
 import {
   GENDER_SELECT_OPTIONS,
   normalizeGenderApiValue,
@@ -40,20 +44,37 @@ import {
   type GenderApiValue,
 } from "@/lib/genderOptions";
 import NationalityFieldHint from "@/components/shared/NationalityFieldHint";
+import { canAccessKrafterDashboard } from "@/lib/krafterProfileCompletionDisplay";
+import { buildPersonalDetailsPayloadFromInitialOnboarding } from "@/lib/krafterOnboarding";
+import {
+  extractServiceCategoryOfferings,
+  mapOfferingsToSkillDrafts,
+} from "@/lib/krafterSkillsDraft";
 
 // ─────────────────────────────────────────────────────────────────────────────
 
 const Page = () => {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
-  const totalSteps = 3;
+  const totalSteps = 4;
   const { isAuthenticated, isLoading: authLoading } = useAuthStore();
   const {
     isLoading: saving,
     fetchKrafterOnboardingStatus,
     saveKrafterPersonal,
     saveKrafterAddress,
+    submitSkills,
+    submitPersonalDetails,
+    fetchKrafterProfileCompletionSummary,
+    profileCompletionSummary,
   } = useProfileStore();
+  const [selectedSkills, setSelectedSkills] = useState<SkillOfferingDraft[]>([]);
+  const [postCodeLookupLoading, setPostCodeLookupLoading] = useState(false);
+  const postCodeDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** PLZ centroid for Geoapify bias — kept while typing street (not cleared per keystroke). */
+  const postCodeGeoBiasRef = useRef<{ latitude: number; longitude: number } | null>(
+    null,
+  );
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
@@ -126,6 +147,12 @@ const Page = () => {
     handleInputChange("streetNo", query);
     setFormData((prev) => ({ ...prev, addressLatitude: null, addressLongitude: null }));
     if (streetDebounce.current) clearTimeout(streetDebounce.current);
+    const live = formDataRef.current;
+    if (normalizeGermanPostcode(live.postCode).length !== 5) {
+      setStreetSuggestions([]);
+      setStreetOpen(false);
+      return;
+    }
     if (query.trim().length < 3) {
       setStreetSuggestions([]);
       setStreetOpen(false);
@@ -134,40 +161,14 @@ const Page = () => {
     streetDebounce.current = setTimeout(async () => {
       setStreetLoading(true);
       try {
-        // Geoapify Autocomplete — Germany only, street level
-        const res = await fetch(
-          `https://api.geoapify.com/v1/geocode/autocomplete?text=${encodeURIComponent(query)}&filter=countrycode:de&format=json&limit=8&apiKey=21f120cab34b44fdad5b5f4cc2a8105f`,
-        );
-        const json = await res.json();
-
-        const results = (json.results ?? [])
-          .filter((r: any) => r.housenumber || r.street) // only keep street-level or better
-          .map((r: any) => {
-            const street =
-              r.address_line1 ??
-              (r.street
-                ? `${r.street}${r.housenumber ? " " + r.housenumber : ""}`
-                : (r.name ?? ""));
-            const postcode = r.postcode ?? "";
-            const city = r.city ?? r.town ?? r.village ?? r.county ?? "";
-            const label =
-              r.formatted ??
-              [street, postcode, city].filter(Boolean).join(", ");
-            const coords = parseGeoapifyLatLon(r);
-            return {
-              label,
-              street,
-              postcode,
-              city,
-              ...(coords ?? {}),
-            };
-          });
-        // Deduplicate by label
-        const seen = new Set<string>();
-        const unique = results.filter((r: any) => {
-          if (seen.has(r.label)) return false;
-          seen.add(r.label);
-          return true;
+        const latest = formDataRef.current;
+        const plz = normalizeGermanPostcode(latest.postCode);
+        const bias = postCodeGeoBiasRef.current;
+        const unique = await fetchGermanStreetSuggestions(query, {
+          postcode: plz,
+          city: latest.city,
+          latitude: bias?.latitude ?? latest.addressLatitude,
+          longitude: bias?.longitude ?? latest.addressLongitude,
         });
 
         setStreetSuggestions(unique);
@@ -217,6 +218,8 @@ const Page = () => {
     addressLatitude: null as number | null,
     addressLongitude: null as number | null,
   });
+  const formDataRef = useRef(formData);
+  formDataRef.current = formData;
 
   // Prefill from onboarding status on mount
   useEffect(() => {
@@ -250,6 +253,26 @@ const Page = () => {
         // Sync street autocomplete query label
         if (a?.street) setStreetQuery(a.street);
       }
+
+      fetchKrafterProfileCompletionSummary().then(() => {
+        const summary = useProfileStore.getState().profileCompletionSummary;
+        if (!summary?.initialOnboarding?.isComplete) return;
+
+        const offerings = extractServiceCategoryOfferings(summary.skills);
+        if (offerings.length > 0) {
+          setSelectedSkills(mapOfferingsToSkillDrafts(offerings));
+        }
+
+        if (summary.skills?.isComplete) {
+          setCurrentStep(4);
+          return;
+        }
+        if (summary.initialOnboarding.addressCompletedAt) {
+          setCurrentStep(4);
+        } else if (summary.initialOnboarding.personalCompletedAt) {
+          setCurrentStep(3);
+        }
+      });
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, isAuthenticated, router]);
@@ -268,6 +291,54 @@ const Page = () => {
         return next;
       });
     }
+  };
+
+  const handlePostCodeChange = (raw: string) => {
+    const postCode = normalizeGermanPostcode(raw);
+    postCodeGeoBiasRef.current = null;
+    handleInputChange("postCode", postCode);
+    setFormData((prev) => ({
+      ...prev,
+      postCode,
+      addressLatitude: null,
+      addressLongitude: null,
+    }));
+
+    if (postCodeDebounce.current) clearTimeout(postCodeDebounce.current);
+    if (postCode.length !== 5) {
+      return;
+    }
+
+    postCodeDebounce.current = setTimeout(async () => {
+      setPostCodeLookupLoading(true);
+      try {
+        const match = await lookupGermanPostcode(postCode);
+        if (!match) {
+          postCodeGeoBiasRef.current = null;
+          return;
+        }
+        if (match.latitude != null && match.longitude != null) {
+          postCodeGeoBiasRef.current = {
+            latitude: match.latitude,
+            longitude: match.longitude,
+          };
+        } else {
+          postCodeGeoBiasRef.current = null;
+        }
+        setFormData((prev) => ({
+          ...prev,
+          city: match.city || prev.city,
+          ...(match.latitude != null && match.longitude != null
+            ? {
+                addressLatitude: match.latitude,
+                addressLongitude: match.longitude,
+              }
+            : {}),
+        }));
+      } finally {
+        setPostCodeLookupLoading(false);
+      }
+    }, 400);
   };
 
   // When nationality is confirmed — no city reset needed (city is always Germany)
@@ -291,10 +362,22 @@ const Page = () => {
         );
       case 3:
         return (
+          normalizeGermanPostcode(formData.postCode).length === 5 &&
           isNotEmpty(formData.streetNo) &&
-          isNotEmpty(formData.postCode) &&
           isNotEmpty(formData.city)
         );
+      case 4: {
+        if (profileCompletionSummary?.skills?.isComplete) return true;
+        return (
+          selectedSkills.length > 0 &&
+          selectedSkills.every(
+            (s) =>
+              s.categoryId &&
+              Number(s.price) > 0 &&
+              Number(s.experienceYears) >= 0,
+          )
+        );
+      }
       default:
         return false;
     }
@@ -326,8 +409,60 @@ const Page = () => {
     }
 
     if (currentStep === 3) {
-      // Address → save to API then go to dashboard
-      await handleSubmit();
+      try {
+        await saveKrafterAddressStep();
+        setCurrentStep(4);
+      } catch {
+        /* toast in saveKrafterAddressStep */
+      }
+      return;
+    }
+
+    if (currentStep === 4) {
+      try {
+        let summary = useProfileStore.getState().profileCompletionSummary;
+
+        if (!summary?.personalDetails?.isComplete) {
+          await submitPersonalDetails(
+            buildPersonalDetailsPayloadFromInitialOnboarding(formData),
+          );
+          summary = useProfileStore.getState().profileCompletionSummary;
+        }
+
+        if (!summary?.skills?.isComplete) {
+          await submitSkills({
+            serviceCategoryOfferings: selectedSkills.map((s) => ({
+              serviceCategoryId: s.categoryId,
+              pricingType: s.rateType,
+              ...(s.rateType === "HOURLY"
+                ? { hourlyRate: Number(s.price) || 0 }
+                : { flatRate: Number(s.price) || 0 }),
+              experienceYears: Number(s.experienceYears) || 0,
+              ...(s.photoUrl ? { photoUrl: s.photoUrl } : {}),
+            })),
+            submitAsDraft: false,
+          });
+        }
+
+        await fetchKrafterProfileCompletionSummary();
+        summary = useProfileStore.getState().profileCompletionSummary;
+
+        if (canAccessKrafterDashboard(summary)) {
+          toast.success("You're all set! Welcome to your Krafter dashboard.");
+          router.push("/tasker/dashboard");
+          return;
+        }
+
+        if (summary?.personalDetails?.isComplete && summary?.skills?.isComplete) {
+          toast.error(
+            "Profile steps are saved, but Krafter access is not active yet. Refresh or contact support if this continues.",
+          );
+        } else {
+          toast.error("Could not finish Krafter setup. Please try again.");
+        }
+      } catch {
+        toast.error("Failed to finish Krafter setup. Please try again.");
+      }
     }
   };
 
@@ -339,41 +474,37 @@ const Page = () => {
     }
   };
 
-  const handleSubmit = async () => {
-    try {
-      const addressText = [formData.streetNo, formData.postCode, formData.city]
-        .filter(Boolean)
-        .join(", ");
-      const pickerCoords =
-        formData.addressLatitude != null &&
-        formData.addressLongitude != null &&
-        Number.isFinite(formData.addressLatitude) &&
-        Number.isFinite(formData.addressLongitude)
-          ? {
-              latitude: formData.addressLatitude,
-              longitude: formData.addressLongitude,
-            }
-          : null;
-      const resolvedCoords = await resolveKrafterLocationCoords(
-        addressText,
-        pickerCoords,
-      );
+  const saveKrafterAddressStep = async () => {
+    const postCode = normalizeGermanPostcode(formData.postCode);
+    const addressText = [formData.streetNo, postCode, formData.city]
+      .filter(Boolean)
+      .join(", ");
+    const pickerCoords =
+      formData.addressLatitude != null &&
+      formData.addressLongitude != null &&
+      Number.isFinite(formData.addressLatitude) &&
+      Number.isFinite(formData.addressLongitude)
+        ? {
+            latitude: formData.addressLatitude,
+            longitude: formData.addressLongitude,
+          }
+        : null;
+    const resolvedCoords = await resolveKrafterLocationCoords(
+      addressText,
+      pickerCoords,
+    );
 
-      await saveKrafterAddress({
-        street: formData.streetNo,
-        postalCode: formData.postCode,
-        city: formData.city,
-        ...(resolvedCoords
-          ? {
-              latitude: resolvedCoords.latitude,
-              longitude: resolvedCoords.longitude,
-            }
-          : {}),
-      });
-      router.push("/tasker/dashboard");
-    } catch {
-      toast.error("Failed to save address. Please try again.");
-    }
+    await saveKrafterAddress({
+      street: formData.streetNo,
+      postalCode: postCode,
+      city: formData.city,
+      ...(resolvedCoords
+        ? {
+            latitude: resolvedCoords.latitude,
+            longitude: resolvedCoords.longitude,
+          }
+        : {}),
+    });
   };
 
   // Show page-level loader only while auth is initialising
@@ -620,7 +751,39 @@ const Page = () => {
                   </p>
                 </span>
 
-                {/* Street — Photon address autocomplete */}
+                <div className="relative space-y-1.5">
+                  <label className="text-[14px] font-poppins text-gray-800 font-medium block">
+                    Post code <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={5}
+                    value={formData.postCode}
+                    placeholder="e.g. 10115"
+                    onChange={(e) => handlePostCodeChange(e.target.value)}
+                    className="w-full px-4 py-3.5 rounded-2xl bg-[#F6F6F6] border border-[#EAECF0] outline-none font-poppins text-[15px] focus:border-brand-orange transition-colors"
+                  />
+                  {postCodeLookupLoading ? (
+                    <p className="text-[11px] font-poppins text-gray-400">
+                      Looking up city…
+                    </p>
+                  ) : (
+                    <p className="text-[11px] font-poppins text-gray-400">
+                      Enter your 5-digit PLZ — we will fill in your city
+                    </p>
+                  )}
+                </div>
+
+                <Input
+                  label="City"
+                  placeholder="Filled from post code"
+                  value={formData.city}
+                  onChange={(v) => handleInputChange("city", v)}
+                  required
+                />
+
+                {/* Street — Geoapify autocomplete (scoped to PLZ when set) */}
                 <div ref={streetRef} className="relative space-y-1.5">
                   <label className="text-[14px] font-poppins text-gray-800 font-medium block">
                     Street and house number{" "}
@@ -671,25 +834,25 @@ const Page = () => {
                     </ul>
                   )}
                   <p className="text-[11px] font-poppins text-gray-400">
-                    Start typing your street name to see suggestions
+                    {normalizeGermanPostcode(formData.postCode).length === 5
+                      ? "Pick your street — suggestions are limited to your post code"
+                      : "Enter your post code first, then select your street"}
                   </p>
                 </div>
+              </div>
+            )}
 
-                {/* Post code — auto-filled but editable */}
-                <Input
-                  label="Post code"
-                  placeholder="e.g. 10115"
-                  value={formData.postCode}
-                  onChange={(v) => handleInputChange("postCode", v)}
-                  required
-                />
-
-                <Input
-                  label="City"
-                  placeholder="e.g. Berlin"
-                  value={formData.city}
-                  onChange={(v) => handleInputChange("city", v)}
-                  required
+            {currentStep === 4 && (
+              <div className="space-y-4 pb-24">
+                <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-semibold mb-2">
+                  Add your skills
+                </h1>
+                <p className="text-[14px] font-poppins text-[#667085] mb-4">
+                  Choose what you offer and set your rates so customers can book you.
+                </p>
+                <KrafterProfileSkillsEditor
+                  skills={selectedSkills}
+                  onSkillsChange={setSelectedSkills}
                 />
               </div>
             )}
@@ -732,7 +895,24 @@ const Page = () => {
                   disabled={!isStepValid() || saving}
                   className="py-4 text-[16px] font-gerat font-bold"
                 >
-                  {saving ? "Saving…" : "Go to dashboard"}
+                  {saving ? "Saving…" : "Continue to skills"}
+                </Button>
+              </div>
+            )}
+            {currentStep === 4 && (
+              <div className="text-center text-[14px] font-poppins pt-5">
+                <Button
+                  variant="primary"
+                  onClick={handleNext}
+                  fullWidth
+                  disabled={!isStepValid() || saving}
+                  className="py-4 text-[16px] font-gerat font-bold"
+                >
+                  {saving
+                    ? "Saving…"
+                    : profileCompletionSummary?.skills?.isComplete
+                      ? "Finish setup"
+                      : "Go to dashboard"}
                 </Button>
               </div>
             )}

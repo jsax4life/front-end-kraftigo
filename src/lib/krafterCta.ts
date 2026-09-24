@@ -1,3 +1,5 @@
+import type { KrafterProfileCompletionSummary } from "@/lib/api/krafter-profile-completion";
+import { canAccessKrafterDashboard } from "@/lib/krafterProfileCompletionDisplay";
 import type { VerificationMyStatus } from "@/lib/api/verification";
 import {
   getVerificationWire,
@@ -17,10 +19,19 @@ export type KrafterCtaState = {
   buttonLabel: string;
 };
 
-/** Shared labels + eligibility for profile card and home banner routing. */
+/** Marketplace-ready Krafters can switch to the Krafter dashboard (backend `allComplete`). */
 export function getKrafterCtaState(
   verificationStatus: VerificationMyStatus | null | undefined,
+  profileCompletionSummary?: KrafterProfileCompletionSummary | null,
 ): KrafterCtaState {
+  if (canAccessKrafterDashboard(profileCompletionSummary)) {
+    return {
+      isKrafterEligible: true,
+      bannerTitle: "GO TO KRAFTER DASHBOARD",
+      buttonLabel: "Switch to Krafter",
+    };
+  }
+
   const { verificationState, kycStatus } = getVerificationWire(verificationStatus);
 
   const isKrafterEligible =
@@ -40,8 +51,12 @@ export function getKrafterCtaState(
 export function navigateKrafterCta(
   router: { push: (href: string) => void },
   verificationStatus: VerificationMyStatus | null | undefined,
+  profileCompletionSummary?: KrafterProfileCompletionSummary | null,
 ): void {
-  const { isKrafterEligible } = getKrafterCtaState(verificationStatus);
+  const { isKrafterEligible } = getKrafterCtaState(
+    verificationStatus,
+    profileCompletionSummary,
+  );
   const isAuthenticated = useAuthStore.getState().isAuthenticated;
 
   if (isKrafterEligible) {

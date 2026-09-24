@@ -5,6 +5,7 @@ import { Headset, User as UserIcon } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useProfileStore } from "@/store/useProfileStore";
 import { useEffect } from "react";
+import KrafterLevelBadge from "@/components/tasker/KrafterLevelBadge";
 
 const About = () => {
   const { user, isTasker, isUser } = useAuthStore();
@@ -81,25 +82,13 @@ const About = () => {
               <p className="font-poppins text-[14px] sm:text-[16px] lg:text-[18px]">
                 Hello {displayName}
               </p>
-              <span className="flex items-center gap-1">
-                {isTasker() && user?.status !== "ACTIVE" ? (
-                  <div className="bg-brand-orange/10 text-brand-orange px-2 py-0.5 rounded text-[10px] font-bold mt-1">
+              <span className="flex flex-col items-start gap-1">
+                {user?.status !== "ACTIVE" ? (
+                  <div className="bg-brand-orange/10 text-brand-orange px-2 py-0.5 rounded text-[10px] font-bold">
                     PENDING APPROVAL
                   </div>
-                ) : (
-                  <>
-                    <Image
-                      src="/badge.svg"
-                      alt="badge"
-                      width={100}
-                      height={100}
-                      className="w-3 h-3 sm:w-3.5 sm:h-3.5"
-                    />
-                    <p className="font-poppins font-bold text-[11px] sm:text-[12px] text-brand-orange">
-                      Lvl 1
-                    </p>
-                  </>
-                )}
+                ) : null}
+                <KrafterLevelBadge variant="compact" />
               </span>
             </div>
           </div>

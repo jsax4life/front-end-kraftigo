@@ -9,6 +9,7 @@ interface ArtisanCardProps {
     name: string;
     profileImage: string;
     badge?: string | null;
+    badgeTitle?: string | null;
     rating: number;
     reviewCount: number;
     taskCount: number;
@@ -65,7 +66,10 @@ const ArtisanCard = ({ artisan, index, onSelect, onViewProfile }: ArtisanCardPro
                 {artisan.name}
               </h3>
               {artisan.badge && (
-                <span className="bg-[#E2EBE5] text-[#014F2A] px-2 py-0.5 rounded text-[9px] sm:text-[11px] font-poppins font-semibold uppercase">
+                <span
+                  title={artisan.badgeTitle ?? undefined}
+                  className="bg-[#E2EBE5] text-[#014F2A] px-2 py-0.5 rounded text-[9px] sm:text-[11px] font-poppins font-semibold uppercase"
+                >
                   {artisan.badge.replace(/_/g, " ")}
                 </span>
               )}

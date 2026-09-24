@@ -5,6 +5,7 @@ import { GoogleLogin } from "@react-oauth/google";
 import { useAuthStore } from "@/store/useAuthStore";
 import { buildGoogleAuthPayload, formatGoogleAuthError } from "@/lib/googleAuth";
 import { routeAfterAuthLogin } from "@/lib/postLoginRouting";
+import { getKrafterSignupIntent } from "@/lib/krafterSignupIntent";
 import { logger } from "@/utils/logger";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
@@ -39,7 +40,9 @@ const GoogleLoginButton = ({
     }
     try {
       await loginWithGoogle(
-        buildGoogleAuthPayload(credentialResponse.credential, termsAccepted),
+        buildGoogleAuthPayload(credentialResponse.credential, termsAccepted, {
+          ...(getKrafterSignupIntent() ? { signupIntent: "krafter" } : {}),
+        }),
       );
       logger.log("Google OAuth successful!");
       toast.success("Login successful! Welcome to Kraftigo.");

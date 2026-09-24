@@ -7,7 +7,6 @@ import {
   User as UserIcon, 
   Lock, 
   ChevronRight,
-  Star,
   Bell,
   Languages,
   HelpCircle,
@@ -27,6 +26,7 @@ import DeleteAccountModal from "@/components/shared/DeleteAccountModal";
 import { isGoogleOnlyAccount } from "@/lib/googleAuth";
 import { UpdateLocationBanner } from "@/components/shared/DashboardWidgets";
 import { hasKrafterProfileCoords } from "@/lib/taskLocation";
+import KrafterLevelBadge from "@/components/tasker/KrafterLevelBadge";
 
 const SettingsRow = ({ icon: Icon, label, onClick }: { icon: any, label: string, onClick: () => void }) => (
   <button 
@@ -126,10 +126,7 @@ const Page = () => {
           </div>
           <div>
             <h2 className="text-[20px] font-gerat font-bold text-[#1D2939]">{displayName}</h2>
-            <div className="flex items-center gap-1.5 bg-orange-50 text-brand-orange px-2 py-0.5 rounded-full w-fit mt-1">
-              <Star size={12} className="fill-brand-orange" />
-              <span className="text-[12px] font-bold font-poppins uppercase tracking-wider">Lvl 1</span>
-            </div>
+            <KrafterLevelBadge variant="pill" className="mt-1" />
           </div>
         </div>
 

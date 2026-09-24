@@ -880,6 +880,7 @@
     "finishProfile": {
       "title": "Finish Your Profile",
       "subtitle": "You're already {completedPercentage}% of the way there! Complete these steps to start accepting jobs",
+      "optional": "Optional",
       "steps": {
         "eligibility": {
           "label": "Add Your Work Eligibility",

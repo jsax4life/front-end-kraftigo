@@ -36,12 +36,15 @@ import {
   offeringDisplayPrice,
   type KrafterBookableOffering,
 } from "@/lib/krafterDetailDisplay";
+import { pickPrimaryKrafterBadge, krafterVerifiedTooltip } from "@/lib/krafterMarketplaceDisplay";
 
 interface Artisan {
   id: string;
   name: string;
   profileImage: string;
   badge?: string | null;
+  badgeTitle?: string | null;
+  identityVerified?: boolean;
   rating: number;
   reviewCount: number;
   taskCount: number;
@@ -103,14 +106,25 @@ function mapRecommendationToArtisan(rawItem: unknown, index: number): Artisan {
       (typeof item.avatar === "string" && item.avatar) ||
       (typeof item.profileImage === "string" && item.profileImage) ||
       "/images/pro.jpg",
-    badge: (() => {
-      const badges = item.badges;
-      const rawBadge =
-        (Array.isArray(badges) ? badges[0] : undefined) ?? item.badge ?? null;
-      if (!rawBadge) return null;
-      const upper = String(rawBadge).toUpperCase().replace(/_/g, " ");
-      return upper;
-    })(),
+    identityVerified:
+      raw.identityVerified === true ||
+      item.identityVerified === true ||
+      (typeof item.identity_verified === "boolean" && item.identity_verified),
+    badge: pickPrimaryKrafterBadge({
+      badges: Array.isArray(item.badges) ? item.badges : undefined,
+      identityVerified:
+        raw.identityVerified === true ||
+        item.identityVerified === true ||
+        item.identity_verified === true,
+      badge: typeof item.badge === "string" ? item.badge : null,
+    }),
+    badgeTitle: krafterVerifiedTooltip({
+      badges: Array.isArray(item.badges) ? item.badges : undefined,
+      identityVerified:
+        raw.identityVerified === true ||
+        item.identityVerified === true ||
+        item.identity_verified === true,
+    }),
     rating:
       Number(raw.rating ?? item.rating ?? item.reviewsRating ?? 0) || 0,
     reviewCount:

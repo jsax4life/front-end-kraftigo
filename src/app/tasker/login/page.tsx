@@ -13,6 +13,7 @@ import { logger } from "@/utils/logger";
 import toast from "react-hot-toast";
 import { formatLoginApiError } from "@/lib/authApiErrors";
 import { KRAFTER_SIGNUP_SHORT_URL } from "@/lib/krafterSignupIntent";
+import { routeAfterAuthLogin } from "@/lib/postLoginRouting";
 
 const Page = () => {
   const router = useRouter();
@@ -26,7 +27,7 @@ const Page = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      router.push("/tasker/dashboard");
+      void routeAfterAuthLogin(router);
     }
   }, [isAuthenticated, router]);
 
@@ -59,7 +60,7 @@ const Page = () => {
     try {
       await loginTasker(formData.email, formData.password);
       toast.success("Login successful! Welcome back, Tasker.");
-      router.push("/tasker/dashboard");
+      await routeAfterAuthLogin(router);
     } catch (err: unknown) {
       const msg = formatLoginApiError(err, useAuthStore.getState().error);
       toast.error(msg);

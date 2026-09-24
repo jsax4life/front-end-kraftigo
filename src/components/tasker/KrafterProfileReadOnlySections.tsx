@@ -1,11 +1,19 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ArtisanProfile } from "@/types";
 import ProfileCollapsibleSection, {
   ProfileInfoRow,
 } from "@/components/shared/ProfileCollapsibleSection";
 import Button from "@/components/ui/button";
+import toast from "react-hot-toast";
+import {
+  getVerificationMyStatus,
+  hasOpenDiditKycSession,
+  resolveEffectiveKycStatus,
+  startDiditKycSession,
+} from "@/lib/api/verification";
 import {
   formatTransportType,
   formatVerificationStatus,
@@ -23,7 +31,47 @@ export default function KrafterProfileReadOnlySections({
   profile,
 }: KrafterProfileReadOnlySectionsProps) {
   const router = useRouter();
+  const [isStartingKyc, setIsStartingKyc] = useState(false);
   const kycStatus = readVerificationField(profile, "kycStatus", "kyc_status")?.toUpperCase();
+
+  const handleContinueIdentityVerification = async () => {
+    setIsStartingKyc(true);
+    try {
+      const status = await getVerificationMyStatus();
+      const effectiveKyc = resolveEffectiveKycStatus(status);
+
+      if (effectiveKyc === "APPROVED") {
+        toast.success("Your identity is already verified!");
+        return;
+      }
+
+      const isResuming = hasOpenDiditKycSession(status);
+      const { verificationUrl } = await startDiditKycSession();
+      toast.success(
+        isResuming
+          ? "Resuming your verification session..."
+          : "Starting identity verification...",
+      );
+      window.location.href = verificationUrl;
+    } catch (err: unknown) {
+      const message =
+        err &&
+        typeof err === "object" &&
+        "response" in err &&
+        err.response &&
+        typeof err.response === "object" &&
+        "data" in err.response &&
+        err.response.data &&
+        typeof err.response.data === "object" &&
+        "message" in err.response.data &&
+        typeof err.response.data.message === "string"
+          ? err.response.data.message
+          : "Failed to start identity verification. Please try again.";
+      toast.error(message);
+    } finally {
+      setIsStartingKyc(false);
+    }
+  };
   const stripeConnected = Boolean(readProfileField(profile, "stripeAccountId", "stripe_account_id"));
   const toolsOwned =
     typeof profile.toolsOwned === "boolean" ? (profile.toolsOwned ? "Yes" : "No") : undefined;
@@ -70,16 +118,17 @@ export default function KrafterProfileReadOnlySections({
               type="button"
               variant="secondary"
               fullWidth
-              onClick={() => router.push("/user/profile/artisan-verification")}
+              disabled={isStartingKyc}
+              onClick={() => void handleContinueIdentityVerification()}
             >
-              Continue identity verification
+              {isStartingKyc ? "Opening Didit…" : "Continue identity verification"}
             </Button>
           ) : null}
           <Button
             type="button"
             variant="secondary"
             fullWidth
-            onClick={() => router.push("/krafter/profile-completion?skipIntro=1")}
+            onClick={() => router.push("/tasker/dashboard/work-eligible")}
           >
             Manage work eligibility documents
           </Button>

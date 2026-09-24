@@ -16,9 +16,17 @@ export interface KrafterProfileCompletionSummary {
     hasSubmittedAwaitingReview: boolean
     awaitingReviewSince: string | null
     canSubmitNewDocument: boolean
+    /** False by default — work permit is optional for marketplace access. */
+    requiredForMarketplace?: boolean
   }
   legalIdentity: {
     kycStatus: string | null
+    /** False by default — Didit is optional for marketplace access. */
+    requiredForMarketplace?: boolean
+    /** Copy for optional Didit upsell (badge + visibility). */
+    optionalMarketplaceBenefits?: string | null
+    /** Same as kycStatus === APPROVED when provided by backend. */
+    identityVerified?: boolean
   }
   payout: {
     isComplete: boolean
@@ -30,6 +38,10 @@ export interface KrafterProfileCompletionSummary {
   }
   recommendedNextStep: string | null
   allComplete: boolean
+  account?: {
+    /** True when the user has the ARTISAN role and may use the Krafter dashboard. */
+    hasArtisanRole?: boolean
+  }
 }
 
 // ─── Work Eligibility specific types ──────────────────────────────────────────
@@ -236,12 +248,131 @@ export interface KrafterPayoutSubmitPayload {
 
 // ─── API Functions ────────────────────────────────────────────────────────────
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null
+}
+
+function normalizeKrafterProfileCompletionSummary(
+  raw: unknown,
+): KrafterProfileCompletionSummary {
+  const root = asRecord(raw)
+  const body = asRecord(root?.data) ?? root ?? {}
+
+  const initialOnboarding = (body.initialOnboarding ??
+    body.initial_onboarding ?? { isComplete: false }) as KrafterProfileCompletionSummary['initialOnboarding']
+  const personalDetails = (body.personalDetails ??
+    body.personal_details ?? { isComplete: false }) as KrafterProfileCompletionSummary['personalDetails']
+  const skills = (body.skills ?? { isComplete: false }) as KrafterProfileCompletionSummary['skills']
+  const workFromApi = (body.workEligibility ??
+    body.work_eligibility) as KrafterProfileCompletionSummary['workEligibility'] | undefined
+  const workEligibilityRaw = asRecord(workFromApi) ?? asRecord(body.workEligibility) ?? asRecord(body.work_eligibility) ?? {}
+  const legalIdentityRaw = asRecord(body.legalIdentity) ?? asRecord(body.legal_identity) ?? {}
+  const payoutRaw = asRecord(body.payout) ?? {}
+  const accountRaw = asRecord(body.account) ?? {}
+
+  const kycStatus =
+    (typeof legalIdentityRaw.kycStatus === 'string' && legalIdentityRaw.kycStatus) ||
+    (typeof legalIdentityRaw.kyc_status === 'string' && legalIdentityRaw.kyc_status) ||
+    null
+
+  const identityVerified =
+    legalIdentityRaw.identityVerified === true ||
+    legalIdentityRaw.identity_verified === true ||
+    kycStatus?.trim().toUpperCase() === 'APPROVED'
+
+  return {
+    initialOnboarding,
+    personalDetails,
+    skills,
+    workEligibility: {
+      ...(workFromApi ?? {
+        isComplete: false,
+        hasApprovedDocument: false,
+        hasFinishedKrafterSubmission: false,
+        hasSubmittedAwaitingReview: false,
+        awaitingReviewSince: null,
+        canSubmitNewDocument: true,
+      }),
+      isComplete:
+        workFromApi?.isComplete === true ||
+        workEligibilityRaw.isComplete === true ||
+        workEligibilityRaw.is_complete === true,
+      hasApprovedDocument:
+        workFromApi?.hasApprovedDocument === true ||
+        workEligibilityRaw.hasApprovedDocument === true ||
+        workEligibilityRaw.has_approved_document === true,
+      hasFinishedKrafterSubmission:
+        workFromApi?.hasFinishedKrafterSubmission === true ||
+        workEligibilityRaw.hasFinishedKrafterSubmission === true ||
+        workEligibilityRaw.has_finished_krafter_submission === true,
+      hasSubmittedAwaitingReview:
+        workFromApi?.hasSubmittedAwaitingReview === true ||
+        workEligibilityRaw.hasSubmittedAwaitingReview === true ||
+        workEligibilityRaw.has_submitted_awaiting_review === true,
+      awaitingReviewSince:
+        workFromApi?.awaitingReviewSince ??
+        (typeof workEligibilityRaw.awaitingReviewSince === 'string'
+          ? workEligibilityRaw.awaitingReviewSince
+          : null) ??
+        (typeof workEligibilityRaw.awaiting_review_since === 'string'
+          ? workEligibilityRaw.awaiting_review_since
+          : null),
+      canSubmitNewDocument:
+        workFromApi?.canSubmitNewDocument !== false &&
+        workEligibilityRaw.canSubmitNewDocument !== false &&
+        workEligibilityRaw.can_submit_new_document !== false,
+      requiredForMarketplace:
+        workFromApi?.requiredForMarketplace === true ||
+        workEligibilityRaw.requiredForMarketplace === true ||
+        workEligibilityRaw.required_for_marketplace === true,
+    },
+    legalIdentity: {
+      kycStatus,
+      requiredForMarketplace:
+        legalIdentityRaw.requiredForMarketplace === true ||
+        legalIdentityRaw.required_for_marketplace === true,
+      optionalMarketplaceBenefits:
+        (typeof legalIdentityRaw.optionalMarketplaceBenefits === 'string' &&
+          legalIdentityRaw.optionalMarketplaceBenefits) ||
+        (typeof legalIdentityRaw.optional_marketplace_benefits === 'string' &&
+          legalIdentityRaw.optional_marketplace_benefits) ||
+        null,
+      identityVerified,
+    },
+    payout: {
+      isComplete: payoutRaw.isComplete === true || payoutRaw.is_complete === true,
+      maskedAccountInfo:
+        (typeof payoutRaw.maskedAccountInfo === 'string' && payoutRaw.maskedAccountInfo) ||
+        (typeof payoutRaw.masked_account_info === 'string' && payoutRaw.masked_account_info) ||
+        null,
+      requiredForProfileCompletion:
+        payoutRaw.requiredForProfileCompletion === true ||
+        payoutRaw.required_for_profile_completion === true,
+      requiredForWithdrawal:
+        payoutRaw.requiredForWithdrawal !== false &&
+        payoutRaw.required_for_withdrawal !== false,
+    },
+    recommendedNextStep:
+      (typeof body.recommendedNextStep === 'string' && body.recommendedNextStep) ||
+      (typeof body.recommended_next_step === 'string' && body.recommended_next_step) ||
+      null,
+    allComplete: body.allComplete === true || body.all_complete === true,
+    account: {
+      hasArtisanRole:
+        accountRaw.hasArtisanRole === true ||
+        accountRaw.has_artisan_role === true,
+    },
+  }
+}
+
 export const getKrafterProfileCompletionSummary =
   async (): Promise<KrafterProfileCompletionSummary> => {
-    const response = await api.get<KrafterProfileCompletionSummary>(
+    const response = await api.get<unknown>(
       '/api/profile/krafter/complete-profile/summary',
     )
-    return response.data
+    return normalizeKrafterProfileCompletionSummary(response.data)
   }
 
 export const getKrafterWorkEligibility = async (): Promise<KrafterWorkEligibilityStatus> => {

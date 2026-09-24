@@ -10,6 +10,12 @@ export interface LoginPayload {
 
 export type SignupIntent = "krafter";
 
+/** Sent on register so BE sets `hasStartedArtisanOnboarding` at signup. */
+export const KRAFTER_SIGNUP_INTENT_BODY = {
+  signupIntent: "krafter",
+  intent: "krafter",
+} as const satisfies { signupIntent: SignupIntent; intent: SignupIntent };
+
 export interface RegisterPayload {
   email: string;
   password: string;
@@ -18,6 +24,8 @@ export interface RegisterPayload {
   lastName?: string;
   hasAcceptedTerms?: boolean;
   signupIntent?: SignupIntent;
+  /** Alias accepted by some BE handlers alongside `signupIntent`. */
+  intent?: SignupIntent;
   role: "CUSTOMER" | "ARTISAN" | "TASKER";
 }
 
@@ -29,6 +37,8 @@ export interface VerifyEmailPayload {
 export interface GoogleAuthPayload {
   idToken: string;
   hasAcceptedTerms: boolean;
+  signupIntent?: SignupIntent;
+  intent?: SignupIntent;
 }
 
 export interface ResetPasswordPayload {
@@ -76,6 +86,8 @@ export interface HomeProOfWeek {
   completedKrafts: number;
   hourlyRate: number;
   badges: string[];
+  /** True when Didit KYC is APPROVED (customer browse / home cards). */
+  identityVerified?: boolean;
   distanceKm: number;
   distanceLabel?: string | null;
   description: string | null;
@@ -300,6 +312,12 @@ function normalizeHomeProRow(raw: unknown): HomeProOfWeek | null {
     ? badgesRaw.filter((b): b is string => typeof b === "string")
     : [];
 
+  const identityVerifiedExplicit =
+    row.identityVerified === true || row.identity_verified === true;
+  const identityVerified =
+    identityVerifiedExplicit ||
+    badges.some((b) => b.trim().toUpperCase() === "IDENTITY_VERIFIED");
+
   const portfolioImagesRaw = row.portfolioImages ?? row.portfolio_images;
   const portfolioPhotoUrlsRaw = row.portfolioPhotoUrls ?? row.portfolio_photo_urls;
   const offeringsRaw = row.serviceCategoryOfferings ?? row.service_category_offerings;
@@ -314,6 +332,7 @@ function normalizeHomeProRow(raw: unknown): HomeProOfWeek | null {
       Number(row.completedKrafts ?? row.completed_krafts ?? row.completedJobs ?? 0) || 0,
     hourlyRate: Number(row.hourlyRate ?? row.hourly_rate ?? row.pricePerHour ?? 0) || 0,
     badges,
+    identityVerified,
     distanceKm: Number(row.distanceKm ?? row.distance_km ?? 0) || 0,
     distanceLabel:
       typeof row.distanceLabel === "string"
@@ -421,6 +440,7 @@ export const registerTasker = async (
   const response = await api.post("/api/auth/register", {
     ...payload,
     role: "ARTISAN",
+    ...KRAFTER_SIGNUP_INTENT_BODY,
   });
   return response.data;
 };
