@@ -6,11 +6,10 @@ export function buildGoogleAuthPayload(
   hasAcceptedTerms: boolean,
   options?: { signupIntent?: SignupIntent },
 ) {
-  const intent = options?.signupIntent;
   return {
     idToken,
     hasAcceptedTerms: Boolean(hasAcceptedTerms),
-    ...(intent ? { signupIntent: intent, intent } : {}),
+    ...(options?.signupIntent ? { signupIntent: options.signupIntent } : {}),
   };
 }
 

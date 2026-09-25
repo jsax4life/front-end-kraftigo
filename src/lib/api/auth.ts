@@ -13,8 +13,7 @@ export type SignupIntent = "krafter";
 /** Sent on register so BE sets `hasStartedArtisanOnboarding` at signup. */
 export const KRAFTER_SIGNUP_INTENT_BODY = {
   signupIntent: "krafter",
-  intent: "krafter",
-} as const satisfies { signupIntent: SignupIntent; intent: SignupIntent };
+} as const satisfies { signupIntent: SignupIntent };
 
 export interface RegisterPayload {
   email: string;
@@ -24,8 +23,6 @@ export interface RegisterPayload {
   lastName?: string;
   hasAcceptedTerms?: boolean;
   signupIntent?: SignupIntent;
-  /** Alias accepted by some BE handlers alongside `signupIntent`. */
-  intent?: SignupIntent;
   role: "CUSTOMER" | "ARTISAN" | "TASKER";
 }
 
@@ -38,7 +35,6 @@ export interface GoogleAuthPayload {
   idToken: string;
   hasAcceptedTerms: boolean;
   signupIntent?: SignupIntent;
-  intent?: SignupIntent;
 }
 
 export interface ResetPasswordPayload {
