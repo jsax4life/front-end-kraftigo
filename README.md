@@ -16,6 +16,37 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+### API environment (prod vs dev)
+
+Copy `env.example` to `.env.local` and set `NEXT_PUBLIC_API_URL`:
+
+| Environment | Branch (typical) | `NEXT_PUBLIC_API_URL` |
+|-------------|------------------|------------------------|
+| Production  | `main`           | `https://api.xn--kraftig-g1a.com` |
+| Development | `dev`            | `https://api-dev.kraftigo.app` |
+
+Use the **host only** (no `/api` suffix). Restart `npm run dev` after changing env vars.
+
+### Branch workflow
+
+1. **`dev`** — day-to-day work and QA against the dev API. Push here first.
+2. **`main`** — production-ready code. Merge from `dev` (PR or merge) when testing is done.
+
+```bash
+git checkout dev
+git pull origin dev
+# … work, commit …
+git push origin dev
+
+# When ready for production:
+git checkout main
+git pull origin main
+git merge dev
+git push origin main
+```
+
+On Vercel (or your host), set **Preview** env vars for the `dev` branch to `NEXT_PUBLIC_API_URL=https://api-dev.kraftigo.app`, and **Production** (main) to the prod API URL.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
