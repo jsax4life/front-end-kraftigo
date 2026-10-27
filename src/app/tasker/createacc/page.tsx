@@ -34,209 +34,13 @@ import { PrivacyContent } from "@/components/ui/PrivacyContent";
 import { GENDER_SELECT_OPTIONS, isValidGenderSelection } from "@/lib/genderOptions";
 import NationalityFieldHint from "@/components/shared/NationalityFieldHint";
 
-// function omitUndefinedRecord(
-//   obj: Record<string, unknown>,
-// ): Record<string, unknown> {
-//   return Object.fromEntries(
-//     Object.entries(obj).filter(([, v]) => v !== undefined),
-//   ) as Record<string, unknown>;
-// }
-
-/** Try to turn a remote or blob URL into a File for multipart submit (may fail on CORS). */
-// async function urlToFile(url: string, filename: string): Promise<File | null> {
-//   try {
-//     const res = await fetch(url);
-//     if (!res.ok) return null;
-//     const blob = await res.blob();
-//     return new File([blob], filename, { type: blob.type || "image/jpeg" });
-//   } catch {
-//     return null;
-//   }
-// }
-
-// const DRAFT_CONFLICT_MESSAGE =
-//   "Saving a draft isn't available while verification is pending or your profile is already verified.";
-
-// /** ISO 3166-1 alpha-2 codes only — backend expects max 2 chars.
-//  * Krafter verification is currently restricted to Germany.
-//  */
-
 const Page = () => {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 3;
-  // const [skipDocumentUpload, setSkipDocumentUpload] = useState(false);
-  // const selfieCameraInputRef = useRef<HTMLInputElement>(null);
-  // const selfieGalleryInputRef = useRef<HTMLInputElement>(null);
-  // const [showSelfieSourcePicker, setShowSelfieSourcePicker] = useState(false);
-  // const [showReviewModal, setShowReviewModal] = useState(false);
-  // const [isSubmittingVerification, setIsSubmittingVerification] =
-  //   useState(false);
-  // const [verificationDraftId, setVerificationDraftId] = useState<string | null>(
-  //   null,
-  // );
-  // const [isLoadingDraft, setIsLoadingDraft] = useState(true);
-  // const [isSavingDraft, setIsSavingDraft] = useState(false);
-  // const [restoredProfilePhotoUrl, setRestoredProfilePhotoUrl] = useState<
-  //   string | null
-  // >(null);
-  // const draftRestoreToastShown = useRef(false);
-  // const { submitVerification } = useProfileStore();
   const { user, isLoading } = useAuthStore();
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
-
-  // useEffect(() => {
-  //   const storedName =
-  //     typeof window !== "undefined"
-  //       ? localStorage.getItem("kraftigo_user_fullName") || ""
-  //       : "";
-
-  //   setFormData((prev) => ({
-  //     ...prev,
-  //     firstName: prev.firstName || user?.firstName || "",
-  //     lastName: prev.lastName || user?.lastName || "",
-  //     gender: prev.gender || user?.gender || "",
-  //     dateOfBirth: prev.dateOfBirth || user?.dateOfBirth || "",
-  //     nationality: prev.nationality || user?.nationality || "",
-  //   }));
-  // }, [user?.firstName, user?.lastName, user?.gender, user?.dateOfBirth, user?.nationality]);
-
-  // useEffect(() => {
-  //   const fetchSkillGroups = async () => {
-  //     try {
-  //       const groups = await getServiceSkillGroups();
-  //       const mapped = groups
-  //         .map((group) => ({
-  //           value: group.category.id,
-  //           label: group.category.name,
-  //         }))
-  //         .filter((option) => option.value && option.label);
-  //       setPrimaryTradeOptions(mapped);
-  //     } catch (error) {
-  //       toast.error("Failed to load primary trade categories");
-  //     }
-  //   };
-
-  //   fetchSkillGroups();
-  // }, []);
-
-  // useEffect(() => {
-  //   let cancelled = false;
-  //   (async () => {
-  //     setIsLoadingDraft(true);
-  //     try {
-  //       let myStatus = null as Awaited<
-  //         ReturnType<typeof getVerificationMyStatus>
-  //       > | null;
-  //       try {
-  //         myStatus = await getVerificationMyStatus();
-  //       } catch {
-  //         /* proceed with draft if status unavailable */
-  //       }
-  //       if (cancelled) return;
-  //       if (shouldRedirectToDiditKyc(myStatus)) {
-  //         router.replace("/krafter/kyc-welcome");
-  //         return;
-  //       }
-  //       if (shouldRouteToKrafterProfileOnboarding(myStatus)) {
-  //         router.replace("/krafter/profile-completion");
-  //         return;
-  //       }
-
-  //       const res = await getVerificationDraft();
-  //       if (cancelled) return;
-  //       setVerificationDraftId(res.draftId);
-
-  //       const p = res.payload;
-  //       if (!p || typeof p !== "object" || Object.keys(p).length === 0) {
-  //         return;
-  //       }
-
-  //       const extRaw = p.extensions as Record<string, unknown> | undefined;
-  //       const ext = extRaw?.krafterVerification as
-  //         | Record<string, unknown>
-  //         | undefined;
-
-  //       const apiGovType = p.governmentIdType as string | undefined;
-  //       const documentTypeFromApi =
-  //         (apiGovType && API_TO_DOCUMENT_TYPE[apiGovType]) ||
-  //         (ext?.documentType as string | undefined) ||
-  //         "";
-
-  //       const emp = p.employmentStatus as string | undefined;
-  //       let workingAs = (ext?.workingAs as string) || "";
-  //       if (!workingAs && emp === "FREELANCING") workingAs = "contractor";
-  //       if (!workingAs && emp === "SELF_EMPLOYED") workingAs = "self-employed";
-
-  //       const profileUrl =
-  //         (p.idCardUrl as string | undefined) ||
-  //         (p.profilePhotoUrl as string | undefined);
-
-  //       setFormData((prev) => ({
-  //         ...prev,
-  //         fullName: (p.fullName as string) ?? prev.fullName,
-  //         city: (p.baseCity as string) ?? prev.city,
-  //         postal: (p.postalCode as string) ?? prev.postal,
-  //         country: ((p.countryOfResidence as string) || prev.country || "DE")
-  //           .toUpperCase()
-  //           .slice(0, 2),
-  //         documentType: documentTypeFromApi || prev.documentType,
-  //         trade:
-  //           (p.primarySkillCategoryId as string) ??
-  //           (ext?.trade as string) ??
-  //           prev.trade,
-  //         workingAs: workingAs || prev.workingAs,
-  //         businessRegistrationNumber:
-  //           (ext?.businessRegistrationNumber as string) ??
-  //           prev.businessRegistrationNumber,
-  //         vatId: (ext?.vatId as string) ?? prev.vatId,
-  //         termsAccepted:
-  //           typeof ext?.termsAccepted === "boolean"
-  //             ? ext.termsAccepted
-  //             : prev.termsAccepted,
-
-  //         email: (ext?.email as string) ?? prev.email,
-  //         selfieImage: profileUrl ?? prev.selfieImage,
-  //       }));
-
-  //       const gUrl = p.governmentIdDocumentUrl as string | undefined;
-  //       if (gUrl) setRestoredGovernmentIdDocumentUrl(gUrl);
-  //       if (profileUrl) setRestoredProfilePhotoUrl(profileUrl);
-
-  //       const skipped =
-  //         typeof p.idCardSkipped === "boolean"
-  //           ? p.idCardSkipped
-  //           : typeof ext?.skipDocumentUpload === "boolean"
-  //             ? ext.skipDocumentUpload
-  //             : undefined;
-  //       if (typeof skipped === "boolean") setSkipDocumentUpload(skipped);
-
-  //       const step = ext?.currentStep;
-  //       if (typeof step === "number" && step >= 1 && step <= 6) {
-  //         setCurrentStep(step);
-  //       }
-
-  //       const hadDraftData =
-  //         Object.keys(p).filter((k) => k !== "extensions").length > 0 ||
-  //         (ext && Object.keys(ext).length > 0);
-  //       if (hadDraftData && !draftRestoreToastShown.current) {
-  //         draftRestoreToastShown.current = true;
-  //         toast.success("Restored your saved draft");
-  //       }
-  //     } catch (e: unknown) {
-  //       const err = e as { response?: { status?: number } };
-  //       if (err.response?.status === 409) {
-  //         toast.error(DRAFT_CONFLICT_MESSAGE);
-  //       }
-  //     } finally {
-  //       if (!cancelled) setIsLoadingDraft(false);
-  //     }
-  //   })();
-  //   return () => {
-  //     cancelled = true;
-  //   };
-  // }, [user?.id, router]);
 
   // Form data state
   const [formData, setFormData] = useState({
@@ -331,190 +135,6 @@ const Page = () => {
       );
     }
   };
-
-  // const buildVerificationDraftPayload = (): Record<string, unknown> => {
-  //   const employmentStatus = mapWorkingAsToEmploymentStatus(
-  //     formData.workingAs || "self-employed",
-  //   );
-  //   const govApi = formData.documentType
-  //     ? GOVERNMENT_ID_TYPE_TO_API[formData.documentType]
-  //     : undefined;
-
-  //   const krafterVerification = omitUndefinedRecord({
-  //     trade: formData.trade || undefined,
-  //     workingAs: formData.workingAs || undefined,
-  //     businessRegistrationNumber:
-  //       formData.businessRegistrationNumber || undefined,
-  //     vatId: formData.vatId || undefined,
-  //     documentType: formData.documentType || undefined,
-  //     email: formData.email || undefined,
-  //     currentStep,
-  //     skipDocumentUpload,
-  //     termsAccepted: formData.termsAccepted,
-  //   });
-
-  //   const body: Record<string, unknown> = omitUndefinedRecord({
-  //     fullName: formData.fullName || undefined,
-  //     baseCity: formData.city || undefined,
-  //     postalCode: formData.postal || undefined,
-  //     countryOfResidence: (formData.country || "DE").toUpperCase().slice(0, 2),
-  //     employmentStatus,
-  //     idCardSkipped: skipDocumentUpload,
-  //     skillDocuments: [],
-  //     portfolioLinks: [],
-  //     governmentIdType: govApi,
-  //     primarySkillCategoryId: formData.trade || undefined,
-  //     extensions: { krafterVerification },
-  //   });
-
-  //   if (restoredGovernmentIdDocumentUrl && !formData.idDocument) {
-  //     body.governmentIdDocumentUrl = restoredGovernmentIdDocumentUrl;
-  //   }
-  //   if (restoredProfilePhotoUrl && !formData.selfieFile) {
-  //     body.idCardUrl = restoredProfilePhotoUrl;
-  //   }
-
-  //   return body;
-  // };
-
-  // const handleSaveDraft = async () => {
-  //   try {
-  //     setIsSavingDraft(true);
-  //     const body = buildVerificationDraftPayload();
-  //     const res = verificationDraftId
-  //       ? await patchVerificationDraft(verificationDraftId, body)
-  //       : await saveVerificationDraft(body);
-  //     if (res.draftId) setVerificationDraftId(res.draftId);
-  //     toast.success("Draft saved");
-  //   } catch (e: unknown) {
-  //     const err = e as {
-  //       response?: { status?: number; data?: { message?: string } };
-  //     };
-  //     if (err.response?.status === 409) {
-  //       toast.error(DRAFT_CONFLICT_MESSAGE);
-  //     } else {
-  //       toast.error(
-  //         err.response?.data?.message || "Could not save draft. Try again.",
-  //       );
-  //     }
-  //   } finally {
-  //     setIsSavingDraft(false);
-  //   }
-  // };
-
-  // const openSelfieSourcePicker = () => {
-  //   setShowSelfieSourcePicker(true);
-  // };
-
-  // const handleSelfieChange = (file: File | null) => {
-  //   if (!file) return;
-  //   setRestoredProfilePhotoUrl(null);
-  //   const previewUrl = URL.createObjectURL(file);
-  //   handleInputChange("selfieImage", previewUrl);
-  //   handleInputChange("selfieFile", file);
-  //   setShowSelfieSourcePicker(false);
-  // };
-
-  // const handleVerificationSubmission = async () => {
-  //   const blocker = getVerificationSubmitBlocker();
-  //   if (blocker) {
-  //     toast.error(blocker);
-  //     if (!formData.idDocument && !restoredGovernmentIdDocumentUrl) {
-  //       redirectToLegalIdentityForId();
-  //     } else if (!isNotEmpty(formData.documentType)) {
-  //       redirectToLegalIdentityForId();
-  //     }
-  //     return;
-  //   }
-
-  //   let idFile = formData.idDocument;
-  //   if (!idFile && restoredGovernmentIdDocumentUrl) {
-  //     idFile = await urlToFile(
-  //       restoredGovernmentIdDocumentUrl,
-  //       "government-id.jpg",
-  //     );
-  //   }
-  //   if (!idFile || idFile.size === 0) {
-  //     toast.error(
-  //       "Could not load your saved government ID. Please upload it again on Legal Identity.",
-  //     );
-  //     redirectToLegalIdentityForId();
-  //     return;
-  //   }
-
-  //   let selfieF = formData.selfieFile;
-  //   if (!selfieF && restoredProfilePhotoUrl) {
-  //     selfieF = await urlToFile(restoredProfilePhotoUrl, "profile-photo.jpg");
-  //   }
-  //   if (!selfieF || selfieF.size === 0) {
-  //     openSelfieSourcePicker();
-  //     toast.error(
-  //       "Could not load your saved selfie. Please take or choose a photo again.",
-  //     );
-  //     return;
-  //   }
-
-  //   const employmentStatus = mapWorkingAsToEmploymentStatus(
-  //     formData.workingAs || "self-employed",
-  //   );
-
-  //   const data = new FormData();
-  //   data.append(
-  //     "governmentIdType",
-  //     GOVERNMENT_ID_TYPE_TO_API[formData.documentType] || "national_id",
-  //   );
-  //   data.append("governmentIdNumber", "");
-  //   data.append("governmentIdDocument", idFile);
-  //   data.append("skillDocuments", JSON.stringify([]));
-  //   data.append("baseCity", formData.city);
-  //   data.append("postalCode", formData.postal);
-  //   data.append("primarySkillCategoryId", formData.trade);
-  //   if (!formData.trade) {
-  //     toast.error("Please select your primary trade before submitting.");
-  //     return;
-  //   }
-  //   const countryCode = (formData.country || "DE").toUpperCase().slice(0, 2);
-  //   data.append("countryOfResidence", countryCode);
-  //   data.append("profilePhoto", selfieF);
-  //   data.append("employmentStatus", employmentStatus);
-
-  //   try {
-  //     setIsSubmittingVerification(true);
-  //     await submitVerification(data);
-  //     setVerificationDraftId(null);
-  //     toast.success("Verification submitted successfully!");
-  //     router.push("/krafter/kyc-welcome");
-  //   } catch (error: any) {
-  //     toast.error(
-  //       error?.response?.data?.message || "Failed to submit verification",
-  //     );
-  //   } finally {
-  //     setIsSubmittingVerification(false);
-  //   }
-  // };
-
-  /** Final submit always hits POST /api/verification/submit (not draft). Require ID + type + selfie. */
-  // const getVerificationSubmitBlocker = (): string | null => {
-  //   const hasGovIdFileOrUrl =
-  //     !!formData.idDocument || !!restoredGovernmentIdDocumentUrl;
-  //   if (!hasGovIdFileOrUrl) {
-  //     return "Add your government ID on the Legal Identity step before submitting.";
-  //   }
-  //   if (!isNotEmpty(formData.documentType)) {
-  //     return "Select your government ID document type.";
-  //   }
-  //   const hasSelfieFileOrUrl =
-  //     !!formData.selfieFile || !!restoredProfilePhotoUrl;
-  //   if (!hasSelfieFileOrUrl) {
-  //     return "Add a selfie photo before submitting.";
-  //   }
-  //   return null;
-  // };
-
-  // const redirectToLegalIdentityForId = () => {
-  //   setSkipDocumentUpload(false);
-  //   setCurrentStep(4);
-  // };
 
   return (
     <main className="relative w-full min-h-screen bg-white flex items-center justify-center px-4 sm:px-6 lg:px-8">
@@ -721,23 +341,6 @@ const Page = () => {
                     }
                   />
                 </div>
-                {/* Terms of Use Modal */}
-                <LegalModal
-                  isOpen={showTermsModal}
-                  onClose={() => setShowTermsModal(false)}
-                  title="Terms of Use"
-                >
-                  <TermsContent />
-                </LegalModal>
-
-                {/* Privacy Policy Modal — wire up PrivacyContent when ready */}
-                <LegalModal
-                  isOpen={showPrivacyModal}
-                  onClose={() => setShowPrivacyModal(false)}
-                  title="Privacy Policy"
-                >
-                  <PrivacyContent />
-                </LegalModal>
               </div>
             )}
 
@@ -773,97 +376,6 @@ const Page = () => {
                 />
               </div>
             )}
-
-            {/* Step 6: Take a Selfie */}
-            {/* {currentStep === 6 && (
-              <div className="space-y-6">
-                <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] font-gerat font-bold mb-2">
-                  Add up your selfie to your profile
-                </h1>
-                <p className="text-[14px] font-mabry text-gray-600 mb-8">
-                  We use your selfie to compare with your passport photo
-                </p>
-
-                {/* Selfie Illustration Placeholder */}
-            {/* <div className="flex justify-center mb-8">
-                  <div className="w-48 h-48 lg:w-64 lg:h-64 bg-gray-100 rounded-3xl flex items-center justify-center border-2 border-dashed border-gray-300 group hover:border-brand-orange transition-colors">
-                    {formData.selfieImage ? (
-                      <Image
-                        src={formData.selfieImage}
-                        alt="selfie preview"
-                        width={200}
-                        height={200}
-                        className="w-48 h-48 lg:w-64 lg:h-64 object-cover rounded-3xl"
-                      />
-                    ) : (
-                      <Image
-                        src="/avatar.svg"
-                        alt="selfie placeholder"
-                        width={200}
-                        height={200}
-                        className="w-32 h-32 lg:w-48 lg:h-48 opacity-50 group-hover:opacity-100 transition-opacity"
-                      />
-                    )}
-                  </div>
-                </div>
-                <input
-                  ref={selfieCameraInputRef}
-                  type="file"
-                  accept="image/*"
-                  capture="user"
-                  className="hidden"
-                  onChange={(e) =>
-                    handleSelfieChange(e.target.files?.[0] || null)
-                  }
-                />
-                <input
-                  ref={selfieGalleryInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) =>
-                    handleSelfieChange(e.target.files?.[0] || null)
-                  }
-                /> */}
-
-            {/* Instructions Box */}
-            {/* <div className=" p-2 space-y-3">
-                  <p className="text-[13px] font-poppins font-semibold text-gray-800">
-                    Make sure you have:
-                  </p>
-                  <div className="space-y-2">
-                    <div className="flex items-start gap-2">
-                      <span className="text-brand-orange bg-brand-yellow px-3 py-1 rounded-full  font-bold text-[14px] mt-0.5">
-                        1
-                      </span>
-                      <div>
-                        <p className="text-[13px] font-poppins font-semibold text-gray-800">
-                          Good lighting
-                        </p>
-                        <p className="text-[12px] font-poppins text-gray-600">
-                          Make sure you in a well lit area and both ears are
-                          uncovered
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="text-brand-orange bg-brand-yellow px-3 py-1 rounded-full font-bold text-[14px] mt-0.5">
-                        2
-                      </span>
-                      <div>
-                        <p className="text-[13px] font-poppins font-semibold text-gray-800">
-                          Look straight
-                        </p>
-                        <p className="text-[12px] font-poppins text-gray-600">
-                          Hold your phone at eye level and look straight into
-                          the camera
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )} */}
           </div>
 
           {/* <button className="fixed bottom-40 right-4 sm:right-6 lg:right-8 w-14 h-14 bg-white rounded-full shadow-lg flex items-center justify-center text-xl font-bold border border-gray-200 hover:shadow-xl transition-shadow">
@@ -914,6 +426,23 @@ const Page = () => {
           </div>
         </div>
       )}
+      {/* Terms of Use Modal */}
+      <LegalModal
+        isOpen={showTermsModal}
+        onClose={() => setShowTermsModal(false)}
+        title="Terms of Use"
+      >
+        <TermsContent initialTab="krafter" />
+      </LegalModal>
+
+      {/* Privacy Policy Modal */}
+      <LegalModal
+        isOpen={showPrivacyModal}
+        onClose={() => setShowPrivacyModal(false)}
+        title="Privacy Policy"
+      >
+        <PrivacyContent />
+      </LegalModal>
     </main>
   );
 };

@@ -299,6 +299,7 @@ const Page = () => {
                             type="button"
                             onClick={(e) => {
                               e.preventDefault();
+                              e.stopPropagation();
                               setShowTermsModal(true);
                             }}
                             className="text-brand-blue underline font-semibold"
@@ -310,6 +311,7 @@ const Page = () => {
                             type="button"
                             onClick={(e) => {
                               e.preventDefault();
+                              e.stopPropagation();
                               setShowPrivacyModal(true);
                             }}
                             className="text-brand-blue underline font-semibold"
@@ -366,24 +368,6 @@ const Page = () => {
                 <p className="text-[14px] font-poppins text-gray-600">
                   {t("step3Desc")}
                 </p>
-
-                {/* Terms of Use Modal */}
-                <LegalModal
-                  isOpen={showTermsModal}
-                  onClose={() => setShowTermsModal(false)}
-                  title={tc("termsOfUse")}
-                >
-                  <TermsContent />
-                </LegalModal>
-
-                {/* Privacy Policy Modal — wire up PrivacyContent when ready */}
-                <LegalModal
-                  isOpen={showPrivacyModal}
-                  onClose={() => setShowPrivacyModal(false)}
-                  title={tc("privacyPolicy")}
-                >
-                  <PrivacyContent />
-                </LegalModal>
               </div>
             )}
 
@@ -526,6 +510,24 @@ const Page = () => {
 
       {/* Why Modal */}
       <WhyModal isOpen={showWhyModal} onClose={() => setShowWhyModal(false)} />
+
+      {/* Terms of Use Modal */}
+      <LegalModal
+        isOpen={showTermsModal}
+        onClose={() => setShowTermsModal(false)}
+        title={tc("termsOfUse")}
+      >
+        <TermsContent initialTab="customer" />
+      </LegalModal>
+
+      {/* Privacy Policy Modal */}
+      <LegalModal
+        isOpen={showPrivacyModal}
+        onClose={() => setShowPrivacyModal(false)}
+        title={tc("privacyPolicy")}
+      >
+        <PrivacyContent />
+      </LegalModal>
     </main>
   );
 };
