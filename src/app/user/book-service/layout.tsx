@@ -1,5 +1,6 @@
 import Navbar from "@/components/shared/Navbar";
 import Footer from "@/components/shared/Footer";
+import {GoogleAnalytics} from "@next/third-parties/google";
 
 export default function BookServiceLayout({
   children,
@@ -15,6 +16,9 @@ export default function BookServiceLayout({
       </div>
       
       {children}
+
+      {/* GoogleAnalytics */}
+      <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID || ""} />
 
       <div className="hidden md:block max-w-4xl mx-auto mt-0 md:mt-20">
         <Footer />

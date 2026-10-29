@@ -1,3 +1,5 @@
+"use client";
+
 import type { ReactNode } from "react";
 
 // ─── Reusable section helpers ─────────────────────────────────────────────────
@@ -18,7 +20,7 @@ const Section = ({
           {number}
         </span>
       )}
-      {title}
+      <span>{title}</span>
     </h3>
     <div className="space-y-3 text-[14px] font-poppins text-gray-700 leading-relaxed pl-8">
       {children}
@@ -40,383 +42,481 @@ const Sub = ({
 );
 
 const Ul = ({ items }: { items: string[] }) => (
-  <ul className="list-disc pl-5 space-y-1 mt-1">
+  <ul className="list-disc pl-5 space-y-1.5 mt-1">
     {items.map((item, i) => (
       <li key={i}>{item}</li>
     ))}
   </ul>
 );
 
-const DataTable = ({
-  rows,
-}: {
-  rows: [string, string][];
-}) => (
-  <div className="overflow-x-auto mt-2 rounded-xl border border-gray-100">
-    <table className="w-full text-[13px] font-poppins">
-      <thead>
-        <tr className="bg-[#FF66000D]">
-          <th className="text-left px-4 py-2 font-semibold text-[#1D2939]">
-            Data Type
-          </th>
-          <th className="text-left px-4 py-2 font-semibold text-[#1D2939]">
-            Retention Period
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map(([type, period], i) => (
-          <tr
-            key={i}
-            className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}
-          >
-            <td className="px-4 py-2 text-gray-700">{type}</td>
-            <td className="px-4 py-2 text-gray-500">{period}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-);
-
 // ─── Main Content ─────────────────────────────────────────────────────────────
 
 export const PrivacyContent = () => (
-  <article>
-    {/* Banner */}
+  <article className="text-[#1D2939]">
+    {/* Effective date banner */}
     <div className="mb-8 p-4 rounded-2xl bg-[#FF66000D] border border-[#FF66001A]">
-      <p className="text-[13px] font-poppins text-[#FF6600] font-semibold mb-1">
+      <p className="text-[14px] font-gerat text-[#FF6600] font-bold mb-1">
         Kraftigö Privacy Policy
       </p>
       <p className="text-[12px] font-poppins text-gray-600">
-        Created 04 March 2026 · Processed in accordance with GDPR, BDSG &
-        TTDSG
+        Website and digital marketplace · Last updated: 25 October 2026
       </p>
     </div>
 
-    <Section number="1" title="Introduction">
-      <p>
-        Welcome to Kraftigö. This Privacy Policy explains how we collect, use,
-        store, and protect personal data when you access or use our platform.
-      </p>
-      <p>
-        Our platform connects skilled craftsmen ("Krafters") with clients
-        seeking services — helping address shortages in skilled trades and
-        improving access to reliable professionals.
-      </p>
-      <p>We process data in compliance with:</p>
-      <Ul
-        items={[
-          "General Data Protection Regulation (GDPR)",
-          "German Federal Data Protection Act (BDSG)",
-          "Telecommunications and Telemedia Data Protection Act (TTDSG)",
-          "Other applicable European and national data protection laws",
-        ]}
-      />
-      <p>
-        By using our platform, you agree to the collection and processing of
-        data as described in this policy.
-      </p>
-    </Section>
+    <p className="text-[14px] font-poppins text-gray-700 leading-relaxed mb-6">
+      This Privacy Policy explains how Kraftigö processes personal data when you
+      visit our websites, create or use an account, browse service-provider
+      profiles, book or provide a service, make or receive a payment, contact us,
+      or otherwise use the Kraftigö platform. It applies to customers and service
+      providers, whom we call &ldquo;Krafters&rdquo;.
+    </p>
 
-    <Section number="2" title="Data Controller">
+    <Section number="1" title="Who is responsible for your data?">
       <p>
-        The controller responsible for data processing under Article 4(7) GDPR
-        is:
+        The controller responsible for the processing described in this Privacy
+        Policy is Kraftigö, operated by Adams Hassan as a sole proprietor
+        (Einzelunternehmen).
       </p>
-      <div className="mt-2 p-3 rounded-xl bg-gray-50 border border-gray-100 space-y-1">
-        <p className="font-semibold text-[#1D2939]">Kraftigö</p>
+      <div className="p-4 rounded-xl bg-gray-50 border border-gray-100 space-y-1 text-[13px] font-poppins text-gray-700">
+        <p className="font-semibold text-[#1D2939]">Kraftigö (Adams Hassan)</p>
+        <p>Postal address: Auf der Borg 26, 59494 Soest, Germany</p>
         <p>
           Email:{" "}
-          <span className="text-[#FF6600]">info@kraftigö.com.de</span>
-        </p>
-      </div>
-    </Section>
-
-    <Section number="3" title="Categories of Personal Data We Collect">
-      <Sub title="3.1 Account Information">
-        <Ul
-          items={[
-            "Full name",
-            "Email address",
-            "Phone number",
-            "Password (encrypted)",
-          ]}
-        />
-      </Sub>
-
-      <Sub title="3.2 Profile Information">
-        <p className="text-[13px] text-gray-500 mb-1">For Krafters:</p>
-        <Ul
-          items={[
-            "Professional skills and trade categories",
-            "Work experience & certifications",
-            "Portfolio images",
-            "Location / service area & availability",
-            "Ratings and reviews",
-          ]}
-        />
-        <p className="text-[13px] text-gray-500 mt-3 mb-1">For Clients:</p>
-        <Ul
-          items={[
-            "Job requests & project descriptions",
-            "Location",
-            "Preferred schedule",
-            "Ratings and feedback",
-          ]}
-        />
-      </Sub>
-
-      <Sub title="3.3 Communication Data">
-        <Ul
-          items={[
-            "Messages exchanged between users",
-            "Customer support communications",
-            "Notifications and responses",
-          ]}
-        />
-      </Sub>
-
-      <Sub title="3.4 Technical Data">
-        <Ul
-          items={[
-            "IP address, device type, operating system, browser type",
-            "Access time & usage logs",
-            "Application activity",
-          ]}
-        />
-      </Sub>
-
-      <Sub title="3.5 Payment Information">
-        <Ul
-          items={[
-            "Payment transaction records",
-            "Billing details",
-            "Payment provider identifiers",
-          ]}
-        />
-        <p className="mt-1 text-[13px] text-gray-500">
-          Sensitive payment data is handled directly by third-party payment
-          processors.
-        </p>
-      </Sub>
-    </Section>
-
-    <Section number="4" title="Purpose of Data Processing">
-      <Sub title="Platform Functionality">
-        <Ul
-          items={[
-            "Creating and managing user accounts",
-            "Connecting craftsmen with clients",
-            "Enabling job postings and service requests",
-          ]}
-        />
-      </Sub>
-      <Sub title="Communication">
-        <Ul
-          items={[
-            "Allowing users to communicate within the platform",
-            "Providing customer support",
-          ]}
-        />
-      </Sub>
-      <Sub title="Service Improvement">
-        <Ul
-          items={[
-            "Improving platform performance",
-            "Developing new features",
-            "Analysing usage trends",
-          ]}
-        />
-      </Sub>
-      <Sub title="Security and Fraud Prevention">
-        <Ul
-          items={[
-            "Preventing misuse or fraud",
-            "Verifying user identity where necessary",
-            "Monitoring suspicious activities",
-          ]}
-        />
-      </Sub>
-      <Sub title="Legal Compliance">
-        <Ul
-          items={[
-            "Complying with legal obligations",
-            "Responding to lawful requests from authorities",
-          ]}
-        />
-      </Sub>
-    </Section>
-
-    <Section number="5" title="Legal Basis for Processing">
-      <div className="space-y-3">
-        {[
-          {
-            basis: "Contract Performance — Art. 6(1)(b)",
-            desc: "Processing necessary to provide the services of the platform.",
-          },
-          {
-            basis: "Legitimate Interest — Art. 6(1)(f)",
-            desc: "Improving platform security, performance, and reliability.",
-          },
-          {
-            basis: "Consent — Art. 6(1)(a)",
-            desc: "For optional services such as marketing communications and analytics.",
-          },
-          {
-            basis: "Legal Obligation — Art. 6(1)(c)",
-            desc: "Compliance with applicable laws and regulatory requirements.",
-          },
-        ].map(({ basis, desc }) => (
-          <div
-            key={basis}
-            className="p-3 rounded-xl border border-gray-100 bg-gray-50"
+          <a
+            href="mailto:info@kraftigo.com"
+            className="text-[#FF6600] hover:underline"
           >
-            <p className="font-semibold text-[#1D2939] text-[13px]">{basis}</p>
-            <p className="text-[13px] text-gray-600 mt-0.5">{desc}</p>
-          </div>
-        ))}
+            info@kraftigo.com
+          </a>
+        </p>
+        <p>Telephone: +49 1590 7955564</p>
       </div>
+      <p>
+        You can contact us using the details above if you have questions about
+        this Privacy Policy or wish to exercise your data protection rights.
+      </p>
     </Section>
 
-    <Section number="6" title="Data Sharing and Third Parties">
+    <Section number="2" title="Personal data we process and why">
       <p>
-        We may share personal data with trusted third parties when necessary to
-        operate the platform:
+        The personal data we process depends on how you use Kraftigö. It may
+        include:
       </p>
       <Ul
         items={[
-          "Hosting Providers — cloud infrastructure for our platform",
-          "Payment Processors — secure handling of financial transactions",
-          "Analytics Providers — understanding platform performance",
-          "Legal Authorities — when required by law or to protect safety",
+          "Account data: name or display name, email address, telephone number, login and account information, preferences and account status.",
+          "Krafter profile data: service categories, descriptions, prices, service area, photographs, availability and verification status.",
+          "Booking data: service requested, booking status, date and time, service location, price, messages, cancellations, refunds, complaints and dispute information.",
+          "Payment and payout data: transaction amount, currency, payment or payout status, transaction identifiers, refunds and disputes. Payment providers may collect payment-card, bank, identity or tax information directly.",
+          "Identity-verification data: depending on the configured verification flow, identity details, identity-document information, selfie or face images/video, liveness results, verification results and technical or anti-fraud information.",
+          "Communications and support data: messages, attachments, requests, reports and the steps taken to resolve them.",
+          "Technical data: IP address, timestamps, requested pages or endpoints, browser and operating-system information, device or app details, error data and security logs.",
+          "Analytics and preference data: information generated by analytics or map technologies, and records of your cookie or similar-technology choices.",
         ]}
       />
-      <p className="mt-2">
-        All service providers are required to comply with GDPR. Data Processing
-        Agreements (DPAs) are established where required.
+      <p className="mt-3">
+        We use this information to create and manage accounts, display profiles,
+        connect customers with Krafters, arrange bookings, facilitate payments
+        and payouts, communicate with users, verify identities, provide support,
+        protect platform security, prevent fraud and abuse, comply with legal
+        obligations, and establish or defend legal claims.
       </p>
     </Section>
 
-    <Section number="7" title="International Data Transfers">
+    <Section number="3" title="Legal bases for processing">
       <p>
-        If personal data is transferred outside the European Economic Area
-        (EEA), appropriate safeguards will be implemented, including:
+        Under the General Data Protection Regulation (GDPR), we rely on one or
+        more of the following legal bases, depending on the purpose:
       </p>
       <Ul
         items={[
-          "Standard Contractual Clauses approved by the European Commission",
-          "Adequacy decisions",
-          "Other lawful mechanisms permitted by GDPR",
+          "Article 6(1)(b) GDPR: processing necessary to provide the service you request or take steps before entering into a contract, including account, booking and payment administration.",
+          "Article 6(1)(c) GDPR: processing necessary to comply with legal obligations, such as applicable tax, accounting or reporting requirements.",
+          "Article 6(1)(f) GDPR: processing necessary for our legitimate interests, where those interests are not overridden by your rights. These interests may include platform security, fraud prevention, support, service improvement, dispute handling and legal claims.",
+          "Article 6(1)(a) GDPR: consent, where we ask for it, including for non-essential cookies or similar technologies where consent is required.",
         ]}
       />
+      <p className="mt-3">
+        Where a process involves biometric data used to uniquely identify a
+        person, Article 9 GDPR may also apply. Such processing requires a
+        separate valid condition under Article 9 in addition to an Article 6
+        legal basis. We will not rely on the general need to verify identity as a
+        substitute for that condition.
+      </p>
     </Section>
 
-    <Section number="8" title="Data Retention">
+    <Section number="4" title="Hosting, infrastructure and security logs">
       <p>
-        Personal data is stored only for as long as necessary to fulfil the
-        purposes described in this policy:
-      </p>
-      <DataTable
-        rows={[
-          ["Account information", "Until account deletion"],
-          ["Communication data", "Up to 3 years"],
-          ["Technical logs", "30–90 days"],
-          ["Financial records", "Up to 10 years (legal requirement)"],
-        ]}
-      />
-      <p className="mt-3 text-[13px] text-gray-500">
-        Data may be retained longer when required by law.
-      </p>
-    </Section>
-
-    <Section number="9" title="Your Rights Under GDPR">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        {[
-          { right: "Right of Access", desc: "Request access to your stored personal data." },
-          { right: "Right to Rectification", desc: "Request correction of inaccurate information." },
-          { right: "Right to Erasure", desc: "Request deletion of your data where legally permitted." },
-          { right: "Right to Restrict Processing", desc: "Request limitations on how your data is used." },
-          { right: "Right to Data Portability", desc: "Receive a copy of your data in a portable format." },
-          { right: "Right to Object", desc: "Object to processing based on legitimate interests." },
-        ].map(({ right, desc }) => (
-          <div
-            key={right}
-            className="p-3 rounded-xl border border-gray-100 bg-[#FF66000A]"
-          >
-            <p className="font-semibold text-[#1D2939] text-[13px]">{right}</p>
-            <p className="text-[12px] text-gray-600 mt-0.5">{desc}</p>
-          </div>
-        ))}
-      </div>
-      <p className="mt-4">
-        Submit requests to:{" "}
-        <span className="text-[#FF6600] font-semibold">
-          info@kraftigö.com.de
-        </span>
-      </p>
-      <p className="mt-1">
-        You also have the right to lodge a complaint with the competent State
-        Data Protection Authority (Landesdatenschutzbehörde).
-      </p>
-    </Section>
-
-    <Section number="10" title="Cookies and Tracking">
-      <p>
-        Our platform may use cookies or similar technologies to maintain user
-        sessions, improve functionality, and analyse usage patterns.
+        Kraftigö uses DigitalOcean for hosting and infrastructure. The intended
+        hosting region has been identified as Frankfurt, Germany (FRA1). We use
+        infrastructure to operate the platform, maintain availability, secure
+        accounts, diagnose errors, prevent misuse and maintain backups.
       </p>
       <p>
-        Non-essential cookies are only activated after obtaining your consent,
-        in accordance with GDPR and TTDSG. You may manage cookie preferences
-        through your browser or platform settings.
+        Technical logs may include IP address, date and time, requested page or
+        endpoint, browser or operating-system information, device or app version,
+        status codes and related diagnostic information. We use logs for service
+        delivery, troubleshooting, security and incident investigation. We
+        retain them only for as long as reasonably necessary for these purposes,
+        unless a longer period is needed to investigate a specific incident or
+        comply with law.
+      </p>
+      <p>
+        The exact hosting, backup, support-access and subprocessor arrangements
+        are governed by our applicable provider agreements. Where personal data
+        is transferred outside the European Economic Area (EEA), we use an
+        applicable legal transfer mechanism where required, such as an adequacy
+        decision or Standard Contractual Clauses, together with supplementary
+        measures where necessary.
       </p>
     </Section>
 
-    <Section number="11" title="Data Security">
-      <p>We implement appropriate technical and organisational measures including:</p>
+    <Section number="5" title="Emails sent through Resend">
+      <p>
+        We use Resend to deliver transactional emails, which may include
+        account-related messages and booking notifications. Resend may process
+        recipient email addresses, email content and delivery metadata to
+        deliver these messages.
+      </p>
+      <p>
+        Processing is generally based on Article 6(1)(b) GDPR when the email is
+        needed to provide the service, or Article 6(1)(c) GDPR when a message is
+        legally required. Resend may process certain account, billing and
+        service-usage information for its own purposes under its own terms and
+        privacy information. Resend&#39;s data-processing terms and applicable
+        international-transfer safeguards govern processing carried out on our
+        behalf.
+      </p>
+    </Section>
+
+    <Section number="6" title="Accounts, profiles and bookings">
+      <p>
+        When you create or manage an account, we process the information you
+        provide to establish and secure the account and operate the platform.
+        Krafters may provide profile details such as services offered,
+        descriptions, prices, photographs, availability and service areas.
+      </p>
+      <p>
+        To arrange a booking, we process relevant booking details, including the
+        service, location, date and time, price, booking status, messages and
+        information relating to cancellations, refunds, complaints or disputes.
+        We share information reasonably necessary to arrange and perform the
+        booking with the customer and the relevant Krafter. Depending on the
+        booking, this may include names or display names, contact details, the
+        service location and booking communications.
+      </p>
+      <p>
+        Krafter profiles and reviews may be visible to other platform users. The
+        information displayed depends on the profile and platform settings. We
+        process profile and booking data to perform the relevant service contract
+        and, where appropriate, to protect platform integrity and prevent
+        abuse.
+      </p>
+      <p>
+        A Krafter may independently determine how to process personal data in
+        connection with providing their own service and meeting their legal
+        obligations. In those circumstances, the Krafter may act as a separate
+        controller for that processing.
+      </p>
+    </Section>
+
+    <Section number="7" title="Payments and payouts through Stripe">
+      <p>
+        Kraftigö uses Stripe for payment processing and payouts to Krafters.
+        Stripe may collect payment details through its own payment components or
+        hosted flows. Kraftigö does not intend to receive or store full
+        payment-card numbers or card security codes. We may receive transaction
+        information such as amount, currency, payment or payout status,
+        transaction identifiers, refunds, disputes and relevant risk signals.
+      </p>
+      <p>
+        Krafters may be asked to complete Stripe Connect onboarding and provide
+        identity, business, tax or bank-account information directly to Stripe.
+        Depending on the activity and product used, Stripe may process
+        information on our behalf and may also process information as an
+        independent controller for purposes such as legal compliance, identity
+        verification, fraud prevention and security.
+      </p>
+      <p>
+        The legal basis may be Article 6(1)(b) GDPR for payment and payout
+        administration, Article 6(1)(c) GDPR for legal obligations, or Article
+        6(1)(f) GDPR for payment security and fraud prevention. Stripe&#39;s
+        privacy information is available at{" "}
+        <a
+          href="https://stripe.com/de/privacy"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[#FF6600] underline"
+        >
+          https://stripe.com/de/privacy
+        </a>
+        .
+      </p>
+    </Section>
+
+    <Section number="8" title="Identity verification through Didit">
+      <p>
+        Kraftigö uses Didit for identity verification, including a
+        selfie/liveness workflow. Depending on the verification flow enabled for
+        a particular user, Didit may process identity details,
+        identity-document information, selfies, face images or video, liveness
+        results, verification outcomes, technical and device information,
+        anti-fraud signals and audit records. The precise data collected and the
+        information returned to Kraftigö depend on the configured workflow.
+      </p>
+      <p>
+        We use verification to confirm a Krafter&#39;s identity or verification
+        status, reduce impersonation and fraud, and support platform trust and
+        safety. Depending on the integration, Kraftigö may receive a verification
+        status or result rather than the underlying verification materials.
+      </p>
+      <p>
+        Didit may process data on our behalf and may process certain information
+        for its own security, legal-compliance or legal-claims purposes.
+        Didit&#39;s Verification Privacy Notice is available at{" "}
+        <a
+          href="https://didit.me/terms/verification-privacy-notice/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[#FF6600] underline"
+        >
+          https://didit.me/terms/verification-privacy-notice/
+        </a>
+        .
+      </p>
+      <p>
+        We intend to retain verification records while the relevant account is
+        active and to delete them within three months after account deletion,
+        unless a legal obligation or legal claim requires longer retention. This
+        period applies only when the corresponding retention and deletion
+        settings are implemented in Kraftigö&#39;s systems and the relevant
+        provider workflow. Before enabling any processing of biometric data for
+        unique identification, Kraftigö must establish and document a valid
+        Article 9 GDPR condition and assess whether a data protection impact
+        assessment is required.
+      </p>
+    </Section>
+
+    <Section
+      number="9"
+      title="Google Analytics, Google Maps, cookies and similar technologies"
+    >
+      <p>
+        Kraftigö uses Google Analytics and Google Maps in some form. These
+        technologies may process technical identifiers, device or browser
+        information, usage information, approximate or precise location
+        information where provided or permitted, and information needed to
+        display maps or measure use of the website. The exact Google products
+        and the information processed depend on the features enabled.
+      </p>
+      <p>
+        Our website may use cookies, local storage, session storage, pixels,
+        SDKs or similar technologies for account access, security, preferences,
+        maps, analytics and other platform functions. Under section 25 of the
+        German Telecommunications-Digital Services Data Protection Act (TDDDG),
+        storing information on or accessing information from a user&#39;s device
+        generally requires consent unless a statutory exception applies. Any
+        processing of personal data must also have a legal basis under the GDPR.
+      </p>
+      <p>
+        Where consent is required, non-essential technologies should operate only
+        after you have given valid consent. You should be able to reject
+        non-essential technologies and later change or withdraw your choice. Our
+        consent interface offers Accept and Reject options. Your choice should
+        be respected by analytics, map-related and other non-essential
+        technologies where consent is required.
+      </p>
+      <p>
+        You can also manage cookies through your browser settings. Blocking
+        strictly necessary technologies may affect some platform functions.
+        Browser settings do not necessarily replace the consent controls offered
+        on our website.
+      </p>
+    </Section>
+
+    <Section number="10" title="Other providers and recipients">
+      <p>
+        We use providers to host, secure and operate Kraftigö, deliver emails,
+        process payments, verify identities, provide maps and analytics, and
+        support other technical functions. Providers receive personal data only
+        as needed for their role and are subject to applicable contractual and
+        legal safeguards.
+      </p>
+      <p>
+        We may also disclose information where necessary to the relevant
+        customer or Krafter for a booking, to professional advisers, to
+        competent authorities where legally required, or to other parties where
+        disclosure is necessary to establish, exercise or defend legal claims or
+        address serious security or safety concerns.
+      </p>
+    </Section>
+
+    <Section number="11" title="Tax due diligence and legal reporting">
+      <p>
+        Depending on the services offered, provider status and applicable law,
+        Kraftigö may be required to collect, verify, retain or report
+        information about Krafters and reportable activities under tax or
+        platform-reporting rules, including the German Platform Tax
+        Transparency Act (Plattformen-Steuertransparenzgesetz, PStTG).
+      </p>
+      <p>
+        Where legally required, the information may include legal name, address,
+        date of birth, tax identification information, VAT identification
+        number where applicable, residence or tax-residence information,
+        financial-account identifier, consideration paid or credited, fees or
+        commissions retained and the number of relevant activities. We process
+        this information to meet statutory due-diligence and reporting
+        obligations and respond to lawful requests.
+      </p>
+      <p>
+        The legal basis is Article 6(1)(c) GDPR where processing is necessary to
+        comply with a legal obligation. Records covered by statutory retention
+        rules are retained for the period required by the applicable law.
+      </p>
+    </Section>
+
+    <Section number="12" title="Support, reports, moderation and fraud prevention">
+      <p>
+        When you contact us or report a user, service or safety concern, we
+        process the information you provide, relevant booking details and
+        communications, attachments, timestamps and actions taken to review the
+        issue. We may also process information about suspected fraud, abuse,
+        manipulation, security incidents or violations of our terms.
+      </p>
+      <p>
+        The legal basis may be Article 6(1)(b) GDPR for contract-related
+        support, Article 6(1)(c) GDPR for legal duties, or Article 6(1)(f) GDPR
+        for proportionate safety, fraud-prevention, platform-integrity and
+        legal-claims purposes. Access is limited to what is reasonably necessary
+        for the relevant task.
+      </p>
+    </Section>
+
+    <Section number="13" title="How long we keep data">
+      <p>
+        We retain personal data only for as long as necessary for the purpose
+        for which it was collected, subject to statutory retention duties,
+        security needs and the establishment or defence of legal claims. The
+        period depends on the data category:
+      </p>
       <Ul
         items={[
-          "Encrypted communication (HTTPS)",
-          "Secure authentication mechanisms",
-          "Restricted access to sensitive data",
-          "Regular security monitoring & vulnerability testing",
+          "Account and profile data: while the account is active and for a limited period afterwards where needed to close the account, resolve outstanding matters, prevent abuse or meet legal obligations.",
+          "Booking, support and dispute data: for the period needed to administer the booking, address complaints or claims and comply with legal duties.",
+          "Invoices and accounting records: for the retention period applicable to the particular record under German tax and commercial law.",
+          "Records subject to the PStTG or other statutory reporting rules: for the period required by the relevant law.",
+          "Server and security logs: for the period reasonably necessary for service operation, troubleshooting, security and incident investigation.",
+          "Identity-verification records: while the relevant account is active and, subject to the stated exceptions, up to three months after account deletion, once the corresponding deletion workflow is implemented.",
+          "Reviews and ratings: while needed for the marketplace purpose, subject to account closure, moderation, objections and applicable law.",
         ]}
       />
-      <p className="mt-2 text-[13px] text-gray-500">
-        Despite these efforts, no system can guarantee complete security.
+      <p className="mt-3">
+        When data is no longer required, we delete it or irreversibly anonymise
+        it. Where a legal retention duty prevents deletion, we restrict use to
+        the purpose that justifies retention and delete the data when the
+        applicable period expires.
       </p>
     </Section>
 
-    <Section number="12" title="Children's Privacy">
+    <Section number="14" title="Your data protection rights">
       <p>
-        Our platform is not intended for individuals under the age of 16. We do
-        not knowingly collect personal data from minors. If such data is
-        discovered, it will be deleted promptly.
+        Subject to the conditions and exceptions in applicable law, you may have
+        the right to access your personal data, correct inaccurate data,
+        request erasure, request restriction of processing, receive certain data
+        in a portable format, and object to processing based on legitimate
+        interests. Where processing is based on consent, you may withdraw consent
+        at any time for the future. Withdrawal does not affect processing
+        carried out before withdrawal.
       </p>
-    </Section>
-
-    <Section number="13" title="Changes to This Policy">
       <p>
-        We may update this Privacy Policy from time to time. Users will be
-        notified of significant changes through the platform or via email.
+        To exercise your rights, contact{" "}
+        <a
+          href="mailto:info@kraftigo.com"
+          className="text-[#FF6600] hover:underline"
+        >
+          info@kraftigo.com
+        </a>
+        . We may need to verify your identity before responding. You also have
+        the right to lodge a complaint with a data protection supervisory
+        authority, particularly in the EU/EEA country where you live, work or
+        believe an infringement occurred.
       </p>
     </Section>
 
-    <Section number="14" title="Contact">
-      <div className="p-3 rounded-xl bg-gray-50 border border-gray-100 space-y-1">
-        <p className="font-semibold text-[#1D2939]">Kraftigö</p>
+    <Section number="15" title="Supervisory authority">
+      <p>
+        The supervisory authority for Kraftigö in North Rhine-Westphalia is the
+        State Commissioner for Data Protection and Freedom of Information North
+        Rhine-Westphalia (Landesbeauftragte für Datenschutz und
+        Informationsfreiheit Nordrhein-Westfalen, LDI NRW).
+      </p>
+      <div className="p-4 rounded-xl bg-gray-50 border border-gray-100 space-y-1 text-[13px] font-poppins text-gray-700">
+        <p className="font-semibold text-[#1D2939]">LDI NRW</p>
+        <p>Address: Kavalleriestraße 2–4, 40213 Düsseldorf, Germany</p>
         <p>
-          Email:{" "}
-          <span className="text-[#FF6600]">info@kraftigö.com.de</span>
+          Website:{" "}
+          <a
+            href="https://www.ldi.nrw.de"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#FF6600] underline"
+          >
+            https://www.ldi.nrw.de
+          </a>
         </p>
       </div>
     </Section>
 
-    {/* Footer */}
-    <div className="border-t border-gray-100 pt-6 mt-4">
+    <Section
+      number="16"
+      title="Whether you must provide data and automated decisions"
+    >
+      <p>
+        Some information is necessary to create an account, arrange a booking,
+        process a payment, verify a Krafter or comply with statutory reporting
+        duties. If you do not provide information required for a feature, we may
+        be unable to provide the relevant account, booking, payout or other
+        service. We will indicate mandatory fields when collecting information
+        where appropriate.
+      </p>
+      <p>
+        Kraftigö does not intend to make decisions based solely on automated
+        processing that produce legal effects or similarly significantly affect
+        users within the meaning of Article 22 GDPR. This statement must match
+        the actual identity-verification, fraud-prevention, moderation and
+        account-restriction workflows. If that changes, we will provide the
+        information required by law.
+      </p>
+    </Section>
+
+    <Section number="17" title="Children">
+      <p>
+        Kraftigö is not designed specifically for children. If you believe that a
+        child has provided personal data inappropriately, contact us at{" "}
+        <a
+          href="mailto:info@kraftigo.com"
+          className="text-[#FF6600] hover:underline"
+        >
+          info@kraftigo.com
+        </a>{" "}
+        so we can assess the situation and take appropriate steps.
+      </p>
+    </Section>
+
+    <Section number="18" title="Changes to this Privacy Policy">
+      <p>
+        We may update this Privacy Policy when our processing activities,
+        platform features or legal obligations change. The current version will
+        be published on our website and, where applicable, made available in the
+        app. Where required by law, we will provide additional notice or seek
+        consent before introducing new processing that requires it.
+      </p>
+    </Section>
+
+    {/* Footer timestamp */}
+    <div className="border-t border-gray-100 pt-6 mt-8">
       <p className="text-[12px] font-poppins text-gray-400 text-center">
-        Created 04 March 2026 · Kraftigö
+        Last updated: 25 October 2026 · Kraftigö
       </p>
     </div>
   </article>

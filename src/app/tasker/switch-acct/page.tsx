@@ -711,21 +711,6 @@ const Page = () => {
                     }
                   />
                 </div>
-
-                <LegalModal
-                  isOpen={showTermsModal}
-                  onClose={() => setShowTermsModal(false)}
-                  title="Terms of Use"
-                >
-                  <TermsContent />
-                </LegalModal>
-                <LegalModal
-                  isOpen={showPrivacyModal}
-                  onClose={() => setShowPrivacyModal(false)}
-                  title="Privacy Policy"
-                >
-                  <PrivacyContent />
-                </LegalModal>
               </div>
             )}
 
@@ -919,6 +904,23 @@ const Page = () => {
           </div>
         </div>
       )}
+      {/* Terms of Use Modal */}
+      <LegalModal
+        isOpen={showTermsModal}
+        onClose={() => setShowTermsModal(false)}
+        title="Terms of Use"
+      >
+        <TermsContent initialTab="krafter" />
+      </LegalModal>
+
+      {/* Privacy Policy Modal */}
+      <LegalModal
+        isOpen={showPrivacyModal}
+        onClose={() => setShowPrivacyModal(false)}
+        title="Privacy Policy"
+      >
+        <PrivacyContent />
+      </LegalModal>
     </main>
   );
 };
