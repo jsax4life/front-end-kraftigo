@@ -850,7 +850,7 @@ const HomePageContent = () => {
           ) : null}
 
           {/* Pros of the week */}
-          {displayProsOfWeek.length > 0 ? (
+          {/* {displayProsOfWeek.length > 0 ? (
             <div className="mb-8">
               <h2 className="text-[20px] sm:text-[20px] font-poppins font-semibold mb-4">
                 {t("prosOfWeek")}
@@ -879,7 +879,7 @@ const HomePageContent = () => {
                 </div>
               </div>
             </div>
-          ) : null}
+          ) : null} */}
 
           {/* Upcoming Bookings */}
           {isAuthenticated && (

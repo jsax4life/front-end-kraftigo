@@ -70,7 +70,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const cookieStore = await cookies();
-  const locale = cookieStore.get("lang")?.value || "en";
+  const locale = cookieStore.get("lang")?.value || "de";
   const messages =
     locale === "de"
       ? (await import("../../messages/de.json")).default
