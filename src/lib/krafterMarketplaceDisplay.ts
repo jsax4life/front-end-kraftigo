@@ -1,4 +1,21 @@
+import type { KrafterDetail } from "@/components/shared/KrafterDetailModal";
+
 const BADGE_PRIORITY = ["IDENTITY_VERIFIED", "TOP_PRO", "NEW_KRAFTER"] as const;
+
+/** Generic avatar for home/browse listings — real photos on book-service flows only. */
+export const KRAFTER_LISTING_PLACEHOLDER_IMAGE = "/avatar.svg";
+
+export const KRAFTER_NEAR_YOU_MAX_CARDS = 5;
+
+export function maskKrafterDetailForPublicListing(
+  detail: KrafterDetail,
+): KrafterDetail {
+  return {
+    ...detail,
+    profileImage: KRAFTER_LISTING_PLACEHOLDER_IMAGE,
+    portfolioImages: [],
+  };
+}
 
 export function formatKrafterBadgeLabel(badge: string): string {
   const normalized = badge.trim().toUpperCase();

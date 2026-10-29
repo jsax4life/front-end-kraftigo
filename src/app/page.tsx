@@ -53,6 +53,9 @@ import {
 import {
   pickPrimaryKrafterBadge,
   krafterVerifiedTooltip,
+  KRAFTER_LISTING_PLACEHOLDER_IMAGE,
+  KRAFTER_NEAR_YOU_MAX_CARDS,
+  maskKrafterDetailForPublicListing,
 } from "@/lib/krafterMarketplaceDisplay";
 
 // ─── Static fallbacks ─────────────────────────────────────────────────────────
@@ -76,7 +79,7 @@ const STATIC_PROS = [
       "I have six years of experience cleaning houses. My priority is to bring a good service and leav...",
     price: formatHourlyRate(41.29),
     distance: undefined,
-    image: "/images/pro.jpg",
+    image: KRAFTER_LISTING_PLACEHOLDER_IMAGE,
     badge: "TOP PRO",
   },
   {
@@ -88,7 +91,7 @@ const STATIC_PROS = [
       "Professional cleaner with attention to detail. I ensure every corner is spotless and your home...",
     price: formatHourlyRate(45),
     distance: undefined,
-    image: "/images/pro.jpg",
+    image: KRAFTER_LISTING_PLACEHOLDER_IMAGE,
     badge: "TOP PRO",
   },
 ];
@@ -130,7 +133,10 @@ function formatHomeKrafterDisplayName(displayName: string): string {
   return parts.length > 1 ? `${parts[0]} ${parts[1][0]}.` : parts[0];
 }
 
-function mapHomeKrafterToCard(p: HomeProOfWeek): HomeKrafterCard {
+function mapHomeKrafterToCard(
+  p: HomeProOfWeek,
+  options?: { useListingPlaceholder?: boolean },
+): HomeKrafterCard {
   return {
     name: formatHomeKrafterDisplayName(p.displayName),
     rating: Math.round(p.rating),
@@ -139,7 +145,9 @@ function mapHomeKrafterToCard(p: HomeProOfWeek): HomeKrafterCard {
     description: p.description ?? "",
     price: formatHourlyRate(p.hourlyRate),
     distance: formatDistanceDisplay(readDistanceFields(p)) ?? undefined,
-    image: normSrc(p.profilePhotoUrl) ?? "/images/pro.jpg",
+    image: options?.useListingPlaceholder
+      ? KRAFTER_LISTING_PLACEHOLDER_IMAGE
+      : normSrc(p.profilePhotoUrl) ?? KRAFTER_LISTING_PLACEHOLDER_IMAGE,
     badge:
       pickPrimaryKrafterBadge({
         badges: p.badges,
@@ -333,26 +341,27 @@ const HomePageContent = () => {
     }
     setIsLoadingKrafterProfile(true);
     try {
-      setSelectedKrafter(
-        await resolveHomeKrafterDetail(pro, rawRecord, skillGroups, {
-          serviceCategories: bookableCategories,
-          latitude:
-            typeof currentLatitude === "number" && Number.isFinite(currentLatitude)
-              ? currentLatitude
-              : undefined,
-          longitude:
-            typeof currentLongitude === "number" && Number.isFinite(currentLongitude)
-              ? currentLongitude
-              : undefined,
-        }),
-      );
+      const resolved = await resolveHomeKrafterDetail(pro, rawRecord, skillGroups, {
+        serviceCategories: bookableCategories,
+        latitude:
+          typeof currentLatitude === "number" && Number.isFinite(currentLatitude)
+            ? currentLatitude
+            : undefined,
+        longitude:
+          typeof currentLongitude === "number" && Number.isFinite(currentLongitude)
+            ? currentLongitude
+            : undefined,
+      });
+      setSelectedKrafter(maskKrafterDetailForPublicListing(resolved));
     } catch {
       setSelectedKrafter(
-        buildKrafterDetailFromHomeRow(
-          pro,
-          rawRecord,
-          skillGroups,
-          bookableCategories,
+        maskKrafterDetailForPublicListing(
+          buildKrafterDetailFromHomeRow(
+            pro,
+            rawRecord,
+            skillGroups,
+            bookableCategories,
+          ),
         ),
       );
     } finally {
@@ -360,24 +369,33 @@ const HomePageContent = () => {
     }
   };
 
-  const activeNearYouRows = useMemo(
-    () => (selectedLocation ? locationKrafters : kraftersNearYou),
-    [selectedLocation, locationKrafters, kraftersNearYou],
-  );
+  const activeNearYouRows = useMemo(() => {
+    const rows = selectedLocation ? locationKrafters : kraftersNearYou;
+    return rows.slice(0, KRAFTER_NEAR_YOU_MAX_CARDS);
+  }, [selectedLocation, locationKrafters, kraftersNearYou]);
 
   const rawNearYou = useMemo(() => {
+    const mapNearYou = (p: HomeProOfWeek) =>
+      mapHomeKrafterToCard(p, { useListingPlaceholder: true });
+
     if (selectedLocation) {
-      return locationKrafters.map(mapHomeKrafterToCard);
+      return locationKrafters.slice(0, KRAFTER_NEAR_YOU_MAX_CARDS).map(mapNearYou);
     }
     if (kraftersNearYou.length > 0) {
-      return kraftersNearYou.map(mapHomeKrafterToCard);
+      return kraftersNearYou.slice(0, KRAFTER_NEAR_YOU_MAX_CARDS).map(mapNearYou);
     }
-    return isAuthenticated ? [] : STATIC_PROS;
+    return isAuthenticated
+      ? []
+      : STATIC_PROS.slice(0, KRAFTER_NEAR_YOU_MAX_CARDS);
   }, [selectedLocation, locationKrafters, kraftersNearYou, isAuthenticated]);
 
-  const rawProsOfWeek = useMemo(() =>
-    prosOfWeek.length > 0 ? prosOfWeek.map(mapHomeKrafterToCard) : [],
-  [prosOfWeek]);
+  const rawProsOfWeek = useMemo(
+    () =>
+      prosOfWeek.length > 0
+        ? prosOfWeek.map((p) => mapHomeKrafterToCard(p))
+        : [],
+    [prosOfWeek],
+  );
 
   const allProDescriptions = useMemo(() =>
     [...rawNearYou, ...rawProsOfWeek].map((p) => p.description),
