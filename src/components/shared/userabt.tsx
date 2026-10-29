@@ -22,13 +22,17 @@ const Userabt = () => {
   const { customerProfile, fetchCustomerProfile } = useProfileStore();
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
-  const [language, setLanguage] = useState("en");
+  const [language, setLanguage] = useState("de");
+  // pendingLanguage holds the user's selection before they hit "Done"
+  const [pendingLanguage, setPendingLanguage] = useState("de");
   const [currency, setCurrency] = useState("EUR");
 
   // Sync language state with the lang cookie on mount
   useEffect(() => {
     const match = document.cookie.match(/(?:^|;\s*)lang=([^;]+)/);
-    setLanguage(match ? match[1] : "en");
+    const saved = match ? match[1] : "de";
+    setLanguage(saved);
+    setPendingLanguage(saved);
   }, []);
 
   useEffect(() => {
@@ -166,20 +170,10 @@ const Userabt = () => {
                 </h3>
                 <ImageSelect
                   placeholder="Select Language"
-                  value={language}
+                  value={pendingLanguage}
                   onChange={(val) => {
-                    setLanguage(val);
-                    // Set lang cookie for next-intl (1 year)
-                    document.cookie = `lang=${val}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
-                    // Also update googtrans cookie for Google Translate compatibility
-                    if (val === "en") {
-                      document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/`;
-                      document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname}`;
-                    } else {
-                      switchLanguage(val);
-                    }
-                    // Reload so the server re-renders with the new locale
-                    setTimeout(() => window.location.reload(), 150);
+                    // Only update the pending selection — apply on Done
+                    setPendingLanguage(val);
                   }}
                   options={[
                     { value: "en", label: "English", image: "/flag-en.svg" },
@@ -196,7 +190,7 @@ const Userabt = () => {
                 />
               </div>
 
-              <div>
+              {/* <div>
                 <h3 className="text-[14px] font-poppins font-semibold text-gray-700 mb-3">
                   Currency
                 </h3>
@@ -211,13 +205,40 @@ const Userabt = () => {
                   ]}
                   required
                 />
-              </div>
+              </div> */}
 
               <div className="pt-4">
                 <Button
                   variant="primary"
                   fullWidth
-                  onClick={() => setShowLanguageModal(false)}
+                  onClick={() => {
+                    setShowLanguageModal(false);
+
+                    // Only apply if language actually changed
+                    if (pendingLanguage === language) return;
+
+                    setLanguage(pendingLanguage);
+
+                    // Write lang cookie with explicit attributes so the server
+                    // always reads the latest value and never falls back to "en"
+                    const maxAge = 60 * 60 * 24 * 365;
+                    document.cookie = `lang=${pendingLanguage}; path=/; max-age=${maxAge}; SameSite=Lax`;
+
+                    // Keep googtrans cookie in sync
+                    if (pendingLanguage === "en") {
+                      document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/`;
+                      document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname}`;
+                    } else {
+                      switchLanguage(pendingLanguage);
+                    }
+
+                    // router.refresh() clears the Next.js server-component cache
+                    // so the new lang cookie is picked up on the very next render,
+                    // then we do a hard reload so the full page re-renders in the
+                    // correct locale instead of reverting to the cached "en" version.
+                    router.refresh();
+                    setTimeout(() => window.location.reload(), 100);
+                  }}
                 >
                   Done
                 </Button>
