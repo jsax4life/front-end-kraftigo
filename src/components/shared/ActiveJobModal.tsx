@@ -310,7 +310,7 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
   const serviceAmount = parseBookingMoney(
     booking.finalAgreedPrice ?? booking.proposedPrice ?? booking.price,
   );
-  const platformFee = parseBookingMoney(booking.platformFee ?? booking.systemPrice);
+  const platformFee = parseBookingMoney(booking.platformFee);
   const payoutAmount = parseBookingMoney(booking.artisanEarning);
 
   const stepIndex = STATUS_STEPS.findIndex((s) => s.key === phase);
@@ -609,7 +609,7 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
                         <span>€{serviceAmount.toFixed(2)}</span>
                       </div>
                     )}
-                    {platformFee != null && (
+                    {platformFee != null && platformFee > 0 && (
                       <div className="flex justify-between text-[13px] text-gray-600">
                         <span>Platform fee</span>
                         <span>€{platformFee.toFixed(2)}</span>

@@ -18,8 +18,6 @@ import {
   SAVED_PAYMENT_METHOD_REQUIRED_TOAST,
 } from "@/lib/paymentCardRequired";
 
-// ─── Fixed fees (from backend pricing) ──────────────────────────────────────
-const SERVICE_FEE = 5;
 const URGENT_BOOST_FEE = 4.99;
 
 const Page = () => {
@@ -90,7 +88,7 @@ const Page = () => {
   const offerAmount = Number(selectedKraft?.offerAmount || 0);
   const boostFee = selectedKraft?.urgentBoost ? URGENT_BOOST_FEE : 0;
   const promoDiscount = promoApplied ? 5 : 0;
-  const total = offerAmount + SERVICE_FEE + boostFee - promoDiscount;
+  const total = offerAmount + boostFee - promoDiscount;
 
   const handleApplyPromo = () => {
     if (promoCode.trim()) setPromoApplied(true);
@@ -198,14 +196,6 @@ const Page = () => {
               </span>
               <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900">
                 €{offerAmount.toFixed(2)}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-[13px] sm:text-[14px] font-poppins text-gray-700">
-                {td("serviceFee")}
-              </span>
-              <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900">
-                €{SERVICE_FEE.toFixed(2)}
               </span>
             </div>
             {boostFee > 0 && (

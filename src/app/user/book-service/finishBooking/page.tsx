@@ -21,6 +21,10 @@ import {
 } from "@/lib/paymentCardRequired";
 import { MARKETPLACE_FIXED_PRICE_FINISH_BOOKING_MESSAGE } from "@/lib/marketplaceFixedPriceOfferValidation";
 import { parseBookingMoney } from "@/lib/bookingDisplay";
+import {
+  customerTotalFromBookingPricing,
+  shouldShowPlatformFee,
+} from "@/lib/platformFeeDisplay";
 import { formatHourlyRate, formatMoney } from "@/utils/currency";
 import {
   clampDurationHours,
@@ -155,13 +159,28 @@ const Page = () => {
       ? pricePerHourParam
       : 41.29;
   const durationHoursDisplay = clampDurationHours(Number(estimatedHoursInput));
-  const serviceFee = 5.0;
+
+  const lockedFinalAgreed = parseBookingMoney(
+    searchParams.get("bookingFinalAgreedPrice"),
+  );
+  const lockedPlatformFee = parseBookingMoney(
+    searchParams.get("bookingPlatformFee"),
+  );
 
   const estimatedLaborSubtotal = isPublic
     ? (isPublicHourly ? Number(budget) * durationHoursDisplay : Number(budget))
     : hourlyRate * durationHoursDisplay;
-  /** Sum of visible breakdown lines only (discount not wired to promo yet). */
-  const totalAmount = estimatedLaborSubtotal + serviceFee;
+  /** Pre–price-lock: do not invent a fee; use API amounts when present on the URL. */
+  const serviceFee =
+    lockedPlatformFee !== null && shouldShowPlatformFee(lockedPlatformFee)
+      ? lockedPlatformFee
+      : 0;
+  const showServiceFeeRow = serviceFee > 0;
+  const totalAmount = customerTotalFromBookingPricing(
+    lockedFinalAgreed,
+    lockedPlatformFee,
+    estimatedLaborSubtotal,
+  );
 
   const handleConfirmPayment = async () => {
     logger.log("Initiating booking creation", {
@@ -493,14 +512,16 @@ const Page = () => {
 
             </>
           )}
-          <div className="flex items-center justify-between">
-            <span className="text-[13px] sm:text-[14px] font-poppins text-gray-700">
-              {isPublic ? td("serviceFee") : td("serviceFeeEstimate")}
-            </span>
-            <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900">
-              {formatMoney(serviceFee)}
-            </span>
-          </div>
+          {showServiceFeeRow ? (
+            <div className="flex items-center justify-between">
+              <span className="text-[13px] sm:text-[14px] font-poppins text-gray-700">
+                {isPublic ? td("serviceFee") : td("serviceFeeEstimate")}
+              </span>
+              <span className="text-[14px] sm:text-[15px] font-poppins font-semibold text-gray-900">
+                {formatMoney(serviceFee)}
+              </span>
+            </div>
+          ) : null}
           <div className="pt-3 border-t border-[#0000001A] flex items-center justify-between">
             <span className="text-[15px] sm:text-[16px] font-poppins font-bold text-gray-900">
               {isPublic ? td("totalAmount") : td("totalEstimate")}

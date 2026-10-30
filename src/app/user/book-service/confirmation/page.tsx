@@ -5,6 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { useEffect, useState, Suspense } from "react";
 import { parseBookingMoney } from "@/lib/bookingDisplay";
+import {
+  customerTotalFromBookingPricing,
+  shouldShowPlatformFee,
+} from "@/lib/platformFeeDisplay";
 import { formatHourlyRate, formatMoney } from "@/utils/currency";
 import { useBookingsStore } from "@/store/useBookingsStore";
 import {
@@ -52,15 +56,25 @@ const ConfirmationContent = () => {
     (bookingFinalAgreed !== null ||
       bookingPlatformFee !== null ||
       bookingArtisanEarning !== null);
+  const fallbackJobPrice =
+    hourlyRate !== null && Number.isFinite(estimatedHoursNum)
+      ? hourlyRate * estimatedHoursNum
+      : 0;
   const serverSubtotal =
     bookingFinalAgreed ??
     (hourlyRate !== null && Number.isFinite(estimatedHoursNum)
       ? hourlyRate * estimatedHoursNum
       : null);
   const serverTotal =
-    serverSubtotal !== null && bookingPlatformFee !== null
-      ? serverSubtotal + bookingPlatformFee
-      : serverSubtotal;
+    serverSubtotal !== null
+      ? customerTotalFromBookingPricing(
+          bookingFinalAgreed,
+          bookingPlatformFee,
+          fallbackJobPrice,
+        )
+      : null;
+  const showPlatformFeeRow =
+    bookingPlatformFee !== null && shouldShowPlatformFee(bookingPlatformFee);
 
   const artisanImage =
     searchParams.get("artisanImage")?.trim() || "/images/pro.jpg";
@@ -297,11 +311,11 @@ const ConfirmationContent = () => {
               ) : null}
               {hasServerPricing ? (
                 <>
-                  {bookingPlatformFee !== null ? (
+                  {showPlatformFeeRow ? (
                     <div className="flex justify-between gap-4">
                       <span className="text-gray-600">{td("platformFee")}</span>
                       <span className="font-semibold text-gray-900">
-                        {formatMoney(bookingPlatformFee)}
+                        {formatMoney(bookingPlatformFee!)}
                       </span>
                     </div>
                   ) : null}

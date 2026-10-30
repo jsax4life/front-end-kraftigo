@@ -1,6 +1,7 @@
 import type { BookingStatus } from "@/types";
 import { formatDistanceDisplay, readDistanceFields } from "@/utils/distance";
 import { appendFlexibleScheduleToUrlParams, formatFlexibleScheduleLabel } from "@/lib/flexibleSchedule";
+import { shouldShowPlatformFee } from "@/lib/platformFeeDisplay";
 
 /** Shape returned by `GET /api/bookings/my` and `GET /api/bookings/:id` (camelCase + relations). */
 export type BookingLike = {
@@ -355,7 +356,6 @@ export function deriveActiveJobDisplay(b: BookingLike) {
       b.duration_hours,
   );
   const finalAgreed = parseBookingMoney(b.finalAgreedPrice ?? b.final_agreed_price);
-  const system = parseBookingMoney(b.systemPrice ?? b.system_price);
   const platformFee = parseBookingMoney(b.platformFee ?? b.platform_fee);
   const artisanEarning = parseBookingMoney(b.artisanEarning ?? b.artisan_earning);
   const legacyPrice = parseBookingMoney(b.price);
@@ -381,10 +381,8 @@ export function deriveActiveJobDisplay(b: BookingLike) {
   } else if (proposed !== null) {
     priceRows.push({ key: "proposedPrice", label: "Agreed service amount", amount: proposed });
   }
-  if (platformFee !== null) {
+  if (platformFee !== null && shouldShowPlatformFee(platformFee)) {
     priceRows.push({ key: "platformFee", label: "Platform fee", amount: platformFee });
-  } else if (system !== null) {
-    priceRows.push({ key: "systemPrice", label: "Platform fee", amount: system });
   }
   if (artisanEarning !== null) {
     priceRows.push({ key: "artisanEarning", label: "Krafter payout", amount: artisanEarning });
@@ -401,14 +399,13 @@ export function deriveActiveJobDisplay(b: BookingLike) {
         : proposed !== null
           ? proposed
           : legacyPrice;
-  const feeForTotal = platformFee !== null ? platformFee : system;
+  const feeForTotal =
+    platformFee !== null && shouldShowPlatformFee(platformFee) ? platformFee : 0;
   let total: number | null = null;
-  if (baseForTotal !== null && feeForTotal !== null) {
+  if (baseForTotal !== null) {
     total = baseForTotal + feeForTotal;
-  } else if (baseForTotal !== null) {
-    total = baseForTotal;
-  } else if (feeForTotal !== null) {
-    total = feeForTotal;
+  } else if (platformFee !== null && shouldShowPlatformFee(platformFee)) {
+    total = platformFee;
   }
 
   return {
