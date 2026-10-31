@@ -54,8 +54,6 @@ import {
   pickPrimaryKrafterBadge,
   krafterVerifiedTooltip,
   KRAFTER_LISTING_PLACEHOLDER_IMAGE,
-  KRAFTER_NEAR_YOU_MAX_CARDS,
-  maskKrafterDetailForPublicListing,
 } from "@/lib/krafterMarketplaceDisplay";
 
 // ─── Static fallbacks ─────────────────────────────────────────────────────────
@@ -352,16 +350,14 @@ const HomePageContent = () => {
             ? currentLongitude
             : undefined,
       });
-      setSelectedKrafter(maskKrafterDetailForPublicListing(resolved));
+      setSelectedKrafter(resolved);
     } catch {
       setSelectedKrafter(
-        maskKrafterDetailForPublicListing(
-          buildKrafterDetailFromHomeRow(
-            pro,
-            rawRecord,
-            skillGroups,
-            bookableCategories,
-          ),
+        buildKrafterDetailFromHomeRow(
+          pro,
+          rawRecord,
+          skillGroups,
+          bookableCategories,
         ),
       );
     } finally {
@@ -370,8 +366,7 @@ const HomePageContent = () => {
   };
 
   const activeNearYouRows = useMemo(() => {
-    const rows = selectedLocation ? locationKrafters : kraftersNearYou;
-    return rows.slice(0, KRAFTER_NEAR_YOU_MAX_CARDS);
+    return selectedLocation ? locationKrafters : kraftersNearYou;
   }, [selectedLocation, locationKrafters, kraftersNearYou]);
 
   const rawNearYou = useMemo(() => {
@@ -379,14 +374,12 @@ const HomePageContent = () => {
       mapHomeKrafterToCard(p, { useListingPlaceholder: true });
 
     if (selectedLocation) {
-      return locationKrafters.slice(0, KRAFTER_NEAR_YOU_MAX_CARDS).map(mapNearYou);
+      return locationKrafters.map(mapNearYou);
     }
     if (kraftersNearYou.length > 0) {
-      return kraftersNearYou.slice(0, KRAFTER_NEAR_YOU_MAX_CARDS).map(mapNearYou);
+      return kraftersNearYou.map(mapNearYou);
     }
-    return isAuthenticated
-      ? []
-      : STATIC_PROS.slice(0, KRAFTER_NEAR_YOU_MAX_CARDS);
+    return isAuthenticated ? [] : STATIC_PROS;
   }, [selectedLocation, locationKrafters, kraftersNearYou, isAuthenticated]);
 
   const rawProsOfWeek = useMemo(

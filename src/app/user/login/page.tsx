@@ -53,9 +53,9 @@ const LoginPageContent = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      void routeAfterAuthLogin(router);
+      void routeAfterAuthLogin(router, searchParams.get("redirect"));
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, router, searchParams]);
 
   const handleInputChange = (field: string, value: string | boolean) => {
     if (error) clearError();

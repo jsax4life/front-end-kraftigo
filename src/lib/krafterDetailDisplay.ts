@@ -1,6 +1,7 @@
 import { fetchKrafterPublicProfile } from "@/lib/api/bookings";
 import { getServiceSkillGroups, type ServiceSkillGroup } from "@/lib/api/services";
 import { buildCategoryBookingUrl } from "@/constants/betaLaunch";
+import { KRAFTER_LISTING_PLACEHOLDER_IMAGE } from "@/lib/krafterMarketplaceDisplay";
 import { formatFlatRate, formatHourlyRate } from "@/utils/currency";
 import type { KrafterDetail } from "@/components/shared/KrafterDetailModal";
 
@@ -574,6 +575,24 @@ export async function enrichKrafterDetailFromApi(
   return detail;
 }
 
+function profileImageFromHomeRow(
+  pro: { image: string },
+  raw: Record<string, unknown>,
+): string {
+  const fromRow = pickStr(
+    raw,
+    "profilePhotoUrl",
+    "profile_photo_url",
+    "avatar",
+    "profileImage",
+  );
+  if (fromRow?.trim()) return fromRow.trim();
+  if (pro.image && pro.image !== KRAFTER_LISTING_PLACEHOLDER_IMAGE) {
+    return pro.image;
+  }
+  return pro.image;
+}
+
 /** Build modal detail from a home / pros-of-week API row (already includes skillTags). */
 export function buildKrafterDetailFromHomeRow(
   pro: {
@@ -616,7 +635,7 @@ export function buildKrafterDetailFromHomeRow(
   return {
     id: krafterId,
     name: pro.name,
-    profileImage: pro.image,
+    profileImage: profileImageFromHomeRow(pro, raw),
     badge: pro.badge,
     rating: pro.rating,
     reviewCount: pro.reviews,
@@ -684,10 +703,6 @@ export async function resolveHomeKrafterDetail(
     if (offerings.length > 0) {
       detail = { ...detail, serviceOfferings: offerings };
     }
-  }
-
-  if (detailHasBookableOfferings(detail)) {
-    return detail;
   }
 
   const profile = await loadKrafterPublicProfile(

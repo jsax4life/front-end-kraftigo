@@ -12,9 +12,25 @@ function userIsArtisan(): boolean {
   return roles.includes("ARTISAN") || roles.includes("TASKER") || roles.includes("tasker");
 }
 
+function safeInAppRedirect(path: string | null | undefined): string | null {
+  if (!path?.trim()) return null;
+  const p = path.trim();
+  if (!p.startsWith("/") || p.startsWith("//")) return null;
+  return p;
+}
+
 /** Same routing as email login — Krafter dashboard when marketplace-ready per backend summary. */
-export async function routeAfterAuthLogin(router: AppRouterInstance): Promise<void> {
+export async function routeAfterAuthLogin(
+  router: AppRouterInstance,
+  redirectAfterLogin?: string | null,
+): Promise<void> {
   try {
+    const redirect = safeInAppRedirect(redirectAfterLogin);
+    if (redirect) {
+      router.replace(redirect);
+      return;
+    }
+
     if (getKrafterSignupIntent()) {
       router.replace(KRAFTER_VERIFICATION_ROUTE);
       return;
