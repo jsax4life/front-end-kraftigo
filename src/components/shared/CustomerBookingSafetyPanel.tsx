@@ -13,6 +13,7 @@ import {
   isDisputedStatus,
   isInProgressStatus,
 } from "@/lib/bookingSafety";
+import { useBookingVerificationSettings } from "@/hooks/useBookingVerificationSettings";
 
 type Props = {
   booking: Booking;
@@ -22,10 +23,14 @@ type Props = {
 export default function CustomerBookingSafetyPanel({ booking, onUpdated }: Props) {
   const [reauthOpen, setReauthOpen] = useState(false);
   const [disputeOpen, setDisputeOpen] = useState(false);
+  const { arrivalPinEnabled, loading: settingsLoading } =
+    useBookingVerificationSettings("customer");
 
   return (
     <div className="space-y-3">
-      {isConfirmedStatus(booking.status) && <ArrivalPinPanel booking={booking} />}
+      {isConfirmedStatus(booking.status) &&
+        !settingsLoading &&
+        arrivalPinEnabled && <ArrivalPinPanel booking={booking} />}
 
       {isInProgressStatus(booking.status) && (
         <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3">

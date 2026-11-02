@@ -17,6 +17,8 @@ import {
 type VerifiedStartModalProps = {
   open: boolean;
   booking: Booking;
+  /** From GET /api/artisan/bookings/verification-settings */
+  arrivalPinEnabled?: boolean;
   onClose: () => void;
   onStart: (payload: ArtisanStartBookingPayload) => Promise<Booking>;
   onStarted?: (booking: Booking) => void;
@@ -25,6 +27,7 @@ type VerifiedStartModalProps = {
 export default function VerifiedStartModal({
   open,
   booking,
+  arrivalPinEnabled = false,
   onClose,
   onStart,
   onStarted,
@@ -35,23 +38,28 @@ export default function VerifiedStartModal({
   if (!open) return null;
 
   const submit = async () => {
-    if (!isValidArrivalPin(arrivalPin)) {
+    if (arrivalPinEnabled && !isValidArrivalPin(arrivalPin)) {
       toast.error("Enter the six-digit arrival PIN shown by the customer.");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      // Capture immediately before the request; do not reuse a stored position.
       const location = await captureFreshLocation();
       const updated = await onStart({
-        arrivalPin,
+        ...(arrivalPinEnabled && isValidArrivalPin(arrivalPin)
+          ? { arrivalPin }
+          : {}),
         ...location,
         deviceId: getOrCreateDeviceId(),
       });
       onStarted?.(updated);
       setArrivalPin("");
-      toast.success("Job started and your arrival was verified.");
+      toast.success(
+        arrivalPinEnabled
+          ? "Job started and your arrival was verified."
+          : "Job started. Location was recorded.",
+      );
       onClose();
     } catch (error: unknown) {
       toast.error(mapStartVerificationError(error, "Could not verify the job start."));
@@ -94,31 +102,37 @@ export default function VerifiedStartModal({
         </div>
 
         <p className="mb-5 text-sm leading-relaxed text-gray-600">
-          Ask the customer for their arrival PIN. Precise location is captured only when you
-          press Verify and start.
+          {arrivalPinEnabled
+            ? "Ask the customer for their arrival PIN. Precise location is captured only when you press Verify and start."
+            : "Precise location is captured when you start the job. Schedule, payment, and GPS checks still apply."}
         </p>
 
-        <label htmlFor="arrival-pin" className="mb-2 block text-sm font-semibold text-gray-800">
-          Six-digit arrival PIN
-        </label>
-        <input
-          id="arrival-pin"
-          value={arrivalPin}
-          onChange={(event) => setArrivalPin(normalizeArrivalPin(event.target.value))}
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          pattern="[0-9]*"
-          maxLength={6}
-          disabled={isSubmitting}
-          placeholder="000000"
-          className="mb-4 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-4 text-center font-mono text-3xl tracking-[0.4em] outline-none focus:border-brand-orange disabled:opacity-60"
-        />
+        {arrivalPinEnabled ? (
+          <>
+            <label htmlFor="arrival-pin" className="mb-2 block text-sm font-semibold text-gray-800">
+              Six-digit arrival PIN
+            </label>
+            <input
+              id="arrival-pin"
+              value={arrivalPin}
+              onChange={(event) => setArrivalPin(normalizeArrivalPin(event.target.value))}
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              pattern="[0-9]*"
+              maxLength={6}
+              disabled={isSubmitting}
+              placeholder="000000"
+              className="mb-4 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-4 text-center font-mono text-3xl tracking-[0.4em] outline-none focus:border-brand-orange disabled:opacity-60"
+            />
+          </>
+        ) : null}
 
         <div className="mb-5 flex items-start gap-3 rounded-2xl border border-blue-100 bg-blue-50 p-4">
           <MapPin size={18} className="mt-0.5 shrink-0 text-brand-blue" />
           <p className="text-xs leading-relaxed text-blue-900">
             Location permission and good GPS accuracy are required. The server verifies the
-            schedule, payment, one-use PIN, geofence, and device signal.
+            schedule, payment{arrivalPinEnabled ? ", one-use PIN," : ""} geofence, and device
+            signal.
           </p>
         </div>
 
@@ -126,10 +140,16 @@ export default function VerifiedStartModal({
           type="button"
           variant="primary"
           fullWidth
-          disabled={isSubmitting || !isValidArrivalPin(arrivalPin)}
+          disabled={
+            isSubmitting || (arrivalPinEnabled && !isValidArrivalPin(arrivalPin))
+          }
           onClick={() => void submit()}
         >
-          {isSubmitting ? "Capturing location and verifying…" : "Verify and start"}
+          {isSubmitting
+            ? "Capturing location and verifying…"
+            : arrivalPinEnabled
+              ? "Verify and start"
+              : "Start job"}
         </Button>
       </div>
     </div>

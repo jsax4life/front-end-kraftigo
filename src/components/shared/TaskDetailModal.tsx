@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { X, ChevronRight, Calendar } from "lucide-react";
 import Image from "next/image";
 import { useBookingsStore } from "@/store/useBookingsStore";
@@ -10,10 +10,15 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import PhotoUploader, { type Photo } from "@/components/shared/PhotoUploader";
 import { formatDistanceDisplay, readDistanceFields } from "@/utils/distance";
-import { deriveBookingCustomerPresentation } from "@/lib/bookingDisplay";
+import {
+  bookingHasCustomerIdentity,
+  deriveBookingCustomerPresentation,
+  mergeBookingDetailRow,
+} from "@/lib/bookingDisplay";
 import { getBookingById } from "@/lib/api/bookings";
 import { DistanceBadge } from "@/components/ui/DistanceBadge";
 import VerifiedStartModal from "@/components/shared/VerifiedStartModal";
+import { useBookingVerificationSettings } from "@/hooks/useBookingVerificationSettings";
 import { captureFreshLocation, getOrCreateDeviceId } from "@/lib/workVerification";
 
 interface TaskDetailModalProps {
@@ -64,32 +69,38 @@ export default function TaskDetailModal({
 }: TaskDetailModalProps) {
   const router = useRouter();
   const { startBooking, completeBooking } = useBookingsStore();
+  const { arrivalPinEnabled, completionProofRequired } =
+    useBookingVerificationSettings("artisan");
   const [jobActionLoading, setJobActionLoading] = useState(false);
   const [completionPhotos, setCompletionPhotos] = useState<Photo[]>([]);
   const [completionNotesInput, setCompletionNotesInput] = useState("");
   const [showVerifiedStart, setShowVerifiedStart] = useState(false);
+  const [detailRow, setDetailRow] = useState<Booking | null>(null);
+  const customerDetailFetchRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!booking?.id) return;
     setCompletionPhotos([]);
     setCompletionNotesInput("");
+    setDetailRow(null);
+    customerDetailFetchRef.current = null;
   }, [booking?.id]);
 
   useEffect(() => {
     if (!booking?.id) return;
-    const c = booking.customer;
-    const hasCustomerIdentity =
-      Boolean(booking.customerName?.trim()) ||
-      Boolean(c?.firstName?.trim()) ||
-      Boolean(c?.lastName?.trim()) ||
-      Boolean(c?.phone?.trim());
-    if (hasCustomerIdentity) return;
+    const merged = mergeBookingDetailRow(booking, detailRow);
+    if (bookingHasCustomerIdentity(merged)) {
+      customerDetailFetchRef.current = booking.id;
+      return;
+    }
+    if (customerDetailFetchRef.current === booking.id) return;
+    customerDetailFetchRef.current = booking.id;
     let cancelled = false;
     void (async () => {
       try {
         const full = await getBookingById(booking.id);
         if (cancelled || !full) return;
-        onBookingUpdated?.(full);
+        setDetailRow(full);
       } catch {
         /* keep list row if detail fetch fails */
       }
@@ -97,21 +108,23 @@ export default function TaskDetailModal({
     return () => {
       cancelled = true;
     };
-  }, [booking?.id, booking?.customer, booking?.customerName, onBookingUpdated]);
+  }, [booking, detailRow]);
 
   if (!booking) return null;
 
+  const viewBooking = mergeBookingDetailRow(booking, detailRow);
+
   const hasCompletionPhotos = completionPhotos.some((p) => p.file instanceof File);
 
-  const activeStep = STATUS_STEP[booking.status] ?? 0;
-  const isConfirmed = booking.status === "CONFIRMED";
-  const isPaymentPending = booking.status === "PAYMENT_PENDING";
-  const isInProgress = booking.status === "IN_PROGRESS";
-  const isCompletionSubmitted = booking.status === "COMPLETION_SUBMITTED";
-  const isExpired = booking.status === "EXPIRED";
-  const displayTitle = booking.title || booking.service?.title || "Craft";
-  const distanceText = formatDistanceDisplay(readDistanceFields(booking));
-  const customerPresentation = deriveBookingCustomerPresentation(booking);
+  const activeStep = STATUS_STEP[viewBooking.status] ?? 0;
+  const isConfirmed = viewBooking.status === "CONFIRMED";
+  const isPaymentPending = viewBooking.status === "PAYMENT_PENDING";
+  const isInProgress = viewBooking.status === "IN_PROGRESS";
+  const isCompletionSubmitted = viewBooking.status === "COMPLETION_SUBMITTED";
+  const isExpired = viewBooking.status === "EXPIRED";
+  const displayTitle = viewBooking.title || viewBooking.service?.title || "Craft";
+  const distanceText = formatDistanceDisplay(readDistanceFields(viewBooking));
+  const customerPresentation = deriveBookingCustomerPresentation(viewBooking);
 
   return (
     <div
@@ -162,8 +175,8 @@ export default function TaskDetailModal({
         <div className="flex items-center justify-center gap-2 px-5 mb-5 ">
           <Calendar size={16} className="text-gray-400 shrink-0" />
           <p className="text-[14px] text-gray-600">
-            {formatDate(booking.scheduled_date || new Date().toISOString())}{" "}
-            <span className="font-bold text-gray-900">{booking.scheduled_time || "TBD"}</span>
+            {formatDate(viewBooking.scheduled_date || new Date().toISOString())}{" "}
+            <span className="font-bold text-gray-900">{viewBooking.scheduled_time || "TBD"}</span>
           </p>
         </div>
 
@@ -244,7 +257,7 @@ export default function TaskDetailModal({
               Job Location
             </h3>
             <p className="text-[13px] text-gray-500 text-right max-w-[55%] leading-tight">
-              {booking.location}
+              {viewBooking.location}
             </p>
           </div>
           {distanceText && (
@@ -290,7 +303,7 @@ export default function TaskDetailModal({
         </div>
 
         {/* ── Action Buttons (hidden for completed bookings) ── */}
-        {booking.status !== "COMPLETED" && (
+        {viewBooking.status !== "COMPLETED" && (
           <div className="px-5 pt-4 pb-8 space-y-3">
             {isExpired && (
               <p className="text-[13px] text-amber-900 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 font-poppins">
@@ -316,7 +329,16 @@ export default function TaskDetailModal({
             )}
             {isInProgress && (
               <div className="px-5 pb-2 space-y-3">
-                <h3 className="text-[15px] font-bold text-gray-900">Completion photos (1–3 required)</h3>
+                <h3 className="text-[15px] font-bold text-gray-900">
+                  Completion photos{" "}
+                  {completionProofRequired ? "(1–3 required)" : "(optional, up to 3)"}
+                </h3>
+                {!completionProofRequired ? (
+                  <p className="text-[12px] text-gray-500 mb-2 leading-relaxed">
+                    Photos help resolve disputes. You can complete without them when proof is not
+                    required.
+                  </p>
+                ) : null}
                 <PhotoUploader
                   photos={completionPhotos}
                   onChange={setCompletionPhotos}
@@ -341,24 +363,31 @@ export default function TaskDetailModal({
                   type="button"
                   variant="primary"
                   fullWidth
-                  disabled={jobActionLoading || !hasCompletionPhotos}
+                  disabled={
+                    jobActionLoading ||
+                    (completionProofRequired && !hasCompletionPhotos)
+                  }
                   onClick={async () => {
                     const files = completionPhotos
                       .map((p) => p.file)
                       .filter((f): f is File => f instanceof File);
-                    if (files.length < 1) {
+                    if (completionProofRequired && files.length < 1) {
                       toast.error("Add at least one completion photo (up to 3).");
                       return;
                     }
                     setJobActionLoading(true);
                     try {
                       const location = await captureFreshLocation();
-                      const updated = await completeBooking(booking.id, {
-                        completionImages: files.slice(0, 3),
-                        notes: completionNotesInput.trim() || undefined,
-                        ...location,
-                        deviceId: getOrCreateDeviceId(),
-                      });
+                      const updated = await completeBooking(
+                        booking.id,
+                        {
+                          completionImages: files.slice(0, 3),
+                          notes: completionNotesInput.trim() || undefined,
+                          ...location,
+                          deviceId: getOrCreateDeviceId(),
+                        },
+                        { completionProofRequired },
+                      );
                       onBookingUpdated?.(updated);
                       toast.success("Completion proof submitted. Awaiting customer confirmation.");
                       onClose();
@@ -395,7 +424,7 @@ export default function TaskDetailModal({
                 </p>
               </div>
             )}
-            {booking.status === "DISPUTED" && (
+            {viewBooking.status === "DISPUTED" && (
               <div className="rounded-xl border border-red-200 bg-red-50 p-4">
                 <p className="text-sm font-semibold text-red-950">Disputed — payout frozen</p>
                 <p className="mt-1 text-xs leading-relaxed text-red-800">
@@ -404,14 +433,14 @@ export default function TaskDetailModal({
               </div>
             )}
             <Button
-              onClick={() => onReschedule?.(booking)}
+              onClick={() => onReschedule?.(viewBooking)}
               variant={isConfirmed || isInProgress ? "outline" : "primary"}
               fullWidth
             >
               Reschedule
             </Button>
             <Button
-              onClick={() => onReportIssue?.(booking)}
+              onClick={() => onReportIssue?.(viewBooking)}
               variant="secondary"
               fullWidth
             >
@@ -426,7 +455,8 @@ export default function TaskDetailModal({
       </div>
       <VerifiedStartModal
         open={showVerifiedStart}
-        booking={booking}
+        booking={viewBooking}
+        arrivalPinEnabled={arrivalPinEnabled}
         onClose={() => setShowVerifiedStart(false)}
         onStart={(payload) => startBooking(booking.id, payload)}
         onStarted={(updated) => {

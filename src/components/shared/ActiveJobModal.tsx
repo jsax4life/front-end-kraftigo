@@ -14,7 +14,12 @@ import SubmittedReviewSummary from "@/components/shared/SubmittedReviewSummary";
 import { buildTaskerMessageCustomerUrlFromBooking, canTaskerMessageCustomer } from "@/lib/chatDeepLinks";
 import type { Booking } from "@/types";
 import { useBookingsStore } from "@/store/useBookingsStore";
-import { parseBookingMoney, deriveBookingCustomerPresentation } from "@/lib/bookingDisplay";
+import {
+  bookingHasCustomerIdentity,
+  deriveBookingCustomerPresentation,
+  mergeBookingDetailRow,
+  parseBookingMoney,
+} from "@/lib/bookingDisplay";
 import { getBookingById } from "@/lib/api/bookings";
 import { formatDistanceDisplay, readDistanceFields } from "@/utils/distance";
 import { DistanceBadge } from "@/components/ui/DistanceBadge";
@@ -22,6 +27,7 @@ import VerifiedStartModal from "@/components/shared/VerifiedStartModal";
 import { captureFreshLocation, getOrCreateDeviceId } from "@/lib/workVerification";
 import { isCompletionSubmittedStatus, isDisputedStatus, isCompletedStatus } from "@/lib/bookingSafety";
 import { looksLikePaymentReauthorizationError, apiErrorMessage } from "@/lib/apiErrorMessage";
+import { useBookingVerificationSettings } from "@/hooks/useBookingVerificationSettings";
 import OpenDisputeModal from "@/components/shared/OpenDisputeModal";
 import DisputeEvidenceModal from "@/components/shared/DisputeEvidenceModal";
 
@@ -161,6 +167,8 @@ interface ActiveJobModalProps {
 export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: ActiveJobModalProps) {
   const router = useRouter();
   const { startBooking, completeBooking } = useBookingsStore();
+  const { arrivalPinEnabled, completionProofRequired } =
+    useBookingVerificationSettings("artisan");
 
   const [phase, setPhase] = useState<JobPhase>("not-started");
   const [showRatingModal, setShowRatingModal] = useState(false);
@@ -174,6 +182,8 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [showVerifiedStart, setShowVerifiedStart] = useState(false);
   const [isReviewSubmitting, setIsReviewSubmitting] = useState(false);
+  const [detailRow, setDetailRow] = useState<Booking | null>(null);
+  const customerDetailFetchRef = useRef<string | null>(null);
   const [existingReview, setExistingReview] = useState<MyReview | null>(null);
   const [openDispute, setOpenDispute] = useState(false);
   const [evidenceDisputeId, setEvidenceDisputeId] = useState<string | null>(null);
@@ -203,6 +213,12 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
     const pauseExtra = pauseStartedAtRef.current ? Date.now() - pauseStartedAtRef.current : 0;
     return Date.now() - workAnchorMsRef.current - pausedTotalMsRef.current - pauseExtra;
   };
+
+  useEffect(() => {
+    if (!booking?.id) return;
+    setDetailRow(null);
+    customerDetailFetchRef.current = null;
+  }, [booking?.id]);
 
   useEffect(() => {
     if (!booking) return;
@@ -263,19 +279,19 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
 
   useEffect(() => {
     if (!booking?.id) return;
-    const c = booking.customer;
-    const hasCustomerIdentity =
-      Boolean(booking.customerName?.trim()) ||
-      Boolean(c?.firstName?.trim()) ||
-      Boolean(c?.lastName?.trim()) ||
-      Boolean(c?.phone?.trim());
-    if (hasCustomerIdentity) return;
+    const merged = mergeBookingDetailRow(booking, detailRow);
+    if (bookingHasCustomerIdentity(merged)) {
+      customerDetailFetchRef.current = booking.id;
+      return;
+    }
+    if (customerDetailFetchRef.current === booking.id) return;
+    customerDetailFetchRef.current = booking.id;
     let cancelled = false;
     void (async () => {
       try {
         const full = await getBookingById(booking.id);
         if (cancelled || !full) return;
-        onBookingUpdated?.(full);
+        setDetailRow(full);
       } catch {
         /* keep list row if detail fetch fails */
       }
@@ -283,7 +299,7 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
     return () => {
       cancelled = true;
     };
-  }, [booking?.id, booking?.customer, booking?.customerName, onBookingUpdated]);
+  }, [booking, detailRow]);
 
   useEffect(() => {
     if (phase !== "in-progress" || isPaused) return;
@@ -295,23 +311,25 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
 
   if (!booking) return null;
 
-  const apiStatus = normStatus(booking.status);
+  const viewBooking = mergeBookingDetailRow(booking, detailRow);
+
+  const apiStatus = normStatus(viewBooking.status);
   const isPaymentPending = apiStatus === "PAYMENT_PENDING";
   const isConfirmed = apiStatus === "CONFIRMED";
   const isExpired = apiStatus === "EXPIRED";
-  const displayTitle = booking.title || booking.service?.title || "Booking";
-  const customerPresentation = deriveBookingCustomerPresentation(booking);
+  const displayTitle = viewBooking.title || viewBooking.service?.title || "Booking";
+  const customerPresentation = deriveBookingCustomerPresentation(viewBooking);
   const customerLabel = customerPresentation.displayName;
   const customerAvatar = customerPresentation.photoUrl;
   const customerSecondary = customerPresentation.secondaryLine;
-  const dateLabel = formatDateLabel(booking.scheduled_date);
-  const timeLabel = booking.scheduled_time || booking.preferredTime || "TBD";
-  const kraftDetailsText = booking.jobDescription || booking.notes || "No additional details provided.";
+  const dateLabel = formatDateLabel(viewBooking.scheduled_date);
+  const timeLabel = viewBooking.scheduled_time || viewBooking.preferredTime || "TBD";
+  const kraftDetailsText = viewBooking.jobDescription || viewBooking.notes || "No additional details provided.";
   const serviceAmount = parseBookingMoney(
-    booking.finalAgreedPrice ?? booking.proposedPrice ?? booking.price,
+    viewBooking.finalAgreedPrice ?? viewBooking.proposedPrice ?? viewBooking.price,
   );
-  const platformFee = parseBookingMoney(booking.platformFee);
-  const payoutAmount = parseBookingMoney(booking.artisanEarning);
+  const platformFee = parseBookingMoney(viewBooking.platformFee);
+  const payoutAmount = parseBookingMoney(viewBooking.artisanEarning);
 
   const stepIndex = STATUS_STEPS.findIndex((s) => s.key === phase);
   const isOvertime = () => timer.hours * 60 + timer.minutes > estimatedHours * 60;
@@ -330,19 +348,27 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
 
   const handleCompleteJob = async () => {
     const files = proofPhotos.map((p) => p.file).filter((f): f is File => f instanceof File);
-    if (files.length < 1) {
+    if (completionProofRequired && files.length < 1) {
       toast.error("Add at least one completion photo (required, up to 3).");
+      return;
+    }
+    if (files.length > 3) {
+      toast.error("Add at most three completion photos.");
       return;
     }
     setIsActionLoading(true);
     try {
       const location = await captureFreshLocation();
-      const updated = await completeBooking(booking.id, {
-        completionImages: files.slice(0, 3),
-        notes: ongoingNotes.trim() || undefined,
-        ...location,
-        deviceId: getOrCreateDeviceId(),
-      });
+      const updated = await completeBooking(
+        booking.id,
+        {
+          completionImages: files.slice(0, 3),
+          notes: ongoingNotes.trim() || undefined,
+          ...location,
+          deviceId: getOrCreateDeviceId(),
+        },
+        { completionProofRequired },
+      );
       onBookingUpdated?.(updated);
       if (typeof window !== "undefined") {
         window.localStorage.setItem(jobWorkDurationStorageKey(booking.id), String(Math.max(0, computeElapsedMs())));
@@ -665,7 +691,16 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
 
             {phase === "in-progress" && (
               <div>
-                <h3 className="text-[15px] font-bold text-gray-900 mb-2">Completion photos (1–3 required)</h3>
+                <h3 className="text-[15px] font-bold text-gray-900 mb-2">
+                  Completion photos{" "}
+                  {completionProofRequired ? "(1–3 required)" : "(optional, up to 3)"}
+                </h3>
+                {!completionProofRequired ? (
+                  <p className="text-[12px] text-gray-500 mb-2 leading-relaxed">
+                    Photos help resolve disputes. You can complete the job without them when proof
+                    is not required.
+                  </p>
+                ) : null}
                 <PhotoUploader
                   photos={proofPhotos}
                   onChange={setProofPhotos}
@@ -758,7 +793,10 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
                     onClick={handleCompleteJob}
                     variant="primary"
                     fullWidth
-                    disabled={isActionLoading || !hasCompletionPhotos}
+                    disabled={
+                      isActionLoading ||
+                      (completionProofRequired && !hasCompletionPhotos)
+                    }
                   >
                     {isActionLoading ? "Completing…" : "Complete job"}
                   </Button>
@@ -819,6 +857,7 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
       <VerifiedStartModal
         open={showVerifiedStart}
         booking={booking}
+        arrivalPinEnabled={arrivalPinEnabled}
         onClose={() => setShowVerifiedStart(false)}
         onStart={(payload) => startBooking(booking.id, payload)}
         onStarted={(updated) => {

@@ -14,12 +14,15 @@ import {
 import { isConfirmedStatus, syncArrivalPinWithBookingStatus } from "@/lib/bookingSafety";
 import { useBookingsStore } from "@/store/useBookingsStore";
 import Button from "@/components/ui/button";
+import { useBookingVerificationSettings } from "@/hooks/useBookingVerificationSettings";
 
 type Props = {
   booking: Booking;
 };
 
 export default function ArrivalPinPanel({ booking }: Props) {
+  const { arrivalPinEnabled, loading: settingsLoading } =
+    useBookingVerificationSettings("customer");
   const refetchBookingSilent = useBookingsStore((s) => s.refetchBookingSilent);
   const [pin, setPin] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
@@ -48,6 +51,8 @@ export default function ArrivalPinPanel({ booking }: Props) {
   }, [booking.id, cooldownMs]);
 
   if (!isConfirmedStatus(booking.status)) return null;
+  if (settingsLoading) return null;
+  if (!arrivalPinEnabled) return null;
 
   const cooldownSec = Math.ceil(cooldownMs / 1000);
 

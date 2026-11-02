@@ -8,6 +8,7 @@ import DirectRequestDetailModal from "@/components/shared/DirectRequestDetailMod
 import ActiveJobModal from "@/components/shared/ActiveJobModal";
 import TaskDetailModal from "@/components/shared/TaskDetailModal";
 import VerifiedStartModal from "@/components/shared/VerifiedStartModal";
+import { useBookingVerificationSettings } from "@/hooks/useBookingVerificationSettings";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Input from "@/components/ui/input";
@@ -153,6 +154,7 @@ function buildMarketplaceFetchParams(
 
 const RequestsPage = () => {
   const router = useRouter();
+  const { arrivalPinEnabled } = useBookingVerificationSettings("artisan");
   const {
     bookings,
     marketplaceApplications,
@@ -1013,6 +1015,7 @@ const RequestsPage = () => {
         <VerifiedStartModal
           open
           booking={startAssignedBooking}
+          arrivalPinEnabled={arrivalPinEnabled}
           onClose={() => setStartAssignedBooking(null)}
           onStart={(payload) => startBooking(startAssignedBooking.id, payload)}
           onStarted={(updated) => {

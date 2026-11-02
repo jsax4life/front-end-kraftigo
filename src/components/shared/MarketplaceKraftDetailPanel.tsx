@@ -164,9 +164,7 @@ function bookingCustomerPresentation(booking: Booking) {
     (c?.avatar && String(c.avatar).trim()) ||
     null;
   const secondaryLine =
-    (c?.phone && String(c.phone).trim()) ||
-    (c?.email && String(c.email).trim()) ||
-    "Customer";
+    (c?.email && String(c.email).trim()) || "Customer";
 
   return { displayName, initials, photoUrl, secondaryLine };
 }

@@ -74,6 +74,42 @@ export type BookingLike = {
   krafterDistanceLabel?: string | null;
 };
 
+/** Enough to show customer in Krafter modals without refetching detail. */
+type BookingCustomerIdentityFields = {
+  customerName?: string | null;
+  customer?: {
+    firstName?: string | null;
+    lastName?: string | null;
+    phone?: string | null;
+  } | null;
+};
+
+export function bookingHasCustomerIdentity(
+  booking: BookingCustomerIdentityFields | null | undefined,
+): boolean {
+  if (!booking) return false;
+  const c = booking.customer;
+  return (
+    Boolean(String(booking.customerName ?? "").trim()) ||
+    Boolean(String(c?.firstName ?? "").trim()) ||
+    Boolean(String(c?.lastName ?? "").trim()) ||
+    Boolean(String(c?.phone ?? "").trim())
+  );
+}
+
+export function mergeBookingDetailRow<T extends BookingLike & BookingCustomerIdentityFields>(
+  base: T,
+  detail: (BookingLike & BookingCustomerIdentityFields) | null,
+): T {
+  if (!detail || detail.id !== base.id) return base;
+  return {
+    ...base,
+    ...detail,
+    customer: detail.customer ?? base.customer,
+    customerName: detail.customerName ?? base.customerName,
+  } as T;
+}
+
 /** Parse API money fields that may be `number`, numeric `string`, or empty `""`. */
 export function parseBookingMoney(value: unknown): number | null {
   if (value === null || value === undefined) return null;
@@ -149,10 +185,9 @@ export function deriveBookingCustomerPresentation(
     (c?.profilePhotoUrl && String(c.profilePhotoUrl).trim()) ||
     (c?.avatar && String(c.avatar).trim()) ||
     null;
+  /** Krafter UI: no customer phone (use in-app chat only). */
   const secondaryLine =
-    (c?.phone && String(c.phone).trim()) ||
-    (c?.email && String(c.email).trim()) ||
-    "Customer";
+    (c?.email && String(c.email).trim()) || "Customer";
   return { displayName, initials, photoUrl, secondaryLine };
 }
 

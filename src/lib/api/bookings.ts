@@ -1281,7 +1281,8 @@ export const declineArtisanBooking = async (id: string): Promise<Booking> => {
 }
 
 export type ArtisanStartBookingPayload = {
-  arrivalPin: string
+  /** Omit when `ARRIVAL_PIN_ENABLED` is false on the server. */
+  arrivalPin?: string
   latitude: number
   longitude: number
   accuracyMeters: number
@@ -1314,6 +1315,8 @@ export type ArtisanCompleteBookingPayload = {
 export type CompleteBookingOptions = {
   /** When booking is already COMPLETION_SUBMITTED, retry capture with GPS + deviceId only. */
   captureRetry?: boolean;
+  /** From GET …/verification-settings; when false, 0–3 completion images are allowed. */
+  completionProofRequired?: boolean;
 };
 
 /** POST /api/artisan/bookings/{id}/complete — IN_PROGRESS → COMPLETION_SUBMITTED (multipart). */
@@ -1323,8 +1326,14 @@ export const completeBooking = async (
   options?: CompleteBookingOptions,
 ): Promise<Booking> => {
   const files = (payload.completionImages ?? []).filter((f): f is File => f instanceof File);
-  if (!options?.captureRetry && (files.length < 1 || files.length > 3)) {
-    throw new Error("completionImages: provide between 1 and 3 files");
+  const proofRequired = options?.completionProofRequired === true;
+  if (!options?.captureRetry) {
+    if (proofRequired && (files.length < 1 || files.length > 3)) {
+      throw new Error("completionImages: provide between 1 and 3 files");
+    }
+    if (!proofRequired && files.length > 3) {
+      throw new Error("completionImages: provide at most 3 files");
+    }
   }
   if (payload.notes && payload.notes.trim().length > 2_000) {
     throw new Error("Completion notes cannot exceed 2,000 characters");

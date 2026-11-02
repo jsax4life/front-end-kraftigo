@@ -8,7 +8,7 @@ import ActiveJobModal from "@/components/shared/ActiveJobModal";
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { useBookingsStore } from "@/store/useBookingsStore";
 import type { Booking } from "@/types";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { deriveBookingCustomerPresentation } from "@/lib/bookingDisplay";
 
@@ -71,6 +71,7 @@ const SchedulePage = () => {
   const [viewMonth, setViewMonth] = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState<Date>(today);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const openedJobFromQueryRef = useRef<string | null>(null);
 
   /* ── bookings come from the store; dummy fallback is handled inside fetchTaskerBookings ── */
   const displayBookings = bookings;
@@ -84,13 +85,27 @@ const SchedulePage = () => {
     fetchArtisanBookings();
   }, [fetchArtisanBookings]);
 
-  // Auto-open ActiveJobModal when navigated from dashboard with ?openJob=<id>
+  const handleBookingUpdated = useCallback(
+    (b: Booking) => {
+      setSelectedBooking((prev) => (prev?.id === b.id ? b : prev));
+      void fetchArtisanBookings();
+    },
+    [fetchArtisanBookings],
+  );
+
+  // Auto-open modal once when navigated with ?openJob=<id> (avoid reset loop on list refetch).
   useEffect(() => {
     const openJobId = searchParams.get("openJob");
-    if (openJobId && bookings.length > 0) {
-      const match = bookings.find((b) => b.id === openJobId);
-      if (match) setSelectedBooking(match);
+    if (!openJobId) {
+      openedJobFromQueryRef.current = null;
+      return;
     }
+    if (openedJobFromQueryRef.current === openJobId) return;
+    if (bookings.length === 0) return;
+    const match = bookings.find((b) => b.id === openJobId);
+    if (!match) return;
+    openedJobFromQueryRef.current = openJobId;
+    setSelectedBooking(match);
   }, [searchParams, bookings]);
 
   // static week strip – 7 days starting from Monday of the selected date's week
@@ -333,19 +348,13 @@ const SchedulePage = () => {
         <ActiveJobModal
           booking={selectedBooking}
           onClose={() => setSelectedBooking(null)}
-          onBookingUpdated={(b) => {
-            setSelectedBooking(b);
-            void fetchArtisanBookings();
-          }}
+          onBookingUpdated={handleBookingUpdated}
         />
       ) : (
         <TaskDetailModal
           booking={selectedBooking}
           onClose={() => setSelectedBooking(null)}
-          onBookingUpdated={(b) => {
-            setSelectedBooking(b);
-            void fetchArtisanBookings();
-          }}
+          onBookingUpdated={handleBookingUpdated}
         />
       )}
     </main>
