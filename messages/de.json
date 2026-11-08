@@ -99,6 +99,37 @@
       "discarding": "Wird verworfen…",
       "success": "Entwurf verworfen",
       "error": "Dieser Entwurf konnte nicht verworfen werden. Versuchen Sie es erneut oder aktualisieren Sie die Seite."
+    },
+    "recurrenceSeries": {
+      "title": "Wiederkehrende Serie",
+      "loading": "Kommende Termine werden geladen…",
+      "payPerVisitNote": "Jeder Termin wird separat autorisiert, wenn das Datum näher rückt.",
+      "seriesStopped": "Diese Serie ist beendet — es werden keine neuen Termine geplant.",
+      "visitRoot": "Erster Termin",
+      "visitNumber": "Termin {n}",
+      "currentVisit": "diese Buchung",
+      "viewVisit": "Ansehen",
+      "payVisit": "Bezahlen",
+      "paying": "Wird geöffnet…",
+      "payError": "Zahlung für diesen Termin konnte nicht gestartet werden.",
+      "upcomingPreview": "Weitere geplante Daten",
+      "stopSeries": "Wiederholung beenden",
+      "stopping": "Wird beendet…",
+      "stopConfirm": "Serie beenden? Nicht bezahlte kommende Termine werden storniert. Bestätigte Termine bleiben bestehen.",
+      "stopSuccess": "Wiederkehrende Serie beendet.",
+      "stopError": "Serie konnte nicht beendet werden. Bitte erneut versuchen.",
+      "refresh": "Serie aktualisieren",
+      "seriesBadge": "Wiederkehrend",
+      "seriesVisitBadge": "Termin {n}",
+      "occurrenceStatus": {
+        "paymentPending": "Zahlung erforderlich",
+        "confirmed": "Bestätigt",
+        "inProgress": "In Bearbeitung",
+        "completed": "Abgeschlossen",
+        "cancelled": "Storniert",
+        "requested": "Angefragt",
+        "accepted": "Akzeptiert"
+      }
     }
   },
   "profile": {
@@ -323,6 +354,7 @@
     "categories": "Kategorien",
     "seeAll": "Alle ansehen",
     "kraftersNearYou": "Handwerker in Ihrer Nähe",
+    "featuredKrafters": "Empfohlene Krafter",
     "upcoming": "Anstehend",
     "noUpcoming": "Keine anstehenden Buchungen",
     "noUpcomingDesc": "Buchen Sie einen Service, um Ihre anstehenden Termine hier zu sehen.",
@@ -628,7 +660,30 @@
       "detailsPlaceholder": "Ich möchte, dass meine Kleidung im Dreifachwaschgang gewaschen wird...",
       "addPhotos": "Fotos hinzufügen",
       "specialInstructions": "Besondere Anweisungen",
-      "specialInstructionsPlaceholder": "z.B. Vorsicht vor dem Hund, das Seitentor ist unverschlossen"
+      "specialInstructionsPlaceholder": "z.B. Vorsicht vor dem Hund, das Seitentor ist unverschlossen",
+      "recurringSchedule": "Wiederkehrende Buchung",
+      "recurringOptional": "Optional",
+      "recurrenceHowOften": "Wie oft soll dieser Service wiederholt werden?",
+      "recurrenceOnce": "Einmalig",
+      "recurrenceWeekly": "Wöchentlich",
+      "recurrenceBiweekly": "Alle 2 Wochen",
+      "recurrenceMonthly": "Monatlich",
+      "recurrenceQuarterly": "Vierteljährlich",
+      "recurrenceCustomDays": "Bestimmte Wochentage",
+      "recurrenceSelectWeekdays": "Tage auswählen",
+      "flexibleScheduleHelp": "Für eine einmalige Buchung: Datumsbereich oder alternative Tage anbieten.",
+      "flexibleScheduleDisabledRecurrence": "Deaktivieren Sie die wiederkehrende Buchung, um flexible Daten zu nutzen.",
+      "recurringScheduleHelp": "Basiert auf Startdatum und -uhrzeit oben. Jedes Muster zeigt, welcher Wochentag bzw. welcher Tag im Monat wiederholt wird.",
+      "recurrenceSummaryNeedsDate": "Wählen Sie oben ein Startdatum, um zu sehen, wie sich diese Buchung wiederholt.",
+      "recurrenceSummaryAddTime": "Wählen Sie eine Uhrzeit — dieselbe Uhrzeit gilt für jeden Termin.",
+      "recurrenceSummaryCustomDaysPick": "Diese Buchung wiederholt sich an den Wochentagen, die Sie unten wählen.",
+      "recurrenceSummaryWeekly": "Diese Buchung wiederholt sich jeden {weekday}{atTime}, beginnend am {startDate}.",
+      "recurrenceSummaryBiweekly": "Diese Buchung wiederholt sich alle zwei Wochen am {weekday}{atTime}, beginnend am {startDate}.",
+      "recurrenceSummaryMonthly": "Diese Buchung wiederholt sich am {dayOfMonth}. jedes Monats{atTime}, beginnend am {startDate}.",
+      "recurrenceSummaryQuarterly": "Diese Buchung wiederholt sich am {dayOfMonth}. des Monats alle 3 Monate{atTime}, beginnend am {startDate}.",
+      "recurrenceSummaryCustomDays": "Diese Buchung wiederholt sich jede Woche am {days}{atTime}, beginnend am {startDate}.",
+      "recurringScheduleDisabledFlexible": "Deaktivieren Sie den flexiblen Zeitplan, um eine Wiederholung festzulegen.",
+      "scheduleMutexError": "Bitte entweder flexible Daten oder wiederkehrende Termine wählen—nicht beides."
     },
     "selectArtisanStep": {
       "errorMissingLocationCoords": "Wir benötigen Ihre Standortkoordinaten, um die Entfernung zum Krafter anzuzeigen. Gehen Sie zurück und wählen Sie Ihre Adresse aus der Vorschlagsliste aus.",
@@ -727,7 +782,10 @@
       "nextGuarantee": "Sie sind durch die Zufriedenheitsgarantie von Kraftigo geschützt",
       "messageKrafter": "Krafter kontaktieren",
       "goBackHome": "Zurück zur Startseite",
-      "loading": "Wird geladen..."
+      "loading": "Wird geladen...",
+      "recurrenceBookedTitle": "Wiederkehrende Buchung",
+      "recurrencePerVisitNotice": "Jeder Termin wird separat bezahlt, wenn das Datum fällig ist — weitere Termine finden Sie unter Meine Krafts.",
+      "recurrenceStartsAfterConfirm": "Weitere Termine werden automatisch geplant, sobald Ihre erste Buchung bestätigt und bezahlt ist."
     },
     "activeJob": {
       "paymentAuthRequiredTitle": "Ihr Krafter hat akzeptiert — Zahlungsautorisierung erforderlich",
@@ -989,6 +1047,15 @@
     "timePicker": {
       "chooseTime": "Uhrzeit wählen",
       "done": "Fertig"
+    }
+  },
+  "tasker": {
+    "recurrenceSeries": {
+      "title": "Wiederkehrende Serie",
+      "loading": "Terminplan wird geladen…",
+      "customerPaysPerVisit": "Der Kunde autorisiert die Zahlung für jeden Termin, wenn er fällig ist.",
+      "seriesStopped": "Der Kunde hat diese Serie beendet — es werden keine neuen Termine hinzugefügt.",
+      "refresh": "Serie aktualisieren"
     }
   }
 }

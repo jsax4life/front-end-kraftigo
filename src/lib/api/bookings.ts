@@ -6,11 +6,21 @@ import {
   parseAdditionalPreferredDatesFromBooking,
   type FlexibleScheduleFields,
 } from '@/lib/flexibleSchedule'
+import {
+  appendRecurrenceToFormData,
+  parseRecurrenceFrequency,
+  type RecurrenceScheduleFields,
+} from '@/lib/bookingRecurrence'
+import {
+  normalizeRecurrenceSeriesResponse,
+  type RecurrenceSeriesResponse,
+} from '@/lib/recurrenceSeries'
 import type { Booking, Service, ServiceCategory } from '@/types'
 
 export type { FlexibleScheduleFields }
+export type { RecurrenceScheduleFields }
 
-export interface CreateBookingPayload extends FlexibleScheduleFields {
+export interface CreateBookingPayload extends FlexibleScheduleFields, RecurrenceScheduleFields {
   serviceCategoryId: string
   serviceListingId?: string
   artisanId?: string
@@ -88,7 +98,9 @@ export interface CompareKraftersPayload {
   longitude: number
 }
 
-export interface CreateBookingForRecommendationPayload extends FlexibleScheduleFields {
+export interface CreateBookingForRecommendationPayload
+  extends FlexibleScheduleFields,
+    RecurrenceScheduleFields {
   serviceCategoryId: string
   serviceListingId?: string
   jobTitle: string
@@ -102,7 +114,9 @@ export interface CreateBookingForRecommendationPayload extends FlexibleScheduleF
   proposedPrice?: number
 }
 
-export interface PublishToMarketplacePayload extends FlexibleScheduleFields {
+export interface PublishToMarketplacePayload
+  extends FlexibleScheduleFields,
+    RecurrenceScheduleFields {
   /** Optional: links publish to an existing recommendation draft from create-for-recommendation */
   recommendationBookingId?: string
   serviceCategoryId: string
@@ -342,6 +356,7 @@ export const createBooking = async (payload: CreateBookingPayload): Promise<Book
   formData.append('preferredTime', payload.preferredTime)
   if (payload.proposedPrice !== undefined) formData.append('proposedPrice', String(payload.proposedPrice))
   appendFlexibleScheduleToFormData(formData, payload)
+  appendRecurrenceToFormData(formData, payload)
 
   if (payload.media && payload.media.length > 0) {
     payload.media.forEach((file) => {
@@ -477,6 +492,33 @@ export function normalizeBookingDetailResponse(data: unknown): Booking {
     resolveArtisanBookingCustomerName(customer, r) ?? pickStr('customerName', 'customer_name')
   const distance = readDistanceFields(r)
 
+  const recurrenceFrequency = parseRecurrenceFrequency(
+    pickStr('recurrenceFrequency', 'recurrence_frequency'),
+  )
+  const recurrenceDaysRaw = r.recurrenceDaysOfWeek ?? r.recurrence_days_of_week
+  const recurrenceDaysOfWeek = Array.isArray(recurrenceDaysRaw)
+    ? recurrenceDaysRaw
+        .map((d) => Number(d))
+        .filter((n) => Number.isInteger(n) && n >= 1 && n <= 7)
+    : undefined
+
+  const recurrenceSeriesId = pickStr('recurrenceSeriesId', 'recurrence_series_id')
+  const recurrenceParentBookingId = pickStr(
+    'recurrenceParentBookingId',
+    'recurrence_parent_booking_id',
+  )
+  const occurrenceRaw = r.recurrenceOccurrenceIndex ?? r.recurrence_occurrence_index
+  const recurrenceOccurrenceIndex =
+    occurrenceRaw !== undefined && occurrenceRaw !== null && occurrenceRaw !== ''
+      ? Number(occurrenceRaw)
+      : undefined
+  const recurrenceSeriesActive =
+    r.recurrenceSeriesActive === true || r.recurrence_series_active === true
+      ? true
+      : r.recurrenceSeriesActive === false || r.recurrence_series_active === false
+        ? false
+        : undefined
+
   const merged: Booking = {
     ...(r as unknown as Booking),
     id,
@@ -495,6 +537,20 @@ export function normalizeBookingDetailResponse(data: unknown): Booking {
     preferredTime,
     ...(preferredDateEnd ? { preferredDateEnd } : {}),
     ...(additionalPreferredDates ? { additionalPreferredDates } : {}),
+    ...(recurrenceFrequency && recurrenceFrequency !== 'ONCE'
+      ? {
+          recurrenceFrequency,
+          ...(recurrenceDaysOfWeek?.length ? { recurrenceDaysOfWeek } : {}),
+        }
+      : {}),
+    ...(recurrenceSeriesId ? { recurrenceSeriesId } : {}),
+    ...(recurrenceParentBookingId ? { recurrenceParentBookingId } : {}),
+    ...(Number.isFinite(recurrenceOccurrenceIndex)
+      ? { recurrenceOccurrenceIndex: recurrenceOccurrenceIndex as number }
+      : {}),
+    ...(recurrenceSeriesActive !== undefined
+      ? { recurrenceSeriesActive }
+      : {}),
     proposedPrice: proposedPrice as Booking['proposedPrice'],
     ...(proposedPricingType ? { proposedPricingType: proposedPricingType as Booking['proposedPricingType'] } : {}),
     ...(proposedDurationHours !== undefined && proposedDurationHours !== null
@@ -697,6 +753,45 @@ export const proceedToPayment = async (
   return response.data
 }
 
+/** GET /api/bookings/:id/recurrence-series — customer series timeline */
+export const getBookingRecurrenceSeries = async (
+  bookingId: string,
+): Promise<RecurrenceSeriesResponse | null> => {
+  try {
+    const response = await api.get(`/api/bookings/${bookingId}/recurrence-series`)
+    return normalizeRecurrenceSeriesResponse(response.data)
+  } catch (err: unknown) {
+    const status = (err as { response?: { status?: number } })?.response?.status
+    if (status === 404) return null
+    throw err
+  }
+}
+
+/** GET /api/artisan/bookings/:id/recurrence-series — Krafter read-only timeline */
+export const getArtisanBookingRecurrenceSeries = async (
+  bookingId: string,
+): Promise<RecurrenceSeriesResponse | null> => {
+  try {
+    const response = await api.get(
+      `/api/artisan/bookings/${bookingId}/recurrence-series`,
+    )
+    return normalizeRecurrenceSeriesResponse(response.data)
+  } catch (err: unknown) {
+    const status = (err as { response?: { status?: number } })?.response?.status
+    if (status === 404) return null
+    throw err
+  }
+}
+
+/** POST /api/bookings/:id/stop-recurrence-series */
+export const stopRecurrenceSeries = async (
+  bookingId: string,
+): Promise<void> => {
+  await api.post(`/api/bookings/${bookingId}/stop-recurrence-series`, {})
+}
+
+export type { RecurrenceSeriesResponse }
+
 /** POST /api/bookings/{id}/select-applicant — select an applicant for the booking */
 export const selectApplicant = async (id: string, payload: SelectApplicantPayload): Promise<Booking> => {
   const response = await api.post(`/api/bookings/${id}/select-applicant`, payload)
@@ -731,6 +826,7 @@ export const createBookingForRecommendation = async (payload: CreateBookingForRe
   formData.append('preferredTime', payload.preferredTime)
   if (payload.proposedPrice !== undefined) formData.append('proposedPrice', String(payload.proposedPrice))
   appendFlexibleScheduleToFormData(formData, payload)
+  appendRecurrenceToFormData(formData, payload)
 
   if (payload.media && payload.media.length > 0) {
     payload.media.forEach((file) => {
@@ -766,6 +862,7 @@ export const publishToMarketplace = async (payload: PublishToMarketplacePayload)
   formData.append('preferredTime', payload.preferredTime)
   if (payload.proposedPrice !== undefined) formData.append('proposedPrice', String(payload.proposedPrice))
   appendFlexibleScheduleToFormData(formData, payload)
+  appendRecurrenceToFormData(formData, payload)
   if (payload.offerAmount !== undefined) formData.append('offerAmount', String(payload.offerAmount))
   formData.append('offerPricingType', payload.offerPricingType)
   const offerHours =

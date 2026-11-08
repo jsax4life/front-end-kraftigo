@@ -56,44 +56,6 @@ import {
   KRAFTER_LISTING_PLACEHOLDER_IMAGE,
 } from "@/lib/krafterMarketplaceDisplay";
 
-// ─── Static fallbacks ─────────────────────────────────────────────────────────
-
-const STATIC_CATEGORIES = [
-  { name: "Gardening", image: "/images/home3.jpg" },
-  { name: "Moving", image: "/images/home5.jpg" },
-  { name: "Laundry", image: "/images/home6.jpg" },
-  { name: "Errands", image: "/images/home2.jpg" },
-  { name: "Outside", image: "/images/home1.jpg" },
-  { name: "Home repairs", image: "/images/home4.jpg" },
-];
-
-const STATIC_PROS = [
-  {
-    name: "Edith R.",
-    rating: 4,
-    reviews: 65,
-    tasks: 72,
-    description:
-      "I have six years of experience cleaning houses. My priority is to bring a good service and leav...",
-    price: formatHourlyRate(41.29),
-    distance: undefined,
-    image: KRAFTER_LISTING_PLACEHOLDER_IMAGE,
-    badge: "TOP PRO",
-  },
-  {
-    name: "Sarah M.",
-    rating: 5,
-    reviews: 89,
-    tasks: 120,
-    description:
-      "Professional cleaner with attention to detail. I ensure every corner is spotless and your home...",
-    price: formatHourlyRate(45),
-    distance: undefined,
-    image: KRAFTER_LISTING_PLACEHOLDER_IMAGE,
-    badge: "TOP PRO",
-  },
-];
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const formatScheduledAt = (iso: string) => {
@@ -133,7 +95,7 @@ function formatHomeKrafterDisplayName(displayName: string): string {
 
 function mapHomeKrafterToCard(
   p: HomeProOfWeek,
-  options?: { useListingPlaceholder?: boolean },
+  options?: { useListingPlaceholder?: boolean; hideDistance?: boolean },
 ): HomeKrafterCard {
   return {
     name: formatHomeKrafterDisplayName(p.displayName),
@@ -142,7 +104,9 @@ function mapHomeKrafterToCard(
     tasks: p.completedKrafts,
     description: p.description ?? "",
     price: formatHourlyRate(p.hourlyRate),
-    distance: formatDistanceDisplay(readDistanceFields(p)) ?? undefined,
+    distance: options?.hideDistance
+      ? undefined
+      : formatDistanceDisplay(readDistanceFields(p)) ?? undefined,
     image: options?.useListingPlaceholder
       ? KRAFTER_LISTING_PLACEHOLDER_IMAGE
       : normSrc(p.profilePhotoUrl) ?? KRAFTER_LISTING_PLACEHOLDER_IMAGE,
@@ -172,6 +136,7 @@ const HomePageContent = () => {
   const {
     categories: apiCategories,
     prosOfWeek,
+    featuredKrafters,
     kraftersNearYou,
     upcoming,
     isLoading,
@@ -204,14 +169,22 @@ const HomePageContent = () => {
   const [isLoadingLocationBrowse, setIsLoadingLocationBrowse] = useState(false);
   const [locationBrowseFailed, setLocationBrowseFailed] = useState(false);
   const prevSelectedAddressIdRef = useRef<string | null>(null);
+  const prevAuthenticatedRef = useRef<boolean | null>(null);
 
-  // ── Fetch profile (auth only) + home feed (`GET /api/home`) for everyone ───
   useEffect(() => {
     if (isAuthenticated && !customerProfile) {
       void fetchCustomerProfile();
     }
-    void fetchHomeData();
-  }, [isAuthenticated, customerProfile, fetchCustomerProfile, fetchHomeData]);
+  }, [isAuthenticated, customerProfile, fetchCustomerProfile]);
+
+  // Guest: `GET /api/home/public`. Signed-in: `GET /api/home`.
+  useEffect(() => {
+    const authChanged =
+      prevAuthenticatedRef.current !== null &&
+      prevAuthenticatedRef.current !== isAuthenticated;
+    prevAuthenticatedRef.current = isAuthenticated;
+    void fetchHomeData(authChanged ? { force: true } : undefined);
+  }, [isAuthenticated, fetchHomeData]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -298,15 +271,15 @@ const HomePageContent = () => {
   const displayName = user?.firstName || "User";
   const avatar = customerProfile?.profilePhotoUrl || user?.avatar;
 
-  const rawCategories = useMemo(() =>
-    apiCategories.length > 0
-      ? apiCategories.map((c) => ({
-          id: c.id,
-          name: c.name,
-          image: normSrc(c.imageUrl) ?? "/images/home3.jpg",
-        }))
-      : STATIC_CATEGORIES.map((c) => ({ id: "", ...c })),
-  [apiCategories]);
+  const rawCategories = useMemo(
+    () =>
+      apiCategories.map((c) => ({
+        id: c.id,
+        name: c.name,
+        image: normSrc(c.imageUrl) ?? "/images/home3.jpg",
+      })),
+    [apiCategories],
+  );
 
   const categoryNames = useMemo(() => rawCategories.map((c) => c.name), [rawCategories]);
 
@@ -366,21 +339,28 @@ const HomePageContent = () => {
   };
 
   const activeNearYouRows = useMemo(() => {
-    return selectedLocation ? locationKrafters : kraftersNearYou;
-  }, [selectedLocation, locationKrafters, kraftersNearYou]);
+    if (selectedLocation) return locationKrafters;
+    if (isAuthenticated) return kraftersNearYou;
+    return featuredKrafters;
+  }, [selectedLocation, locationKrafters, kraftersNearYou, featuredKrafters, isAuthenticated]);
 
   const rawNearYou = useMemo(() => {
     const mapNearYou = (p: HomeProOfWeek) =>
       mapHomeKrafterToCard(p, { useListingPlaceholder: true });
+    const mapGuestFeatured = (p: HomeProOfWeek) =>
+      mapHomeKrafterToCard(p, {
+        useListingPlaceholder: true,
+        hideDistance: true,
+      });
 
     if (selectedLocation) {
       return locationKrafters.map(mapNearYou);
     }
-    if (kraftersNearYou.length > 0) {
+    if (isAuthenticated) {
       return kraftersNearYou.map(mapNearYou);
     }
-    return isAuthenticated ? [] : STATIC_PROS;
-  }, [selectedLocation, locationKrafters, kraftersNearYou, isAuthenticated]);
+    return featuredKrafters.map(mapGuestFeatured);
+  }, [selectedLocation, locationKrafters, kraftersNearYou, featuredKrafters, isAuthenticated]);
 
   const rawProsOfWeek = useMemo(
     () =>
@@ -413,7 +393,9 @@ const HomePageContent = () => {
     isAuthenticated && (isLoadingLocations || locationOptions.length > 0);
   const kraftersSectionTitle = selectedLocation
     ? t("kraftersInLocation", { location: selectedLocation.label })
-    : t("kraftersNearYou");
+    : isAuthenticated
+      ? t("kraftersNearYou")
+      : t("featuredKrafters");
   const showKraftersSection =
     showLocationFilter ||
     selectedLocation != null ||

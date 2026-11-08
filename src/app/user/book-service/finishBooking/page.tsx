@@ -33,6 +33,11 @@ import {
 /** Last resort when no coordinates from the booking URL chain or address store */
 import { resolveTaskCoordinates } from "@/lib/taskLocation";
 import { readFlexibleScheduleFromUrlParams } from "@/lib/flexibleSchedule";
+import {
+  mergeRecurrenceIntoPayload,
+  readRecurrenceFromUrlParams,
+} from "@/lib/bookingRecurrence";
+import { resolveMutuallyExclusiveScheduleForApi } from "@/lib/bookingScheduleOptions";
 import { useTranslations } from "next-intl";
 
 function resolveBookingCoordinates(
@@ -240,26 +245,33 @@ const Page = () => {
       const specialInstructionsRaw = searchParams.get("specialInstructions") || "";
 
       const flexSchedule = readFlexibleScheduleFromUrlParams(searchParams);
+      const recurrence = readRecurrenceFromUrlParams(searchParams);
+      const resolved = resolveMutuallyExclusiveScheduleForApi(flexSchedule, recurrence);
 
       // Construct payload for API in the format backend expects
-      const basePayload = {
-        serviceCategoryId: searchParams.get("categoryId") || "",
-        jobTitle,
-        jobDescription: taskDetails,
-        consentAcknowledged: true,
-        address: address,
-        latitude: latitude,
-        longitude: longitude,
-        preferredDate:
-          /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : new Date(date).toISOString().split("T")[0],
-        preferredTime: formattedTime, // HH:mm format
-        ...(artisanId && !isPublic ? { artisanId } : {}),
-        ...(!isPublic ? { proposedPrice: hourlyRate * durationHours } : {}),
-        ...(flexSchedule.preferredDateEnd ? { preferredDateEnd: flexSchedule.preferredDateEnd } : {}),
-        ...(flexSchedule.additionalPreferredDates?.length
-          ? { additionalPreferredDates: flexSchedule.additionalPreferredDates }
-          : {}),
-      };
+      const basePayload = mergeRecurrenceIntoPayload(
+        {
+          serviceCategoryId: searchParams.get("categoryId") || "",
+          jobTitle,
+          jobDescription: taskDetails,
+          consentAcknowledged: true,
+          address: address,
+          latitude: latitude,
+          longitude: longitude,
+          preferredDate:
+            /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : new Date(date).toISOString().split("T")[0],
+          preferredTime: formattedTime, // HH:mm format
+          ...(artisanId && !isPublic ? { artisanId } : {}),
+          ...(!isPublic ? { proposedPrice: hourlyRate * durationHours } : {}),
+          ...(resolved.flex.preferredDateEnd
+            ? { preferredDateEnd: resolved.flex.preferredDateEnd }
+            : {}),
+          ...(resolved.flex.additionalPreferredDates?.length
+            ? { additionalPreferredDates: resolved.flex.additionalPreferredDates }
+            : {}),
+        },
+        resolved.recurrence,
+      );
 
       let pricingFromSelection: Booking | undefined;
 

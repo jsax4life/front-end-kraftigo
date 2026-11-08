@@ -30,6 +30,8 @@ import { looksLikePaymentReauthorizationError, apiErrorMessage } from "@/lib/api
 import { useBookingVerificationSettings } from "@/hooks/useBookingVerificationSettings";
 import OpenDisputeModal from "@/components/shared/OpenDisputeModal";
 import DisputeEvidenceModal from "@/components/shared/DisputeEvidenceModal";
+import KrafterRecurrenceSeriesPanel from "@/components/shared/KrafterRecurrenceSeriesPanel";
+import { bookingShouldLoadRecurrenceSeries } from "@/lib/recurrenceSeries";
 
 type JobPhase = "not-started" | "in-progress" | "awaiting-confirmation" | "completed";
 
@@ -467,6 +469,13 @@ export default function ActiveJobModal({ booking, onClose, onBookingUpdated }: A
           </div>
 
           <div className="px-5 py-5 space-y-4">
+            {bookingShouldLoadRecurrenceSeries(viewBooking) ? (
+              <KrafterRecurrenceSeriesPanel
+                booking={viewBooking}
+                highlightBookingId={viewBooking.id}
+              />
+            ) : null}
+
             {(phase === "in-progress" ||
               phase === "awaiting-confirmation" ||
               phase === "completed") && (

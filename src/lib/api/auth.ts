@@ -84,7 +84,7 @@ export interface HomeProOfWeek {
   badges: string[];
   /** True when Didit KYC is APPROVED (customer browse / home cards). */
   identityVerified?: boolean;
-  distanceKm: number;
+  distanceKm: number | null;
   distanceLabel?: string | null;
   description: string | null;
   isAvailable?: boolean;
@@ -329,7 +329,10 @@ function normalizeHomeProRow(raw: unknown): HomeProOfWeek | null {
     hourlyRate: Number(row.hourlyRate ?? row.hourly_rate ?? row.pricePerHour ?? 0) || 0,
     badges,
     identityVerified,
-    distanceKm: Number(row.distanceKm ?? row.distance_km ?? 0) || 0,
+    distanceKm:
+      row.distanceKm != null || row.distance_km != null
+        ? Number(row.distanceKm ?? row.distance_km)
+        : null,
     distanceLabel:
       typeof row.distanceLabel === "string"
         ? row.distanceLabel
@@ -399,6 +402,50 @@ export function normalizeHomeProList(raw: unknown): HomeProOfWeek[] {
     .map(normalizeHomeProRow)
     .filter((row): row is HomeProOfWeek => row !== null);
 }
+
+function normalizeHomeCategory(raw: unknown): HomeCategory | null {
+  const row = asRecord(raw);
+  if (!row) return null;
+  const id = row.id;
+  const name = row.name;
+  if (typeof id !== "string" || !id.trim()) return null;
+  if (typeof name !== "string" || !name.trim()) return null;
+  return {
+    id: id.trim(),
+    name: name.trim(),
+    description: String(row.description ?? ""),
+    imageUrl: String(row.imageUrl ?? row.image_url ?? ""),
+    activeListingsCount:
+      Number(row.activeListingsCount ?? row.active_listings_count ?? 0) || 0,
+  };
+}
+
+export interface PublicHomePageResponse {
+  categories: HomeCategory[];
+  featuredKrafters: HomeProOfWeek[];
+}
+
+/** GET /api/home/public — guest landing (no JWT). */
+export const getPublicHomeData = async (
+  limit = 8,
+): Promise<PublicHomePageResponse> => {
+  const response = await api.get("/api/home/public", {
+    params: { limit: Math.min(Math.max(limit, 1), 20) },
+  });
+  const body = response.data as Record<string, unknown>;
+  const root = (body.data as Record<string, unknown> | undefined) ?? body;
+  const categoriesRaw = root.categories;
+  const featuredRaw = root.featuredKrafters ?? root.featured_krafters;
+  const categories = Array.isArray(categoriesRaw)
+    ? categoriesRaw
+        .map(normalizeHomeCategory)
+        .filter((c): c is HomeCategory => c !== null)
+    : [];
+  return {
+    categories,
+    featuredKrafters: normalizeHomeProList(featuredRaw),
+  };
+};
 
 /** GET /api/home — dynamic customer home page data */
 export const getHomeData = async (): Promise<HomePageResponse> => {

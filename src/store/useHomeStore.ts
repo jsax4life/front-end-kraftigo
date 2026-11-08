@@ -21,15 +21,19 @@ export const normSrc = (url: string | null | undefined): string | undefined => {
 
 import {
   getHomeData,
+  getPublicHomeData,
   type HomeCategory,
   type HomeProOfWeek,
   type HomeUpcomingBooking,
 } from "@/lib/api/auth";
+import { useAuthStore } from "@/store/useAuthStore";
 
 interface HomeState {
   // Data
   categories: HomeCategory[];
   prosOfWeek: HomeProOfWeek[];
+  /** Guest home (`GET /api/home/public`). */
+  featuredKrafters: HomeProOfWeek[];
   kraftersNearYou: HomeProOfWeek[];
   upcoming: HomeUpcomingBooking[];
 
@@ -44,7 +48,7 @@ interface HomeState {
   clearRecentSearches: () => void;
 
   // Actions
-  fetchHomeData: (options?: { force?: boolean }) => Promise<void>;
+  fetchHomeData: (options?: { force?: boolean; publicLimit?: number }) => Promise<void>;
   reset: () => void;
 }
 
@@ -53,6 +57,7 @@ export const useHomeStore = create<HomeState>()(
     (set, get) => ({
       categories: [],
       prosOfWeek: [],
+      featuredKrafters: [],
       kraftersNearYou: [],
       upcoming: [],
       isLoading: false,
@@ -79,17 +84,32 @@ export const useHomeStore = create<HomeState>()(
     // Avoid duplicate in-flight requests unless explicitly forced (e.g. address switch).
     if (get().isLoading && !options?.force) return;
 
+    const isAuthenticated = useAuthStore.getState().isAuthenticated;
     set({ isLoading: true, error: null });
     try {
-      const data = await getHomeData();
-      set({
-        categories: data.categories ?? [],
-        prosOfWeek: data.prosOfWeek ?? [],
-        kraftersNearYou: data.kraftersNearYou ?? [],
-        upcoming: data.upcoming ?? [],
-        isLoading: false,
-        hasFetched: true,
-      });
+      if (isAuthenticated) {
+        const data = await getHomeData();
+        set({
+          categories: data.categories ?? [],
+          prosOfWeek: data.prosOfWeek ?? [],
+          featuredKrafters: [],
+          kraftersNearYou: data.kraftersNearYou ?? [],
+          upcoming: data.upcoming ?? [],
+          isLoading: false,
+          hasFetched: true,
+        });
+      } else {
+        const data = await getPublicHomeData(options?.publicLimit ?? 8);
+        set({
+          categories: data.categories ?? [],
+          prosOfWeek: [],
+          featuredKrafters: data.featuredKrafters ?? [],
+          kraftersNearYou: [],
+          upcoming: [],
+          isLoading: false,
+          hasFetched: true,
+        });
+      }
     } catch (err: any) {
       set({
         error: err?.response?.data?.message ?? "Failed to load home data",
@@ -103,6 +123,7 @@ export const useHomeStore = create<HomeState>()(
     set({
       categories: [],
       prosOfWeek: [],
+      featuredKrafters: [],
       kraftersNearYou: [],
       upcoming: [],
       isLoading: false,

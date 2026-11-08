@@ -10,6 +10,10 @@ import { ArrowLeft, Search, MapPin, Tag, MessageCircle, Trash2 } from "lucide-re
 import toast from "react-hot-toast";
 import OffersModal from "@/components/shared/OffersModal";
 import CustomerKraftTaskDetailModal from "@/components/shared/CustomerKraftTaskDetailModal";
+import {
+  bookingShouldLoadRecurrenceSeries,
+  readBookingRecurrenceSeriesFields,
+} from "@/lib/recurrenceSeries";
 import { formatHourlyRate } from "@/utils/currency";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import ErrorBanner from "@/components/shared/ErrorBanner";
@@ -401,6 +405,8 @@ const KraftsPage = () => {
 
             const needsPay = task.status === "PAYMENT_PENDING";
             const isDraft = task.status === "RECOMMENDATION_PENDING";
+            const isRecurring = bookingShouldLoadRecurrenceSeries(task);
+            const occurrenceIndex = readBookingRecurrenceSeriesFields(task).recurrenceOccurrenceIndex;
 
             return (
               <div
@@ -437,7 +443,16 @@ const KraftsPage = () => {
                   className="p-4 flex gap-3 cursor-pointer"
                 >
                   <div className="flex-1 space-y-1.5">
-                    <h3 className="text-[14px] font-poppins font-bold text-black">{title}</h3>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-[14px] font-poppins font-bold text-black">{title}</h3>
+                      {isRecurring ? (
+                        <span className="text-[10px] font-poppins font-semibold text-violet-800 bg-violet-50 px-2 py-0.5 rounded-full">
+                          {occurrenceIndex != null && occurrenceIndex > 0
+                            ? t("recurrenceSeries.seriesVisitBadge", { n: occurrenceIndex + 1 })
+                            : t("recurrenceSeries.seriesBadge")}
+                        </span>
+                      ) : null}
+                    </div>
                     <div className="flex items-center gap-1.5 text-[12px] text-gray-500 font-poppins">
                       <MapPin size={13} className="text-gray-400 shrink-0" />
                       <span>{location}</span>

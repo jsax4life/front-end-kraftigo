@@ -20,7 +20,10 @@ import BookingPaymentConfirmModal from "@/components/shared/BookingPaymentConfir
 import CustomerBookingSafetyPanel from "@/components/shared/CustomerBookingSafetyPanel";
 import { bookingPaymentClientSecret } from "@/lib/bookingPaymentCheckout";
 import { DistanceBadge } from "@/components/ui/DistanceBadge";
+import type { Booking } from "@/types";
 import { useTranslations } from "next-intl";
+import CustomerRecurrenceSeriesPanel from "@/components/shared/CustomerRecurrenceSeriesPanel";
+import { bookingShouldLoadRecurrenceSeries } from "@/lib/recurrenceSeries";
 
 // ─── Fallback mock for when no real booking ID is provided ───────────────────
 const MOCK_BOOKING = {
@@ -67,6 +70,8 @@ const ActiveJobContent = () => {
   const [showPriceBreakdown, setShowPriceBreakdown] = useState(false);
   const [showKraftDetails, setShowKraftDetails] = useState(false);
   const [showPaymentConfirm, setShowPaymentConfirm] = useState(false);
+  const [paymentTarget, setPaymentTarget] = useState<Booking | null>(null);
+  const [seriesReloadToken, setSeriesReloadToken] = useState(0);
 
   // Fetch real booking if ID is provided
   useEffect(() => {
@@ -242,6 +247,26 @@ const ActiveJobContent = () => {
         />
       </div>
 
+      {bookingId && selectedBooking && bookingShouldLoadRecurrenceSeries(selectedBooking) ? (
+        <div className="mx-4 mb-4">
+          <CustomerRecurrenceSeriesPanel
+            key={`${selectedBooking.id}-${seriesReloadToken}`}
+            booking={selectedBooking}
+            onPayOccurrence={(occurrence) => {
+              setPaymentTarget(occurrence);
+              setShowPaymentConfirm(true);
+            }}
+            onSeriesChanged={() => {
+              setSeriesReloadToken((n) => n + 1);
+              void fetchBookingById(bookingId);
+            }}
+            onSelectOccurrence={(occurrenceId) => {
+              router.replace(`/user/book-service/active-job?status=accepted&id=${occurrenceId}`);
+            }}
+          />
+        </div>
+      ) : null}
+
       {/* Map */}
       <div className="mx-4 mb-4">
         <p className="text-[14px] font-poppins font-semibold text-black mb-2">{td("jobLocation")}</p>
@@ -328,7 +353,10 @@ const ActiveJobContent = () => {
         {isPaymentPending && bookingId && selectedBooking && (
           <button
             type="button"
-            onClick={() => setShowPaymentConfirm(true)}
+            onClick={() => {
+              setPaymentTarget(selectedBooking);
+              setShowPaymentConfirm(true);
+            }}
             className="w-full py-4 bg-brand-orange text-white rounded-2xl text-[15px] font-poppins font-semibold hover:bg-orange-600 transition-colors"
           >
             {td("confirmPaymentBtn")}
@@ -420,21 +448,34 @@ const ActiveJobContent = () => {
         />
       )}
 
-      {showPaymentConfirm && bookingId && selectedBooking && (
+      {showPaymentConfirm && (paymentTarget ?? selectedBooking) && (
         <BookingPaymentConfirmModal
           open={showPaymentConfirm}
-          bookingId={bookingId}
-          initialClientSecret={bookingPaymentClientSecret(selectedBooking)}
+          bookingId={(paymentTarget ?? selectedBooking)!.id}
+          initialClientSecret={bookingPaymentClientSecret(paymentTarget ?? selectedBooking!)}
           returnUrl={
             typeof window !== "undefined"
-              ? `${window.location.origin}/user/book-service/active-job?status=accepted&id=${bookingId}`
+              ? `${window.location.origin}/user/book-service/active-job?status=accepted&id=${(paymentTarget ?? selectedBooking)!.id}`
               : undefined
           }
-          onClose={() => setShowPaymentConfirm(false)}
+          onClose={() => {
+            setShowPaymentConfirm(false);
+            setPaymentTarget(null);
+          }}
           onComplete={() => {
             void (async () => {
               setShowPaymentConfirm(false);
-              await refreshBookingAfterPayment(bookingId);
+              const paidId = paymentTarget?.id ?? bookingId ?? "";
+              setPaymentTarget(null);
+              setSeriesReloadToken((n) => n + 1);
+              if (paidId) {
+                await refreshBookingAfterPayment(paidId);
+              }
+              if (paidId && bookingId && paidId !== bookingId) {
+                router.replace(
+                  `/user/book-service/active-job?status=accepted&id=${encodeURIComponent(paidId)}`,
+                );
+              }
             })();
           }}
         />

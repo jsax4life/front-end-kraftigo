@@ -10,11 +10,14 @@ import {
   validateFlexibleScheduleState,
 } from "@/lib/flexibleSchedule";
 import { formatLocalDateYmd, addLocalDays } from "@/utils/date";
+import { useTranslations } from "next-intl";
 
 interface FlexibleScheduleSectionProps {
   primaryDate: Date | undefined;
   state: FlexibleScheduleState;
   onChange: (state: FlexibleScheduleState) => void;
+  /** Recurring booking is on — flexible dates are not available. */
+  blockedByRecurrence?: boolean;
 }
 
 const defaultState = (): FlexibleScheduleState => ({
@@ -31,7 +34,9 @@ export default function FlexibleScheduleSection({
   primaryDate,
   state,
   onChange,
+  blockedByRecurrence = false,
 }: FlexibleScheduleSectionProps) {
+  const t = useTranslations("booking.serviceDetailsStep");
   const [showRangeEndPicker, setShowRangeEndPicker] = useState(false);
   const [showMultiPicker, setShowMultiPicker] = useState(false);
 
@@ -64,14 +69,18 @@ export default function FlexibleScheduleSection({
         <h2 className="text-[20px] sm:text-[22px] font-poppins font-medium">
           Flexible schedule
         </h2>
-        <label className="flex items-center gap-2 cursor-pointer">
+        <label
+          className={`flex items-center gap-2 ${
+            blockedByRecurrence || !primaryDate ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+          }`}
+        >
           <span className="text-[13px] font-poppins text-gray-600">Optional</span>
           <input
             type="checkbox"
             checked={state.enabled}
-            disabled={!primaryDate}
+            disabled={!primaryDate || blockedByRecurrence}
             onChange={(e) => {
-              if (!primaryDate) return;
+              if (!primaryDate || blockedByRecurrence) return;
               onChange(
                 e.target.checked
                   ? { ...state, enabled: true }
@@ -83,13 +92,21 @@ export default function FlexibleScheduleSection({
         </label>
       </div>
 
+      <p className="text-[13px] text-gray-500 font-poppins mb-2">{t("flexibleScheduleHelp")}</p>
+
+      {blockedByRecurrence && (
+        <p className="text-[13px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 font-poppins mb-2">
+          {t("flexibleScheduleDisabledRecurrence")}
+        </p>
+      )}
+
       {!primaryDate && (
         <p className="text-[13px] text-gray-500 font-poppins">
           Pick your first date above to add a range or extra days.
         </p>
       )}
 
-      {primaryDate && state.enabled && (
+      {primaryDate && state.enabled && !blockedByRecurrence && (
         <div className="space-y-3">
           <div className="flex gap-2">
             {(["range", "multiple"] as const).map((mode) => (

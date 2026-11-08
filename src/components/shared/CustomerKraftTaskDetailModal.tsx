@@ -23,6 +23,10 @@ import {
   customerCancelDisabledReason,
 } from "@/lib/customerBookingCancel";
 import CustomerBookingSafetyPanel from "@/components/shared/CustomerBookingSafetyPanel";
+import CustomerRecurrenceSeriesPanel from "@/components/shared/CustomerRecurrenceSeriesPanel";
+import BookingPaymentConfirmModal from "@/components/shared/BookingPaymentConfirmModal";
+import { bookingPaymentClientSecret } from "@/lib/bookingPaymentCheckout";
+import { bookingShouldLoadRecurrenceSeries } from "@/lib/recurrenceSeries";
 import { BOOKING_DETAIL_INVALIDATE_EVENT } from "@/lib/safetyInvalidation";
 
 function parseJobDescription(raw: string): { description: string; specialFromBody: string } {
@@ -69,6 +73,8 @@ export default function CustomerKraftTaskDetailModal({
   const [showPriceBreakdown, setShowPriceBreakdown] = useState(false);
   const [showCancel, setShowCancel] = useState(false);
   const [showReschedule, setShowReschedule] = useState(false);
+  const [payModalBooking, setPayModalBooking] = useState<Booking | null>(null);
+  const [seriesReloadToken, setSeriesReloadToken] = useState(0);
 
   useEffect(() => {
     if (!open) return;
@@ -110,6 +116,7 @@ export default function CustomerKraftTaskDetailModal({
   if (!open) return null;
 
   const b = enriched;
+  const showRecurrenceSeries = bookingShouldLoadRecurrenceSeries(b);
   const displayData = deriveActiveJobDisplay(b);
   const apiStatus = b.status;
   const needsKrafterSelection = Boolean(bookingNeedsKrafterSelection(b));
@@ -291,6 +298,26 @@ export default function CustomerKraftTaskDetailModal({
               </span>
             </div>
           </div>
+
+          {showRecurrenceSeries ? (
+            <CustomerRecurrenceSeriesPanel
+              key={`${b.id}-${seriesReloadToken}`}
+              booking={b}
+              onPayOccurrence={(occurrence) => setPayModalBooking(occurrence)}
+              onSeriesChanged={() => {
+                setSeriesReloadToken((n) => n + 1);
+                void getBookingById(b.id)
+                  .then((fresh) => setEnriched(fresh))
+                  .catch(() => {});
+                onBookingUpdated?.();
+              }}
+              onSelectOccurrence={(occurrenceId) => {
+                void getBookingById(occurrenceId)
+                  .then((fresh) => setEnriched(fresh))
+                  .catch(() => {});
+              }}
+            />
+          ) : null}
 
           <div className="border border-gray-100 rounded-2xl p-4 flex items-center gap-3 shadow-sm mb-4">
             <div className="flex-1">
@@ -581,6 +608,30 @@ export default function CustomerKraftTaskDetailModal({
 
       {showReschedule && (
         <RescheduleModal booking={displayData} onClose={() => setShowReschedule(false)} onConfirm={handleReschedule} />
+      )}
+
+      {payModalBooking && (
+        <BookingPaymentConfirmModal
+          open
+          bookingId={payModalBooking.id}
+          initialClientSecret={bookingPaymentClientSecret(payModalBooking)}
+          returnUrl={
+            typeof window !== "undefined"
+              ? `${window.location.origin}/user/krafts`
+              : undefined
+          }
+          onClose={() => setPayModalBooking(null)}
+          onComplete={() => {
+            void (async () => {
+              const id = payModalBooking.id;
+              setPayModalBooking(null);
+              setSeriesReloadToken((n) => n + 1);
+              const fresh = await getBookingById(id).catch(() => null);
+              if (fresh && fresh.id === b.id) setEnriched(fresh);
+              onBookingUpdated?.();
+            })();
+          }}
+        />
       )}
     </div>
   );

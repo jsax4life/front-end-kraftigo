@@ -99,6 +99,37 @@
       "discarding": "Discarding…",
       "success": "Draft discarded",
       "error": "Could not discard this draft. Try again or refresh the page."
+    },
+    "recurrenceSeries": {
+      "title": "Recurring series",
+      "loading": "Loading upcoming visits…",
+      "payPerVisitNote": "Each visit is authorized separately when its date approaches.",
+      "seriesStopped": "This series is stopped — no new visits will be scheduled.",
+      "visitRoot": "First visit",
+      "visitNumber": "Visit {n}",
+      "currentVisit": "this booking",
+      "viewVisit": "View",
+      "payVisit": "Pay",
+      "paying": "Opening…",
+      "payError": "Could not start payment for this visit.",
+      "upcomingPreview": "More dates planned",
+      "stopSeries": "Stop recurring bookings",
+      "stopping": "Stopping…",
+      "stopConfirm": "Stop this series? Unpaid upcoming visits will be cancelled. Confirmed visits will stay scheduled.",
+      "stopSuccess": "Recurring series stopped.",
+      "stopError": "Could not stop the series. Try again.",
+      "refresh": "Refresh series",
+      "seriesBadge": "Recurring",
+      "seriesVisitBadge": "Visit {n}",
+      "occurrenceStatus": {
+        "paymentPending": "Payment needed",
+        "confirmed": "Confirmed",
+        "inProgress": "In progress",
+        "completed": "Completed",
+        "cancelled": "Cancelled",
+        "requested": "Requested",
+        "accepted": "Accepted"
+      }
     }
   },
   "profile": {
@@ -323,6 +354,7 @@
     "categories": "Categories",
     "seeAll": "See all",
     "kraftersNearYou": "Krafter's near you",
+    "featuredKrafters": "Featured Krafters",
     "upcoming": "Upcoming",
     "noUpcoming": "No upcoming bookings",
     "noUpcomingDesc": "Book a service to see your upcoming appointments here.",
@@ -628,7 +660,30 @@
       "detailsPlaceholder": "I want my clothes washed in triple cycle...",
       "addPhotos": "Add Photos",
       "specialInstructions": "Special Instructions",
-      "specialInstructionsPlaceholder": "eg. Beware of dog, Side gate is unlocked"
+      "specialInstructionsPlaceholder": "eg. Beware of dog, Side gate is unlocked",
+      "recurringSchedule": "Recurring booking",
+      "recurringOptional": "Optional",
+      "recurrenceHowOften": "How often should this service repeat?",
+      "recurrenceOnce": "One-time",
+      "recurrenceWeekly": "Weekly",
+      "recurrenceBiweekly": "Every 2 weeks",
+      "recurrenceMonthly": "Monthly",
+      "recurrenceQuarterly": "Quarterly",
+      "recurrenceCustomDays": "Specific days of the week",
+      "recurrenceSelectWeekdays": "Select days",
+      "flexibleScheduleHelp": "For a one-time booking: offer a date range or alternate days your Krafter can pick from.",
+      "flexibleScheduleDisabledRecurrence": "Turn off recurring booking to use flexible dates.",
+      "recurringScheduleHelp": "Uses the start date and time you chose above. Each pattern below shows which weekday or day-of-month repeats.",
+      "recurrenceSummaryNeedsDate": "Choose a start date above to see how this booking will repeat.",
+      "recurrenceSummaryAddTime": "Choose a time above — the same time will apply to each visit.",
+      "recurrenceSummaryCustomDaysPick": "This booking will repeat on the weekdays you select below.",
+      "recurrenceSummaryWeekly": "This booking will repeat every {weekday}{atTime}, starting {startDate}.",
+      "recurrenceSummaryBiweekly": "This booking will repeat every other {weekday}{atTime}, starting {startDate}.",
+      "recurrenceSummaryMonthly": "This booking will repeat on the {dayOfMonth} of each month{atTime}, starting {startDate}.",
+      "recurrenceSummaryQuarterly": "This booking will repeat on the {dayOfMonth} of the month every 3 months{atTime}, starting {startDate}.",
+      "recurrenceSummaryCustomDays": "This booking will repeat every week on {days}{atTime}, starting {startDate}.",
+      "recurringScheduleDisabledFlexible": "Turn off flexible schedule to set a recurring pattern.",
+      "scheduleMutexError": "Choose either flexible dates or recurring visits—not both."
     },
     "selectArtisanStep": {
       "errorMissingLocationCoords": "We need your job location coordinates to show Krafter distance. Go back and pick your address from the suggestions list.",
@@ -727,7 +782,10 @@
       "nextGuarantee": "You're protected by Kraftigo's satisfaction guarantee",
       "messageKrafter": "Message Krafter",
       "goBackHome": "Go Back Home",
-      "loading": "Loading..."
+      "loading": "Loading...",
+      "recurrenceBookedTitle": "Recurring booking",
+      "recurrencePerVisitNotice": "Each visit is paid separately when that date is due — you'll see future visits in My Krafts.",
+      "recurrenceStartsAfterConfirm": "More visits are scheduled automatically after your first booking is confirmed and paid."
     },
     "activeJob": {
       "paymentAuthRequiredTitle": "Your Krafter accepted — payment authorization required",
@@ -989,6 +1047,15 @@
     "timePicker": {
       "chooseTime": "Choose Time",
       "done": "Done"
+    }
+  },
+  "tasker": {
+    "recurrenceSeries": {
+      "title": "Recurring series",
+      "loading": "Loading visit schedule…",
+      "customerPaysPerVisit": "The customer authorizes payment for each visit when it's due.",
+      "seriesStopped": "The customer stopped this series — no new visits will be added.",
+      "refresh": "Refresh series"
     }
   }
 }

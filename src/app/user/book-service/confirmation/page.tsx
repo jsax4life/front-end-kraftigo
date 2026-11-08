@@ -1,9 +1,9 @@
 "use client";
 
-import { Check, Calendar, Clock, MapPin, CheckCircle2, MessageSquare, ShieldCheck } from "lucide-react";
+import { Check, Calendar, Clock, MapPin, CheckCircle2, MessageSquare, ShieldCheck, Repeat } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useMemo, useState, Suspense } from "react";
 import { parseBookingMoney } from "@/lib/bookingDisplay";
 import {
   customerTotalFromBookingPricing,
@@ -16,6 +16,11 @@ import {
   canCustomerMessageKrafter,
   bookingChatUnavailableHint,
 } from "@/lib/chatDeepLinks";
+import {
+  formatRecurringPatternForDisplay,
+  hasRecurringBookingIntent,
+  resolveBookingRecurrenceFields,
+} from "@/lib/recurrenceConfirmationCopy";
 import { useTranslations } from "next-intl";
 
 const ConfirmationContent = () => {
@@ -90,6 +95,42 @@ const ConfirmationContent = () => {
     : null;
 
   const td = useTranslations("booking.confirmationStep");
+  const tPattern = useTranslations("booking.serviceDetailsStep");
+  const tShared = useTranslations("shared.datePicker");
+
+  const recurrenceFields = useMemo(
+    () => resolveBookingRecurrenceFields(searchParams, selectedBooking),
+    [searchParams, selectedBooking],
+  );
+
+  const weekdayShort = useMemo(
+    () => [
+      tShared("weekDays.mo"),
+      tShared("weekDays.tu"),
+      tShared("weekDays.we"),
+      tShared("weekDays.th"),
+      tShared("weekDays.fr"),
+      tShared("weekDays.sa"),
+      tShared("weekDays.su"),
+    ],
+    [tShared],
+  );
+
+  const recurrencePatternLabel = useMemo(
+    () =>
+      formatRecurringPatternForDisplay(recurrenceFields, {
+        once: tPattern("recurrenceOnce"),
+        weekly: tPattern("recurrenceWeekly"),
+        biweekly: tPattern("recurrenceBiweekly"),
+        monthly: tPattern("recurrenceMonthly"),
+        quarterly: tPattern("recurrenceQuarterly"),
+        customDays: tPattern("recurrenceCustomDays"),
+        weekdayShort,
+      }),
+    [recurrenceFields, tPattern, weekdayShort],
+  );
+
+  const showRecurrenceNotice = hasRecurringBookingIntent(recurrenceFields) && recurrencePatternLabel;
 
   const parsedDate = new Date(rawDate);
   const formattedDisplayDate = !isNaN(parsedDate.getTime()) 
@@ -185,6 +226,28 @@ const ConfirmationContent = () => {
               : td("successRequestDesc", { category: categoryName, name: searchParams.get("artisanName") || "your Krafter" })}
           </p>
         </div>
+
+        {showRecurrenceNotice ? (
+          <div className="mb-6 rounded-xl border border-[#FF660033] bg-[#FF660008] p-4">
+            <div className="flex items-start gap-3">
+              <Repeat size={22} className="text-brand-orange shrink-0 mt-0.5" aria-hidden />
+              <div className="text-left space-y-1.5">
+                <h2 className="text-[16px] font-poppins font-semibold text-gray-900">
+                  {td("recurrenceBookedTitle")}
+                </h2>
+                <p className="text-[14px] font-poppins font-medium text-gray-800">
+                  {recurrencePatternLabel}
+                </p>
+                <p className="text-[13px] font-poppins text-gray-700">
+                  {td("recurrencePerVisitNotice")}
+                </p>
+                <p className="text-[12px] font-poppins text-gray-500">
+                  {td("recurrenceStartsAfterConfirm")}
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         {/* Artisan Card - Only show if not a public post */}
         {!isPublic && (

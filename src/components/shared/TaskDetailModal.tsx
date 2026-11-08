@@ -20,6 +20,8 @@ import { DistanceBadge } from "@/components/ui/DistanceBadge";
 import VerifiedStartModal from "@/components/shared/VerifiedStartModal";
 import { useBookingVerificationSettings } from "@/hooks/useBookingVerificationSettings";
 import { captureFreshLocation, getOrCreateDeviceId } from "@/lib/workVerification";
+import KrafterRecurrenceSeriesPanel from "@/components/shared/KrafterRecurrenceSeriesPanel";
+import { bookingShouldLoadRecurrenceSeries } from "@/lib/recurrenceSeries";
 
 interface TaskDetailModalProps {
   booking: Booking | null;
@@ -249,6 +251,13 @@ export default function TaskDetailModal({
             )}
           </div>
         </div>
+
+        {bookingShouldLoadRecurrenceSeries(viewBooking) ? (
+          <KrafterRecurrenceSeriesPanel
+            booking={viewBooking}
+            highlightBookingId={viewBooking.id}
+          />
+        ) : null}
 
         {/* ── Job Location ── */}
         <div className="px-5 mb-5">

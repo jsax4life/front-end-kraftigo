@@ -3,7 +3,16 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Check, Minus, Plus } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import RecurringScheduleSection from "@/components/shared/RecurringScheduleSection";
+import {
+  appendRecurrenceToUrlParams,
+  buildRecurrenceSchedulePayload,
+  readRecurrenceFromUrlParams,
+  recurrenceFieldsToState,
+  validateRecurrenceScheduleState,
+  type RecurrenceScheduleState,
+} from "@/lib/bookingRecurrence";
 import Button from "@/components/ui/button";
 import toast from "react-hot-toast";
 import { DistanceBadge } from "@/components/ui/DistanceBadge";
@@ -14,6 +23,13 @@ import {
   DURATION_HOURS_MIN,
 } from "@/lib/durationHours";
 import { useTranslations } from "next-intl";
+import { readFlexibleScheduleFromUrlParams } from "@/lib/flexibleSchedule";
+import { parseLocalDateYmd } from "@/utils/date";
+import {
+  isFlexibleScheduleFieldsActive,
+  isRecurrenceScheduleActive,
+  scheduleCombinationErrorKey,
+} from "@/lib/bookingScheduleOptions";
 
 const Page = () => {
   const router = useRouter();
@@ -30,6 +46,7 @@ const Page = () => {
 
   const tn = useTranslations("booking.nav");
   const td = useTranslations("booking.verifyDetailsStep");
+  const tSchedule = useTranslations("booking.serviceDetailsStep");
 
   // Artisan details passed from selection step
   const artisanName = searchParams.get("artisanName") || "";
@@ -42,7 +59,42 @@ const Page = () => {
   const [bookingHours, setBookingHours] = useState(() =>
     parseDurationHoursParam(searchParams.get("hours")),
   );
-  const [selectedFrequency, setSelectedFrequency] = useState("just-once");
+  const [recurrenceSchedule, setRecurrenceSchedule] = useState<RecurrenceScheduleState>(() =>
+    recurrenceFieldsToState(readRecurrenceFromUrlParams(searchParams)),
+  );
+  const flexFieldsFromUrl = useMemo(
+    () => readFlexibleScheduleFromUrlParams(searchParams),
+    [searchParams],
+  );
+  const flexActiveFromUrl = isFlexibleScheduleFieldsActive(flexFieldsFromUrl);
+  const hasRecurrenceFromEarlier = useMemo(
+    () => Boolean(readRecurrenceFromUrlParams(searchParams).recurrenceFrequency),
+    [searchParams],
+  );
+
+  const anchorDate = useMemo(() => {
+    const raw = searchParams.get("date")?.trim();
+    if (!raw) return undefined;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return parseLocalDateYmd(raw) ?? undefined;
+    const d = new Date(raw);
+    return Number.isNaN(d.getTime()) ? undefined : d;
+  }, [searchParams]);
+
+  const preferredTime24 = useMemo(() => {
+    const raw = searchParams.get("time")?.trim() || "";
+    if (raw.includes("AM") || raw.includes("PM")) {
+      const timeParts = raw.match(/(\d+):(\d+)\s*(AM|PM)/i);
+      if (timeParts) {
+        let hour24 = parseInt(timeParts[1], 10);
+        const minutes = timeParts[2];
+        const period = timeParts[3].toUpperCase();
+        if (period === "PM" && hour24 !== 12) hour24 += 12;
+        else if (period === "AM" && hour24 === 12) hour24 = 0;
+        return `${hour24.toString().padStart(2, "0")}:${minutes}`;
+      }
+    }
+    return raw;
+  }, [searchParams]);
 
   const handleIncrement = () => {
     setBookingHours((prev) => clampDurationHours(prev + 1));
@@ -66,7 +118,23 @@ const Page = () => {
     } else {
       params.delete("hours");
     }
-    params.set("frequency", selectedFrequency);
+    const recurrenceError = validateRecurrenceScheduleState(recurrenceSchedule);
+    if (recurrenceError) {
+      toast.error(recurrenceError);
+      return;
+    }
+    const mutexKey = scheduleCombinationErrorKey(
+      flexActiveFromUrl,
+      isRecurrenceScheduleActive(recurrenceSchedule),
+    );
+    if (mutexKey) {
+      toast.error(tSchedule(mutexKey));
+      return;
+    }
+    appendRecurrenceToUrlParams(
+      params,
+      buildRecurrenceSchedulePayload(recurrenceSchedule),
+    );
     router.push(`/user/book-service/finishBooking?${params.toString()}`);
   };
 
@@ -83,13 +151,6 @@ const Page = () => {
       return dateString;
     }
   };
-
-  const frequencyOptions = [
-    { id: "just-once", label: td("freqJustOnce") },
-    { id: "weekly", label: td("freqWeekly") },
-    { id: "every-2-weeks", label: td("freqEvery2Weeks") },
-    { id: "monthly", label: td("freqMonthly") },
-  ];
 
   return (
     <div className="min-h-screen bg-white pb-24">
@@ -229,36 +290,15 @@ const Page = () => {
         </div>
       )}
 
-      {/* Frequency */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-0 pt-6 pb-20 border-t border-[#0000001A]">
-        <h3 className="text-[18px] sm:text-[20px] font-poppins font-semibold mb-3">
-          {td("frequency")}
-        </h3>
-        <p className="text-[13px] sm:text-[14px] text-gray-700 font-poppins mb-4">
-          {td("howOften")}
-        </p>
-        <div className="space-y-3">
-          {frequencyOptions.map((option) => (
-            <label
-              key={option.id}
-              className="flex items-center gap-3 cursor-pointer group"
-            >
-              <div className="relative flex items-center">
-                <input
-                  type="radio"
-                  name="frequency"
-                  value={option.id}
-                  checked={selectedFrequency === option.id}
-                  onChange={(e) => setSelectedFrequency(e.target.value)}
-                  className="w-5 h-5 appearance-none border border-black rounded-full checked:border-black checked:border-[6px] transition-all cursor-pointer"
-                />
-              </div>
-              <span className="text-[14px] sm:text-[15px] font-poppins text-gray-800 group-hover:text-brand-orange transition-colors">
-                {option.label}
-              </span>
-            </label>
-          ))}
-        </div>
+      <div className="max-w-4xl mx-auto border-t border-[#0000001A] pb-20">
+        <RecurringScheduleSection
+          state={recurrenceSchedule}
+          onChange={setRecurrenceSchedule}
+          alwaysExpanded={hasRecurrenceFromEarlier && !flexActiveFromUrl}
+          blockedByFlexibleSchedule={flexActiveFromUrl}
+          anchorDate={anchorDate}
+          preferredTime24={preferredTime24}
+        />
       </div>
 
       {/* Next Button */}

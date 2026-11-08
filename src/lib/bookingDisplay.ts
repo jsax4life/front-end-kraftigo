@@ -1,6 +1,7 @@
 import type { BookingStatus } from "@/types";
 import { formatDistanceDisplay, readDistanceFields } from "@/utils/distance";
 import { appendFlexibleScheduleToUrlParams, formatFlexibleScheduleLabel } from "@/lib/flexibleSchedule";
+import { appendRecurrenceToUrlParams, type IsoWeekday } from "@/lib/bookingRecurrence";
 import { shouldShowPlatformFee } from "@/lib/platformFeeDisplay";
 
 /** Shape returned by `GET /api/bookings/my` and `GET /api/bookings/:id` (camelCase + relations). */
@@ -31,6 +32,12 @@ export type BookingLike = {
   preferredTime?: string;
   preferredDateEnd?: string;
   additionalPreferredDates?: string[];
+  recurrenceFrequency?: import("@/lib/bookingRecurrence").BookingRecurrenceFrequency;
+  recurrenceDaysOfWeek?: number[];
+  recurrenceSeriesId?: string | null;
+  recurrenceParentBookingId?: string | null;
+  recurrenceOccurrenceIndex?: number | null;
+  recurrenceSeriesActive?: boolean | null;
   scheduledDate?: string;
   scheduledTime?: string;
   scheduled_date?: string;
@@ -288,6 +295,12 @@ export function buildSelectArtisanQuery(b: BookingLike): string {
     ...(b.preferredDateEnd ? { preferredDateEnd: b.preferredDateEnd } : {}),
     ...(b.additionalPreferredDates?.length
       ? { additionalPreferredDates: b.additionalPreferredDates }
+      : {}),
+  });
+  appendRecurrenceToUrlParams(params, {
+    ...(b.recurrenceFrequency ? { recurrenceFrequency: b.recurrenceFrequency } : {}),
+    ...(b.recurrenceDaysOfWeek?.length
+      ? { recurrenceDaysOfWeek: b.recurrenceDaysOfWeek as IsoWeekday[] }
       : {}),
   });
 

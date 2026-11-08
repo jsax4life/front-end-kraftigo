@@ -176,6 +176,21 @@ export interface Booking {
   preferredDateEnd?: string;
   /** Extra non-contiguous preferred days (max 14, each ≥ preferredDate). */
   additionalPreferredDates?: string[];
+  /** Customer repeat preference (`ONCE` when omitted). */
+  recurrenceFrequency?:
+    | 'ONCE'
+    | 'WEEKLY'
+    | 'BIWEEKLY'
+    | 'MONTHLY'
+    | 'QUARTERLY'
+    | 'CUSTOM_DAYS';
+  /** ISO weekdays 1–7 when `recurrenceFrequency` is `CUSTOM_DAYS`. */
+  recurrenceDaysOfWeek?: number[];
+  /** Set on root + child occurrences when series is active. */
+  recurrenceSeriesId?: string | null;
+  recurrenceParentBookingId?: string | null;
+  recurrenceOccurrenceIndex?: number | null;
+  recurrenceSeriesActive?: boolean | null;
   mediaUrls?: string[];
   artisan?: {
     avatar?: string;

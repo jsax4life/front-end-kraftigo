@@ -10,6 +10,7 @@ import DatePickerModal from "@/components/shared/DatePickerModal";
 import FlexibleScheduleSection, {
   createInitialFlexibleScheduleState,
 } from "@/components/shared/FlexibleScheduleSection";
+import RecurringScheduleSection from "@/components/shared/RecurringScheduleSection";
 import TimePickerModal, { formatTime12h } from "@/components/shared/TimePickerModal";
 import PhotoUploader, { Photo } from "@/components/shared/PhotoUploader";
 import { useAddressStore } from "@/store/useAddressStore";
@@ -24,11 +25,25 @@ import {
   validateFlexibleScheduleState,
   type FlexibleScheduleState,
 } from "@/lib/flexibleSchedule";
+import {
+  appendRecurrenceToUrlParams,
+  buildRecurrenceSchedulePayload,
+  createInitialRecurrenceScheduleState,
+  mergeRecurrenceIntoPayload,
+  validateRecurrenceScheduleState,
+  type RecurrenceScheduleState,
+} from "@/lib/bookingRecurrence";
 import { useTranslations } from "next-intl";
 import {
   BETA_UNAVAILABLE_ROUTE,
   isBetaBookableCategory,
 } from "@/constants/betaLaunch";
+import {
+  isFlexibleScheduleActive,
+  isRecurrenceScheduleActive,
+  resolveMutuallyExclusiveScheduleForApi,
+  scheduleCombinationErrorKey,
+} from "@/lib/bookingScheduleOptions";
 
 const BookServicePage = () => {
   const router = useRouter();
@@ -94,11 +109,28 @@ const BookServicePage = () => {
   const [flexSchedule, setFlexSchedule] = useState<FlexibleScheduleState>(
     createInitialFlexibleScheduleState,
   );
+  const [recurrenceSchedule, setRecurrenceSchedule] = useState<RecurrenceScheduleState>(
+    createInitialRecurrenceScheduleState,
+  );
 
   const isSelectedDateToday = formData.selectedDate
     ? isSameLocalDay(formData.selectedDate, new Date())
     : false;
   const minTimeToday = minScheduleTimeInputForToday();
+
+  const handleFlexScheduleChange = (next: FlexibleScheduleState) => {
+    if (next.enabled) {
+      setRecurrenceSchedule(createInitialRecurrenceScheduleState());
+    }
+    setFlexSchedule(next);
+  };
+
+  const handleRecurrenceScheduleChange = (next: RecurrenceScheduleState) => {
+    if (next.enabled) {
+      setFlexSchedule(createInitialFlexibleScheduleState());
+    }
+    setRecurrenceSchedule(next);
+  };
 
   const isTimeSlotDisabled = (slotValue: string) => {
     if (slotValue === "Custom" || !formData.selectedDate) return false;
@@ -139,12 +171,28 @@ const BookServicePage = () => {
       toast.error(flexError);
       return;
     }
+    const recurrenceError = validateRecurrenceScheduleState(recurrenceSchedule);
+    if (recurrenceError) {
+      toast.error(recurrenceError);
+      return;
+    }
+    const mutexKey = scheduleCombinationErrorKey(
+      isFlexibleScheduleActive(flexSchedule),
+      isRecurrenceScheduleActive(recurrenceSchedule),
+    );
+    if (mutexKey) {
+      toast.error(td(mutexKey));
+      return;
+    }
     if (!categoryId.trim()) {
       toast.error(td("errorMissingCategory"));
       return;
     }
 
     const schedule = buildFlexibleSchedulePayload(formData.selectedDate, flexSchedule);
+    const recurrence = buildRecurrenceSchedulePayload(recurrenceSchedule);
+    const resolvedSchedule = resolveMutuallyExclusiveScheduleForApi(schedule, recurrence);
+    const { flex: flexFields, recurrence: recurrenceFields } = resolvedSchedule;
     const preferredDate = schedule.preferredDate;
     const { address: bookingAddress, latitude: lat, longitude: lng } =
       getBookingLocationData();
@@ -186,7 +234,8 @@ const BookServicePage = () => {
         });
         params.set("latitude", String(lat));
         params.set("longitude", String(lng));
-        appendFlexibleScheduleToUrlParams(params, schedule);
+        appendFlexibleScheduleToUrlParams(params, flexFields);
+        appendRecurrenceToUrlParams(params, recurrenceFields);
 
         const passthroughKeys = [
           "artisanName",
@@ -206,21 +255,26 @@ const BookServicePage = () => {
         return;
       }
 
-      const booking = await createBookingForRecommendation({
-        serviceCategoryId: categoryId,
-        jobTitle: categoryName,
-        jobDescription,
-        media: mediaFiles.length > 0 ? mediaFiles : undefined,
-        address: bookingAddress,
-        latitude: lat,
-        longitude: lng,
-        preferredDate,
-        preferredTime: resolvedTime,
-        ...(schedule.preferredDateEnd ? { preferredDateEnd: schedule.preferredDateEnd } : {}),
-        ...(schedule.additionalPreferredDates?.length
-          ? { additionalPreferredDates: schedule.additionalPreferredDates }
-          : {}),
-      });
+      const booking = await createBookingForRecommendation(
+        mergeRecurrenceIntoPayload(
+          {
+            serviceCategoryId: categoryId,
+            jobTitle: categoryName,
+            jobDescription,
+            media: mediaFiles.length > 0 ? mediaFiles : undefined,
+            address: bookingAddress,
+            latitude: lat,
+            longitude: lng,
+            preferredDate,
+            preferredTime: resolvedTime,
+            ...(flexFields.preferredDateEnd ? { preferredDateEnd: flexFields.preferredDateEnd } : {}),
+            ...(flexFields.additionalPreferredDates?.length
+              ? { additionalPreferredDates: flexFields.additionalPreferredDates }
+              : {}),
+          },
+          recurrenceFields,
+        ),
+      );
 
       setPendingPublishMediaFiles(mediaFiles);
 
@@ -239,7 +293,8 @@ const BookServicePage = () => {
       params.set("latitude", String(lat));
       params.set("longitude", String(lng));
       if (preselectedArtisanId) params.set("artisanId", preselectedArtisanId);
-      appendFlexibleScheduleToUrlParams(params, schedule);
+      appendFlexibleScheduleToUrlParams(params, flexFields);
+      appendRecurrenceToUrlParams(params, recurrenceFields);
       router.push(`/user/book-service/select-artisan?${params.toString()}`);
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { message?: string } } };
@@ -380,7 +435,8 @@ const BookServicePage = () => {
         <FlexibleScheduleSection
           primaryDate={formData.selectedDate}
           state={flexSchedule}
-          onChange={setFlexSchedule}
+          onChange={handleFlexScheduleChange}
+          blockedByRecurrence={isRecurrenceScheduleActive(recurrenceSchedule)}
         />
 
         {/* When? */}
@@ -427,6 +483,18 @@ const BookServicePage = () => {
               </div>
             )}
         </div>
+
+        <RecurringScheduleSection
+          state={recurrenceSchedule}
+          onChange={handleRecurrenceScheduleChange}
+          blockedByFlexibleSchedule={isFlexibleScheduleActive(flexSchedule)}
+          anchorDate={formData.selectedDate}
+          preferredTime24={
+            formData.selectedTime === "Custom"
+              ? customTime.trim()
+              : formData.selectedTime
+          }
+        />
 
         {/* Tell Us The Details */}
         <div className="p-4 sm:p-5 border-b border-[#0000001A]">
