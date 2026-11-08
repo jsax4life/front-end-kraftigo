@@ -13,6 +13,8 @@ import {
   buildCategoryBookingUrl,
   isBetaBookableCategory,
 } from "@/constants/betaLaunch";
+import { useAuthStore } from "@/store/useAuthStore";
+import { useAuthPromptStore } from "@/store/useAuthPromptStore";
 
 const Page = () => {
   const router = useRouter();
@@ -22,6 +24,13 @@ const Page = () => {
   const locale = useLocale();
   
   const { services = [], categories = [], isLoading, error, fetchServices, fetchCategories } = useServicesStore();
+  const { isAuthenticated } = useAuthStore();
+  const { openPrompt } = useAuthPromptStore();
+
+  const handleProtectedAction = (path: string) => {
+    if (!isAuthenticated) openPrompt();
+    else router.push(path);
+  };
 
   // Find current category based on slug or ID
   const currentCategory: ServiceCategory | undefined = useMemo(() => {
@@ -73,7 +82,7 @@ const Page = () => {
 
   const handleServiceClick = (serviceId: string, serviceTitle: string) => {
     if (!currentCategory) return;
-    router.push(
+    handleProtectedAction(
       buildCategoryBookingUrl(currentCategory.id, currentCategory.name, {
         serviceId,
         service: serviceTitle,

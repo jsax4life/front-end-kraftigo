@@ -38,7 +38,7 @@ const Page = () => {
   });
 
   const handleCategoryClick = (categoryId: string, categoryName: string) => {
-    router.push(buildCategoryBookingUrl(categoryId, categoryName));
+    handleProtectedAction(buildCategoryBookingUrl(categoryId, categoryName));
   };
 
   const handleCustomKraft = () => {

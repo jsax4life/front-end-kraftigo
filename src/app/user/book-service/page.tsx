@@ -60,8 +60,15 @@ const BookServicePage = () => {
     }
   }, [categoryId, categoryName, router, searchParams]);
 
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, isLoading: authLoading } = useAuthStore();
   const { openPrompt } = useAuthPromptStore();
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!isAuthenticated) {
+      openPrompt();
+    }
+  }, [authLoading, isAuthenticated, openPrompt]);
 
   // Use address store
   const {

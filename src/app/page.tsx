@@ -604,7 +604,7 @@ const HomePageContent = () => {
                     <button
                       key={category.id || category.name}
                       onClick={() =>
-                        router.push(
+                        handleProtectedAction(
                           buildCategoryBookingUrl(category.id, category.name),
                         )
                       }
@@ -725,7 +725,9 @@ const HomePageContent = () => {
               <div className="grid grid-cols-3 gap-3 sm:gap-4">
                 {displayCategories.map((category, index) => {
                   const handleCategoryClick = () => {
-                    router.push(buildCategoryBookingUrl(category.id, category.name));
+                    handleProtectedAction(
+                      buildCategoryBookingUrl(category.id, category.name),
+                    );
                   };
                   return (
                     <div
