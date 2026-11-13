@@ -38,12 +38,14 @@ const OCCURRENCE_STATUS_KEYS: Record<string, string> = {
 };
 
 function occurrenceStatusLabel(
-  status: string,
+  status: string | null | undefined,
   t: ReturnType<typeof useTranslations>,
 ): string {
-  const s = status.toUpperCase().replace(/-/g, "_");
+  const s = String(status ?? "")
+    .toUpperCase()
+    .replace(/-/g, "_");
   const key = OCCURRENCE_STATUS_KEYS[s];
-  return key ? t(key) : status;
+  return key ? t(key) : status || "—";
 }
 
 export default function CustomerRecurrenceSeriesPanel({
@@ -195,9 +197,12 @@ export default function CustomerRecurrenceSeriesPanel({
       ) : null}
 
       <ul className="space-y-2 mb-3">
-        {series.occurrences.map((occ) => {
+        {(Array.isArray(series.occurrences) ? series.occurrences : []).map((occ) => {
           const isCurrent = occ.bookingId === booking.id;
-          const needsPay = occ.status.toUpperCase().replace(/-/g, "_") === "PAYMENT_PENDING";
+          const statusNorm = String(occ.status ?? "")
+            .toUpperCase()
+            .replace(/-/g, "_");
+          const needsPay = statusNorm === "PAYMENT_PENDING";
           const dateStr = occ.preferredDate
             ? formatSeriesOccurrenceDate(occ.preferredDate, locale)
             : "—";

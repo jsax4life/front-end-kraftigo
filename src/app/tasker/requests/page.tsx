@@ -156,7 +156,8 @@ const RequestsPage = () => {
   const router = useRouter();
   const { arrivalPinEnabled } = useBookingVerificationSettings("artisan");
   const {
-    bookings,
+    marketplaceOpenTasks,
+    isLoadingMarketplaceOpen,
     marketplaceApplications,
     isLoadingMarketplaceApplications,
     directArtisanRequests,
@@ -321,7 +322,7 @@ const RequestsPage = () => {
 
   const handleLoadMoreMarketplace = useCallback(async () => {
     if (activeTab !== "marketplace" || marketplaceSubTab !== "browse" || loadingMoreMarketplace) return;
-    const { bookings: current } = useBookingsStore.getState();
+    const { marketplaceOpenTasks: current } = useBookingsStore.getState();
     if (current.length >= marketplaceTotal) return;
     setLoadingMoreMarketplace(true);
     try {
@@ -701,18 +702,18 @@ const RequestsPage = () => {
       {/* Content - Marketplace browse */}
       {activeTab === "marketplace" && marketplaceSubTab === "browse" && (
         <div className="px-4 space-y-4 mt-4">
-          {isLoading ? (
+          {isLoadingMarketplaceOpen ? (
             <div className="flex justify-center p-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-orange"></div>
             </div>
-          ) : bookings.length === 0 ? (
+          ) : marketplaceOpenTasks.length === 0 ? (
             <p className="text-center text-gray-500 py-8">
               {hideAppliedFromBrowse
                 ? "No open tasks match your filters (applied listings are hidden)."
                 : "No open marketplace tasks found."}
             </p>
           ) : (
-            bookings.map((booking) => {
+            marketplaceOpenTasks.map((booking) => {
               const price = booking.price ?? 0;
               const distanceLabel = formatDistanceDisplay(readDistanceFields(booking));
               return (
@@ -746,13 +747,13 @@ const RequestsPage = () => {
               />
             )})
           )}
-          {!isLoading &&
+          {!isLoadingMarketplaceOpen &&
             marketplaceSubTab === "browse" &&
-            bookings.length > 0 &&
-            bookings.length < marketplaceTotal && (
+            marketplaceOpenTasks.length > 0 &&
+            marketplaceOpenTasks.length < marketplaceTotal && (
               <div className="pt-2 space-y-2">
                 <p className="text-center text-xs text-gray-500">
-                  Showing {bookings.length} of {marketplaceTotal}
+                  Showing {marketplaceOpenTasks.length} of {marketplaceTotal}
                 </p>
                 <Button
                   type="button"

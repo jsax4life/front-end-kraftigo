@@ -237,8 +237,8 @@ export interface GetOpenMarketplaceTasksResponse {
   results: MarketplaceOpenBookingRow[]
 }
 
-const slugifyCategory = (name: string) =>
-  name
+const slugifyCategory = (name: string | null | undefined) =>
+  String(name ?? '')
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9]+/g, '-')
@@ -760,10 +760,8 @@ export const getBookingRecurrenceSeries = async (
   try {
     const response = await api.get(`/api/bookings/${bookingId}/recurrence-series`)
     return normalizeRecurrenceSeriesResponse(response.data)
-  } catch (err: unknown) {
-    const status = (err as { response?: { status?: number } })?.response?.status
-    if (status === 404) return null
-    throw err
+  } catch {
+    return null
   }
 }
 
@@ -776,10 +774,9 @@ export const getArtisanBookingRecurrenceSeries = async (
       `/api/artisan/bookings/${bookingId}/recurrence-series`,
     )
     return normalizeRecurrenceSeriesResponse(response.data)
-  } catch (err: unknown) {
-    const status = (err as { response?: { status?: number } })?.response?.status
-    if (status === 404) return null
-    throw err
+  } catch {
+    // Series may not exist until first payment confirm; never break Krafter job UI.
+    return null
   }
 }
 
@@ -1103,16 +1100,67 @@ export function mapArtisanAssignedBookingRowToBooking(row: ArtisanAssignedBookin
   const scheduledTime =
     timeRaw.length >= 5 ? timeRaw.slice(0, 5) : timeRaw || undefined
 
+  const jobTitle =
+    (typeof row.jobTitle === 'string' && row.jobTitle.trim()) ||
+    (typeof loose.job_title === 'string' && loose.job_title.trim()) ||
+    (typeof loose.title === 'string' && loose.title.trim()) ||
+    'Booking'
+  const jobDescription =
+    (typeof row.jobDescription === 'string' && row.jobDescription) ||
+    (typeof loose.job_description === 'string' && loose.job_description) ||
+    ''
+  const statusRaw = row.status ?? loose.status
+  const status = (
+    typeof statusRaw === 'string' && statusRaw.trim()
+      ? statusRaw.trim()
+      : 'REQUESTED'
+  ) as Booking['status']
+
+  const recurrenceFrequency = parseRecurrenceFrequency(
+    typeof loose.recurrenceFrequency === 'string'
+      ? loose.recurrenceFrequency
+      : typeof loose.recurrence_frequency === 'string'
+        ? loose.recurrence_frequency
+        : undefined,
+  )
+  const recurrenceDaysRaw = loose.recurrenceDaysOfWeek ?? loose.recurrence_days_of_week
+  const recurrenceDaysOfWeek = Array.isArray(recurrenceDaysRaw)
+    ? recurrenceDaysRaw
+        .map((d) => Number(d))
+        .filter((n) => Number.isInteger(n) && n >= 1 && n <= 7)
+    : undefined
+  const recurrenceSeriesId =
+    (typeof loose.recurrenceSeriesId === 'string' && loose.recurrenceSeriesId.trim()) ||
+    (typeof loose.recurrence_series_id === 'string' && loose.recurrence_series_id.trim()) ||
+    undefined
+  const recurrenceParentBookingId =
+    (typeof loose.recurrenceParentBookingId === 'string' &&
+      loose.recurrenceParentBookingId.trim()) ||
+    (typeof loose.recurrence_parent_booking_id === 'string' &&
+      loose.recurrence_parent_booking_id.trim()) ||
+    undefined
+  const occurrenceRaw = loose.recurrenceOccurrenceIndex ?? loose.recurrence_occurrence_index
+  const recurrenceOccurrenceIndex =
+    occurrenceRaw !== undefined && occurrenceRaw !== null && occurrenceRaw !== ''
+      ? Number(occurrenceRaw)
+      : undefined
+  const recurrenceSeriesActive =
+    loose.recurrenceSeriesActive === true || loose.recurrence_series_active === true
+      ? true
+      : loose.recurrenceSeriesActive === false || loose.recurrence_series_active === false
+        ? false
+        : undefined
+
   const category: ServiceCategory = {
-    id: row.serviceCategoryId,
+    id: row.serviceCategoryId || 'unknown',
     name: 'Service',
-    slug: slugifyCategory(row.jobTitle),
+    slug: slugifyCategory(jobTitle),
   }
 
   const service: Service = {
-    id: row.serviceListingId || row.serviceCategoryId,
-    title: row.jobTitle,
-    description: row.jobDescription,
+    id: row.serviceListingId || row.serviceCategoryId || row.id,
+    title: jobTitle,
+    description: jobDescription,
     price_per_hour: price ?? 0,
     category,
     artisan: { id: row.artisanId ?? '', fullName: '' },
@@ -1136,21 +1184,21 @@ export function mapArtisanAssignedBookingRowToBooking(row: ArtisanAssignedBookin
     service_id: row.serviceListingId || row.serviceCategoryId,
     customer_id: row.customerId,
     artisan_id: row.artisanId ?? undefined,
-    status: row.status as Booking['status'],
+    status,
     scheduled_date: row.preferredDate,
     scheduled_time: scheduledTime,
     location: row.address,
-    notes: row.jobDescription,
+    notes: jobDescription,
     price,
     created_at: row.createdAt,
     updated_at: row.updatedAt,
-    title: row.jobTitle,
+    title: jobTitle,
     image: assignedMediaUrls?.[0] ?? firstMedia,
     service,
     customer,
     customerName,
-    jobTitle: row.jobTitle,
-    jobDescription: row.jobDescription,
+    jobTitle,
+    jobDescription,
     address: row.address,
     preferredDate: row.preferredDate,
     preferredTime: row.preferredTime,
@@ -1165,6 +1213,18 @@ export function mapArtisanAssignedBookingRowToBooking(row: ArtisanAssignedBookin
     platformFee: row.platformFee ?? undefined,
     artisanEarning: row.artisanEarning ?? undefined,
     pricingRuleId: row.pricingRuleId ?? undefined,
+    ...(recurrenceFrequency && recurrenceFrequency !== 'ONCE'
+      ? {
+          recurrenceFrequency,
+          ...(recurrenceDaysOfWeek?.length ? { recurrenceDaysOfWeek } : {}),
+        }
+      : {}),
+    ...(recurrenceSeriesId ? { recurrenceSeriesId } : {}),
+    ...(recurrenceParentBookingId ? { recurrenceParentBookingId } : {}),
+    ...(Number.isFinite(recurrenceOccurrenceIndex)
+      ? { recurrenceOccurrenceIndex: recurrenceOccurrenceIndex as number }
+      : {}),
+    ...(recurrenceSeriesActive !== undefined ? { recurrenceSeriesActive } : {}),
     ...(row.conversationId?.trim()
       ? { conversationId: row.conversationId.trim(), chatConversationId: row.conversationId.trim() }
       : {}),
@@ -1203,10 +1263,26 @@ export function normalizeArtisanBookingWriteResponse(data: unknown): Booking {
 
 /** GET /api/artisan/bookings — all bookings assigned to the current Krafter (CONFIRMED, IN_PROGRESS, COMPLETED, etc.). */
 export const getArtisanBookings = async (): Promise<Booking[]> => {
-  const response = await api.get<ArtisanAssignedBookingRow[]>('/api/artisan/bookings')
-  const raw = response.data
-  if (!Array.isArray(raw)) return []
-  return raw.map(mapArtisanAssignedBookingRowToBooking)
+  const response = await api.get('/api/artisan/bookings')
+  const payload = response.data
+  const raw = Array.isArray(payload)
+    ? payload
+    : Array.isArray((payload as { data?: unknown })?.data)
+      ? ((payload as { data: ArtisanAssignedBookingRow[] }).data)
+      : Array.isArray((payload as { bookings?: unknown })?.bookings)
+        ? ((payload as { bookings: ArtisanAssignedBookingRow[] }).bookings)
+        : []
+  return raw
+    .filter((row): row is ArtisanAssignedBookingRow => Boolean(row && typeof row === 'object' && (row as { id?: unknown }).id))
+    .map((row) => {
+      try {
+        return mapArtisanAssignedBookingRowToBooking(row)
+      } catch (err) {
+        console.error('Failed to normalize artisan booking row', row, err)
+        return null
+      }
+    })
+    .filter((b): b is Booking => b != null)
 }
 
 /** Row from `GET /api/artisan/bookings/direct-requests` */
@@ -1243,17 +1319,23 @@ export interface DirectArtisanBookingRequest {
 
 /** GET /api/artisan/bookings/direct-requests — all direct booking requests for the current artisan */
 export const getDirectArtisanBookings = async (): Promise<DirectArtisanBookingRequest[]> => {
-  const response = await api.get<DirectArtisanBookingRequest[]>(
-    '/api/artisan/bookings/direct-requests',
-  )
-  return response.data.map((row) => {
-    const loose = row as unknown as Record<string, unknown>
-    const mediaRaw = row.mediaUrls ?? loose.media_urls
-    const mediaUrls = Array.isArray(mediaRaw)
-      ? mediaRaw.filter((u): u is string => typeof u === 'string' && u.trim().length > 0)
-      : null
-    return { ...row, mediaUrls }
-  })
+  const response = await api.get('/api/artisan/bookings/direct-requests')
+  const payload = response.data
+  const rows = Array.isArray(payload)
+    ? payload
+    : Array.isArray((payload as { data?: unknown })?.data)
+      ? ((payload as { data: DirectArtisanBookingRequest[] }).data)
+      : []
+  return rows
+    .filter((row): row is DirectArtisanBookingRequest => Boolean(row && typeof row === 'object'))
+    .map((row) => {
+      const loose = row as unknown as Record<string, unknown>
+      const mediaRaw = row.mediaUrls ?? loose.media_urls
+      const mediaUrls = Array.isArray(mediaRaw)
+        ? mediaRaw.filter((u): u is string => typeof u === 'string' && u.trim().length > 0)
+        : null
+      return { ...row, mediaUrls }
+    })
 }
 
 /**
@@ -1366,7 +1448,11 @@ export const respondToBooking = async (
   payload: ArtisanRespondPayload
 ): Promise<Booking> => {
   const response = await api.post(`/api/artisan/bookings/${id}/respond`, payload)
-  return response.data
+  try {
+    return normalizeArtisanBookingWriteResponse(response.data)
+  } catch {
+    return normalizeBookingDetailResponse(response.data)
+  }
 }
 
 /** POST /api/artisan/bookings/:id/respond — body strictly `{ "action": "DECLINE" }` */
@@ -1374,7 +1460,11 @@ export const declineArtisanBooking = async (id: string): Promise<Booking> => {
   const response = await api.post(`/api/artisan/bookings/${id}/respond`, {
     action: 'DECLINE' as const,
   })
-  return response.data
+  try {
+    return normalizeArtisanBookingWriteResponse(response.data)
+  } catch {
+    return normalizeBookingDetailResponse(response.data)
+  }
 }
 
 export type ArtisanStartBookingPayload = {

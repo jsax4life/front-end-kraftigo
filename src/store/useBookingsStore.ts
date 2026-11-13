@@ -96,7 +96,10 @@ function buildCustomerSavedPaymentPayload(
 interface BookingsState {
   // State
   bookings: Booking[]
-  /** Krafter marketplace — from `GET /api/artisan/bookings/marketplace-applications` (separate from browse `bookings`). */
+  /** Krafter marketplace browse — from `GET /api/artisan/bookings/marketplace/open` (must stay separate from assigned `bookings`). */
+  marketplaceOpenTasks: Booking[]
+  isLoadingMarketplaceOpen: boolean
+  /** Krafter marketplace — from `GET /api/artisan/bookings/marketplace-applications` (separate from browse). */
   marketplaceApplications: Booking[]
   isLoadingMarketplaceApplications: boolean
   /** Krafter "Requests" tab — from `GET /api/artisan/bookings/direct-requests` */
@@ -174,6 +177,8 @@ const COMPLETED_STATUSES: BookingStatus[] = ['COMPLETED', 'EXPIRED', 'CANCELLED'
 export const useBookingsStore = create<BookingsState>()((set, get) => ({
   // Initial state
   bookings: [],
+  marketplaceOpenTasks: [],
+  isLoadingMarketplaceOpen: false,
   marketplaceApplications: [],
   isLoadingMarketplaceApplications: false,
   directArtisanRequests: [],
@@ -612,25 +617,35 @@ export const useBookingsStore = create<BookingsState>()((set, get) => ({
 
   fetchOpenMarketplaceTasks: async (params, options) => {
     const append = options?.append === true
-    if (!append) set({ isLoading: true, error: null })
-    else set({ error: null })
+    if (!append) {
+      // Clear immediately so Browse never paints assigned/customer rows from shared `bookings`.
+      set({
+        isLoadingMarketplaceOpen: true,
+        marketplaceOpenTasks: [],
+        error: null,
+      })
+    } else {
+      set({ error: null })
+    }
     try {
       const page = await getOpenMarketplaceTasks(params)
-      const bookings = page.results.map(mapMarketplaceOpenRowToBooking)
+      const openTasks = page.results.map(mapMarketplaceOpenRowToBooking)
       set((state) => {
-        const nextList = append ? [...state.bookings, ...bookings] : bookings
-        const hasAny = nextList.length > 0
+        const nextList = append
+          ? [...state.marketplaceOpenTasks, ...openTasks]
+          : openTasks
         return {
-          bookings: nextList,
-          isLoading: false,
-          lastFetchStatus: hasAny ? 'success' : 'empty',
+          marketplaceOpenTasks: nextList,
+          isLoadingMarketplaceOpen: false,
+          lastFetchStatus: nextList.length > 0 ? 'success' : 'empty',
         }
       })
-      return { data: bookings, total: page.total, offset: page.offset, limit: page.limit }
+      return { data: openTasks, total: page.total, offset: page.offset, limit: page.limit }
     } catch (err: any) {
       set({
         error: err.response?.data?.message || 'Failed to load open marketplace tasks',
-        isLoading: false,
+        marketplaceOpenTasks: append ? get().marketplaceOpenTasks : [],
+        isLoadingMarketplaceOpen: false,
         lastFetchStatus: 'error',
       })
       throw err
@@ -658,6 +673,9 @@ export const useBookingsStore = create<BookingsState>()((set, get) => ({
       const updated = await applyToBookingApi(id, payload)
       set((state) => ({
         bookings: state.bookings.map((b) => (b.id === id ? updated : b)),
+        marketplaceOpenTasks: state.marketplaceOpenTasks.map((b) =>
+          b.id === id ? { ...b, ...updated, hasApplied: true } : b,
+        ),
         isSubmitting: false,
       }))
       return updated

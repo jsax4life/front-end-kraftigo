@@ -342,21 +342,22 @@ const SchedulePage = () => {
           - Completed jobs always use ActiveJobModal (timer/earnings/review flow)
           - Others: ActiveJobModal within 24h, TaskDetailModal otherwise
       ── */}
-      {selectedBooking &&
-      (String(selectedBooking.status).toUpperCase() === "COMPLETED" ||
-        isWithin24Hours(selectedBooking.scheduled_date)) ? (
-        <ActiveJobModal
-          booking={selectedBooking}
-          onClose={() => setSelectedBooking(null)}
-          onBookingUpdated={handleBookingUpdated}
-        />
-      ) : (
-        <TaskDetailModal
-          booking={selectedBooking}
-          onClose={() => setSelectedBooking(null)}
-          onBookingUpdated={handleBookingUpdated}
-        />
-      )}
+      {selectedBooking ? (
+        String(selectedBooking.status).toUpperCase() === "COMPLETED" ||
+        isWithin24Hours(selectedBooking.scheduled_date) ? (
+          <ActiveJobModal
+            booking={selectedBooking}
+            onClose={() => setSelectedBooking(null)}
+            onBookingUpdated={handleBookingUpdated}
+          />
+        ) : (
+          <TaskDetailModal
+            booking={selectedBooking}
+            onClose={() => setSelectedBooking(null)}
+            onBookingUpdated={handleBookingUpdated}
+          />
+        )
+      ) : null}
     </main>
   );
 };

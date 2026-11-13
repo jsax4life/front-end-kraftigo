@@ -7,9 +7,14 @@ export type KrafterAssignedTabId =
   | "in_progress"
   | "completed";
 
-const norm = (status: string) => status.replace(/-/g, "_").toUpperCase();
+const norm = (status: string | null | undefined) =>
+  String(status ?? "")
+    .replace(/-/g, "_")
+    .toUpperCase();
 
-export function krafterAssignedTabForStatus(status: string): KrafterAssignedTabId {
+export function krafterAssignedTabForStatus(
+  status: string | null | undefined,
+): KrafterAssignedTabId {
   const s = norm(status);
   if (s === "CONFIRMED") return "confirmed";
   if (s === "IN_PROGRESS" || s === "COMPLETION_SUBMITTED") return "in_progress";

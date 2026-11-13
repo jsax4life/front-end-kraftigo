@@ -55,7 +55,11 @@ export default function KrafterRecurrenceSeriesPanel({
   );
 
   const loadSeries = useCallback(async () => {
-    if (!booking.id) return;
+    if (!booking?.id) {
+      setLoading(false);
+      setSeries(null);
+      return;
+    }
     setLoading(true);
     try {
       const data = await getArtisanBookingRecurrenceSeries(booking.id);
@@ -65,7 +69,7 @@ export default function KrafterRecurrenceSeriesPanel({
     } finally {
       setLoading(false);
     }
-  }, [booking.id]);
+  }, [booking?.id]);
 
   useEffect(() => {
     void loadSeries();
@@ -131,13 +135,23 @@ export default function KrafterRecurrenceSeriesPanel({
       ) : null}
 
       <ul className="space-y-2 mb-3">
-        {series.occurrences.map((occ) => {
+        {(Array.isArray(series.occurrences) ? series.occurrences : []).map((occ) => {
           const isCurrent = occ.bookingId === currentId;
-          const statusKey = STATUS_KEYS[occ.status.toUpperCase().replace(/-/g, "_")];
+          const statusNorm = String(occ.status ?? "")
+            .toUpperCase()
+            .replace(/-/g, "_");
+          const statusKey = STATUS_KEYS[statusNorm];
           const dateStr = occ.preferredDate
             ? formatSeriesOccurrenceDate(occ.preferredDate, locale)
             : "—";
           const timeStr = formatSeriesOccurrenceTime(occ.preferredTime);
+          const visitIndex = Number(occ.recurrenceOccurrenceIndex);
+          const visitLabel =
+            occ.isRoot || visitIndex === 0
+              ? tCustomer("visitRoot")
+              : tCustomer("visitNumber", {
+                  n: Number.isFinite(visitIndex) ? visitIndex + 1 : 1,
+                });
 
           return (
             <li
@@ -147,9 +161,7 @@ export default function KrafterRecurrenceSeriesPanel({
               }`}
             >
               <p className="font-medium text-gray-900">
-                {occ.isRoot || occ.recurrenceOccurrenceIndex === 0
-                  ? tCustomer("visitRoot")
-                  : tCustomer("visitNumber", { n: occ.recurrenceOccurrenceIndex + 1 })}
+                {visitLabel}
                 {isCurrent ? ` · ${tCustomer("currentVisit")}` : ""}
               </p>
               <p className="text-gray-600 text-[12px]">
@@ -157,7 +169,7 @@ export default function KrafterRecurrenceSeriesPanel({
                 {timeStr ? ` · ${timeStr}` : ""}
               </p>
               <p className="text-[11px] text-gray-500 mt-0.5">
-                {statusKey ? tCustomer(statusKey) : occ.status}
+                {statusKey ? tCustomer(statusKey) : statusNorm || "—"}
               </p>
             </li>
           );

@@ -27,7 +27,8 @@ function formatPreferredTime(time: string): string {
 }
 
 /** e.g. "15th Jan, 2025" */
-function formatPreferredDateLong(isoDate: string): string {
+function formatPreferredDateLong(isoDate: string | null | undefined): string {
+  if (!isoDate?.trim()) return "";
   try {
     const d = new Date(isoDate + "T12:00:00");
     if (Number.isNaN(d.getTime())) return isoDate;
@@ -241,7 +242,7 @@ export default function DirectRequestDetailModal({
             </div>
           </div>
 
-          {request.mediaUrls && request.mediaUrls.length > 0 && (
+          {Array.isArray(request.mediaUrls) && request.mediaUrls.length > 0 && (
             <div className="mb-5">
               <p className="text-[15px] font-poppins font-bold text-gray-900 mb-1">
                 Photos
