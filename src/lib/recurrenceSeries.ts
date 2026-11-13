@@ -13,13 +13,24 @@ export interface RecurrenceSeriesOccurrence {
 }
 
 export interface RecurrenceSeriesResponse {
-  seriesId: string
+  /**
+   * Null/undefined until first payment confirm activates the series.
+   * Intent-only snapshots still return root + previewNextDates.
+   */
+  seriesId: string | null
   seriesActive: boolean
   rootBookingId: string
   recurrenceFrequency: BookingRecurrenceFrequency
   recurrenceDaysOfWeek?: number[] | null
   occurrences: RecurrenceSeriesOccurrence[]
   previewNextDates?: string[]
+}
+
+/** True once BE has activated the series (children can exist). */
+export function isRecurrenceSeriesActivated(
+  series: Pick<RecurrenceSeriesResponse, 'seriesId'> | null | undefined,
+): boolean {
+  return Boolean(series?.seriesId?.trim())
 }
 
 function asRecord(v: unknown): Record<string, unknown> {
@@ -56,12 +67,13 @@ export function normalizeRecurrenceSeriesResponse(data: unknown): RecurrenceSeri
       ? asRecord(root.data)
       : root
 
-  const seriesId = pickStr(row, 'seriesId', 'series_id')
+  // Intent-only (accepted / unpaid): seriesId is null — still a valid 200 snapshot.
+  const seriesId = pickStr(row, 'seriesId', 'series_id') ?? null
   const rootBookingId = pickStr(row, 'rootBookingId', 'root_booking_id')
   const frequency = parseRecurrenceFrequency(
     pickStr(row, 'recurrenceFrequency', 'recurrence_frequency'),
   )
-  if (!seriesId || !rootBookingId || !frequency) return null
+  if (!rootBookingId || !frequency) return null
 
   const rawOcc = row.occurrences
   const occurrences = Array.isArray(rawOcc)

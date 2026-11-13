@@ -14,6 +14,7 @@ import { formatRecurrenceScheduleLabel, type IsoWeekday } from "@/lib/bookingRec
 import {
   formatSeriesOccurrenceDate,
   formatSeriesOccurrenceTime,
+  isRecurrenceSeriesActivated,
   type RecurrenceSeriesResponse,
 } from "@/lib/recurrenceSeries";
 import type { Booking } from "@/types";
@@ -162,9 +163,12 @@ export default function CustomerRecurrenceSeriesPanel({
     return null;
   }
 
+  const seriesActivated = isRecurrenceSeriesActivated(series);
+  // Stop only after BE activated the series (seriesId set). Intent-only unpaid roots have seriesId null.
   const showStop =
+    seriesActivated &&
     series.seriesActive &&
-    (booking.recurrenceSeriesActive !== false || series.seriesActive);
+    booking.recurrenceSeriesActive !== false;
 
   return (
     <div className="mb-4 rounded-2xl border border-[#FF660033] bg-[#FF660008] p-4">
@@ -189,6 +193,12 @@ export default function CustomerRecurrenceSeriesPanel({
         <p className="text-[13px] font-poppins text-gray-700 mb-1">{patternLabel}</p>
       ) : null}
       <p className="text-[12px] font-poppins text-gray-500 mb-3">{t("payPerVisitNote")}</p>
+
+      {!seriesActivated && series.seriesActive ? (
+        <p className="text-[12px] font-poppins text-blue-900 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 mb-3">
+          {t("intentOnlyPendingPayment")}
+        </p>
+      ) : null}
 
       {!series.seriesActive ? (
         <p className="text-[12px] font-poppins text-amber-900 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mb-3">
@@ -256,7 +266,7 @@ export default function CustomerRecurrenceSeriesPanel({
         })}
       </ul>
 
-      {series.previewNextDates && series.previewNextDates.length > 0 && series.seriesActive ? (
+      {series.previewNextDates && series.previewNextDates.length > 0 ? (
         <div className="mb-3">
           <p className="text-[11px] font-poppins font-semibold text-gray-500 uppercase tracking-wide mb-1">
             {t("upcomingPreview")}

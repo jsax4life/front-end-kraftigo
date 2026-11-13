@@ -7,6 +7,7 @@ import { formatRecurrenceScheduleLabel, type IsoWeekday } from "@/lib/bookingRec
 import {
   formatSeriesOccurrenceDate,
   formatSeriesOccurrenceTime,
+  isRecurrenceSeriesActivated,
   type RecurrenceSeriesResponse,
 } from "@/lib/recurrenceSeries";
 import type { Booking } from "@/types";
@@ -128,6 +129,12 @@ export default function KrafterRecurrenceSeriesPanel({
       ) : null}
       <p className="text-[12px] font-poppins text-gray-500 mb-3">{t("customerPaysPerVisit")}</p>
 
+      {!isRecurrenceSeriesActivated(series) && series.seriesActive ? (
+        <p className="text-[12px] font-poppins text-blue-900 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 mb-3">
+          {t("intentOnlyPendingPayment")}
+        </p>
+      ) : null}
+
       {!series.seriesActive ? (
         <p className="text-[12px] font-poppins text-amber-900 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mb-3">
           {t("seriesStopped")}
@@ -176,7 +183,7 @@ export default function KrafterRecurrenceSeriesPanel({
         })}
       </ul>
 
-      {series.previewNextDates?.length && series.seriesActive ? (
+      {series.previewNextDates?.length ? (
         <p className="text-[12px] font-poppins text-gray-600">
           <span className="font-semibold text-gray-700">{tCustomer("upcomingPreview")}: </span>
           {series.previewNextDates

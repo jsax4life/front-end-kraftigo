@@ -104,6 +104,7 @@
       "title": "Wiederkehrende Serie",
       "loading": "Kommende Termine werden geladen…",
       "payPerVisitNote": "Jeder Termin wird separat autorisiert, wenn das Datum näher rückt.",
+      "intentOnlyPendingPayment": "Weitere Termine werden geplant, sobald diese Buchung bezahlt und bestätigt ist. Die Daten unten sind nur eine Vorschau.",
       "seriesStopped": "Diese Serie ist beendet — es werden keine neuen Termine geplant.",
       "visitRoot": "Erster Termin",
       "visitNumber": "Termin {n}",
@@ -1054,6 +1055,7 @@
       "title": "Wiederkehrende Serie",
       "loading": "Terminplan wird geladen…",
       "customerPaysPerVisit": "Der Kunde autorisiert die Zahlung für jeden Termin, wenn er fällig ist.",
+      "intentOnlyPendingPayment": "Weitere Termine werden erstellt, nachdem der Kunde diese Buchung bezahlt und bestätigt hat. Vorschaudaten sind noch nicht buchbar.",
       "seriesStopped": "Der Kunde hat diese Serie beendet — es werden keine neuen Termine hinzugefügt.",
       "refresh": "Serie aktualisieren"
     }

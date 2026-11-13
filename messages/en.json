@@ -104,6 +104,7 @@
       "title": "Recurring series",
       "loading": "Loading upcoming visits…",
       "payPerVisitNote": "Each visit is authorized separately when its date approaches.",
+      "intentOnlyPendingPayment": "Future visits are planned after this booking is paid and confirmed. Dates below are a preview only.",
       "seriesStopped": "This series is stopped — no new visits will be scheduled.",
       "visitRoot": "First visit",
       "visitNumber": "Visit {n}",
@@ -1054,6 +1055,7 @@
       "title": "Recurring series",
       "loading": "Loading visit schedule…",
       "customerPaysPerVisit": "The customer authorizes payment for each visit when it's due.",
+      "intentOnlyPendingPayment": "More visits are created after the customer pays and confirms this booking. Preview dates are not bookable yet.",
       "seriesStopped": "The customer stopped this series — no new visits will be added.",
       "refresh": "Refresh series"
     }
